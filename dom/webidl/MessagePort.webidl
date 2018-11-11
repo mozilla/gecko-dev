@@ -7,10 +7,12 @@
  * http://www.whatwg.org/specs/web-apps/current-work/#channel-messaging
  */
 
-[Exposed=(Window,Worker,AudioWorklet,System)]
+[Exposed=(Window,Worker,AudioWorklet)]
 interface MessagePort : EventTarget {
   [Throws]
-  void postMessage(any message, optional sequence<object> transferable = []);
+  void postMessage(any message, sequence<object> transferable);
+  [Throws]
+  void postMessage(any message, optional PostMessageOptions options);
 
   void start();
   void close();
@@ -20,3 +22,7 @@ interface MessagePort : EventTarget {
   attribute EventHandler onmessageerror;
 };
 // MessagePort implements Transferable;
+
+dictionary PostMessageOptions {
+  sequence<object> transfer = [];
+};

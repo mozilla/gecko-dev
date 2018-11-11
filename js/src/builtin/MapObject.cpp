@@ -412,12 +412,6 @@ MapIteratorObject::createResultPair(JSContext* cx)
 
 /*** Map *****************************************************************************************/
 
-static JSObject*
-CreateMapPrototype(JSContext* cx, JSProtoKey key)
-{
-    return GlobalObject::createBlankPrototype(cx, cx->global(), &MapObject::protoClass_);
-}
-
 const ClassOps MapObject::classOps_ = {
     nullptr, // addProperty
     nullptr, // delProperty
@@ -434,7 +428,7 @@ const ClassOps MapObject::classOps_ = {
 
 const ClassSpec MapObject::classSpec_ = {
     GenericCreateConstructor<MapObject::construct, 0, gc::AllocKind::FUNCTION>,
-    CreateMapPrototype,
+    GenericCreatePrototype<MapObject>,
     nullptr,
     MapObject::staticProperties,
     MapObject::methods,
@@ -466,6 +460,7 @@ const JSPropertySpec MapObject::properties[] = {
 };
 
 const JSFunctionSpec MapObject::methods[] = {
+    // clang-format off
     JS_FN("get", get, 1, 0),
     JS_FN("has", has, 1, 0),
     JS_FN("set", set, 2, 0),
@@ -479,6 +474,7 @@ const JSFunctionSpec MapObject::methods[] = {
     JS_SELF_HOSTED_FN("entries", "MapEntries", 0, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "MapEntries", 0, 0),
     JS_FS_END
+    // clang-format on
 };
 
 const JSPropertySpec MapObject::staticProperties[] = {
@@ -1274,12 +1270,6 @@ SetIteratorObject::createResult(JSContext* cx)
 
 /*** Set *****************************************************************************************/
 
-static JSObject*
-CreateSetPrototype(JSContext* cx, JSProtoKey key)
-{
-    return GlobalObject::createBlankPrototype(cx, cx->global(), &SetObject::protoClass_);
-}
-
 const ClassOps SetObject::classOps_ = {
     nullptr, // addProperty
     nullptr, // delProperty
@@ -1296,7 +1286,7 @@ const ClassOps SetObject::classOps_ = {
 
 const ClassSpec SetObject::classSpec_ = {
     GenericCreateConstructor<SetObject::construct, 0, gc::AllocKind::FUNCTION>,
-    CreateSetPrototype,
+    GenericCreatePrototype<SetObject>,
     nullptr,
     SetObject::staticProperties,
     SetObject::methods,
@@ -1328,6 +1318,7 @@ const JSPropertySpec SetObject::properties[] = {
 };
 
 const JSFunctionSpec SetObject::methods[] = {
+    // clang-format off
     JS_FN("has", has, 1, 0),
     JS_FN("add", add, 1, 0),
     JS_FN("delete", delete_, 1, 0),
@@ -1340,6 +1331,7 @@ const JSFunctionSpec SetObject::methods[] = {
     JS_SELF_HOSTED_FN("keys", "SetValues", 0, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "SetValues", 0, 0),
     JS_FS_END
+    // clang-format on
 };
 
 const JSPropertySpec SetObject::staticProperties[] = {

@@ -5,6 +5,7 @@
 
 package org.mozilla.geckoview;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -65,7 +66,13 @@ import android.view.inputmethod.EditorInfo;
     // Filters to implement Editable's filtering functionality
     private InputFilter[] mFilters;
 
-    /* package */ final GeckoSession mSession;
+    /**
+     * We need a WeakReference here to avoid unnecessary
+     * retention of the GeckoSession. Passing objects around
+     * via JNI seems to confuse the GC into thinking we have
+     * a native GC root.
+     */
+    /* package */ final WeakReference<GeckoSession> mSession;
     private final AsyncText mText;
     private final Editable mProxy;
     private final ConcurrentLinkedQueue<Action> mActions;
@@ -98,6 +105,9 @@ import android.view.inputmethod.EditorInfo;
     private int mIMEFlags; // Used by IC thread.
 
     private boolean mIgnoreSelectionChange; // Used by Gecko thread
+    private int mLastTextChangeStart = -1; // Used by Gecko thread
+    private int mLastTextChangeEnd = -1; // Used by Gecko thread
+    private boolean mLastTextChangeReplacedSelection; // Used by Gecko thread
 
     // Prevent showSoftInput and hideSoftInput from being called multiple times in a row,
     // including reentrant calls on some devices. Used by UI/IC thread.
@@ -640,7 +650,7 @@ import android.view.inputmethod.EditorInfo;
             ThreadUtils.assertOnUiThread();
         }
 
-        mSession = session;
+        mSession = new WeakReference<>(session);
         mText = new AsyncText();
         mActions = new ConcurrentLinkedQueue<Action>();
 
@@ -651,10 +661,10 @@ import android.view.inputmethod.EditorInfo;
         mIcRunHandler = mIcPostHandler = ThreadUtils.getUiHandler();
     }
 
-    public void setDefaultEditableChild(final IGeckoEditableChild child) {
+    @Override // IGeckoEditableParent
+    public void setDefaultChild(final IGeckoEditableChild child) {
         if (DEBUG) {
-            // Called by SessionTextInput.
-            ThreadUtils.assertOnUiThread();
+            // On Gecko or binder thread.
             Log.d(LOGTAG, "setDefaultEditableChild " + child);
         }
         mDefaultChild = child;
@@ -933,6 +943,10 @@ import android.view.inputmethod.EditorInfo;
         */
         try {
             if (mFocusedChild == null) {
+                if (mDefaultChild == null) {
+                    Log.w(LOGTAG, "Discarding key event");
+                    return;
+                }
                 // Not focused; send simple key event to chrome window.
                 onKeyEvent(mDefaultChild, event, action, metaState,
                            /* isSynthesizedImeKey */ false);
@@ -1119,6 +1133,45 @@ import android.view.inputmethod.EditorInfo;
                           getConstantName(Action.class, "TYPE_", action.mType) + ")");
         }
         switch (action.mType) {
+        case Action.TYPE_REPLACE_TEXT: {
+            final Spanned currentText = mText.getCurrentText();
+            final int actionNewEnd = action.mStart + action.mSequence.length();
+            if (mLastTextChangeStart < 0 || mLastTextChangeEnd > currentText.length() ||
+                action.mStart < mLastTextChangeStart || actionNewEnd > mLastTextChangeEnd) {
+                // Replace-text action doesn't match our text change.
+                break;
+            }
+
+            int indexInText = TextUtils.indexOf(currentText, action.mSequence,
+                                                action.mStart, mLastTextChangeEnd);
+            if (indexInText < 0 && action.mStart != mLastTextChangeStart) {
+                final String changedText = TextUtils.substring(
+                        currentText, mLastTextChangeStart, actionNewEnd);
+                indexInText = changedText.lastIndexOf(action.mSequence.toString());
+                if (indexInText >= 0) {
+                    indexInText += mLastTextChangeStart;
+                }
+            }
+            if (indexInText < 0) {
+                // Replace-text action doesn't match our current text.
+                break;
+            }
+
+            // Replace-text action matches our current text; copy the new spans to the
+            // current text.
+            mText.currentReplace(indexInText,
+                                 indexInText + action.mSequence.length(),
+                                 action.mSequence);
+
+            // The text change is caused by the replace-text event. If the text change
+            // replaced the previous selection, we need to rely on Gecko for an updated
+            // selection, so don't ignore selection change. However, if the text change
+            // did not replace the previous selection, we can ignore the Gecko selection
+            // in favor of the Java selection.
+            mIgnoreSelectionChange = !mLastTextChangeReplacedSelection;
+            break;
+        }
+
         case Action.TYPE_SET_SPAN:
             final int len = mText.getCurrentText().length();
             if (action.mStart > len || action.mEnd > len ||
@@ -1285,7 +1338,7 @@ import android.view.inputmethod.EditorInfo;
     }
 
     @Override // IGeckoEditableParent
-    public void notifyIMEContext(final int state, final String typeHint,
+    public void notifyIMEContext(final IBinder token, final int state, final String typeHint,
                                  final String modeHint, final String actionHint,
                                  final int flags) {
         // On Gecko or binder thread.
@@ -1297,9 +1350,14 @@ import android.view.inputmethod.EditorInfo;
                           "\", 0x" + Integer.toHexString(flags) + ")");
         }
 
-        // Don't check token for notifyIMEContext, because the calls all come
-        // from the parent process.
-        ThreadUtils.assertOnGeckoThread();
+        // Regular notifyIMEContext calls all come from the parent process (with the default child),
+        // so always allow calls from there. We can get additional notifyIMEContext calls during
+        // a session transfer; calls in those cases can come from child processes, and we must
+        // perform a token check in that situation.
+        if (token != mDefaultChild.asBinder() &&
+            !binderCheckToken(token, /* allowNull */ false)) {
+            return;
+        }
 
         mIcPostHandler.post(new Runnable() {
             @Override
@@ -1371,7 +1429,11 @@ import android.view.inputmethod.EditorInfo;
                 if (toggleSoftInput) {
                     mSoftInputReentrancyGuard.incrementAndGet();
                 }
-                mSession.getTextInput().getDelegate().restartInput(mSession, reason);
+
+                final GeckoSession session = mSession.get();
+                if (session != null) {
+                    session.getTextInput().getDelegate().restartInput(session, reason);
+                }
 
                 if (!toggleSoftInput) {
                     return;
@@ -1511,7 +1573,12 @@ import android.view.inputmethod.EditorInfo;
                 // selection changing when highlighting. However in this case we don't want to
                 // show/hide the keyboard because the find box has the focus and is taking input from
                 // the keyboard.
-                final View view = mSession.getTextInput().getView();
+                final GeckoSession session = mSession.get();
+                if (session == null) {
+                    return;
+                }
+
+                final View view = session.getTextInput().getView();
                 final boolean isFocused = (view == null) || view.hasFocus();
 
                 final boolean isUserAction = ((flags &
@@ -1528,14 +1595,14 @@ import android.view.inputmethod.EditorInfo;
                     if (DEBUG) {
                         Log.d(LOGTAG, "hideSoftInput");
                     }
-                    mSession.getTextInput().getDelegate().hideSoftInput(mSession);
+                    session.getTextInput().getDelegate().hideSoftInput(session);
                     return;
                 }
                 if (DEBUG) {
                     Log.d(LOGTAG, "showSoftInput");
                 }
-                mSession.getEventDispatcher().dispatch("GeckoView:ZoomToInput", null);
-                mSession.getTextInput().getDelegate().showSoftInput(mSession);
+                session.getEventDispatcher().dispatch("GeckoView:ZoomToInput", null);
+                session.getTextInput().getDelegate().showSoftInput(session);
             }
         });
     }
@@ -1557,6 +1624,12 @@ import android.view.inputmethod.EditorInfo;
         } else {
             mText.currentSetSelection(start, end);
         }
+
+        // We receive selection change notification after receiving replies for pending
+        // events, so we can reset text change bounds at this point.
+        mLastTextChangeStart = -1;
+        mLastTextChangeEnd = -1;
+        mLastTextChangeReplacedSelection = false;
 
         mIcPostHandler.post(new Runnable() {
             @Override
@@ -1589,7 +1662,6 @@ import android.view.inputmethod.EditorInfo;
         final int currentLength = mText.getCurrentText().length();
         final int oldEnd = unboundedOldEnd > currentLength ? currentLength : unboundedOldEnd;
         final int newEnd = start + text.length();
-        final Action action = mActions.peek();
 
         if (start == 0 && unboundedOldEnd > currentLength) {
             // | oldEnd > currentLength | signals entire text is cleared (e.g. for
@@ -1601,96 +1673,42 @@ import android.view.inputmethod.EditorInfo;
             // Don't ignore the next selection change because we are re-syncing with Gecko
             mIgnoreSelectionChange = false;
 
-        } else if (action != null &&
-                action.mType == Action.TYPE_REPLACE_TEXT &&
-                start <= action.mStart &&
-                oldEnd >= action.mEnd &&
-                newEnd >= action.mStart + action.mSequence.length()) {
+            mLastTextChangeStart = -1;
+            mLastTextChangeEnd = -1;
+            mLastTextChangeReplacedSelection = false;
 
-            // Try to preserve both old spans and new spans in action.mSequence.
-            // indexInText is where we can find waction.mSequence within the passed in text.
-            final int startWithinText = action.mStart - start;
-            int indexInText = TextUtils.indexOf(text, action.mSequence, startWithinText);
-            if (indexInText < 0 && startWithinText >= action.mSequence.length()) {
-                indexInText = text.toString().lastIndexOf(action.mSequence.toString(),
-                                                          startWithinText);
-            }
+        } else if (!geckoIsSameText(start, oldEnd, text)) {
+            final Spanned currentText = mText.getCurrentText();
+            final int selStart = Selection.getSelectionStart(currentText);
+            final int selEnd = Selection.getSelectionEnd(currentText);
 
-            if (indexInText < 0) {
-                // Text was changed from under us. We are forced to discard any new spans.
-                mText.currentReplace(start, oldEnd, text);
+            // True if the selection was in the middle of the replaced text; in that case
+            // we don't know where to place the selection after replacement, and must rely
+            // on the Gecko selection.
+            mLastTextChangeReplacedSelection |=
+                (selStart >= start && selStart <= oldEnd) ||
+                (selEnd >= start && selEnd <= oldEnd);
 
-                // Don't ignore the next selection change because we are forced to re-sync
-                // with Gecko here.
-                mIgnoreSelectionChange = false;
-
-            } else if (indexInText == 0 && text.length() == action.mSequence.length() &&
-                    oldEnd - start == action.mEnd - action.mStart) {
-                // The new change exactly matches our saved change, so do a direct replace.
-                mText.currentReplace(start, oldEnd, action.mSequence);
-
-                // Ignore the next selection change because the selection change is a
-                // side-effect of the replace-text event we sent.
-                mIgnoreSelectionChange = true;
-
-            } else {
-                // The sequence is embedded within the changed text, so we have to perform
-                // replacement in parts. First replace part of text before the sequence.
-                mText.currentReplace(start, action.mStart, text.subSequence(0, indexInText));
-
-                // Then replace part of the text after the sequence.
-                final int actionStart = indexInText + start;
-                final int delta = actionStart - action.mStart;
-                final int actionEnd = delta + action.mEnd;
-
-                final Spanned currentText = mText.getCurrentText();
-                final boolean resetSelStart = Selection.getSelectionStart(currentText) == actionEnd;
-                final boolean resetSelEnd = Selection.getSelectionEnd(currentText) == actionEnd;
-
-                mText.currentReplace(actionEnd, delta + oldEnd, text.subSequence(
-                        indexInText + action.mSequence.length(), text.length()));
-
-                // The replacement above may have shifted our selection, if the selection
-                // was at the start of the replacement range. If so, we need to reset
-                // our selection to the previous position.
-                if (resetSelStart || resetSelEnd) {
-                    mText.currentSetSelection(
-                            resetSelStart ? actionEnd : Selection.getSelectionStart(currentText),
-                            resetSelEnd ? actionEnd : Selection.getSelectionEnd(currentText));
-                }
-
-                // Finally replace the sequence itself to preserve new spans.
-                mText.currentReplace(actionStart, actionEnd, action.mSequence);
-
-                // If one of the Java selection ends is not at the end of the replaced
-                // text, we want to preserve that selection, so we ignore the Gecko
-                // selection change notification. On the other hand, if the Java selection
-                // is normal, we want to try syncing the Java selection to the Gecko
-                // selection, because this text change could have changed the Gecko
-                // selection to elsewhere; so in that case, don't ignore the Gecko
-                // selection change notification.
-                mIgnoreSelectionChange = !resetSelStart || !resetSelEnd;
-            }
-
-        } else if (geckoIsSameText(start, oldEnd, text)) {
-            // Nothing to do because the text is the same. This could happen when
-            // the composition is updated for example, in which case we want to keep the
-            // Java selection.
-            mIgnoreSelectionChange = mIgnoreSelectionChange || (action != null &&
-                    (action.mType == Action.TYPE_REPLACE_TEXT ||
-                     action.mType == Action.TYPE_SET_SPAN ||
-                     action.mType == Action.TYPE_REMOVE_SPAN));
-            return;
-
-        } else {
             // Gecko side initiated the text change. Replace in two steps to properly
             // clear composing spans that span the whole range.
             mText.currentReplace(start, oldEnd, "");
             mText.currentReplace(start, start, text);
 
-            // Don't ignore the next selection change because we are forced to re-sync
-            // with Gecko here.
-            mIgnoreSelectionChange = false;
+            mLastTextChangeStart = start;
+            mLastTextChangeEnd = newEnd;
+
+        } else {
+            // Nothing to do because the text is the same. This could happen when
+            // the composition is updated for example, in which case we want to keep the
+            // Java selection.
+            final Action action = mActions.peek();
+            mIgnoreSelectionChange = mIgnoreSelectionChange || (action != null &&
+                    (action.mType == Action.TYPE_REPLACE_TEXT ||
+                     action.mType == Action.TYPE_SET_SPAN ||
+                     action.mType == Action.TYPE_REMOVE_SPAN));
+
+            mLastTextChangeStart = start;
+            mLastTextChangeEnd = newEnd;
         }
 
         // onTextChange is always followed by onSelectionChange, so we let
@@ -1769,7 +1787,7 @@ import android.view.inputmethod.EditorInfo;
         } else if (chr == '\n') {
             return "\u21b2";
         }
-        return String.format("%04x", (int) chr);
+        return String.format("\\u%04x", (int) chr);
     }
 
     static StringBuilder debugAppend(StringBuilder sb, Object obj) {

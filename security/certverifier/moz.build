@@ -9,34 +9,16 @@ with Files("**"):
 
 EXPORTS += [
     'BRNameMatchingPolicy.h',
-    'BTInclusionProof.h',
-    'BTVerifier.h',
-    'Buffer.h',
     'CertVerifier.h',
-    'CTLog.h',
-    'CTPolicyEnforcer.h',
-    'CTVerifyResult.h',
     'OCSPCache.h',
-    'SignedCertificateTimestamp.h',
-    'SignedTreeHead.h',
 ]
 
 UNIFIED_SOURCES += [
     'BRNameMatchingPolicy.cpp',
-    'BTVerifier.cpp',
-    'Buffer.cpp',
     'CertVerifier.cpp',
-    'CTDiversityPolicy.cpp',
-    'CTLogVerifier.cpp',
-    'CTObjectsExtractor.cpp',
-    'CTPolicyEnforcer.cpp',
-    'CTSerialization.cpp',
-    'CTVerifyResult.cpp',
-    'MultiLogCTVerifier.cpp',
     'NSSCertDBTrustDomain.cpp',
     'OCSPCache.cpp',
     'OCSPVerificationTrustDomain.cpp',
-    'SignedCertificateTimestamp.cpp',
 ]
 
 if not CONFIG['NSS_NO_EV_CERTS']:
@@ -45,13 +27,12 @@ if not CONFIG['NSS_NO_EV_CERTS']:
     ]
 
 LOCAL_INCLUDES += [
+    '/security/ct',
     '/security/manager/ssl',
-    '/security/pkix/include',
-    '/security/pkix/lib',
 ]
 
 DIRS += [
-    '../pkix',
+    '../ct',
 ]
 
 TEST_DIRS += [
@@ -97,7 +78,9 @@ if CONFIG['CC_TYPE'] == 'msvc':
     ]
 
     # Disable Spectre diagnostics only if optimization is disabled.
-    if not CONFIG['MOZ_OPTIMIZE']:
+    # AArch64 MSVC apparently warns about Spectre even if optimization is
+    # enabled, so disable the diagnostic there too.
+    if not CONFIG['MOZ_OPTIMIZE'] or CONFIG['CPU_ARCH'] == 'aarch64':
         CXXFLAGS += [
             '-wd5045', # Compiler will insert Spectre mitigation for memory
                        # load if /Qspectre switch specified

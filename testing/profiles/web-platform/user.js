@@ -22,3 +22,7 @@ user_pref("network.proxy.type", 0);
 user_pref("places.history.enabled", false);
 // Suppress automatic safe mode after crashes
 user_pref("toolkit.startup.max_resumed_crashes", -1);
+// Disable antialiasing for the Ahem font.
+user_pref("gfx.font_ahem_antialias_none", true);
+// Disable antiphishing popup
+user_pref("network.http.phishy-userpass-length", 255);

@@ -14,6 +14,12 @@ var gGlobalIsInvisible;
 var gSubsumes;
 var gIsOpaque;
 
+Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+});
+
 function run_test() {
   run_test_with_server(DebuggerServer, function() {
     run_test_with_server(WorkerDebuggerServer, do_test_finished);
@@ -89,7 +95,7 @@ async function testPrincipal(globalPrincipal) {
     for (gGlobalIsInvisible of [true, false]) {
       gGlobal = Cu.Sandbox(globalPrincipal, {
         wantXrays: globalHasXrays,
-        invisibleToDebugger: gGlobalIsInvisible
+        invisibleToDebugger: gGlobalIsInvisible,
       });
       // Previously, the Sandbox constructor would (bizarrely) waive xrays on
       // the return Sandbox if wantXrays was false. This has now been fixed,

@@ -11,6 +11,7 @@
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/ComputedStyleInlines.h"
 #include "mozilla/DocumentStyleRootIterator.h"
+#include "mozilla/GeckoBindings.h"
 #include "mozilla/LayerAnimationInfo.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/ServoStyleSetInlines.h"
@@ -1587,11 +1588,9 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         hint &= ~nsChangeHint_UpdateTransformLayer;
       }
 
-      if (hint & nsChangeHint_UpdateEffects) {
-        for (nsIFrame* cont = frame; cont;
-             cont = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(cont)) {
-          SVGObserverUtils::UpdateEffects(cont);
-        }
+      if ((hint & nsChangeHint_UpdateEffects) &&
+          frame == nsLayoutUtils::FirstContinuationOrIBSplitSibling(frame)) {
+        SVGObserverUtils::UpdateEffects(frame);
       }
       if ((hint & nsChangeHint_InvalidateRenderingObservers) ||
           ((hint & nsChangeHint_UpdateOpacityLayer) &&
@@ -1801,7 +1800,7 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
          LayerAnimationInfo::sRecords) {
     Maybe<uint64_t> generation =
       layers::AnimationInfo::GetGenerationFromFrame(aFrame,
-                                                    layerInfo.mLayerType);
+                                                    layerInfo.mDisplayItemType);
     if (generation && frameGeneration != *generation) {
       // If we have a transform layer bug don't have any transform style, we
       // probably just removed the transform but haven't destroyed the layer
@@ -1822,7 +1821,7 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
       // Note that we *don't* add nsChangeHint_UpdateTransformLayer since if we
       // did, ApplyRenderingChangeToTree would complain that we're updating a
       // transform layer without a transform.
-      if (layerInfo.mLayerType == DisplayItemType::TYPE_TRANSFORM &&
+      if (layerInfo.mDisplayItemType == DisplayItemType::TYPE_TRANSFORM &&
           !aFrame->StyleDisplay()->HasTransformStyle()) {
         // Add all the hints for a removing a transform if they are not already
         // set for this frame.
@@ -2010,11 +2009,11 @@ ServoRestyleState::AssertOwner(const ServoRestyleState& aParent) const
 {
   MOZ_ASSERT(mOwner);
   MOZ_ASSERT(!mOwner->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
+  MOZ_ASSERT(!mOwner->IsColumnSpanInMulticolSubtree());
   // We allow aParent.mOwner to be null, for cases when we're not starting at
   // the root of the tree.  We also allow aParent.mOwner to be somewhere up our
   // expected owner chain not our immediate owner, which allows us creating long
   // chains of ServoRestyleStates in some cases where it's just not worth it.
-#ifdef DEBUG
   if (aParent.mOwner) {
     const nsIFrame* owner = ExpectedOwnerForChild(mOwner);
     if (owner != aParent.mOwner) {
@@ -2030,7 +2029,6 @@ ServoRestyleState::AssertOwner(const ServoRestyleState& aParent) const
       MOZ_ASSERT(found, "Must have aParent.mOwner on our expected owner chain");
     }
   }
-#endif
 }
 
 nsChangeHint
@@ -2657,6 +2655,13 @@ RestyleManager::ProcessPostTraversal(
     primaryFrame &&
     primaryFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW);
 
+  // We need this because any column-spanner's parent frame is not its DOM
+  // parent's primary frame. We need some special check similar to out-of-flow
+  // frames.
+  const bool isColumnSpan =
+    primaryFrame &&
+    primaryFrame->IsColumnSpanInMulticolSubtree();
+
   // Grab the change hint from Servo.
   bool wasRestyled;
   nsChangeHint changeHint =
@@ -2684,8 +2689,11 @@ RestyleManager::ProcessPostTraversal(
       maybeAnonBoxChild = primaryFrame->GetPlaceholderFrame();
     } else {
       maybeAnonBoxChild = primaryFrame;
-      changeHint = NS_RemoveSubsumedHints(
-        changeHint, aRestyleState.ChangesHandledFor(styleFrame));
+      // Do not subsume change hints for the column-spanner.
+      if (!isColumnSpan) {
+        changeHint = NS_RemoveSubsumedHints(
+          changeHint, aRestyleState.ChangesHandledFor(styleFrame));
+      }
     }
 
     // If the parent wasn't restyled, the styles of our anon box parents won't
@@ -2740,7 +2748,7 @@ RestyleManager::ProcessPostTraversal(
 
   Maybe<ServoRestyleState> thisFrameRestyleState;
   if (styleFrame) {
-    auto type = isOutOfFlow
+    auto type = isOutOfFlow || isColumnSpan
       ? ServoRestyleState::Type::OutOfFlow
       : ServoRestyleState::Type::InFlow;
 

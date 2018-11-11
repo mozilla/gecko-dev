@@ -12,7 +12,7 @@ const {
   UNHIGHLIGHT,
   UPDATE_CAN_BE_DISABLED,
   UPDATE_CAN_BE_ENABLED,
-  UPDATE_DETAILS
+  UPDATE_DETAILS,
 } = require("../constants");
 
 const TreeView = require("devtools/client/shared/components/tree/TreeView");
@@ -27,7 +27,7 @@ function getInitialState() {
     canBeEnabled: true,
     selected: null,
     highlighted: null,
-    expanded: new Set()
+    expanded: new Set(),
   };
 }
 
@@ -132,9 +132,14 @@ function onCanBeEnabledChange(state, { canBeEnabled }) {
  * @param  {Object}  action  Redux action object
  * @return {Object}  updated state
  */
-function onReset(state, { accessibility }) {
+function onReset(state, { accessibility, supports }) {
   const { enabled, canBeDisabled, canBeEnabled } = accessibility;
-  return Object.assign({}, state, { enabled, canBeDisabled, canBeEnabled });
+  const newState = { ...state, enabled, canBeDisabled, canBeEnabled };
+  if (supports) {
+    newState.supports = supports;
+  }
+
+  return newState;
 }
 
 /**

@@ -365,6 +365,7 @@ ContainsHoistedDeclaration(JSContext* cx, ParseNode* node, bool* result)
       case ParseNodeKind::Arguments:
       case ParseNodeKind::Call:
       case ParseNodeKind::Name:
+      case ParseNodeKind::PrivateName:
       case ParseNodeKind::TemplateString:
       case ParseNodeKind::TemplateStringList:
       case ParseNodeKind::TaggedTemplate:
@@ -386,7 +387,8 @@ ContainsHoistedDeclaration(JSContext* cx, ParseNode* node, bool* result)
       case ParseNodeKind::ForOf:
       case ParseNodeKind::ForHead:
       case ParseNodeKind::ClassMethod:
-      case ParseNodeKind::ClassMethodList:
+      case ParseNodeKind::ClassField:
+      case ParseNodeKind::ClassMemberList:
       case ParseNodeKind::ClassNames:
       case ParseNodeKind::NewTarget:
       case ParseNodeKind::ImportMeta:
@@ -425,7 +427,6 @@ FoldType(JSContext* cx, ParseNode* pn, ParseNodeKind kind)
                     return false;
                 }
                 pn->setKind(ParseNodeKind::Number);
-                pn->setArity(PN_NUMBER);
                 pn->setOp(JSOP_DOUBLE);
                 pn->as<NumericLiteral>().setValue(d);
             }
@@ -438,7 +439,6 @@ FoldType(JSContext* cx, ParseNode* pn, ParseNodeKind kind)
                     return false;
                 }
                 pn->setKind(ParseNodeKind::String);
-                pn->setArity(PN_NAME);
                 pn->setOp(JSOP_STRING);
                 pn->as<NameNode>().setAtom(atom);
             }
@@ -545,7 +545,6 @@ FoldCondition(JSContext* cx, ParseNode** nodePtr, PerHandlerParser<FullParseHand
             node->setKind(ParseNodeKind::False);
             node->setOp(JSOP_FALSE);
         }
-        node->setArity(PN_NULLARY);
     }
 
     return true;
@@ -578,7 +577,6 @@ FoldTypeOfExpr(JSContext* cx, UnaryNode* node, PerHandlerParser<FullParseHandler
 
     if (result) {
         node->setKind(ParseNodeKind::String);
-        node->setArity(PN_NAME);
         node->setOp(JSOP_NOP);
         node->as<NameNode>().setAtom(result);
     }
@@ -601,7 +599,6 @@ FoldDeleteExpr(JSContext* cx, UnaryNode* node, PerHandlerParser<FullParseHandler
     // For effectless expressions, eliminate the expression evaluation.
     if (IsEffectless(expr)) {
         node->setKind(ParseNodeKind::True);
-        node->setArity(PN_NULLARY);
         node->setOp(JSOP_TRUE);
     }
 
@@ -675,12 +672,10 @@ FoldNot(JSContext* cx, UnaryNode* node, PerHandlerParser<FullParseHandler>& pars
             node->setKind(ParseNodeKind::False);
             node->setOp(JSOP_FALSE);
         }
-        node->setArity(PN_NULLARY);
     } else if (expr->isKind(ParseNodeKind::True) || expr->isKind(ParseNodeKind::False)) {
         bool newval = !expr->isKind(ParseNodeKind::True);
 
         node->setKind(newval ? ParseNodeKind::True : ParseNodeKind::False);
-        node->setArity(PN_NULLARY);
         node->setOp(newval ? JSOP_TRUE : JSOP_FALSE);
     }
 
@@ -718,7 +713,6 @@ FoldUnaryArithmetic(JSContext* cx, UnaryNode* node, PerHandlerParser<FullParseHa
         }
 
         node->setKind(ParseNodeKind::Number);
-        node->setArity(PN_NUMBER);
         node->setOp(JSOP_DOUBLE);
         node->as<NumericLiteral>().setValue(d);
     }
@@ -963,7 +957,6 @@ FoldIf(JSContext* cx, ParseNode** nodePtr, PerHandlerParser<FullParseHandler>& p
             // with no |else|.  Replace the entire thing with an empty
             // statement list.
             node->setKind(ParseNodeKind::StatementList);
-            node->setArity(PN_LIST);
             node->as<ListNode>().makeEmpty();
         } else {
             // Replacement invalidates |nextNode|, so reset it (if the
@@ -1089,7 +1082,6 @@ FoldBinaryArithmetic(JSContext* cx, ListNode* node, PerHandlerParser<FullParseHa
             elem->pn_next = next;
 
             elem->setKind(ParseNodeKind::Number);
-            elem->setArity(PN_NUMBER);
             elem->setOp(JSOP_DOUBLE);
             elem->as<NumericLiteral>().setValue(d);
 
@@ -1102,7 +1094,6 @@ FoldBinaryArithmetic(JSContext* cx, ListNode* node, PerHandlerParser<FullParseHa
 
             double d = elem->as<NumericLiteral>().value();
             node->setKind(ParseNodeKind::Number);
-            node->setArity(PN_NUMBER);
             node->setOp(JSOP_DOUBLE);
             node->as<NumericLiteral>().setValue(d);
         }
@@ -1150,7 +1141,6 @@ FoldExponentiation(JSContext* cx, ListNode* node, PerHandlerParser<FullParseHand
     double d2 = exponent->as<NumericLiteral>().value();
 
     node->setKind(ParseNodeKind::Number);
-    node->setArity(PN_NUMBER);
     node->setOp(JSOP_DOUBLE);
     node->as<NumericLiteral>().setValue(ecmaPow(d1, d2));
     return true;
@@ -1277,7 +1267,6 @@ FoldElement(JSContext* cx, ParseNode** nodePtr, PerHandlerParser<FullParseHandle
             // Optimization 1: We have something like expr["100"]. This is
             // equivalent to expr[100] which is faster.
             key->setKind(ParseNodeKind::Number);
-            key->setArity(PN_NUMBER);
             key->setOp(JSOP_DOUBLE);
             key->as<NumericLiteral>().setValue(index);
         } else {
@@ -1489,9 +1478,16 @@ FoldCall(JSContext* cx, BinaryNode* node, PerHandlerParser<FullParseHandler>& pa
     //   assertEq((true ? obj.f : null)``, "global");
     //   assertEq(obj.f``, "obj");
     //
+    // As an exception to this, we do allow folding the function in
+    // `(function() { ... })()` (the module pattern), because that lets us
+    // constant fold code inside that function.
+    //
     // See bug 537673 and bug 1182373.
     ParseNode* callee = node->left();
-    if (node->isKind(ParseNodeKind::New) || !callee->isInParens()) {
+    if (node->isKind(ParseNodeKind::New) ||
+        !callee->isInParens() ||
+        callee->isKind(ParseNodeKind::Function))
+    {
         if (!Fold(cx, node->unsafeLeftReference(), parser)) {
             return false;
         }
@@ -1624,6 +1620,7 @@ Fold(JSContext* cx, ParseNode** pnp, PerHandlerParser<FullParseHandler>& parser)
         return true;
 
       case ParseNodeKind::ObjectPropertyName:
+      case ParseNodeKind::PrivateName:
       case ParseNodeKind::String:
       case ParseNodeKind::TemplateString:
         MOZ_ASSERT(pn->is<NameNode>());
@@ -1752,7 +1749,7 @@ Fold(JSContext* cx, ParseNode** pnp, PerHandlerParser<FullParseHandler>& parser)
       case ParseNodeKind::Array:
       case ParseNodeKind::Object:
       case ParseNodeKind::StatementList:
-      case ParseNodeKind::ClassMethodList:
+      case ParseNodeKind::ClassMemberList:
       case ParseNodeKind::TemplateStringList:
       case ParseNodeKind::Var:
       case ParseNodeKind::Const:
@@ -1840,6 +1837,17 @@ Fold(JSContext* cx, ParseNode** pnp, PerHandlerParser<FullParseHandler>& parser)
         BinaryNode* node = &pn->as<BinaryNode>();
         return Fold(cx, node->unsafeLeftReference(), parser) &&
                Fold(cx, node->unsafeRightReference(), parser);
+      }
+
+      case ParseNodeKind::ClassField: {
+        ClassField* node = &pn->as<ClassField>();
+        if (node->hasInitializer()) {
+            if (!Fold(cx, node->unsafeInitializerReference(), parser)) {
+                return false;
+            }
+        }
+
+        return true;
       }
 
       case ParseNodeKind::NewTarget:

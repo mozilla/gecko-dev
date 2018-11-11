@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include rect,render_task,resource_cache,snap,transform
+#include rect,render_task,gpu_cache,snap,transform
 
 #ifdef WR_VERTEX_SHADER
 
@@ -63,13 +63,12 @@ ClipVertexInfo write_clip_tile_vertex(RectWithSize local_clip_rect,
         mat4 snap_mat = clip_transform.m * prim_transform.inv_m;
         vec4 snap_positions = compute_snap_positions(
             snap_mat,
-            local_clip_rect
+            local_clip_rect,
+            area.common_data.device_pixel_scale
         );
 
         vec2 snap_offsets = compute_snap_offset_impl(
             device_pos,
-            snap_mat,
-            local_clip_rect,
             RectWithSize(snap_positions.xy, snap_positions.zw - snap_positions.xy),
             snap_positions
         );
@@ -77,7 +76,7 @@ ClipVertexInfo write_clip_tile_vertex(RectWithSize local_clip_rect,
         device_pos -= snap_offsets;
     }
 
-    vec2 world_pos = device_pos / uDevicePixelRatio;
+    vec2 world_pos = device_pos / area.common_data.device_pixel_scale;
 
     vec4 pos = prim_transform.m * vec4(world_pos, 0.0, 1.0);
     pos.xyz /= pos.w;

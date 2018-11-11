@@ -45,7 +45,7 @@ add_task(async function() {
   info("Testing the rule-view selector");
   const ruleView = inspector.getPanel("ruleview").view;
   const cssRuleEditor = getRuleViewRuleEditor(ruleView, 1);
-  EventUtils.synthesizeMouse(cssRuleEditor.selectorText, 0, 0, {}, inspector.panelWin);
+  EventUtils.synthesizeMouseAtCenter(cssRuleEditor.selectorText, {}, inspector.panelWin);
   await checkTextBox(inspector.panelDoc.activeElement, toolbox);
 
   info("Testing the rule-view property name");
@@ -80,21 +80,23 @@ add_task(async function() {
   EventUtils.synthesizeMouseAtCenter(tag, {}, inspector.panelWin);
 });
 
-async function checkTextBox(textBox, {textBoxContextMenuPopup}) {
-  is(textBoxContextMenuPopup.state, "closed", "The menu is closed");
+async function checkTextBox(textBox, toolbox) {
+  let textboxContextMenu = toolbox.doc.getElementById("toolbox-menu");
+  ok(!textboxContextMenu, "The menu is  closed");
 
   info("Simulating context click on the textbox and expecting the menu to open");
-  const onContextMenu = once(textBoxContextMenuPopup, "popupshown");
-  EventUtils.synthesizeMouse(textBox, 2, 2, {type: "contextmenu", button: 2},
-                             textBox.ownerDocument.defaultView);
+  const onContextMenu = toolbox.once("menu-open");
+  synthesizeContextMenuEvent(textBox);
   await onContextMenu;
 
-  is(textBoxContextMenuPopup.state, "open", "The menu is now visible");
+  textboxContextMenu = toolbox.doc.getElementById("toolbox-menu");
+  ok(textboxContextMenu, "The menu is now visible");
 
   info("Closing the menu");
-  const onContextMenuHidden = once(textBoxContextMenuPopup, "popuphidden");
-  textBoxContextMenuPopup.hidePopup();
+  const onContextMenuHidden = toolbox.once("menu-close");
+  EventUtils.sendKey("ESCAPE", toolbox.win);
   await onContextMenuHidden;
 
-  is(textBoxContextMenuPopup.state, "closed", "The menu is closed again");
+  textboxContextMenu = toolbox.doc.getElementById("toolbox-menu");
+  ok(!textboxContextMenu, "The menu is closed again");
 }

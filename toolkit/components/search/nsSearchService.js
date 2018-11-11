@@ -11,13 +11,13 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   OS: "resource://gre/modules/osfile.jsm",
-  TelemetryStopwatch: "resource://gre/modules/TelemetryStopwatch.jsm",
   Deprecated: "resource://gre/modules/Deprecated.jsm",
   SearchStaticData: "resource://gre/modules/SearchStaticData.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
   clearTimeout: "resource://gre/modules/Timer.jsm",
   Lz4: "resource://gre/modules/lz4.js",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
+  ExtensionParent: "resource://gre/modules/ExtensionParent.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
@@ -65,6 +65,7 @@ const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 // We load plugins from APP_SEARCH_PREFIX, where a list.json
 // file needs to exist to list available engines.
 const APP_SEARCH_PREFIX = "resource://search-plugins/";
+const EXT_SEARCH_PREFIX = "resource://search-extensions/";
 
 // See documentation in nsIBrowserSearchService.idl.
 const SEARCH_ENGINE_TOPIC        = "browser-search-engine-modified";
@@ -188,38 +189,34 @@ const SEARCH_DEFAULT_UPDATE_INTERVAL = 7;
 // from the server doesn't specify an interval.
 const SEARCH_GEO_DEFAULT_UPDATE_INTERVAL = 2592000; // 30 days.
 
-// Regular expressions used to identify common search URLS.
-const SEARCH_URL_REGEX = new RegExp([
-  /^https:\/\/www\.(google)\.(?:.+)\/search/,
-  /^https:\/\/(?:.*)search\.(yahoo)\.com\/search/,
-  /^https:\/\/www\.(bing)\.com\/search/,
-  /^https:\/\/(duckduckgo)\.com\//,
-  /^https:\/\/www\.(baidu)\.com\/(?:s|baidu)/,
-].map(regex => regex.source).join("|"));
-
 // Used to identify various parameters (query, code, etc.) in search URLS.
 const SEARCH_PROVIDER_INFO = {
   "google": {
+    "regexp": /^https:\/\/www\.(google)\.(?:.+)\/search/,
     "queryParam": "q",
     "codeParam": "client",
     "codePrefixes": ["firefox"],
     "followonParams": ["oq", "ved", "ei"],
   },
   "duckduckgo": {
+    "regexp": /^https:\/\/(duckduckgo)\.com\//,
     "queryParam": "q",
     "codeParam": "t",
     "codePrefixes": ["ff"],
   },
   "yahoo": {
+    "regexp": /^https:\/\/(?:.*)search\.(yahoo)\.com\/search/,
     "queryParam": "p",
   },
   "baidu": {
+    "regexp": /^https:\/\/www\.(baidu)\.com\/(?:s|baidu)/,
     "queryParam": "wd",
     "codeParam": "tn",
     "codePrefixes": ["monline_dg"],
     "followonParams": ["oq"],
   },
   "bing": {
+    "regexp": /^https:\/\/www\.(bing)\.com\/search/,
     "queryParam": "q",
     "codeParam": "pc",
     "codePrefixes": ["MOZ", "MZ"],
@@ -1079,9 +1076,13 @@ EngineURL.prototype = {
     if (this.method == "GET") {
       // GET method requests have no post data, and append the encoded
       // query string to the url...
-      if (!url.includes("?") && dataString)
-        url += "?";
-      url += dataString;
+      if (dataString) {
+        if (url.includes("?")) {
+          url = `${url}&${dataString}`;
+        } else {
+          url = `${url}?${dataString}`;
+        }
+      }
     } else if (this.method == "POST") {
       // POST method requests must wrap the encoded text in a MIME
       // stream and supply that as POSTDATA.
@@ -1282,6 +1283,9 @@ Engine.prototype = {
   _iconUpdateURL: null,
   /* The extension ID if added by an extension. */
   _extensionID: null,
+  // If the extension is builtin we treat it as a builtin search engine as well.
+  // Both System and Distribution extensions are considered builtin for search engines.
+  _isBuiltinExtension: false,
 
   /**
    * Retrieves the data from the engine's file.
@@ -1677,6 +1681,7 @@ Engine.prototype = {
           return;
         }
         // Fall through to the data case
+      case "moz-extension":
       case "data":
         if (!this._hasPreferredIcon || aIsPreferred) {
           this._iconURI = uri;
@@ -1772,6 +1777,38 @@ Engine.prototype = {
   },
 
   /**
+   * Initialize an EngineURL object from metadata.
+   */
+  _initEngineURLFromMetaData(aType, aParams) {
+    let url = new EngineURL(aType, aParams.method || "GET", aParams.template);
+
+    if (aParams.postParams) {
+      let queries = new URLSearchParams(aParams.postParams);
+      for (let [name, value] of queries) {
+        url.addParam(name, value);
+      }
+    }
+
+    if (aParams.mozParams) {
+      for (let p of aParams.mozParams) {
+        if ((p.condition || p.purpose) && !this._isDefault) {
+          continue;
+        }
+        if (p.condition == "pref") {
+          let value = getMozParamPref(p.pref);
+          url.addParam(p.name, value);
+          url._addMozParam(p);
+        } else {
+          url.addParam(p.name, p.value, p.purpose || undefined);
+        }
+      }
+    }
+
+    this._urls.push(url);
+    return url;
+  },
+
+  /**
    * Initialize this Engine object from a collection of metadata.
    */
   _initFromMetadata: function SRCH_ENG_initMetaData(aName, aParams) {
@@ -1779,11 +1816,24 @@ Engine.prototype = {
                 "Can't call _initFromMetaData on a readonly engine!",
                 Cr.NS_ERROR_FAILURE);
 
-    let method = aParams.method || "GET";
-    this._urls.push(new EngineURL(URLTYPE_SEARCH_HTML, method, aParams.template));
+    this._extensionID = aParams.extensionID;
+    this._isBuiltinExtension = !!aParams.isBuiltIn;
+
+    this._initEngineURLFromMetaData(URLTYPE_SEARCH_HTML, {
+      method: (aParams.searchPostParams && "POST") || aParams.method || "GET",
+      template: aParams.template,
+      postParams: aParams.searchPostParams,
+      mozParams: aParams.mozParams,
+    });
+
     if (aParams.suggestURL) {
-      this._urls.push(new EngineURL(URLTYPE_SUGGEST_JSON, "GET", aParams.suggestURL));
+      this._initEngineURLFromMetaData(URLTYPE_SUGGEST_JSON, {
+        method: (aParams.suggestPostParams && "POST") || aParams.method || "GET",
+        template: aParams.suggestURL,
+        postParams: aParams.suggestPostParams,
+      });
     }
+
     if (aParams.queryCharset) {
       this._queryCharset = aParams.queryCharset;
     }
@@ -1797,8 +1847,15 @@ Engine.prototype = {
     this._name = aName;
     this.alias = aParams.alias;
     this._description = aParams.description;
-    this._setIcon(aParams.iconURL, true);
-    this._extensionID = aParams.extensionID;
+    if (aParams.iconURL) {
+      this._setIcon(aParams.iconURL, true);
+    }
+    // Other sizes
+    if (aParams.icons) {
+      for (let icon of aParams.icons) {
+        this._addIconToMap(icon.size, icon.size, icon.url);
+      }
+    }
   },
 
   /**
@@ -2214,6 +2271,10 @@ Engine.prototype = {
   },
 
   get _isDefault() {
+    if (this._extensionID) {
+      return this._isBuiltinExtension;
+    }
+
     // If we don't have a shortName, the engine is being parsed from a
     // downloaded file, so this can't be a default engine.
     if (!this._shortName)
@@ -2350,7 +2411,7 @@ Engine.prototype = {
     if (aResponseType == URLTYPE_SEARCH_HTML &&
         ((resetPending = resetStatus == "pending") ||
          resetEnabled) &&
-        this.name == Services.search.currentEngine.name &&
+        this.name == Services.search.defaultEngine.name &&
         !this._isDefault &&
         this.name != Services.search.originalDefaultEngine.name &&
         (resetPending || !this.getAttr("loadPathHash") ||
@@ -2675,7 +2736,6 @@ SearchService.prototype = {
 
     Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "init-complete");
     Services.telemetry.getHistogramById("SEARCH_SERVICE_INIT_SYNC").add(true);
-    this._recordEngineTelemetry();
 
     LOG("_syncInit end");
   },
@@ -2718,7 +2778,6 @@ SearchService.prototype = {
     this._initObservers.resolve(this._initRV);
     Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "init-complete");
     Services.telemetry.getHistogramById("SEARCH_SERVICE_INIT_SYNC").add(false);
-    this._recordEngineTelemetry();
 
     LOG("_asyncInit: Completed _asyncInit");
   },
@@ -3021,7 +3080,6 @@ SearchService.prototype = {
         // so signal to 'callers' that we're done.
         gInitialized = true;
         Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "init-complete");
-        this._recordEngineTelemetry();
       } catch (err) {
         LOG("Reinit failed: " + err);
         Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "reinit-failed");
@@ -3120,8 +3178,8 @@ SearchService.prototype = {
     return this._batchTask;
   },
 
-  _blackList: [
-    "blacklist=true",
+  _submissionURLIgnoreList: [
+    "ignore=true",
     "hspart=lvs",
     "form=CONBDF",
     "clid=2308146",
@@ -3129,10 +3187,22 @@ SearchService.prototype = {
     "PC=MC0",
   ],
 
+  _loadPathIgnoreList: [
+    "[other]addEngineWithDetails:searchignore@mozilla.com",
+    "[https]opensearch.startpageweb.com/bing-search.xml",
+    "[https]opensearch.startwebsearch.com/bing-search.xml",
+    "[https]opensearch.webstartsearch.com/bing-search.xml",
+    "[https]opensearch.webofsearch.com/bing-search.xml",
+  ],
+
   _addEngineToStore: function SRCH_SVC_addEngineToStore(aEngine) {
     let url = aEngine._getURLOfType("text/html").getSubmission("dummy", aEngine).uri.spec.toLowerCase();
-    if (this._blackList.some(code => url.includes(code.toLowerCase()))) {
-      LOG("_addEngineToStore: Ignoring blacklisted engine");
+    if (this._submissionURLIgnoreList.some(code => url.includes(code.toLowerCase()))) {
+      LOG("_addEngineToStore: Ignoring engine");
+      return;
+    }
+    if (this._loadPathIgnoreList.includes(aEngine._loadPath)) {
+      LOG("_addEngineToStore: Ignoring engine");
       return;
     }
 
@@ -3904,8 +3974,40 @@ SearchService.prototype = {
     }
   },
 
-  addEngine: function SRCH_SVC_addEngine(aEngineURL, aDataType, aIconURL,
-                                         aConfirm, aCallback, aExtensionID) {
+  addEnginesFromExtension(extension) {
+    let {IconDetails} = ExtensionParent;
+    let {manifest} = extension;
+
+    // General set of icons for an engine.
+    let icons = extension.manifest.icons;
+    let iconList = [];
+    if (icons) {
+      iconList = Object.entries(icons).map(icon => {
+        return {width: icon[0], height: icon[0],
+                url: extension.baseURI.resolve(icon[1])};
+      });
+    }
+    let preferredIconUrl = icons && extension.baseURI.resolve(IconDetails.getPreferredIcon(icons).icon);
+
+    let searchProvider = manifest.chrome_settings_overrides.search_provider;
+    let params = {
+      template: searchProvider.search_url,
+      searchPostParams: searchProvider.search_url_post_params,
+      iconURL: searchProvider.favicon_url || preferredIconUrl,
+      icons: iconList,
+      alias: searchProvider.keyword,
+      extensionID: extension.id,
+      isBuiltIn: extension.isPrivileged,
+      suggestURL: searchProvider.suggest_url,
+      suggestPostParams: searchProvider.suggest_url_post_params,
+      queryCharset: searchProvider.encoding || "UTF-8",
+      mozParams: searchProvider.params,
+    };
+    this.addEngineWithDetails(searchProvider.name.trim(), params);
+  },
+
+  addEngine: function SRCH_SVC_addEngine(aEngineURL, aIconURL, aConfirm,
+                                         aCallback, aExtensionID) {
     LOG("addEngine: Adding \"" + aEngineURL + "\".");
     this._ensureInitialized();
     try {
@@ -4257,11 +4359,6 @@ SearchService.prototype = {
     return result;
   },
 
-  _recordEngineTelemetry() {
-    Services.telemetry.getHistogramById("SEARCH_SERVICE_ENGINE_COUNT")
-            .add(Object.keys(this._engines).length);
-  },
-
   /**
    * This map is built lazily after the available search engines change.  It
    * allows quick parsing of an URL representing a search submission into the
@@ -4465,13 +4562,22 @@ SearchService.prototype = {
     return new ParseSubmissionResult(mapEntry.engine, terms, offset, length);
   },
 
+  __searchProviderInfo: null,
+  get _searchProviderInfo() {
+    if (!this.__searchProviderInfo) {
+      this.__searchProviderInfo = SEARCH_PROVIDER_INFO;
+    }
+    return this.__searchProviderInfo;
+  },
+
   recordSearchURLTelemetry(url) {
-    let matches = url.match(SEARCH_URL_REGEX);
-    if (!matches) {
+    let entry = Object.entries(this._searchProviderInfo).find(
+      ([_, info]) => info.regexp.test(url)
+    );
+    if (!entry) {
       return;
     }
-    let provider = matches.filter((e, i) => e && i != 0)[0];
-    let searchProviderInfo = SEARCH_PROVIDER_INFO[provider];
+    let [provider, searchProviderInfo] = entry;
     let queries = new URLSearchParams(url.split("#")[0].split("?")[1]);
     if (!queries.get(searchProviderInfo.queryParam)) {
       return;
@@ -4556,6 +4662,18 @@ SearchService.prototype = {
         // Locales are removed during shutdown, so ignore this message
         if (!Services.startup.shuttingDown) {
           this._asyncReInit();
+        }
+        break;
+
+      case "test:setSearchProviderInfo":
+        if (aVerb) {
+          let infoByProvider = JSON.parse(aVerb);
+          for (let info of Object.values(infoByProvider)) {
+            info.regexp = new RegExp(info.regexp);
+          }
+          this.__searchProviderInfo = infoByProvider;
+        } else {
+          this.__searchProviderInfo = SEARCH_PROVIDER_INFO;
         }
         break;
     }

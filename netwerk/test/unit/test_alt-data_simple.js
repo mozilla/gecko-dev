@@ -91,7 +91,7 @@ function asyncOpen()
   var chan = make_channel(URL);
 
   var cc = chan.QueryInterface(Ci.nsICacheInfoChannel);
-  cc.preferAlternativeDataType(altContentType);
+  cc.preferAlternativeDataType(altContentType, "");
 
   chan.asyncOpen2(new ChannelListener(readServerContent, null));
 }
@@ -136,7 +136,9 @@ function flushAndOpenAltChannel()
 function openAltChannel() {
   var chan = make_channel(URL);
   var cc = chan.QueryInterface(Ci.nsICacheInfoChannel);
-  cc.preferAlternativeDataType(altContentType);
+  cc.preferAlternativeDataType("dummy1", "text/javascript");
+  cc.preferAlternativeDataType(altContentType, "text/plain");
+  cc.preferAlternativeDataType("dummy2", "");
 
   chan.asyncOpen2(new ChannelListener(readAltContent, null));
 }
@@ -150,7 +152,25 @@ function readAltContent(request, buffer)
   Assert.equal(buffer, altContent);
   check_has_alt_data_in_index(true);
 
-  requestAgain();
+  cc.getOriginalInputStream({
+    onInputStreamReady: function(aInputStream) {
+      executeSoon(() => readOriginalInputStream(aInputStream));
+    }
+  });
+}
+
+function readOriginalInputStream(aInputStream)
+{
+  // We expect the async stream length to match the expected content.
+  // If the test times out, it's probably because of this.
+  try {
+    let originalData = read_stream(aInputStream, responseContent.length);
+    Assert.equal(originalData, responseContent);
+    requestAgain();
+  } catch (e) {
+    equal(e.result, Cr.NS_BASE_STREAM_WOULD_BLOCK);
+    executeSoon(() => readOriginalInputStream(aInputStream));
+  }
 }
 
 function requestAgain()
@@ -158,7 +178,7 @@ function requestAgain()
   shouldPassRevalidation = false;
   var chan = make_channel(URL);
   var cc = chan.QueryInterface(Ci.nsICacheInfoChannel);
-  cc.preferAlternativeDataType(altContentType);
+  cc.preferAlternativeDataType(altContentType, "");
   chan.asyncOpen2(new ChannelListener(readEmptyAltContent, null));
 }
 

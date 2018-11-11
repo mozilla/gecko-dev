@@ -48,62 +48,9 @@ DataViewObject::create(JSContext* cx, uint32_t byteOffset, uint32_t byteLength,
         return nullptr;
     }
 
-    MOZ_ASSERT(byteOffset <= INT32_MAX);
-    MOZ_ASSERT(byteLength <= INT32_MAX);
-    MOZ_ASSERT(byteOffset + byteLength < UINT32_MAX);
-
     DataViewObject* obj = NewObjectWithClassProto<DataViewObject>(cx, proto);
-    if (!obj) {
+    if (!obj || !obj->init(cx, arrayBuffer, byteOffset, byteLength, /* bytesPerElement = */ 1)) {
         return nullptr;
-    }
-
-    // Caller should have established these preconditions, and no
-    // (non-self-hosted) JS code has had an opportunity to run so nothing can
-    // have invalidated them.
-    MOZ_ASSERT(byteOffset <= arrayBuffer->byteLength());
-    MOZ_ASSERT(byteOffset + byteLength <= arrayBuffer->byteLength());
-
-    // The isSharedMemory property is invariant.  Self-hosting code that sets
-    // BUFFER_SLOT or the private slot (if it does) must maintain it by always
-    // setting those to reference shared memory.
-    bool isSharedMemory = IsSharedArrayBuffer(arrayBuffer.get());
-    if (isSharedMemory) {
-        obj->setIsSharedMemory();
-    }
-
-    obj->setFixedSlot(TypedArrayObject::BYTEOFFSET_SLOT, Int32Value(byteOffset));
-    obj->setFixedSlot(TypedArrayObject::LENGTH_SLOT, Int32Value(byteLength));
-    obj->setFixedSlot(TypedArrayObject::BUFFER_SLOT, ObjectValue(*arrayBuffer));
-
-    SharedMem<uint8_t*> ptr = arrayBuffer->dataPointerEither();
-    // A pointer to raw shared memory is exposed through the private slot.  This
-    // is safe so long as getPrivate() is not used willy-nilly.  It is wrapped in
-    // other accessors in TypedArrayObject.h.
-    obj->initPrivate(ptr.unwrap(/*safe - see above*/) + byteOffset);
-
-    // Include a barrier if the data view's data pointer is in the nursery, as
-    // is done for typed arrays.
-    if (!IsInsideNursery(obj) && cx->nursery().isInside(ptr)) {
-        // Shared buffer data should never be nursery-allocated, so we
-        // need to fail here if isSharedMemory.  However, mmap() can
-        // place a SharedArrayRawBuffer up against the bottom end of a
-        // nursery chunk, and a zero-length buffer will erroneously be
-        // perceived as being inside the nursery; sidestep that.
-        if (isSharedMemory) {
-            MOZ_ASSERT(arrayBuffer->byteLength() == 0 &&
-                       (uintptr_t(ptr.unwrapValue()) & gc::ChunkMask) == 0);
-        } else {
-            cx->runtime()->gc.storeBuffer().putWholeCell(obj);
-        }
-    }
-
-    // Verify that the private slot is at the expected place
-    MOZ_ASSERT(obj->numFixedSlots() == TypedArrayObject::DATA_SLOT);
-
-    if (arrayBuffer->is<ArrayBufferObject>()) {
-        if (!arrayBuffer->as<ArrayBufferObject>().addView(cx, obj)) {
-            return nullptr;
-        }
     }
 
     return obj;
@@ -415,7 +362,7 @@ DataViewObject::read(JSContext* cx, Handle<DataViewObject*> obj, const CallArgs&
     bool isLittleEndian = args.length() >= 2 && ToBoolean(args[1]);
 
     // Steps 6-7.
-    if (obj->arrayBufferEither().isDetached()) {
+    if (obj->hasDetachedBuffer()) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
         return false;
     }
@@ -503,7 +450,7 @@ DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj, const CallArgs
     bool isLittleEndian = args.length() >= 3 && ToBoolean(args[2]);
 
     // Steps 7-8.
-    if (obj->arrayBufferEither().isDetached()) {
+    if (obj->hasDetachedBuffer()) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
         return false;
     }
@@ -895,7 +842,7 @@ DataViewObject::byteLengthGetterImpl(JSContext* cx, const CallArgs& args)
     Rooted<DataViewObject*> thisView(cx, &args.thisv().toObject().as<DataViewObject>());
 
     // Step 6.
-    if (thisView->arrayBufferEither().isDetached()) {
+    if (thisView->hasDetachedBuffer()) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
         return false;
     }
@@ -918,7 +865,7 @@ DataViewObject::byteOffsetGetterImpl(JSContext* cx, const CallArgs& args)
     Rooted<DataViewObject*> thisView(cx, &args.thisv().toObject().as<DataViewObject>());
 
     // Step 6.
-    if (thisView->arrayBufferEither().isDetached()) {
+    if (thisView->hasDetachedBuffer()) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
         return false;
     }
@@ -934,13 +881,6 @@ DataViewObject::byteOffsetGetter(JSContext* cx, unsigned argc, Value* vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<is, byteOffsetGetterImpl>(cx, args);
 }
-
-const Class DataViewObject::protoClass_ = {
-    js_Object_str,
-    JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
-    JS_NULL_CLASS_OPS,
-    &DataViewObject::classSpec_
-};
 
 JSObject*
 DataViewObject::CreatePrototype(JSContext* cx, JSProtoKey key)
@@ -963,8 +903,8 @@ static const ClassOps DataViewObjectClassOps = {
 };
 
 const ClassSpec DataViewObject::classSpec_ = {
-    GenericCreateConstructor<DataViewObject::construct, 3, gc::AllocKind::FUNCTION>,
-    DataViewObject::CreatePrototype,
+    GenericCreateConstructor<DataViewObject::construct, 1, gc::AllocKind::FUNCTION>,
+    GenericCreatePrototype<DataViewObject>,
     nullptr,
     nullptr,
     DataViewObject::methods,
@@ -974,13 +914,21 @@ const ClassSpec DataViewObject::classSpec_ = {
 const Class DataViewObject::class_ = {
     "DataView",
     JSCLASS_HAS_PRIVATE |
-    JSCLASS_HAS_RESERVED_SLOTS(TypedArrayObject::RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(DataViewObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
     &DataViewObjectClassOps,
     &DataViewObject::classSpec_
 };
 
+const Class DataViewObject::protoClass_ = {
+    js_Object_str,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
+    JS_NULL_CLASS_OPS,
+    &DataViewObject::classSpec_
+};
+
 const JSFunctionSpec DataViewObject::methods[] = {
+    // clang-format off
     JS_FN("getInt8",    DataViewObject::fun_getInt8,      1,0),
     JS_FN("getUint8",   DataViewObject::fun_getUint8,     1,0),
     JS_FN("getInt16",   DataViewObject::fun_getInt16,     1,0),
@@ -998,6 +946,7 @@ const JSFunctionSpec DataViewObject::methods[] = {
     JS_FN("setFloat32", DataViewObject::fun_setFloat32,   2,0),
     JS_FN("setFloat64", DataViewObject::fun_setFloat64,   2,0),
     JS_FS_END
+    // clang-format on
 };
 
 const JSPropertySpec DataViewObject::properties[] = {
@@ -1007,21 +956,6 @@ const JSPropertySpec DataViewObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "DataView", JSPROP_READONLY),
     JS_PS_END
 };
-
-void
-DataViewObject::notifyBufferDetached(void* newData)
-{
-    setFixedSlot(TypedArrayObject::LENGTH_SLOT, Int32Value(0));
-    setFixedSlot(TypedArrayObject::BYTEOFFSET_SLOT, Int32Value(0));
-    setPrivate(newData);
-}
-
-JS_FRIEND_API(bool)
-JS_IsDataViewObject(JSObject* obj)
-{
-    obj = CheckedUnwrap(obj);
-    return obj ? obj->is<DataViewObject>() : false;
-}
 
 JS_FRIEND_API(uint32_t)
 JS_GetDataViewByteOffset(JSObject* obj)

@@ -6,12 +6,12 @@ Transform the `release-generate-checksums-beetmover` task to also append `build`
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
-from taskgraph.util.schema import validate_schema, Schema
+from taskgraph.util.schema import validate_schema
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
-                                         get_phase,
                                          get_worker_type_for_scope,
                                          )
 from taskgraph.util.taskcluster import get_artifact_prefix
@@ -41,10 +41,7 @@ task_description_schema = {str(k): v for k, v in task_description_schema.schema.
 
 transforms = TransformSequence()
 
-release_generate_checksums_beetmover_schema = Schema({
-    # the dependent task (object) for this beetmover job, used to inform beetmover.
-    Required('dependent-task'): object,
-
+release_generate_checksums_beetmover_schema = schema.extend({
     # depname is used in taskref's to identify the taskID of the unsigned things
     Required('depname', default='build'): basestring,
 
@@ -64,7 +61,7 @@ release_generate_checksums_beetmover_schema = Schema({
 @transforms.add
 def validate(config, jobs):
     for job in jobs:
-        label = job.get('dependent-task', object).__dict__.get('label', '?no-label?')
+        label = job.get('primary-dependency', object).__dict__.get('label', '?no-label?')
         validate_schema(
             release_generate_checksums_beetmover_schema, job,
             "In ({!r} kind) task for {!r}:".format(config.kind, label))
@@ -74,7 +71,7 @@ def validate(config, jobs):
 @transforms.add
 def make_task_description(config, jobs):
     for job in jobs:
-        dep_job = job['dependent-task']
+        dep_job = job['primary-dependency']
         attributes = copy_attributes_from_dependent_job(dep_job)
 
         treeherder = job.get('treeherder', {})
@@ -104,7 +101,6 @@ def make_task_description(config, jobs):
 
         bucket_scope = get_beetmover_bucket_scope(config)
         action_scope = get_beetmover_action_scope(config)
-        phase = get_phase(config)
 
         task = {
             'label': label,
@@ -115,7 +111,7 @@ def make_task_description(config, jobs):
             'attributes': attributes,
             'run-on-projects': dep_job.attributes.get('run_on_projects'),
             'treeherder': treeherder,
-            'shipping-phase': phase,
+            'shipping-phase': 'promote',
         }
 
         yield task

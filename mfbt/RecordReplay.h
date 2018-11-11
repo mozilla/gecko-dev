@@ -13,6 +13,7 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/TemplateLib.h"
 #include "mozilla/Types.h"
+#include "mozilla/Utf8.h"
 
 #include <functional>
 #include <stdarg.h>
@@ -102,15 +103,16 @@ static inline bool IsMiddleman() { return false; }
 
 // Mark a region which occurs atomically wrt the recording. No two threads can
 // be in an atomic region at once, and the order in which atomic sections are
-// executed by the various threads will be the same in the replay as in the
-// recording. These calls have no effect when not recording/replaying.
-static inline void BeginOrderedAtomicAccess();
+// executed by the various threads for the same aValue will be the same in the
+// replay as in the recording. These calls have no effect when not recording or
+// replaying.
+static inline void BeginOrderedAtomicAccess(const void* aValue);
 static inline void EndOrderedAtomicAccess();
 
 // RAII class for an atomic access.
 struct MOZ_RAII AutoOrderedAtomicAccess
 {
-  AutoOrderedAtomicAccess() { BeginOrderedAtomicAccess(); }
+  explicit AutoOrderedAtomicAccess(const void* aValue) { BeginOrderedAtomicAccess(aValue); }
   ~AutoOrderedAtomicAccess() { EndOrderedAtomicAccess(); }
 };
 
@@ -245,26 +247,6 @@ MFBT_API void ExecuteTriggers();
 // be used to test for such cases and avoid causing the operation to fail.
 static inline bool HasDivergedFromRecording();
 
-// API for handling unrecorded waits. During replay, periodically all threads
-// must enter a specific idle state so that checkpoints may be saved or
-// restored for rewinding. For threads which block on recorded resources
-// --- they wait on a recorded lock (one which was created when events were not
-// passed through) or an associated cvar --- this is handled automatically.
-//
-// Threads which block indefinitely on unrecorded resources must call
-// NotifyUnrecordedWait first.
-//
-// The callback passed to NotifyUnrecordedWait will be invoked at most once
-// by the main thread whenever the main thread is waiting for other threads to
-// become idle, and at most once after the call to NotifyUnrecordedWait if the
-// main thread is already waiting for other threads to become idle.
-//
-// The callback should poke the thread so that it is no longer blocked on the
-// resource. The thread must call MaybeWaitForCheckpointSave before blocking
-// again.
-MFBT_API void NotifyUnrecordedWait(const std::function<void()>& aCallback);
-MFBT_API void MaybeWaitForCheckpointSave();
-
 // API for debugging inconsistent behavior between recording and replay.
 // By calling Assert or AssertBytes a thread event will be inserted and any
 // inconsistent execution order of events will be detected (as for normal
@@ -353,21 +335,36 @@ MFBT_API bool DefineRecordReplayControlObject(JSContext* aCx, JSObject* aObj);
 MFBT_API void BeginContentParse(const void* aToken,
                                 const char* aURL, const char* aContentType);
 
-// Add some parse data to an existing content parse.
-MFBT_API void AddContentParseData(const void* aToken,
-                                  const char16_t* aBuffer, size_t aLength);
+// Add some UTF-8 parse data to an existing content parse.
+MFBT_API void AddContentParseData8(const void* aToken,
+                                   const Utf8Unit* aUtf8Buffer, size_t aLength);
+
+// Add some UTF-16 parse data to an existing content parse.
+MFBT_API void AddContentParseData16(const void* aToken,
+                                    const char16_t* aBuffer, size_t aLength);
 
 // Mark a content parse as having completed.
 MFBT_API void EndContentParse(const void* aToken);
 
 // Perform an entire content parse, when the entire URL is available at once.
 static inline void
-NoteContentParse(const void* aToken,
-                 const char* aURL, const char* aContentType,
-                 const char16_t* aBuffer, size_t aLength)
+NoteContentParse8(const void* aToken,
+                  const char* aURL, const char* aContentType,
+                  const mozilla::Utf8Unit* aUtf8Buffer, size_t aLength)
 {
   BeginContentParse(aToken, aURL, aContentType);
-  AddContentParseData(aToken, aBuffer, aLength);
+  AddContentParseData8(aToken, aUtf8Buffer, aLength);
+  EndContentParse(aToken);
+}
+
+// Perform an entire content parse, when the entire URL is available at once.
+static inline void
+NoteContentParse16(const void* aToken,
+                   const char* aURL, const char* aContentType,
+                   const char16_t* aBuffer, size_t aLength)
+{
+  BeginContentParse(aToken, aURL, aContentType);
+  AddContentParseData16(aToken, aBuffer, aLength);
   EndContentParse(aToken);
 }
 
@@ -410,7 +407,7 @@ NoteContentParse(const void* aToken,
 
 #endif
 
-MOZ_MakeRecordReplayWrapperVoid(BeginOrderedAtomicAccess, (), ())
+MOZ_MakeRecordReplayWrapperVoid(BeginOrderedAtomicAccess, (const void* aValue), (aValue))
 MOZ_MakeRecordReplayWrapperVoid(EndOrderedAtomicAccess, (), ())
 MOZ_MakeRecordReplayWrapperVoid(BeginPassThroughThreadEvents, (), ())
 MOZ_MakeRecordReplayWrapperVoid(EndPassThroughThreadEvents, (), ())

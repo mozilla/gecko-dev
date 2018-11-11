@@ -9,6 +9,7 @@
 
 #include "mozilla/EndianUtils.h"
 #include "mozilla/TypeTraits.h"
+#include "mozilla/Utf8.h"
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -253,7 +254,6 @@ class XDRState : public XDRCoderBase
     JSContext* cx() const {
         return buf.cx();
     }
-    virtual LifoAlloc& lifoAlloc() const;
 
     virtual bool hasOptions() const { return false; }
     virtual const JS::ReadOnlyCompileOptions& options() {
@@ -488,7 +488,11 @@ class XDRState : public XDRCoderBase
         return Ok();
     }
 
-    XDRResult codeChars(const JS::Latin1Char* chars, size_t nchars);
+    XDRResult codeChars(JS::Latin1Char* chars, size_t nchars);
+    XDRResult codeChars(mozilla::Utf8Unit* units, size_t nchars);
+
+    // If |nchars > 0|, this calls |codeAlign(sizeof(char16_t))| so callers
+    // don't have to.
     XDRResult codeChars(char16_t* chars, size_t nchars);
 
     XDRResult codeFunction(JS::MutableHandleFunction objp,
@@ -503,7 +507,6 @@ class XDROffThreadDecoder : public XDRDecoder
 {
     const JS::ReadOnlyCompileOptions* options_;
     ScriptSourceObject** sourceObjectOut_;
-    LifoAlloc& alloc_;
 
   public:
     // Note, when providing an JSContext, where isJSContext is false,
@@ -514,22 +517,17 @@ class XDROffThreadDecoder : public XDRDecoder
     //
     // When providing a sourceObjectOut pointer, you have to ensure that it is
     // marked by the GC to avoid dangling pointers.
-    XDROffThreadDecoder(JSContext* cx, LifoAlloc& alloc,
+    XDROffThreadDecoder(JSContext* cx,
                         const JS::ReadOnlyCompileOptions* options,
                         ScriptSourceObject** sourceObjectOut,
                         const JS::TranscodeRange& range)
       : XDRDecoder(cx, range),
         options_(options),
-        sourceObjectOut_(sourceObjectOut),
-        alloc_(alloc)
+        sourceObjectOut_(sourceObjectOut)
     {
         MOZ_ASSERT(options);
         MOZ_ASSERT(sourceObjectOut);
         MOZ_ASSERT(*sourceObjectOut == nullptr);
-    }
-
-    LifoAlloc& lifoAlloc() const override {
-        return alloc_;
     }
 
     bool hasOptions() const override { return true; }

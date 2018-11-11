@@ -13,6 +13,7 @@
 #include "MediaInfo.h"
 #include "MediaResult.h"
 #include "mozilla/EnumSet.h"
+#include "mozilla/EnumTypeTraits.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TaskQueue.h"
@@ -50,6 +51,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final
   {
     Default,
     LowLatency,
+    HardwareDecoderNotAllowed,
   };
   using OptionSet = EnumSet<Option>;
 
@@ -158,6 +160,15 @@ private:
   }
 };
 
+// Used for IPDL serialization.
+// The 'value' have to be the biggest enum from CreateDecoderParams::Option.
+template <>
+struct MaxEnumValue<::mozilla::CreateDecoderParams::Option>
+{
+  static constexpr unsigned int value = static_cast<unsigned int>(CreateDecoderParams::Option::HardwareDecoderNotAllowed);
+};
+
+
 // The PlatformDecoderModule interface is used by the MediaFormatReader to
 // abstract access to decoders provided by various
 // platforms.
@@ -201,7 +212,7 @@ protected:
   PlatformDecoderModule() { }
   virtual ~PlatformDecoderModule() { }
 
-  friend class H264Converter;
+  friend class MediaChangeMonitor;
   friend class PDMFactory;
   friend class dom::RemoteDecoderModule;
   friend class EMEDecoderModule;

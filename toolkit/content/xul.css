@@ -73,7 +73,6 @@ xbl|children {
 
 button,
 checkbox,
-colorpicker[type="button"],
 datepicker[type="grid"],
 menulist,
 radiogroup,
@@ -99,14 +98,6 @@ vbox {
 }
 
 /********** label **********/
-
-description {
-  -moz-binding: url("chrome://global/content/bindings/text.xml#text-base");
-}
-
-label {
-  -moz-binding: url("chrome://global/content/bindings/text.xml#text-label");
-}
 
 label.text-link, label[onclick] {
   -moz-binding: url("chrome://global/content/bindings/text.xml#text-link");
@@ -187,21 +178,8 @@ browser {
 
 /********** notifications **********/
 
-notificationbox {
-  -moz-binding: url("chrome://global/content/bindings/notification.xml#notificationbox");
-  -moz-box-orient: vertical;
-}
-
-.notificationbox-stack {
-  overflow: -moz-hidden-unscrollable;
-}
-
 notification {
   -moz-binding: url("chrome://global/content/bindings/notification.xml#notification");
-}
-
-notification.animated {
-  transition: margin-top 300ms var(--animation-easing-function), opacity 300ms var(--animation-easing-function);
 }
 
 /*********** popup notification ************/
@@ -222,7 +200,6 @@ checkbox {
 /********** radio **********/
 
 radiogroup {
-  -moz-binding: url("chrome://global/content/bindings/radio.xml#radiogroup");
   -moz-box-orient: vertical;
 }
 
@@ -233,17 +210,6 @@ radio {
 /******** groupbox *********/
 
 groupbox {
-  -moz-binding: url("chrome://global/content/bindings/groupbox.xml#groupbox");
-  display: -moz-groupbox;
-}
-
-caption {
-  -moz-binding: url("chrome://global/content/bindings/groupbox.xml#caption");
-}
-
-.groupbox-body {
-  -moz-box-pack: inherit;
-  -moz-box-align: inherit;
   -moz-box-orient: vertical;
 }
 
@@ -291,18 +257,6 @@ toolbar[customizing="true"][hidden="true"] {
 toolbar[type="menubar"] {
   min-height: 0 !important;
   border: 0 !important;
-}
-%else
-toolbar[type="menubar"][autohide="true"] {
-  -moz-binding: url("chrome://global/content/bindings/toolbar.xml#toolbar-menubar-autohide");
-  overflow: hidden;
-}
-
-toolbar[type="menubar"][autohide="true"][inactive="true"]:not([customizing="true"]) {
-  min-height: 0 !important;
-  height: 0 !important;
-  -moz-appearance: none !important;
-  border-style: none !important;
 }
 %endif
 
@@ -380,7 +334,6 @@ tooltip {
 }
 
 tooltip {
-  -moz-binding: url("chrome://global/content/bindings/popup.xml#tooltip");
   -moz-box-orient: vertical;
   white-space: pre-wrap;
   margin-top: 21px;
@@ -496,12 +449,7 @@ treecols {
 }
 
 treecol {
-  -moz-binding: url("chrome://global/content/bindings/tree.xml#treecol");
   -moz-box-ordinal-group: 2147483646;
-}
-
-treecol.treecol-image {
-  -moz-binding: url("chrome://global/content/bindings/tree.xml#treecol-image");
 }
 
 tree > treechildren {
@@ -586,7 +534,6 @@ tab[selected="true"]:not([ignorefocus="true"]) {
 }
 
 tabpanels {
-  -moz-binding: url("chrome://global/content/bindings/tabbox.xml#tabpanels");
   display: -moz-deck;
 }
 
@@ -595,12 +542,6 @@ tabpanels {
 tooltip[titletip="true"] {
   /* The width of the tooltip isn't limited on cropped <tree> cells. */
   max-width: none;
-}
-
-/********** progressmeter **********/
-
-progressmeter {
-  -moz-binding: url("chrome://global/content/bindings/progressmeter.xml#progressmeter");
 }
 
 /********** basic rule for anonymous content that needs to pass box properties through
@@ -639,6 +580,15 @@ textbox[type="search"] {
 
 textbox[type="number"] {
   -moz-binding: url("chrome://global/content/bindings/numberbox.xml#numberbox");
+}
+
+@supports -moz-bool-pref("layout.css.emulate-moz-box-with-flex") {
+  html|*.textbox-input,
+  html|*.textbox-textarea {
+    /* Be block-level, so that -moz-box-flex can take effect, when we are an item
+       in a -moz-box being emulated by modified modern flex. */
+    display: block;
+  }
 }
 
 .textbox-contextmenu:-moz-locale-dir(rtl) {
@@ -685,16 +635,6 @@ panel[type="autocomplete-richlistbox"] {
   width: 0 !important;
   min-width: 0%;
   min-height: 0%;
-}
-
-/********** colorpicker **********/
-
-colorpicker {
-  -moz-binding: url("chrome://global/content/bindings/colorpicker.xml#colorpicker");
-}
-
-colorpicker[type="button"] {
-  -moz-binding: url("chrome://global/content/bindings/colorpicker.xml#colorpicker-button");
 }
 
 /********** menulist **********/

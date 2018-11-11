@@ -39,6 +39,13 @@ jobs:
         treeherder:
             platform: linux64/debug
         worker-type: aws-provisioner-v1/gecko-t-linux-large
+        worker:
+            docker-image: {in-tree: static-analysis-build}
+            env:
+                # clang-tidy needs a recent libstdc++, which can be found in the clang
+                # toolchain.
+                LD_LIBRARY_PATH: /builds/worker/workspace/build/src/clang/lib
+                PERFHERDER_EXTRA_OPTIONS: static-analysis-autotest
         run:
             config:
                 - builds/releng_base_firefox.py
@@ -70,9 +77,11 @@ jobs:
                 - builds/releng_base_firefox.py
                 - builds/taskcluster_base_windows.py
                 - builds/taskcluster_base_win64.py
-                - builds/taskcluster_sub_win64/clang_debug.py
+                - builds/taskcluster_sub_win64/debug.py
+            extra-config:
+                mozconfig_variant: debug
         toolchains:
-            - win64-clang-cl-st-an
+            - win64-clang-cl
             - win64-rust
             - win64-sccache
             - win64-cbindgen

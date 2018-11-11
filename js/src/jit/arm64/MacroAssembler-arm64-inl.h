@@ -12,6 +12,7 @@
 namespace js {
 namespace jit {
 
+// clang-format off
 //{{{ check_macroassembler_style
 
 void
@@ -1981,6 +1982,7 @@ MacroAssembler::clampIntToUint8(Register reg)
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 // ===============================================================
 
 void
@@ -2138,7 +2140,7 @@ MacroAssemblerCompat::branchStackPtrRhs(Condition cond, AbsoluteAddress lhs, Lab
 {
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch = temps.AcquireX();
-    movePtr(ImmPtr(lhs.addr), scratch.asUnsized());
+    loadPtr(lhs, scratch.asUnsized());
     // Cmp disallows SP as the rhs, so flip the operands and invert the
     // condition.
     Cmp(GetStackPointer64(), scratch);

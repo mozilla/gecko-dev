@@ -108,6 +108,8 @@ var PdfJs = {
   },
 
   earlyInit() {
+    // Note: Please keep this in sync with the duplicated logic in
+    // nsBrowserGlue.js.
     Services.ppmm.sharedData.set("pdfjs.enabled", this.checkEnabled());
   },
 
@@ -266,10 +268,6 @@ var PdfJs = {
    * @return {boolean} Whether or not it's enabled.
    */
   get enabled() {
-    if (!Services.policies.isAllowed("PDF.js")) {
-      return false;
-    }
-
     if (!Services.prefs.getBoolPref(PREF_ENABLED_CACHE_INITIALIZED, false)) {
       // If we just updated, and the cache hasn't been initialized, then we
       // can't assume a default state, and need to synchronously initialize

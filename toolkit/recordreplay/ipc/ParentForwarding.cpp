@@ -38,7 +38,6 @@ HandleMessageInMiddleman(ipc::Side aSide, const IPC::Message& aMessage)
       // Graphics messages that affect both processes.
       type == dom::PBrowser::Msg_InitRendering__ID ||
       type == dom::PBrowser::Msg_SetDocShellIsActive__ID ||
-      type == dom::PBrowser::Msg_PRenderFrameConstructor__ID ||
       type == dom::PBrowser::Msg_RenderLayers__ID ||
       type == dom::PBrowser::Msg_UpdateDimensions__ID ||
       // These messages perform some graphics related initialization.
@@ -77,11 +76,6 @@ HandleMessageInMiddleman(ipc::Side aSide, const IPC::Message& aMessage)
       // Preferences are initialized via the SetXPCOMProcessAttributes message.
       PreferencesLoaded();
     }
-    if (type == dom::PBrowser::Msg_RenderLayers__ID) {
-      // Graphics are being loaded or unloaded for a tab, so update what we are
-      // showing to the UI process according to the last paint performed.
-      UpdateGraphicsInUIProcess(nullptr);
-    }
     return false;
   }
 
@@ -92,6 +86,14 @@ HandleMessageInMiddleman(ipc::Side aSide, const IPC::Message& aMessage)
       type == dom::PContent::Msg_SaveRecording__ID ||
       // Teardown that should only happen in the middleman.
       type == dom::PContent::Msg_Shutdown__ID) {
+    ipc::IProtocol::Result r = dom::ContentChild::GetSingleton()->PContentChild::OnMessageReceived(aMessage);
+    MOZ_RELEASE_ASSERT(r == ipc::IProtocol::MsgProcessed);
+    return true;
+  }
+
+  // Send input events to the middleman when the active child is replaying,
+  // so that UI elements such as the replay overlay can be interacted with.
+  if (!ActiveChildIsRecording() && nsContentUtils::IsMessageInputEvent(aMessage)) {
     ipc::IProtocol::Result r = dom::ContentChild::GetSingleton()->PContentChild::OnMessageReceived(aMessage);
     MOZ_RELEASE_ASSERT(r == ipc::IProtocol::MsgProcessed);
     return true;
@@ -115,6 +117,13 @@ HandleMessageInMiddleman(ipc::Side aSide, const IPC::Message& aMessage)
 static bool
 AlwaysForwardMessage(const IPC::Message& aMessage)
 {
+  // Always forward messages in repaint stress mode, as the active child is
+  // almost always a replaying child and lost messages make it hard to load
+  // pages completely.
+  if (InRepaintStressMode()) {
+    return true;
+  }
+
   IPC::Message::msgid_t type = aMessage.type();
 
   // Forward close messages so that the tab shuts down properly even if it is

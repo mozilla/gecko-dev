@@ -20,7 +20,7 @@ class JSLinearString;
 namespace js {
 
 class LazyScript;
-class LifoAlloc;
+class ModuleObject;
 class ScriptSourceObject;
 
 namespace frontend {
@@ -30,7 +30,7 @@ class FunctionBox;
 class ParseNode;
 
 JSScript*
-CompileGlobalScript(JSContext* cx, LifoAlloc& alloc, ScopeKind scopeKind,
+CompileGlobalScript(JSContext* cx, ScopeKind scopeKind,
                     const JS::ReadOnlyCompileOptions& options,
                     JS::SourceBufferHolder& srcBuf,
                     ScriptSourceObject** sourceObjectOut = nullptr);
@@ -43,23 +43,26 @@ CompileGlobalBinASTScript(JSContext *cx, LifoAlloc& alloc,
                           const uint8_t* src, size_t len,
                           ScriptSourceObject** sourceObjectOut = nullptr);
 
+MOZ_MUST_USE bool
+CompileLazyBinASTFunction(JSContext* cx, Handle<LazyScript*> lazy, const uint8_t* buf, size_t length);
+
 #endif // JS_BUILD_BINAST
 
 JSScript*
-CompileEvalScript(JSContext* cx, LifoAlloc& alloc,
-                  HandleObject scopeChain, HandleScope enclosingScope,
+CompileEvalScript(JSContext* cx, HandleObject environment,
+                  HandleScope enclosingScope,
                   const JS::ReadOnlyCompileOptions& options,
                   JS::SourceBufferHolder& srcBuf,
                   ScriptSourceObject** sourceObjectOut = nullptr);
 
-JSScript*
+ModuleObject*
 CompileModule(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
               JS::SourceBufferHolder& srcBuf);
 
-JSScript*
+ModuleObject*
 CompileModule(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-              JS::SourceBufferHolder& srcBuf, LifoAlloc& alloc,
-              ScriptSourceObject** sourceObjectOut = nullptr);
+              JS::SourceBufferHolder& srcBuf,
+              ScriptSourceObject** sourceObjectOut);
 
 MOZ_MUST_USE bool
 CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy, const char16_t* chars, size_t length);
@@ -117,13 +120,21 @@ CreateScriptSourceObject(JSContext* cx, const JS::ReadOnlyCompileOptions& option
 bool
 IsIdentifier(JSLinearString* str);
 
+bool
+IsIdentifierNameOrPrivateName(JSLinearString* str);
+
 /*
  * As above, but taking chars + length.
  */
 bool
-IsIdentifier(const char* chars, size_t length);
+IsIdentifier(const Latin1Char* chars, size_t length);
 bool
 IsIdentifier(const char16_t* chars, size_t length);
+
+bool
+IsIdentifierNameOrPrivateName(const Latin1Char* chars, size_t length);
+bool
+IsIdentifierNameOrPrivateName(const char16_t* chars, size_t length);
 
 /* True if str is a keyword. Defined in TokenStream.cpp. */
 bool

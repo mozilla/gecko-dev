@@ -1054,6 +1054,7 @@ class DebugEnvironments
     static void onPopLexical(JSContext* cx, const EnvironmentIter& ei);
     static void onPopLexical(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc);
     static void onPopWith(AbstractFramePtr frame);
+    static void onPopModule(JSContext* cx, const EnvironmentIter& ei);
     static void onRealmUnsetIsDebuggee(Realm* realm);
 };
 
@@ -1181,7 +1182,11 @@ CreateObjectsForEnvironmentChain(JSContext* cx, AutoObjectVector& chain,
                                  HandleObject terminatingEnv,
                                  MutableHandleObject envObj);
 
-ModuleObject* GetModuleObjectForScript(JSScript* script);
+ModuleObject*
+GetModuleObjectForScript(JSScript* script);
+
+Value
+FindScriptOrModulePrivateForScript(JSScript* script);
 
 ModuleEnvironmentObject* GetModuleEnvironmentForScript(JSScript* script);
 

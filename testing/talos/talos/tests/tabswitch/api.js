@@ -190,7 +190,7 @@ async function test(window) {
     return;
   }
 
-  Services.scriptloader.loadSubScript("resource://talos-powers/TalosParentProfiler.js", context);
+  ChromeUtils.import("resource://talos-powers/TalosParentProfiler.jsm", context);
   TalosParentProfiler = context.TalosParentProfiler;
 
   let testURLs = [];
@@ -337,8 +337,8 @@ this.tps = class extends ExtensionAPI {
             remotePage.destroy();
             AboutNewTabService.resetNewTabURL();
           };
-        }
-      }
+        },
+      },
     };
   }
 };

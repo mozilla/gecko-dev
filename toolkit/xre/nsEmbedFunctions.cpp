@@ -442,6 +442,13 @@ XRE_InitChildProcess(int aArgc,
 #ifdef XP_MACOSX
   if (aArgc < 1)
     return NS_ERROR_FAILURE;
+
+#if defined(MOZ_CONTENT_SANDBOX)
+  // Save the original number of arguments to pass to the sandbox
+  // setup routine which also uses the crash server argument.
+  int allArgc = aArgc;
+#endif /* MOZ_CONTENT_SANDBOX */
+
   const char* const mach_port_name = aArgv[--aArgc];
 
   Maybe<recordreplay::AutoPassThroughThreadEvents> pt;
@@ -513,8 +520,16 @@ XRE_InitChildProcess(int aArgc,
     return NS_ERROR_FAILURE;
   }
 
+#if defined(MOZ_CONTENT_SANDBOX)
+  std::string sandboxError;
+  if (!EarlyStartMacSandboxIfEnabled(allArgc, aArgv, sandboxError)) {
+    printf_stderr("Sandbox error: %s\n", sandboxError.c_str());
+    MOZ_CRASH("Sandbox initialization failed");
+  }
+#endif /* MOZ_CONTENT_SANDBOX */
+
   pt.reset();
-#endif
+#endif /* XP_MACOSX */
 
   SetupErrorHandling(aArgv[0]);
 
@@ -660,12 +675,12 @@ XRE_InitChildProcess(int aArgc,
   switch (XRE_GetProcessType()) {
   case GeckoProcessType_Content:
   case GeckoProcessType_GPU:
+  case GeckoProcessType_VR:
       // Content processes need the XPCOM/chromium frankenventloop
       uiLoopType = MessageLoop::TYPE_MOZILLA_CHILD;
       break;
   case GeckoProcessType_GMPlugin:
   case GeckoProcessType_PDFium:
-  case GeckoProcessType_VR:
       uiLoopType = MessageLoop::TYPE_DEFAULT;
       break;
   default:

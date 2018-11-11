@@ -266,74 +266,6 @@ browser.engagement.navigation:
     record_in_processes:
       - 'main'
 
-# The following section contains (RSS/Atom) feed usage
-browser.feeds:
-  preview_loaded:
-    bug_numbers:
-      - 1350349
-    description: >
-      The number of times a feed preview page is loaded.
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - gijs@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-      - 'content'
-
-  feed_subscribed:
-    bug_numbers:
-      - 1350349
-    description: >
-      The number of times a user subscribes to a feed.
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - gijs@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-
-  livebookmark_opened:
-    bug_numbers:
-      - 1350349
-    description: >
-      The number of times a user opens a live bookmark dropdown.
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - gijs@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-
-  livebookmark_item_opened:
-    bug_numbers:
-      - 1350349
-    description: >
-      The number of times a user opens an item that is part of a live bookmark.
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - gijs@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-
-  livebookmark_count:
-    bug_numbers:
-      - 1350349
-    description: >
-      The number of live bookmark folders the user has (ie not individual items).
-    expires: "65"
-    kind: uint
-    notification_emails:
-      - gijs@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-
 # The following section contains the browser usage scalars.
 browser.usage:
   graphite:
@@ -444,6 +376,21 @@ services.sync:
     record_in_processes:
       - main
 
+identity.fxaccounts:
+  missed_commands_fetched:
+    bug_numbers:
+      - 1496638
+    description: >
+      The number of missed FxA commands we have recovered.
+    expires: "68"
+    kind: uint
+    keyed: false
+    notification_emails:
+      - fxa-staff@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
 security:
   pkcs11_modules_loaded:
     bug_numbers:
@@ -490,6 +437,22 @@ security:
     notification_emails:
       - seceng-telemetry@mozilla.com
       - dkeeler@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
+contentblocking:
+  exceptions:
+    bug_numbers:
+      - 1484251
+    description: >
+      How many tracking protection/content blocking exceptions a user has at startup.
+    expires: "70"
+    kind: uint
+    notification_emails:
+      - jhofmann@mozilla.com
+      - pdol@mozilla.com
+      - seceng-telemetry@mozilla.com
     release_channel_collection: opt-out
     record_in_processes:
       - main
@@ -855,6 +818,7 @@ media:
   page_count:
     bug_numbers:
       - 1476456
+      - 1499803
     description: >
       The number of times a top level document is loaded.
     expires: "68"
@@ -863,7 +827,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -871,6 +835,7 @@ media:
   page_had_media_count:
     bug_numbers:
       - 1476456
+      - 1499803
     description: >
       The number of times a document hierarchy contained at least one audible HTMLMediaElement that had play() called upon it.
     expires: "68"
@@ -879,7 +844,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -887,6 +852,7 @@ media:
   page_had_play_revoked_count:
     bug_numbers:
       - 1476456
+      - 1499803
     description: >
       The number of times a document hierarchy contained at least one muted playing HTMLMediaElement that was paused due to becoming unmuted while not being allowed to autoplay.
     expires: "68"
@@ -895,7 +861,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -903,6 +869,7 @@ media:
   autoplay_would_not_be_allowed_count:
     bug_numbers:
       - 1476456
+      - 1499803
     description: >
       The number of HTMLMediaElement autoplays on audible HTMLMediaElements which would not be allowed to play if block autoplay was enabled; we'd either prompt for permission to play or block outright depending on user preferences.
     expires: "68"
@@ -911,7 +878,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -919,6 +886,7 @@ media:
   allowed_autoplay_no_audio_track_count:
     bug_numbers:
       - 1480484
+      - 1499803
     description: >
       The number of HTMLMediaElement autoplays on HTMLMediaElements without an audio track which would be allowed to play.
     expires: "68"
@@ -927,7 +895,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -935,6 +903,7 @@ media:
   autoplay_would_be_allowed_count:
     bug_numbers:
       - 1476456
+      - 1499803
     description: >
       The number of HTMLMediaElement autoplays on audible HTMLMediaElements that would have been allowed (not blocked) by the autoplay policy if block autoplay was enabled.
     expires: "68"
@@ -943,7 +912,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -951,6 +920,7 @@ media:
   blocked_no_metadata:
     bug_numbers:
       - 1483703
+      - 1499803
     description: >
       The number of HTMLMediaElements which we blocked because they hadn't loaded metadata yet.
     expires: "68"
@@ -959,7 +929,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -967,6 +937,7 @@ media:
   blocked_no_metadata_endup_no_audio_track:
     bug_numbers:
       - 1483703
+      - 1499803
     description: >
       The number of HTMLMediaElements which were blocked because they hadn't loaded metadata yet, but ended up having no audio track.
     expires: "68"
@@ -975,7 +946,7 @@ media:
       - cpearce@mozilla.com
       - alwu@mozilla.com
       - nohlmeier@mozilla.com
-    release_channel_collection: opt-in
+    release_channel_collection: opt-out
     record_in_processes:
       - main
       - content
@@ -1299,12 +1270,13 @@ devtools.tool:
   registered:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Recorded on enable tool checkbox check/uncheck in Developer Tools options
       panel. Boolean stating if the tool was enabled or disabled by the user.
       Keyed by tool id. Current default tools with their id's are defined in
       https://dxr.mozilla.org/mozilla-central/source/devtools/client/definitions.js
-    expires: "65"
+    expires: "70"
     kind: boolean
     keyed: true
     notification_emails:
@@ -1318,10 +1290,11 @@ devtools.accessibility:
   node_inspected_count:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Number of times a DOM node was inspected from within the Accessibility
       tool.
-    expires: "65"
+    expires: "70"
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1333,9 +1306,10 @@ devtools.accessibility:
   opened_count:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Number of times the DevTools Accessibility tool has been opened.
-    expires: "65"
+    expires: "70"
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1347,10 +1321,11 @@ devtools.accessibility:
   picker_used_count:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Number of times the picker tool has been used in DevTools Accessibility
       panel.
-    expires: "65"
+    expires: "70"
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1362,11 +1337,12 @@ devtools.accessibility:
   select_accessible_for_node:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Number of times an accessible object was inspected from outside the
       Accessibility tool (navigation to Accessibility panel). Keyed by the
       source of user action (inspector context menu, browser context menu, etc).
-    expires: "65"
+    expires: "70"
     kind: uint
     keyed: true
     notification_emails:
@@ -1379,10 +1355,11 @@ devtools.accessibility:
   service_enabled_count:
     bug_numbers:
       - 1447302
+      - 1503568
     description: >
       Number of times platform accessibility has been enabled in DevTools
       Accessibility panel.
-    expires: "65"
+    expires: "70"
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
@@ -1422,6 +1399,67 @@ devtools.toolbox:
     release_channel_collection: opt-out
     record_in_processes:
       - 'main'
+
+devtools.webreplay:
+  new_recording:
+    bug_numbers:
+     - 1495910
+    description: >
+      Number of times a blank recording tab was created.
+    expires: never
+    kind: uint
+    notification_emails:
+     - bhackett@mozilla.com
+    record_in_processes:
+     - 'main'
+
+  reload_recording:
+    bug_numbers:
+     - 1495910
+    description: >
+      Number of times a non-recording tab was reloaded to create a recording tab.
+    expires: never
+    kind: uint
+    notification_emails:
+     - bhackett@mozilla.com
+    record_in_processes:
+     - 'main'
+
+  stop_recording:
+    bug_numbers:
+     - 1495910
+    description: >
+      Number of times a recording tab was reloaded to create a non-recording tab.
+    expires: never
+    kind: uint
+    notification_emails:
+     - bhackett@mozilla.com
+    record_in_processes:
+     - 'main'
+
+  save_recording:
+    bug_numbers:
+     - 1495910
+    description: >
+      Number of times a recording was saved.
+    expires: never
+    kind: uint
+    notification_emails:
+     - bhackett@mozilla.com
+    record_in_processes:
+     - 'main'
+
+  load_recording:
+    bug_numbers:
+     - 1495910
+    description: >
+      Number of times a recording was loaded.
+    expires: never
+    kind: uint
+    notification_emails:
+     - bhackett@mozilla.com
+    record_in_processes:
+     - 'main'
 
 navigator.storage:
   estimate_count:
@@ -1580,6 +1618,20 @@ telemetry:
     record_in_processes:
       - 'main'
 
+  keyed_scalars_exceed_limit:
+    bug_numbers:
+      - 1451813
+    description: >
+      The number of times keyed scalars exceeded the number of keys limit, keyed by scalar name.
+    expires: "never"
+    kind: uint
+    keyed: true
+    notification_emails:
+      - chutten@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
 telemetry.discarded:
   accumulations:
     bug_numbers:
@@ -1675,53 +1727,6 @@ gfx.omtp:
       - gfx-telemetry-alerts@mozilla.com
       - rhunt@mozilla.com
     record_in_processes:
-      - 'content'
-
-images.webp:
-  probe_observed:
-    bug_numbers:
-      - 1472145
-    description: >
-      Whether we received a probe detecting our WebP image support.
-    kind: boolean
-    expires: "65"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - aosmond@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-      - 'content'
-
-  content_observed:
-    bug_numbers:
-      - 1472145
-    description: >
-      Whether we received a request to decode a WebP image, excluding probes.
-    kind: boolean
-    expires: "65"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - aosmond@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
-      - 'content'
-
-  content_frequency:
-    bug_numbers:
-      - 1472145
-    description: >
-      How many image requests are WebP images, excluding probes.
-    kind: uint
-    keyed: true
-    expires: "65"
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - aosmond@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - 'main'
       - 'content'
 
 # The following section contains the form autofill related scalars.
@@ -2144,6 +2149,42 @@ memoryreporter:
     record_in_processes:
       - 'content'
 
+resistfingerprinting:
+  content_window_size:
+    bug_numbers:
+      - 1489493
+    description: >
+      The size (in pixels) of the content windows for innerWidth and innerHeight.
+    expires: "66"
+    kind: uint
+    keyed: true
+    notification_emails:
+      - tihuang@mozilla.com
+      - tom@mozilla.com
+      - ettseng@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+update:
+  binarytransparencyresult:
+    bug_numbers:
+      - 1501889
+    description: >
+      If the binary transparency information for an update does not verify
+      successfully, this probe will contain an error code from
+      toolkit/mozapps/update/common/errors.h indicating why.
+    expires: "73"
+    kind: uint
+    keyed: true
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - seceng-telemetry@mozilla.com
+      - dkeeler@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
 # The following section is for probes testing the Telemetry system. They will not be
 # submitted in pings and are only used for testing.
 telemetry.test:
@@ -2430,6 +2471,49 @@ telemetry.test:
     products:
       - fennec
       - geckoview
+
+  main_only:
+    bug_numbers:
+      - 1498164
+    description: >
+      This is a test uint type with only the main store.
+    expires: never
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'main'
+
+  sync_only:
+    bug_numbers:
+      - 1498164
+    description: >
+      This is a test uint type with only the sync store.
+    expires: never
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'sync'
+
+  multiple_stores:
+    bug_numbers:
+      - 1498164
+    description: >
+      This is a test uint type with multiple stores.
+    expires: never
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'main'
+      - 'sync'
 
 # NOTE: Please don't add new definitions below this point. Consider adding
 # them earlier in the file and leave the telemetry.test category as the last

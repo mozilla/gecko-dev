@@ -23,7 +23,7 @@ class NetworkLocationsForm extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      value: ""
+      value: "",
     };
   }
 
@@ -38,31 +38,37 @@ class NetworkLocationsForm extends PureComponent {
             this.setState({ value: "" });
           }
           e.preventDefault();
-        }
+        },
       },
       Localized(
         {
-          id: "about-debugging-network-locations-host-input-label"
+          id: "about-debugging-network-locations-host-input-label",
         },
-        dom.span({}, "Host")
+        dom.label(
+          {
+            htmlFor: "about-debugging-network-locations-host-input",
+          },
+          "Host",
+        )
       ),
       dom.input({
-        className: "connect-page__network-form__input js-network-form-input",
+        id: "about-debugging-network-locations-host-input",
+        className: "default-input js-network-form-input",
         placeholder: "localhost:6080",
         type: "text",
         value: this.state.value,
         onChange: (e) => {
           const value = e.target.value;
           this.setState({ value });
-        }
+        },
       }),
       Localized(
         {
-          id: "about-debugging-network-locations-add-button"
+          id: "about-debugging-network-locations-add-button",
         },
         dom.button(
           {
-            className: "aboutdebugging-button js-network-form-submit-button"
+            className: "default-button js-network-form-submit-button",
           },
           "Add"
         )

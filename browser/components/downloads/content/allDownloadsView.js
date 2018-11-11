@@ -49,22 +49,6 @@ HistoryDownloadElementShell.prototype = {
   __proto__: DownloadsViewUI.DownloadElementShell.prototype,
 
   /**
-   * Manages the "active" state of the shell.  By default all the shells are
-   * inactive, thus their UI is not updated.  They must be activated when
-   * entering the visible area.
-   */
-  ensureActive() {
-    if (!this._active) {
-      this._active = true;
-      this.element.setAttribute("active", true);
-      this.onChanged();
-    }
-  },
-  get active() {
-    return !!this._active;
-  },
-
-  /**
    * Overrides the base getter to return the Download or HistoryDownload object
    * for displaying information and executing commands in the user interface.
    */
@@ -97,14 +81,9 @@ HistoryDownloadElementShell.prototype = {
     if (this._downloadState !== newState) {
       this._downloadState = newState;
       this.onStateChanged();
+    } else {
+      this._updateStateInner();
     }
-
-    // This cannot be placed within onStateChanged because
-    // when a download goes from hasBlockedData to !hasBlockedData
-    // it will still remain in the same state.
-    this.element.classList.toggle("temporary-block",
-                                  !!this.download.hasBlockedData);
-    this._updateProgress();
   },
   _downloadState: null,
 
@@ -137,7 +116,8 @@ HistoryDownloadElementShell.prototype = {
       return true;
     }
     aTerm = aTerm.toLowerCase();
-    return this.displayName.toLowerCase().includes(aTerm) ||
+    let displayName = DownloadsViewUI.getDisplayName(this.download);
+    return displayName.toLowerCase().includes(aTerm) ||
            this.download.source.url.toLowerCase().includes(aTerm);
   },
 
@@ -548,7 +528,7 @@ DownloadsPlacesView.prototype = {
     // Getting the data or creating the nsIURI might fail.
     try {
       let data = {};
-      trans.getAnyTransferData({}, data, {});
+      trans.getAnyTransferData({}, data);
       let [url, name] = data.value.QueryInterface(Ci.nsISupportsString)
                             .data.split("\n");
       if (url) {

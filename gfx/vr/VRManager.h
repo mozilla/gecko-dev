@@ -24,7 +24,7 @@ namespace gfx {
 class VRLayerParent;
 class VRManagerParent;
 class VRDisplayHost;
-#if defined(XP_WIN) || defined(XP_MACOSX) || (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
+#if !defined(MOZ_WIDGET_ANDROID)
 class VRService;
 #endif
 class VRSystemManagerPuppet;
@@ -63,7 +63,6 @@ public:
   void DispatchSubmitFrameResult(uint32_t aDisplayID, const VRSubmitFrameResultInfo& aResult);
   void StartVRNavigation(const uint32_t& aDisplayID);
   void StopVRNavigation(const uint32_t& aDisplayID, const TimeDuration& aTimeout);
-  static void StopVRListenerThreadTasks();
 
 protected:
   VRManager();
@@ -109,10 +108,11 @@ private:
   double mAccumulator100ms;
   RefPtr<VRSystemManagerPuppet> mPuppetManager;
   RefPtr<VRSystemManagerExternal> mExternalManager;
-#if defined(XP_WIN) || defined(XP_MACOSX) || (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
+#if !defined(MOZ_WIDGET_ANDROID)
   RefPtr<VRService> mVRService;
 #endif
   bool mVRDisplaysRequested;
+  bool mVRDisplaysRequestedNonFocus;
   bool mVRControllersRequested;
   bool mVRServiceStarted;
   uint32_t mTaskInterval;

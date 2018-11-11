@@ -67,7 +67,7 @@ RendererOGL::RendererOGL(RefPtr<RenderThread>&& aThread,
 RendererOGL::~RendererOGL()
 {
   MOZ_COUNT_DTOR(RendererOGL);
-  if (!mCompositor->gl()->MakeCurrent()) {
+  if (!mCompositor->MakeCurrent()) {
     gfxCriticalNote << "Failed to make render context current during destroying.";
     // Leak resources!
     return;
@@ -94,7 +94,7 @@ RendererOGL::Update()
     wr_renderer_set_debug_flags(mRenderer, mDebugFlags);
   }
 
-  if (gl()->MakeCurrent()) {
+  if (mCompositor->MakeCurrent()) {
     wr_renderer_update(mRenderer);
   }
 }
@@ -106,11 +106,11 @@ DoNotifyWebRenderContextPurge(layers::CompositorBridgeParent* aBridge)
 }
 
 bool
-RendererOGL::UpdateAndRender(bool aReadback)
+RendererOGL::UpdateAndRender(const Maybe<gfx::IntSize>& aReadbackSize, const Maybe<Range<uint8_t>>& aReadbackBuffer, bool aHadSlowFrame)
 {
   uint32_t flags = gfx::gfxVars::WebRenderDebugFlags();
   // Disable debug flags during readback
-  if (aReadback) {
+  if (aReadbackBuffer.isSome()) {
     flags = 0;
   }
 
@@ -143,8 +143,16 @@ RendererOGL::UpdateAndRender(bool aReadback)
 
   auto size = mCompositor->GetBufferSize();
 
-  if (!wr_renderer_render(mRenderer, size.width, size.height)) {
+  if (!wr_renderer_render(mRenderer, size.width, size.height, aHadSlowFrame)) {
     NotifyWebRenderError(WebRenderError::RENDER);
+  }
+
+  if (aReadbackBuffer.isSome()) {
+    MOZ_ASSERT(aReadbackSize.isSome());
+    wr_renderer_readback(mRenderer,
+                         aReadbackSize.ref().width, aReadbackSize.ref().height,
+                         &aReadbackBuffer.ref()[0],
+                         aReadbackBuffer.ref().length());
   }
 
   mCompositor->EndFrame();
@@ -160,6 +168,19 @@ RendererOGL::UpdateAndRender(bool aReadback)
   mFrameStartTime = TimeStamp();
 #endif
 
+  // TODO: Flush pending actions such as texture deletions/unlocks and
+  //       textureHosts recycling.
+
+  return true;
+}
+
+void
+RendererOGL::CheckGraphicsResetStatus()
+{
+  if (!mCompositor || !mCompositor->gl()) {
+    return;
+  }
+
   gl::GLContext* gl = mCompositor->gl();
   if (gl->IsSupported(gl::GLFeature::robustness)) {
     GLenum resetStatus = gl->fGetGraphicsResetStatus();
@@ -171,11 +192,6 @@ RendererOGL::UpdateAndRender(bool aReadback)
       ));
     }
   }
-
-  // TODO: Flush pending actions such as texture deletions/unlocks and
-  //       textureHosts recycling.
-
-  return true;
 }
 
 void

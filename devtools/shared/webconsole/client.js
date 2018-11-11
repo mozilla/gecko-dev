@@ -112,6 +112,7 @@ WebConsoleClient.prototype = {
         fromCache: actor.fromCache,
         fromServiceWorker: actor.fromServiceWorker,
         isThirdPartyTrackingResource: actor.isThirdPartyTrackingResource,
+        referrerPolicy: actor.referrerPolicy,
       };
       this._networkRequests.set(actor.actor, networkInfo);
 
@@ -175,7 +176,7 @@ WebConsoleClient.prototype = {
 
     this.emit("networkEventUpdate", {
       packet: packet,
-      networkInfo
+      networkInfo,
     });
   },
 
@@ -635,7 +636,7 @@ WebConsoleClient.prototype = {
     const packet = {
       to: this._actor,
       type: "sendHTTPRequest",
-      request: data
+      request: data,
     };
     return this._client.request(packet, onResponse);
   },
@@ -763,5 +764,5 @@ WebConsoleClient.prototype = {
         resolve(initial + response.substring);
       });
     });
-  }
+  },
 };

@@ -80,7 +80,7 @@ TryEmitter::emitTryEnd()
 
     // GOSUB to finally, if present.
     if (hasFinally() && controlInfo_) {
-        if (!bce_->emitJump(JSOP_GOSUB, &controlInfo_->gosubs)) {
+        if (!bce_->emitGoSub(&controlInfo_->gosubs)) {
             return false;
         }
     }
@@ -144,7 +144,7 @@ TryEmitter::emitCatchEnd()
 
     // gosub <finally>, if required.
     if (hasFinally()) {
-        if (!bce_->emitJump(JSOP_GOSUB, &controlInfo_->gosubs)) {
+        if (!bce_->emitGoSub(&controlInfo_->gosubs)) {
             return false;
         }
         MOZ_ASSERT(bce_->stackDepth == depth_);
@@ -283,7 +283,7 @@ TryEmitter::emitEnd()
     // Add the try note last, to let post-order give us the right ordering
     // (first to last for a given nesting level, inner to outer by level).
     if (hasCatch()) {
-        if (!bce_->tryNoteList.append(JSTRY_CATCH, depth_, tryStart_, tryEnd_.offset)) {
+        if (!bce_->addTryNote(JSTRY_CATCH, depth_, tryStart_, tryEnd_.offset)) {
             return false;
         }
     }
@@ -292,7 +292,7 @@ TryEmitter::emitEnd()
     // trynote to catch exceptions (re)thrown from a catch block or
     // for the try{}finally{} case.
     if (hasFinally()) {
-        if (!bce_->tryNoteList.append(JSTRY_FINALLY, depth_, tryStart_, finallyStart_.offset)) {
+        if (!bce_->addTryNote(JSTRY_FINALLY, depth_, tryStart_, finallyStart_.offset)) {
             return false;
         }
     }

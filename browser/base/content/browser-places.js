@@ -20,7 +20,7 @@ var StarUI = {
   // the popup.
   _autoCloseTimerEnabled: true,
   // The autoclose timeout length. 3500ms matches the timeout that Pocket uses
-  // in browser/extensions/pocket/content/panels/js/saved.js.
+  // in browser/components/pocket/content/panels/js/saved.js.
   _autoCloseTimeout: 3500,
   _removeBookmarksOnPopupHidden: false,
 
@@ -490,54 +490,21 @@ var PlacesCommandHook = {
    * Adds a folder with bookmarks to URIList given in param.
    */
   bookmarkPages(URIList) {
-    if (URIList.length > 1) {
-      PlacesUIUtils.showBookmarkDialog({ action: "add",
-                                         type: "folder",
-                                         URIList,
-                                       }, window);
-    }
-  },
-
-  /**
-   * Updates disabled state for the "Bookmark All Tabs" command.
-   */
-  updateBookmarkAllTabsCommand:
-  function PCH_updateBookmarkAllTabsCommand() {
-    // There's nothing to do in non-browser windows.
-    if (window.location.href != AppConstants.BROWSER_CHROME_URL)
+    if (!URIList.length) {
       return;
+    }
 
-    // Disable "Bookmark All Tabs" if there are less than two
-    // "unique current pages".
-    goSetCommandEnabled("Browser:BookmarkAllTabs",
-                        this.uniqueCurrentPages.length >= 2);
-  },
+    let bookmarkDialogInfo = {action: "add"};
+    if (URIList.length > 1) {
+      bookmarkDialogInfo.type = "folder";
+      bookmarkDialogInfo.URIList = URIList;
+    } else {
+      bookmarkDialogInfo.type = "bookmark";
+      bookmarkDialogInfo.title = URIList[0].title;
+      bookmarkDialogInfo.uri = URIList[0].uri;
+    }
 
-  /**
-   * Adds a Live Bookmark to a feed associated with the current page.
-   * @param     url
-   *            The nsIURI of the page the feed was attached to
-   * @title     title
-   *            The title of the feed. Optional.
-   */
-  async addLiveBookmark(url, feedTitle) {
-    let toolbarIP = new PlacesInsertionPoint({
-      parentId: PlacesUtils.toolbarFolderId,
-      parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-    });
-
-    let feedURI = makeURI(url);
-    let title = feedTitle || gBrowser.contentTitle;
-
-    PlacesUIUtils.showBookmarkDialog({ action: "add",
-                                       type: "livemark",
-                                       feedURI,
-                                       siteURI: gBrowser.currentURI,
-                                       title,
-                                       defaultInsertionPoint: toolbarIP,
-                                       hiddenRows: [ "feedLocation",
-                                                     "siteLocation" ],
-                                     }, window);
+    PlacesUIUtils.showBookmarkDialog(bookmarkDialogInfo, window);
   },
 
   /**
@@ -1135,13 +1102,9 @@ var LibraryUI = {
     let animatableBox = document.getElementById("library-animatable-box");
     let navBar = document.getElementById("nav-bar");
     let libraryIcon = document.getAnonymousElementByAttribute(libraryButton, "class", "toolbarbutton-icon");
-    let dwu = window.windowUtils;
-    let iconBounds = dwu.getBoundsWithoutFlushing(libraryIcon);
-    let libraryBounds = dwu.getBoundsWithoutFlushing(libraryButton);
-    let toolboxBounds = dwu.getBoundsWithoutFlushing(gNavToolbox);
+    let iconBounds = window.windowUtils.getBoundsWithoutFlushing(libraryIcon);
+    let libraryBounds = window.windowUtils.getBoundsWithoutFlushing(libraryButton);
 
-    animatableBox.style.setProperty("--toolbox-y", toolboxBounds.y + "px");
-    animatableBox.style.setProperty("--library-button-y", libraryBounds.y + "px");
     animatableBox.style.setProperty("--library-button-height", libraryBounds.height + "px");
     animatableBox.style.setProperty("--library-icon-x", iconBounds.x + "px");
     if (navBar.hasAttribute("brighttext")) {
@@ -1437,6 +1400,7 @@ var BookmarkingUI = {
 
     if (this._hasBookmarksObserver) {
       PlacesUtils.bookmarks.removeObserver(this);
+      PlacesUtils.observers.removeListener(["bookmark-added"], this.handlePlacesEvents);
     }
 
     if (this._pendingUpdate) {
@@ -1467,7 +1431,7 @@ var BookmarkingUI = {
            return;
          }
 
-         // It's possible that onItemAdded gets called before the async statement
+         // It's possible that "bookmark-added" gets called before the async statement
          // calls back.  For such an edge case, retain all unique entries from the
          // array.
          if (this._itemGuids.size > 0) {
@@ -1482,6 +1446,8 @@ var BookmarkingUI = {
          if (!this._hasBookmarksObserver) {
            try {
              PlacesUtils.bookmarks.addObserver(this);
+            this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
+            PlacesUtils.observers.addListener(["bookmark-added"], this.handlePlacesEvents);
              this._hasBookmarksObserver = true;
            } catch (ex) {
              Cu.reportError("BookmarkingUI failed adding a bookmarks observer: " + ex);
@@ -1569,7 +1535,6 @@ var BookmarkingUI = {
       return;
 
     this.updateBookmarkPageMenuItem();
-    PlacesCommandHook.updateBookmarkAllTabsCommand();
     this._initMobileBookmarks(document.getElementById("menu_mobileBookmarks"));
   },
 
@@ -1642,20 +1607,14 @@ var BookmarkingUI = {
 
   onPanelMenuViewShowing: function BUI_onViewShowing(aEvent) {
     let panelview = aEvent.target;
+
     this.updateBookmarkPageMenuItem();
-    // Update checked status of the toolbar toggle.
-    let viewToolbar = document.getElementById("panelMenu_viewBookmarksToolbar");
-    if (viewToolbar) {
-      let personalToolbar = document.getElementById("PersonalToolbar");
-      if (personalToolbar.collapsed)
-        viewToolbar.removeAttribute("checked");
-      else
-        viewToolbar.setAttribute("checked", "true");
-    }
+
     // Get all statically placed buttons to supply them with keyboard shortcuts.
     let staticButtons = panelview.getElementsByTagName("toolbarbutton");
     for (let i = 0, l = staticButtons.length; i < l; ++i)
       CustomizableUI.addShortcut(staticButtons[i]);
+
     // Setup the Places view.
     // We restrict the amount of results to 42. Not 50, but 42. Why? Because 42.
     let query = "place:queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
@@ -1723,20 +1682,22 @@ var BookmarkingUI = {
     updateToggleControlLabel(triggerNode);
   },
 
-  // nsINavBookmarkObserver
-  onItemAdded(aItemId, aParentId, aIndex, aItemType, aURI, aTitle, aDateAdded, aGuid) {
-    if (aURI && aURI.equals(this._uri)) {
-      // If a new bookmark has been added to the tracked uri, register it.
-      if (!this._itemGuids.has(aGuid)) {
-        this._itemGuids.add(aGuid);
-        // Only need to update the UI if it wasn't marked as starred before:
-        if (this._itemGuids.size == 1) {
-          this._updateStar();
+  handlePlacesEvents(aEvents) {
+    // Only need to update the UI if it wasn't marked as starred before:
+    if (this._itemGuids.size == 0) {
+      for (let {url, guid} of aEvents) {
+        if (url && url == this._uri.spec) {
+          // If a new bookmark has been added to the tracked uri, register it.
+          if (!this._itemGuids.has(guid)) {
+            this._itemGuids.add(guid);
+            this._updateStar();
+          }
         }
       }
     }
   },
 
+  // nsINavBookmarkObserver
   onItemRemoved(aItemId, aParentId, aIndex, aItemType, aURI, aGuid) {
     // If one of the tracked bookmarks has been removed, unregister it.
     if (this._itemGuids.has(aGuid)) {

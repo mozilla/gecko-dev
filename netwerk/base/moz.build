@@ -63,6 +63,7 @@ XPIDL_SOURCES += [
     'nsINestedURI.idl',
     'nsINetAddr.idl',
     'nsINetUtil.idl',
+    'nsINetworkConnectivityService.idl',
     'nsINetworkInfoService.idl',
     'nsINetworkInterceptController.idl',
     'nsINetworkLinkService.idl',
@@ -173,10 +174,12 @@ EXPORTS.mozilla.net += [
     'DashboardTypes.h',
     'IOActivityMonitor.h',
     'MemoryDownloader.h',
+    'NetworkConnectivityService.h',
     'PartiallySeekableInputStream.h',
     'Predictor.h',
     'RedirectChannelRegistrar.h',
     'ReferrerPolicy.h',
+    'RequestContextService.h',
     'SimpleChannelParent.h',
     'TCPFastOpen.h',
 ]
@@ -193,6 +196,7 @@ UNIFIED_SOURCES += [
     'LoadContextInfo.cpp',
     'LoadInfo.cpp',
     'MemoryDownloader.cpp',
+    'NetworkConnectivityService.cpp',
     'nsAsyncRedirectVerifyHelper.cpp',
     'nsAsyncStreamCopier.cpp',
     'nsAuthInformationHolder.cpp',
@@ -301,7 +305,6 @@ LOCAL_INCLUDES += [
     '/dom/base',
     '/netwerk/protocol/http',
     '/netwerk/socket',
-    '/security/pkix/include'
 ]
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):

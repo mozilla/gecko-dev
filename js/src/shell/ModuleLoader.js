@@ -3,9 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global getModuleLoadPath setModuleLoadHook setModuleResolveHook parseModule instantiateModule evaluateModule os */
+/* global getModuleLoadPath setModuleLoadHook setModuleResolveHook setModuleMetadataHook */
+/* global getModulePrivate setModulePrivate parseModule os */
+/* global setModuleDynamicImportHook finishDynamicModuleImport abortDynamicModuleImport */
 
 // A basic synchronous module loader for testing the shell.
+//
+// Supports loading files and 'javascript:' URLs that embed JS source text.
+
 {
 // Save standard built-ins before scripts can modify them.
 const ArrayPrototypeJoin = Array.prototype.join;
@@ -18,49 +23,68 @@ const StringPrototypeIndexOf = String.prototype.indexOf;
 const StringPrototypeLastIndexOf = String.prototype.lastIndexOf;
 const StringPrototypeStartsWith = String.prototype.startsWith;
 const StringPrototypeSubstring = String.prototype.substring;
+const ErrorClass = Error;
+
+const JAVASCRIPT_SCHEME = "javascript:";
 
 const ReflectLoader = new class {
     constructor() {
         this.registry = new Map();
-        this.modulePaths = new Map();
         this.loadPath = getModuleLoadPath();
     }
 
-    resolve(name, module) {
-        if (os.path.isAbsolute(name))
+    isJavascriptURL(name) {
+        return ReflectApply(StringPrototypeStartsWith, name, [JAVASCRIPT_SCHEME]);
+    }
+
+    resolve(name, referencingInfo) {
+        if (name === "") {
+            throw new ErrorClass("Invalid module specifier");
+        }
+
+        if (this.isJavascriptURL(name) || os.path.isAbsolute(name)) {
             return name;
+        }
 
         let loadPath = this.loadPath;
-        if (module) {
-            // Treat |name| as a relative path if it starts with either "./"
-            // or "../".
-            let isRelative = ReflectApply(StringPrototypeStartsWith, name, ["./"])
-                          || ReflectApply(StringPrototypeStartsWith, name, ["../"])
-#ifdef XP_WIN
-                          || ReflectApply(StringPrototypeStartsWith, name, [".\\"])
-                          || ReflectApply(StringPrototypeStartsWith, name, ["..\\"])
-#endif
-                             ;
 
-            // If |name| is a relative path and |module|'s path is available,
-            // load |name| relative to the referring module.
-            if (isRelative && ReflectApply(MapPrototypeHas, this.modulePaths, [module])) {
-                let modulePath = ReflectApply(MapPrototypeGet, this.modulePaths, [module]);
-                let sepIndex = ReflectApply(StringPrototypeLastIndexOf, modulePath, ["/"]);
+        // Treat |name| as a relative path if it starts with either "./"
+        // or "../".
+        let isRelative = ReflectApply(StringPrototypeStartsWith, name, ["./"])
+                      || ReflectApply(StringPrototypeStartsWith, name, ["../"])
 #ifdef XP_WIN
-                let otherSepIndex = ReflectApply(StringPrototypeLastIndexOf, modulePath, ["\\"]);
-                if (otherSepIndex > sepIndex)
-                    sepIndex = otherSepIndex;
+                      || ReflectApply(StringPrototypeStartsWith, name, [".\\"])
+                      || ReflectApply(StringPrototypeStartsWith, name, ["..\\"])
 #endif
-                if (sepIndex >= 0)
-                    loadPath = ReflectApply(StringPrototypeSubstring, modulePath, [0, sepIndex]);
+                         ;
+
+        // If |name| is a relative path and the referencing module's path is
+        // available, load |name| relative to the that path.
+        if (isRelative) {
+            if (!referencingInfo) {
+                throw new ErrorClass("No referencing module for relative import");
             }
+
+            let path = referencingInfo.path;
+
+            let sepIndex = ReflectApply(StringPrototypeLastIndexOf, path, ["/"]);
+#ifdef XP_WIN
+            let otherSepIndex = ReflectApply(StringPrototypeLastIndexOf, path, ["\\"]);
+            if (otherSepIndex > sepIndex)
+                sepIndex = otherSepIndex;
+#endif
+            if (sepIndex >= 0)
+                loadPath = ReflectApply(StringPrototypeSubstring, path, [0, sepIndex]);
         }
 
         return os.path.join(loadPath, name);
     }
 
     normalize(path) {
+        if (this.isJavascriptURL(path)) {
+            return path;
+        }
+
 #ifdef XP_WIN
         // Replace all forward slashes with backward slashes.
         // NB: It may be tempting to replace this loop with a call to
@@ -132,7 +156,7 @@ const ReflectLoader = new class {
             ObjectDefineProperty(components, n++, {
                 __proto__: null,
                 value: part,
-                writable: true, enumerable: true, configurable: true
+                writable: true, enumerable: true, configurable: true,
             });
         }
 
@@ -144,6 +168,10 @@ const ReflectLoader = new class {
     }
 
     fetch(path) {
+        if (this.isJavascriptURL(path)) {
+            return ReflectApply(StringPrototypeSubstring, path, [JAVASCRIPT_SCHEME.length]);
+        }
+
         return os.file.readFile(path);
     }
 
@@ -154,32 +182,59 @@ const ReflectLoader = new class {
 
         let source = this.fetch(path);
         let module = parseModule(source, path);
+        let moduleInfo = { path: normalized };
+        setModulePrivate(module, moduleInfo);
         ReflectApply(MapPrototypeSet, this.registry, [normalized, module]);
-        ReflectApply(MapPrototypeSet, this.modulePaths, [module, path]);
         return module;
     }
 
     loadAndExecute(path) {
         let module = this.loadAndParse(path);
-        instantiateModule(module);
-        return evaluateModule(module);
+        module.declarationInstantiation();
+        return module.evaluation();
     }
 
     importRoot(path) {
         return this.loadAndExecute(path);
     }
 
-    ["import"](name, referrer) {
+    ["import"](name, referencingInfo) {
         let path = this.resolve(name, null);
         return this.loadAndExecute(path);
+    }
+
+    populateImportMeta(moduleInfo, metaObject) {
+        // For the shell, use the module's normalized path as the base URL.
+
+        let path;
+        if (moduleInfo) {
+            path = moduleInfo.path;
+        } else {
+            path = "(unknown)";
+        }
+        metaObject.url = path;
     }
 };
 
 setModuleLoadHook((path) => ReflectLoader.importRoot(path));
 
-setModuleResolveHook((module, requestName) => {
-    let path = ReflectLoader.resolve(requestName, module);
+setModuleResolveHook((referencingInfo, requestName) => {
+    let path = ReflectLoader.resolve(requestName, referencingInfo);
     return ReflectLoader.loadAndParse(path);
+});
+
+setModuleMetadataHook((module, metaObject) => {
+    ReflectLoader.populateImportMeta(module, metaObject);
+});
+
+setModuleDynamicImportHook((referencingInfo, specifier, promise) => {
+    try {
+        let path = ReflectLoader.resolve(specifier, referencingInfo);
+        ReflectLoader.loadAndExecute(path);
+        finishDynamicModuleImport(referencingInfo, specifier, promise);
+    } catch (err) {
+        abortDynamicModuleImport(referencingInfo, specifier, promise, err);
+    }
 });
 
 }

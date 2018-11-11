@@ -45,6 +45,9 @@ namespace recordreplay {
   _Macro(Assert)                                               \
   _Macro(AssertBytes)                                          \
                                                                \
+  /* Performed an atomic access. */                            \
+  _Macro(AtomicAccess)                                         \
+                                                               \
   /* Executed a nested callback (see Callback.h). */           \
   _Macro(ExecuteCallback)                                      \
                                                                \
@@ -87,8 +90,18 @@ extern File* gRecordingFile;
 // Whether record/replay state has finished initialization.
 extern bool gInitialized;
 
-// If we failed to initialize, any associated message.
+// If we failed to initialize, any associated message. On an initialization
+// failure, events will be passed through until we have connected with the
+// middleman, reported the failure, and crashed.
 extern char* gInitializationFailureMessage;
+
+// For places where events will normally not be passed through, unless there
+// was an initialization failure.
+static inline void
+AssertEventsAreNotPassedThrough()
+{
+  MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough() || gInitializationFailureMessage);
+}
 
 // Flush any new recording data to disk.
 void FlushRecording();
@@ -221,6 +234,9 @@ MOZ_MakeRecordReplayPrinter(Print, false)
 MOZ_MakeRecordReplayPrinter(PrintSpew, true)
 
 #undef MOZ_MakeRecordReplayPrinter
+
+// Get the ID of the process that produced the recording.
+int GetRecordingPid();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Profiling

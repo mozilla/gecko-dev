@@ -305,15 +305,22 @@ js::MakeDefaultConstructor(JSContext* cx, HandleScript script, jsbytecode* pc, H
 
     ctor->setIsConstructor();
     ctor->setIsClassConstructor();
-    MOZ_ASSERT(ctor->infallibleIsDefaultClassConstructor(cx));
 
-    // Create the script now, as the source span needs to be overridden for
-    // toString. Calling toString on a class constructor must not return the
-    // source for just the constructor function.
+    // Create the script now, so we can fix up its source span below.
     JSScript *ctorScript = JSFunction::getOrCreateScript(cx, ctor);
     if (!ctorScript) {
         return nullptr;
     }
+
+    // This function's frames are fine to expose to JS; it should not be treated
+    // as an opaque self-hosted builtin. But the script cloning code naturally
+    // expects to be applied to self-hosted functions, so do the clone first,
+    // and clear this afterwards.
+    ctor->clearIsSelfHosted();
+
+    // Override the source span needs for toString. Calling toString on a class
+    // constructor should return the class declaration, not the source for the
+    // (self-hosted) constructor function.
     uint32_t classStartOffset = GetSrcNoteOffset(classNote, 0);
     uint32_t classEndOffset = GetSrcNoteOffset(classNote, 1);
     unsigned column;
@@ -361,7 +368,7 @@ MaybeCreateThisForConstructor(JSContext* cx, JSScript* calleeScript, const CallA
     return CreateThis(cx, callee, calleeScript, newTarget, newKind, args.mutableThisv());
 }
 
-static MOZ_NEVER_INLINE bool
+static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool
 Interpret(JSContext* cx, RunState& state);
 
 InterpreterFrame*
@@ -1236,10 +1243,14 @@ PopEnvironment(JSContext* cx, EnvironmentIter& ei)
             ei.initialFrame().popOffEnvironmentChain<VarEnvironmentObject>();
         }
         break;
+      case ScopeKind::Module:
+        if (MOZ_UNLIKELY(cx->realm()->isDebuggee())) {
+            DebugEnvironments::onPopModule(cx, ei);
+        }
+        break;
       case ScopeKind::Eval:
       case ScopeKind::Global:
       case ScopeKind::NonSyntactic:
-      case ScopeKind::Module:
         break;
       case ScopeKind::WasmInstance:
       case ScopeKind::WasmFunction:
@@ -1305,7 +1316,7 @@ js::UnwindAllEnvironmentsInFrame(JSContext* cx, EnvironmentIter& ei)
 jsbytecode*
 js::UnwindEnvironmentToTryPc(JSScript* script, const JSTryNote* tn)
 {
-    jsbytecode* pc = script->main() + tn->start;
+    jsbytecode* pc = script->offsetToPC(tn->start);
     if (tn->kind == JSTRY_CATCH || tn->kind == JSTRY_FINALLY) {
         pc -= JSOP_TRY_LENGTH;
         MOZ_ASSERT(*pc == JSOP_TRY);
@@ -1334,7 +1345,7 @@ SettleOnTryNote(JSContext* cx, const JSTryNote* tn, EnvironmentIter& ei, Interpr
 
     // Set pc to the first bytecode after the the try note to point
     // to the beginning of catch or finally.
-    regs.pc = regs.fp()->script()->main() + tn->start + tn->length;
+    regs.pc = regs.fp()->script()->offsetToPC(tn->start + tn->length);
     regs.sp = regs.spForStackDepth(tn->stackDepth);
 }
 
@@ -1457,7 +1468,7 @@ ProcessTryNotes(JSContext* cx, EnvironmentIter& ei, InterpreterRegs& regs)
             }
 
             /* This is similar to JSOP_ENDITER in the interpreter loop. */
-            DebugOnly<jsbytecode*> pc = regs.fp()->script()->main() + tn->start + tn->length;
+            DebugOnly<jsbytecode*> pc = regs.fp()->script()->offsetToPC(tn->start + tn->length);
             MOZ_ASSERT(JSOp(*pc) == JSOP_ENDITER);
             Value* sp = regs.spForStackDepth(tn->stackDepth);
             JSObject* obj = &sp[-1].toObject();
@@ -1985,7 +1996,7 @@ js::ReportInNotObjectError(JSContext* cx, HandleValue lref, int lindex,
                               InformalValueTypeName(rref));
 }
 
-static MOZ_NEVER_INLINE bool
+static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool
 Interpret(JSContext* cx, RunState& state)
 {
 /*
@@ -2287,7 +2298,6 @@ CASE(EnableInterruptsPseudoOpcode)
 CASE(JSOP_NOP)
 CASE(JSOP_NOP_DESTRUCTURING)
 CASE(JSOP_TRY_DESTRUCTURING_ITERCLOSE)
-CASE(JSOP_UNUSED126)
 CASE(JSOP_UNUSED206)
 CASE(JSOP_CONDSWITCH)
 {
@@ -2775,18 +2785,18 @@ CASE(JSOP_STRICTNE)
 }
 END_CASE(JSOP_STRICTNE)
 
+#undef STRICT_EQUALITY_OP
+
 CASE(JSOP_CASE)
 {
-    bool cond;
-    STRICT_EQUALITY_OP(==, cond);
+    bool cond = REGS.sp[-1].toBoolean();
+    REGS.sp--;
     if (cond) {
         REGS.sp--;
         BRANCH(GET_JUMP_OFFSET(REGS.pc));
     }
 }
 END_CASE(JSOP_CASE)
-
-#undef STRICT_EQUALITY_OP
 
 CASE(JSOP_LT)
 {
@@ -3635,6 +3645,7 @@ CASE(JSOP_UINT16)
 END_CASE(JSOP_UINT16)
 
 CASE(JSOP_UINT24)
+CASE(JSOP_RESUMEINDEX)
     PUSH_INT32((int32_t) GET_UINT24(REGS.pc));
 END_CASE(JSOP_UINT24)
 
@@ -3767,12 +3778,8 @@ CASE(JSOP_TABLESWITCH)
     int32_t high = GET_JUMP_OFFSET(pc2);
 
     i = uint32_t(i) - uint32_t(low);
-    if ((uint32_t)i < (uint32_t)(high - low + 1)) {
-        pc2 += JUMP_OFFSET_LEN + JUMP_OFFSET_LEN * i;
-        int32_t off = (int32_t) GET_JUMP_OFFSET(pc2);
-        if (off) {
-            len = off;
-        }
+    if (uint32_t(i) < uint32_t(high - low + 1)) {
+        len = script->tableSwitchCaseOffset(REGS.pc, uint32_t(i)) - script->pcToOffset(REGS.pc);
     }
     ADVANCE_AND_DISPATCH(len);
 }
@@ -4301,10 +4308,7 @@ END_CASE(JSOP_INITELEM_INC)
 
 CASE(JSOP_GOSUB)
 {
-    PUSH_BOOLEAN(false);
-    int32_t i = script->pcToOffset(REGS.pc) + JSOP_GOSUB_LENGTH;
     int32_t len = GET_JUMP_OFFSET(REGS.pc);
-    PUSH_INT32(i);
     ADVANCE_AND_DISPATCH(len);
 }
 
@@ -4326,11 +4330,12 @@ CASE(JSOP_RETSUB)
         cx->setPendingException(v);
         goto error;
     }
-    MOZ_ASSERT(rval.isInt32());
 
-    /* Increment the PC by this much. */
-    int32_t len = rval.toInt32() - int32_t(script->pcToOffset(REGS.pc));
-    ADVANCE_AND_DISPATCH(len);
+    MOZ_ASSERT(rval.toInt32() >= 0);
+
+    uint32_t offset = script->resumeOffsets()[rval.toInt32()];
+    REGS.pc = script->offsetToPC(offset);
+    ADVANCE_AND_DISPATCH(0);
 }
 
 CASE(JSOP_EXCEPTION)
@@ -4565,7 +4570,7 @@ CASE(JSOP_RESUME)
         TraceLogStartEvent(logger, scriptEvent);
         TraceLogStartEvent(logger, TraceLogger_Interpreter);
 
-        switch (Debugger::onEnterFrame(cx, REGS.fp())) {
+        switch (Debugger::onResumeFrame(cx, REGS.fp())) {
           case ResumeMode::Continue:
             break;
           case ResumeMode::Throw:
@@ -4706,15 +4711,30 @@ CASE(JSOP_IMPORTMETA)
     ReservedRooted<JSObject*> module(&rootObject0, GetModuleObjectForScript(script));
     MOZ_ASSERT(module);
 
-    ReservedRooted<JSScript*> script(&rootScript0, module->as<ModuleObject>().script());
-    JSObject* metaObject = GetOrCreateModuleMetaObject(cx, script);
+    JSObject* metaObject = GetOrCreateModuleMetaObject(cx, module);
     if (!metaObject) {
         goto error;
     }
 
     PUSH_OBJECT(*metaObject);
 }
-END_CASE(JSOP_NEWTARGET)
+END_CASE(JSOP_IMPORTMETA)
+
+CASE(JSOP_DYNAMIC_IMPORT)
+{
+    ReservedRooted<Value> referencingPrivate(&rootValue0);
+    referencingPrivate = FindScriptOrModulePrivateForScript(script);
+
+    ReservedRooted<Value> specifier(&rootValue1);
+    POP_COPY_TO(specifier);
+
+    JSObject* promise = StartDynamicModuleImport(cx, referencingPrivate, specifier);
+    if (!promise)
+        goto error;
+
+    PUSH_OBJECT(*promise);
+}
+END_CASE(JSOP_DYNAMIC_IMPORT)
 
 CASE(JSOP_SUPERFUN)
 {

@@ -142,11 +142,6 @@ HTMLSelectElement::HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>&& 
                     NS_EVENT_STATE_VALID);
 }
 
-HTMLSelectElement::~HTMLSelectElement()
-{
-  mOptions->DropReference();
-}
-
 // ISupports
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLSelectElement)
@@ -600,6 +595,10 @@ HTMLSelectElement::Add(nsGenericHTMLElement& aElement,
 void
 HTMLSelectElement::Remove(int32_t aIndex)
 {
+  if (aIndex < 0) {
+    return;
+  }
+
   nsCOMPtr<nsINode> option = Item(static_cast<uint32_t>(aIndex));
   if (!option) {
     return;
@@ -642,14 +641,6 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
                                  getter_AddRefs(nodeInfo));
 
     nsCOMPtr<nsINode> node = NS_NewHTMLOptionElement(nodeInfo.forget());
-
-    RefPtr<nsTextNode> text = new nsTextNode(mNodeInfo->NodeInfoManager());
-
-    aRv = node->AppendChildTo(text, false);
-    if (aRv.Failed()) {
-      return;
-    }
-
     for (uint32_t i = curlen; i < aLength; i++) {
       nsINode::AppendChild(*node, aRv);
       if (aRv.Failed()) {
@@ -1308,21 +1299,21 @@ HTMLSelectElement::GetAttributeMappingFunction() const
 }
 
 bool
-HTMLSelectElement::IsDisabledForEvents(EventMessage aMessage)
+HTMLSelectElement::IsDisabledForEvents(WidgetEvent* aEvent)
 {
   nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
   nsIFrame* formFrame = nullptr;
   if (formControlFrame) {
     formFrame = do_QueryFrame(formControlFrame);
   }
-  return IsElementDisabledForEvents(aMessage, formFrame);
+  return IsElementDisabledForEvents(aEvent, formFrame);
 }
 
 void
 HTMLSelectElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
-  if (IsDisabledForEvents(aVisitor.mEvent->mMessage)) {
+  if (IsDisabledForEvents(aVisitor.mEvent)) {
     return;
   }
 

@@ -35,12 +35,10 @@ describe("SnippetsFeed", () => {
     clock = sinon.useFakeTimers();
     sandbox = sinon.sandbox.create();
     overrider.set({
-      ProfileAge: class ProfileAge {
-        constructor() {
-          this.created = Promise.resolve(0);
-          this.reset = Promise.resolve(WEEK_IN_MS);
-        }
-      },
+      ProfileAge: () => Promise.resolve({
+        created: Promise.resolve(0),
+        reset: Promise.resolve(WEEK_IN_MS),
+      }),
       FxAccounts: {config: {promiseSignUpURI: sandbox.stub().returns(Promise.resolve(signUpUrl))}},
       NewTabUtils: {activityStreamProvider: {getTotalBookmarksCount: () => Promise.resolve(42)}},
     });
@@ -55,9 +53,7 @@ describe("SnippetsFeed", () => {
     sandbox.stub(global.Services.prefs, "getStringPref").returns(url);
     sandbox.stub(global.Services.prefs, "getBoolPref")
       .withArgs("datareporting.healthreport.uploadEnabled")
-      .returns(true)
-      .withArgs("browser.onboarding.notification.finished")
-      .returns(false);
+      .returns(true);
     sandbox.stub(global.Services.prefs, "prefHasUserValue")
       .withArgs("services.sync.username")
       .returns(true);
@@ -90,7 +86,6 @@ describe("SnippetsFeed", () => {
     assert.propertyVal(action.data, "profileCreatedWeeksAgo", 2);
     assert.propertyVal(action.data, "profileResetWeeksAgo", 1);
     assert.propertyVal(action.data, "telemetryEnabled", true);
-    assert.propertyVal(action.data, "onboardingFinished", false);
     assert.propertyVal(action.data, "fxaccount", true);
     assert.property(action.data, "selectedSearchEngine");
     assert.deepEqual(action.data.selectedSearchEngine, searchData);

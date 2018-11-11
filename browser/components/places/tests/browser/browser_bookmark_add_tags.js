@@ -23,6 +23,20 @@ async function hideBookmarksPanel(callback) {
   await hiddenPromise;
 }
 
+add_task(function setup() {
+  let oldTimeout = StarUI._autoCloseTimeout;
+
+  bookmarkPanel.setAttribute("animate", false);
+
+  StarUI._autoCloseTimeout = 1000;
+
+  registerCleanupFunction(async () => {
+    StarUI._autoCloseTimeout = oldTimeout;
+    bookmarkPanel.removeAttribute("animate");
+    await PlacesUtils.bookmarks.eraseEverything();
+  });
+});
+
 add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
   const TEST_URL = "about:robots";
 
@@ -50,12 +64,10 @@ add_task(async function test_add_bookmark_tags_from_bookmarkProperties() {
   // Click the bookmark star again to add tags.
   await clickBookmarkStar();
   Assert.equal(bookmarkPanelTitle.value, gNavigatorBundle.getString("editBookmarkPanel.editBookmarkTitle"), "Bookmark title is correct");
-  let promiseNotification = PlacesTestUtils.waitForNotification("onItemAdded", (id, parentId, index, type, itemUrl) => {
-    if (itemUrl !== null) {
-      return itemUrl.equals(Services.io.newURI(TEST_URL));
-    }
-    return true;
-  });
+  let promiseNotification =
+    PlacesTestUtils.waitForNotification("bookmark-added",
+                                        events => events.some(({url}) => !url || url == TEST_URL),
+                                        "places");
   await fillBookmarkTextField("editBMPanel_tagsField", "tag1", window);
   await promiseNotification;
   let bookmarks = [];

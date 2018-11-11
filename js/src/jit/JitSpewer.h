@@ -12,7 +12,6 @@
 
 #include <stdarg.h>
 
-#include "jit/C1Spewer.h"
 #include "jit/JSONSpewer.h"
 
 #include "js/RootingAPI.h"
@@ -106,7 +105,9 @@ namespace jit {
     /* Debug info about snapshots */        \
     _(IonSnapshots)                         \
     /* Generated inline cache stubs */      \
-    _(IonIC)
+    _(IonIC)                                \
+    /* Baseline IC Statistic information */ \
+    _(BaselineIC_Statistics)
 
 enum JitSpewChannel {
 #define JITSPEW_CHANNEL(name) JitSpew_##name,
@@ -123,8 +124,6 @@ class TempAllocator;
 
 // The JitSpewer is only available on debug builds.
 // None of the global functions have effect on non-debug builds.
-static const int NULL_ID = -1;
-
 #ifdef JS_JITSPEW
 
 // Class made to hold the MIR and LIR graphs of an Wasm / Ion compilation.
@@ -132,9 +131,7 @@ class GraphSpewer
 {
   private:
     MIRGraph* graph_;
-    LSprinter c1Printer_;
     LSprinter jsonPrinter_;
-    C1Spewer c1Spewer_;
     JSONSpewer jsonSpewer_;
 
   public:
@@ -149,7 +146,7 @@ class GraphSpewer
     void spewPass(const char* pass, BacktrackingAllocator* ra);
     void endFunction();
 
-    void dump(Fprinter& c1, Fprinter& json);
+    void dump(Fprinter& json);
 };
 
 void SpewBeginFunction(MIRGenerator* mir, JSScript* function);
@@ -269,28 +266,6 @@ static inline void EnableIonDebugAsyncLogging()
 { }
 
 #endif /* JS_JITSPEW */
-
-template <JitSpewChannel Channel>
-class AutoDisableSpew
-{
-    mozilla::DebugOnly<bool> enabled_;
-
-  public:
-    AutoDisableSpew()
-      : enabled_(JitSpewEnabled(Channel))
-    {
-        DisableChannel(Channel);
-    }
-
-    ~AutoDisableSpew()
-    {
-#ifdef JS_JITSPEW
-        if (enabled_) {
-            EnableChannel(Channel);
-        }
-#endif
-    }
-};
 
 } // namespace jit
 } // namespace js

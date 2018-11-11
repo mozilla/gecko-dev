@@ -19,7 +19,7 @@ For events recorded into Firefox Telemetry we also provide an API that opaquely 
 Serialization format
 ====================
 
-Events are submitted as an array, e.g.:
+Events are submitted in an :doc:`../data/event-ping` as an array, e.g.:
 
 .. code-block:: js
 
@@ -134,6 +134,10 @@ The following event properties are valid:
   - ``geckoview``
   - ``all`` (record on all products)
 
+.. note::
+
+  Combinations of ``category``, ``method``, and ``object`` defined in the file must be unique.
+
 The API
 =======
 
@@ -222,7 +226,7 @@ For events recorded from add-ons, registration happens at runtime. Any new event
 The registered categories will automatically be enabled for recording.
 If a dynamic event uses the same category as a static event, the category will also be enabled upon registration.
 
-After registration, the events can be recorded through the ``recordEvent()`` function. They will be submitted in the main pings payload under ``processes.dynamic.events``.
+After registration, the events can be recorded through the ``recordEvent()`` function. They will be submitted in event pings like static events are, under the ``dynamic`` process.
 
 New events registered here are subject to the same limitations as the ones registered through ``Events.yaml``, although the naming was in parts updated to recent policy changes.
 

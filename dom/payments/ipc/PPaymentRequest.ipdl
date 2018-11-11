@@ -27,7 +27,6 @@ struct IPCPaymentItem
   nsString label;
   IPCPaymentCurrencyAmount amount;
   bool pending;
-  nsString type;
 };
 
 struct IPCPaymentDetailsModifier
@@ -71,6 +70,7 @@ struct IPCPaymentOptions
 
 struct IPCPaymentCreateActionRequest
 {
+  uint64_t topOuterWindowId;
   nsString requestId;
   Principal topLevelPrincipal;
   IPCPaymentMethodData[] methodData;
@@ -139,12 +139,48 @@ struct IPCPaymentCanMakeActionResponse
   bool result;
 };
 
+struct IPCPaymentAddress
+{
+  nsString country;
+  nsString[] addressLine;
+  nsString region;
+  nsString regionCode;
+  nsString city;
+  nsString dependentLocality;
+  nsString postalCode;
+  nsString sortingCode;
+  nsString organization;
+  nsString recipient;
+  nsString phone;
+};
+
+struct IPCGeneralResponse
+{
+  nsString data;
+};
+
+struct IPCBasicCardResponse
+{
+  nsString cardholderName;
+  nsString cardNumber;
+  nsString expiryMonth;
+  nsString expiryYear;
+  nsString cardSecurityCode;
+  IPCPaymentAddress billingAddress;
+};
+
+union IPCPaymentResponseData
+{
+  IPCGeneralResponse;
+  IPCBasicCardResponse;
+};
+
 struct IPCPaymentShowActionResponse
 {
   nsString requestId;
   uint32_t status;
   nsString methodName;
-  nsString data;
+  IPCPaymentResponseData data;
   nsString payerName;
   nsString payerEmail;
   nsString payerPhone;
@@ -168,20 +204,6 @@ union IPCPaymentActionResponse
   IPCPaymentShowActionResponse;
   IPCPaymentAbortActionResponse;
   IPCPaymentCompleteActionResponse;
-};
-
-struct IPCPaymentAddress
-{
-  nsString country;
-  nsString[] addressLine;
-  nsString region;
-  nsString city;
-  nsString dependentLocality;
-  nsString postalCode;
-  nsString sortingCode;
-  nsString organization;
-  nsString recipient;
-  nsString phone;
 };
 
 sync protocol PPaymentRequest

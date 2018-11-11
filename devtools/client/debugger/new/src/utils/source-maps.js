@@ -1,30 +1,31 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.getGeneratedLocation = getGeneratedLocation;
-exports.getMappedLocation = getMappedLocation;
-
-var _devtoolsSourceMap = require("devtools/client/shared/source-map/index.js");
-
-var _selectors = require("../selectors/index");
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
-async function getGeneratedLocation(state, source, location, sourceMaps) {
-  if (!(0, _devtoolsSourceMap.isOriginalId)(location.sourceId)) {
+
+// @flow
+
+import { isOriginalId } from "devtools-source-map";
+import { getSource } from "../selectors";
+
+import type { Location, MappedLocation, Source } from "../types";
+import { isGenerated } from "../utils/source";
+
+export async function getGeneratedLocation(
+  state: Object,
+  source: Source,
+  location: Location,
+  sourceMaps: Object
+): Promise<Location> {
+  if (!isOriginalId(location.sourceId)) {
     return location;
   }
 
-  const {
-    line,
-    sourceId,
-    column
-  } = await sourceMaps.getGeneratedLocation(location, source);
-  const generatedSource = (0, _selectors.getSource)(state, sourceId);
+  const { line, sourceId, column } = await sourceMaps.getGeneratedLocation(
+    location,
+    source
+  );
 
+  const generatedSource = getSource(state, sourceId);
   if (!generatedSource) {
     return location;
   }
@@ -37,12 +38,29 @@ async function getGeneratedLocation(state, source, location, sourceMaps) {
   };
 }
 
-async function getMappedLocation(state, sourceMaps, location) {
-  const source = (0, _selectors.getSource)(state, location.sourceId);
+export async function getMappedLocation(
+  state: Object,
+  sourceMaps: Object,
+  location: Location
+): Promise<Location> {
+  const source = getSource(state, location.sourceId);
 
-  if ((0, _devtoolsSourceMap.isOriginalId)(location.sourceId)) {
+  if (!source) {
+    return location;
+  }
+
+  if (isOriginalId(location.sourceId)) {
     return getGeneratedLocation(state, source, location, sourceMaps);
   }
 
   return sourceMaps.getOriginalLocation(location, source);
+}
+
+export function getSelectedLocation(
+  mappedLocation: MappedLocation,
+  selectedSource: ?Source
+) {
+  return selectedSource && isGenerated(selectedSource)
+    ? mappedLocation.generatedLocation
+    : mappedLocation.location;
 }

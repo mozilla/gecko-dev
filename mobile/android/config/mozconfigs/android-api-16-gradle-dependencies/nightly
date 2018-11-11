@@ -3,7 +3,6 @@ MOZ_AUTOMATION_BUILD_SYMBOLS=0
 MOZ_AUTOMATION_L10N_CHECK=0
 MOZ_AUTOMATION_PACKAGE=0
 MOZ_AUTOMATION_PACKAGE_TESTS=0
-MOZ_AUTOMATION_UPDATE_PACKAGING=0
 MOZ_AUTOMATION_UPLOAD=0
 MOZ_AUTOMATION_PACKAGE_GENERATED_SOURCES=0
 
@@ -15,7 +14,7 @@ NO_NDK=1
 # We want to download Gradle.
 ac_add_options --with-gradle
 # We want to use (and populate!) the local Nexus repositories.
-export GRADLE_MAVEN_REPOSITORIES="http://localhost:8081/nexus/content/repositories/jcenter/","http://localhost:8081/nexus/content/repositories/google/"
+export GRADLE_MAVEN_REPOSITORIES="http://localhost:8081/nexus/content/repositories/google/","http://localhost:8081/nexus/content/repositories/jcenter/"
 
 # From here on, just like ../android-api-16-frontend/nightly.
 

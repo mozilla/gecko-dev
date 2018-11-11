@@ -27,7 +27,7 @@ function run_test_with_server(server, callback) {
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient,
                            "test-breakpoints",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test();
                            });
@@ -42,7 +42,7 @@ const test = async function() {
   let packet = await executeOnNextTickAndWaitForPause(evalCode, gClient);
   const source = gThreadClient.source(packet.frame.where.source);
   const location = {
-    line: gDebuggee.line0 + 8
+    line: gDebuggee.line0 + 8,
   };
 
   const [res, bpClient] = await setBreakpoint(source, location);

@@ -86,6 +86,8 @@ var AUSTLMY = {
   CHK_ELEVATION_OPTOUT_FOR_VERSION: 36,
   // Update checks disabled by enterprise policy
   CHK_DISABLED_BY_POLICY: 37,
+  // Update check failed due to write error
+  CHK_ERR_WRITE_FAILURE: 38,
 
   /**
    * Submit a telemetry ping for the update check result code or a telemetry
@@ -156,8 +158,8 @@ var AUSTLMY = {
   PATCH_UNKNOWN: "UNKNOWN",
 
   /**
-   * Values for the UPDATE_DOWNLOAD_CODE_COMPLETE and
-   * UPDATE_DOWNLOAD_CODE_PARTIAL Telemetry histograms.
+   * Values for the UPDATE_DOWNLOAD_CODE_COMPLETE, UPDATE_DOWNLOAD_CODE_PARTIAL,
+   * and UPDATE_DOWNLOAD_CODE_UNKNOWN Telemetry histograms.
    */
   DWNLD_SUCCESS: 0,
   DWNLD_RETRY_OFFLINE: 1,
@@ -173,6 +175,7 @@ var AUSTLMY = {
   DWNLD_ERR_DOCUMENT_NOT_CACHED: 12,
   DWNLD_ERR_VERIFY_NO_REQUEST: 13,
   DWNLD_ERR_VERIFY_PATCH_SIZE_NOT_EQUAL: 14,
+  DWNLD_ERR_WRITE_FAILURE: 15,
 
   /**
    * Submit a telemetry ping for the update download result code.
@@ -184,6 +187,7 @@ var AUSTLMY = {
    *         the histogram ID out of the following histogram IDs:
    *         UPDATE_DOWNLOAD_CODE_COMPLETE
    *         UPDATE_DOWNLOAD_CODE_PARTIAL
+   *         UPDATE_DOWNLOAD_CODE_UNKNOWN
    * @param  aCode
    *         An integer value as defined by the values that start with DWNLD_ in
    *         the above section.
@@ -203,6 +207,10 @@ var AUSTLMY = {
       Cu.reportError(e);
     }
   },
+
+  // Previous state codes are defined in pingStateAndStatusCodes() in
+  // nsUpdateService.js
+  STATE_WRITE_FAILURE: 14,
 
   /**
    * Submit a telemetry ping for the update status state code.
@@ -249,6 +257,27 @@ var AUSTLMY = {
       let id = "UPDATE_STATUS_ERROR_CODE_" + aSuffix;
       // enumerated type histogram
       Services.telemetry.getHistogramById(id).add(aCode);
+    } catch (e) {
+      Cu.reportError(e);
+    }
+  },
+
+  /**
+   * Submit a telemetry ping for a failing binary transparency result.
+   *
+   * @param  aSuffix
+   *         Key to use on the update.binarytransparencyresult collection.
+   *         Must be one of "COMPLETE_STARTUP", "PARTIAL_STARTUP",
+   *         "UNKNOWN_STARTUP", "COMPLETE_STAGE", "PARTIAL_STAGE",
+   *         "UNKNOWN_STAGE".
+   * @param  aCode
+   *         An integer value for the error code from the update.bt file.
+   */
+  pingBinaryTransparencyResult: function UT_pingBinaryTransparencyResult(aSuffix, aCode) {
+    try {
+      let id = "update.binarytransparencyresult";
+      let key = aSuffix.toLowerCase().replace("_", "-");
+      Services.telemetry.keyedScalarSet(id, key, aCode);
     } catch (e) {
       Cu.reportError(e);
     }

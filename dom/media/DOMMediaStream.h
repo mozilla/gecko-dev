@@ -19,16 +19,9 @@
 #include "mozilla/RelativeTimeline.h"
 #include "PrincipalChangeObserver.h"
 
-// X11 has a #define for CurrentTime. Unbelievable :-(.
-// See dom/media/webaudio/AudioContext.h for more fun!
-#ifdef CurrentTime
-#undef CurrentTime
-#endif
-
 namespace mozilla {
 
 class AbstractThread;
-class DOMLocalMediaStream;
 class DOMMediaStream;
 class MediaStream;
 class MediaInputPort;
@@ -206,7 +199,6 @@ class DOMMediaStream : public DOMEventTargetHelper,
                        public dom::PrincipalChangeObserver<dom::MediaStreamTrack>,
                        public RelativeTimeline
 {
-  friend class DOMLocalMediaStream;
   friend class dom::MediaStreamTrack;
   typedef dom::MediaStreamTrack MediaStreamTrack;
   typedef dom::AudioStreamTrack AudioStreamTrack;
@@ -359,15 +351,15 @@ public:
               const dom::Sequence<OwningNonNull<MediaStreamTrack>>& aTracks,
               ErrorResult& aRv);
 
-  double CurrentTime();
-
   static already_AddRefed<dom::Promise>
   CountUnderlyingStreams(const dom::GlobalObject& aGlobal, ErrorResult& aRv);
 
   void GetId(nsAString& aID) const;
 
   void GetAudioTracks(nsTArray<RefPtr<AudioStreamTrack> >& aTracks) const;
+  void GetAudioTracks(nsTArray<RefPtr<MediaStreamTrack> >& aTracks) const;
   void GetVideoTracks(nsTArray<RefPtr<VideoStreamTrack> >& aTracks) const;
+  void GetVideoTracks(nsTArray<RefPtr<MediaStreamTrack> >& aTracks) const;
   void GetTracks(nsTArray<RefPtr<MediaStreamTrack> >& aTracks) const;
   MediaStreamTrack* GetTrackById(const nsAString& aId) const;
   void AddTrack(MediaStreamTrack& aTrack);
@@ -522,11 +514,6 @@ public:
                                   nsIPrincipal* aPrincipal,
                                   MediaStreamGraph* aGraph);
 
-  void SetLogicalStreamStartTime(StreamTime aTime)
-  {
-    mLogicalStreamStartTime = aTime;
-  }
-
   /**
    * Adds a MediaStreamTrack to mTracks and raises "addtrack".
    *
@@ -662,9 +649,6 @@ protected:
   // the principal changes.
   void RecomputePrincipal();
 
-  // StreamTime at which the currentTime attribute would return 0.
-  StreamTime mLogicalStreamStartTime;
-
   // We need this to track our parent object.
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
 
@@ -753,49 +737,6 @@ private:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DOMMediaStream,
                               NS_DOMMEDIASTREAM_IID)
-
-#define NS_DOMLOCALMEDIASTREAM_IID \
-{ 0xb1437260, 0xec61, 0x4dfa, \
-  { 0x92, 0x54, 0x04, 0x44, 0xe2, 0xb5, 0x94, 0x9c } }
-
-class DOMLocalMediaStream : public DOMMediaStream
-{
-public:
-  explicit DOMLocalMediaStream(nsPIDOMWindowInner* aWindow,
-                               MediaStreamTrackSourceGetter* aTrackSourceGetter)
-    : DOMMediaStream(aWindow, aTrackSourceGetter) {}
-
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOMLOCALMEDIASTREAM_IID)
-
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
-
-  void Stop();
-
-  /**
-   * Create an nsDOMLocalMediaStream whose underlying stream is a SourceMediaStream.
-   */
-  static already_AddRefed<DOMLocalMediaStream>
-  CreateSourceStreamAsInput(nsPIDOMWindowInner* aWindow,
-                            MediaStreamGraph* aGraph,
-                            MediaStreamTrackSourceGetter* aTrackSourceGetter = nullptr);
-
-  /**
-   * Create an nsDOMLocalMediaStream whose underlying stream is a TrackUnionStream.
-   */
-  static already_AddRefed<DOMLocalMediaStream>
-  CreateTrackUnionStreamAsInput(nsPIDOMWindowInner* aWindow,
-                                MediaStreamGraph* aGraph,
-                                MediaStreamTrackSourceGetter* aTrackSourceGetter = nullptr);
-
-protected:
-  virtual ~DOMLocalMediaStream();
-
-  void StopImpl();
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMLocalMediaStream,
-                              NS_DOMLOCALMEDIASTREAM_IID)
 
 class DOMAudioNodeMediaStream : public DOMMediaStream
 {

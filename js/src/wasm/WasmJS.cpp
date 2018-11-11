@@ -385,7 +385,7 @@ DescribeScriptedCaller(JSContext* cx, ScriptedCaller* caller, const char* introd
 }
 
 // ============================================================================
-// Fuzzing support
+// Testing / Fuzzing support
 
 bool
 wasm::Eval(JSContext* cx, Handle<TypedArrayObject*> code, HandleObject importObj,
@@ -400,7 +400,7 @@ wasm::Eval(JSContext* cx, Handle<TypedArrayObject*> code, HandleObject importObj
         return false;
     }
 
-    if (!bytecode->append((uint8_t*)code->viewDataEither().unwrap(), code->byteLength())) {
+    if (!bytecode->append((uint8_t*)code->dataPointerEither().unwrap(), code->byteLength())) {
         ReportOutOfMemory(cx);
         return false;
     }
@@ -440,6 +440,50 @@ wasm::Eval(JSContext* cx, Handle<TypedArrayObject*> code, HandleObject importObj
 
     return module->instantiate(cx, funcs, table, memory, globals, globalObjs.get(), nullptr,
                                instanceObj);
+}
+
+bool
+wasm::CompileAndSerialize(const ShareableBytes& bytecode, Bytes* serialized)
+{
+    MutableCompileArgs compileArgs = js_new<CompileArgs>(ScriptedCaller());
+    if (!compileArgs) {
+        return false;
+    }
+
+    // The caller has ensured HasCachingSupport().
+    compileArgs->ionEnabled = true;
+
+    UniqueChars error;
+    UniqueCharsVector warnings;
+    UniqueLinkData linkData;
+    SharedModule module = CompileBuffer(*compileArgs, bytecode, &error, &warnings, &linkData);
+    if (!module) {
+        fprintf(stderr, "Compilation error: %s\n", error ? error.get() : "oom");
+        return false;
+    }
+
+    MOZ_ASSERT(module->code().hasTier(Tier::Serialized));
+
+    size_t serializedSize = module->serializedSize(*linkData);
+    if (!serialized->resize(serializedSize)) {
+        return false;
+    }
+
+    module->serialize(*linkData, serialized->begin(), serialized->length());
+    return true;
+}
+
+bool
+wasm::DeserializeModule(JSContext* cx, const Bytes& serialized, MutableHandleObject moduleObj)
+{
+    MutableModule module = Module::deserialize(serialized.begin(), serialized.length());
+    if (!module) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    moduleObj.set(module->createObject(cx));
+    return !!moduleObj;
 }
 
 // ============================================================================

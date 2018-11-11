@@ -43,6 +43,12 @@ ProfilerMarkerPayload::StreamCommonProps(const char* aMarkerType,
   StreamType(aMarkerType, aWriter);
   WriteTime(aWriter, aProcessStartTime, mStartTime, "startTime");
   WriteTime(aWriter, aProcessStartTime, mEndTime, "endTime");
+  if (mDocShellId) {
+    aWriter.StringProperty("docShellId", nsIDToCString(*mDocShellId).get());
+  }
+  if (mDocShellHistoryId) {
+    aWriter.DoubleProperty("docshellHistoryId", mDocShellHistoryId.ref());
+  }
   if (mStack) {
     aWriter.StartObjectProperty("stack");
     {
@@ -135,8 +141,6 @@ VsyncMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                   UniqueStacks& aUniqueStacks)
 {
   StreamType("VsyncTimestamp", aWriter);
-  aWriter.DoubleProperty("vsync",
-                         (mVsyncTimestamp - aProcessStartTime).ToMilliseconds());
 }
 
 static const char *GetNetworkState(NetworkLoadType aType)
@@ -263,4 +267,13 @@ StyleMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   aWriter.IntProperty("elementsMatched", mStats.mElementsMatched);
   aWriter.IntProperty("stylesShared", mStats.mStylesShared);
   aWriter.IntProperty("stylesReused", mStats.mStylesReused);
+}
+
+void
+LongTaskMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                     const TimeStamp& aProcessStartTime,
+                                     UniqueStacks& aUniqueStacks)
+{
+  StreamCommonProps("MainThreadLongTask", aWriter, aProcessStartTime, aUniqueStacks);
+  aWriter.StringProperty("category", "LongTask");
 }

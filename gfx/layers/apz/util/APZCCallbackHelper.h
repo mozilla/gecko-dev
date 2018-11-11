@@ -6,10 +6,10 @@
 #ifndef mozilla_layers_APZCCallbackHelper_h
 #define mozilla_layers_APZCCallbackHelper_h
 
-#include "FrameMetrics.h"
 #include "InputData.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/APZUtils.h"
+#include "mozilla/layers/RepaintRequest.h"
 #include "nsIDOMWindowUtils.h"
 #include "nsRefreshDriver.h"
 
@@ -56,25 +56,22 @@ private:
  */
 class APZCCallbackHelper
 {
-    typedef mozilla::layers::FrameMetrics FrameMetrics;
     typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
 
 public:
-    /* Applies the scroll and zoom parameters from the given FrameMetrics object
+    /* Applies the scroll and zoom parameters from the given RepaintRequest object
        to the root frame for the given metrics' scrollId. If tiled thebes layers
        are enabled, this will align the displayport to tile boundaries. Setting
        the scroll position can cause some small adjustments to be made to the
-       actual scroll position. aMetrics' display port and scroll position will
-       be updated with any modifications made. */
-    static void UpdateRootFrame(FrameMetrics& aMetrics);
+       actual scroll position. */
+    static void UpdateRootFrame(const RepaintRequest& aRequest);
 
-    /* Applies the scroll parameters from the given FrameMetrics object to the
+    /* Applies the scroll parameters from the given RepaintRequest object to the
        subframe corresponding to given metrics' scrollId. If tiled thebes
        layers are enabled, this will align the displayport to tile boundaries.
        Setting the scroll position can cause some small adjustments to be made
-       to the actual scroll position. aMetrics' display port and scroll position
-       will be updated with any modifications made. */
-    static void UpdateSubFrame(FrameMetrics& aMetrics);
+       to the actual scroll position. */
+    static void UpdateSubFrame(const RepaintRequest& aRequest);
 
     /* Get the presShellId and view ID for the given content element.
      * If the view ID does not exist, one is created.
@@ -82,7 +79,7 @@ public:
      * reason, false is returned. */
     static bool GetOrCreateScrollIdentifiers(nsIContent* aContent,
                                              uint32_t* aPresShellIdOut,
-                                             FrameMetrics::ViewID* aViewIdOut);
+                                             ScrollableLayerGuid::ViewID* aViewIdOut);
 
     /* Initialize a zero-margin displayport on the root document element of the
        given presShell. */
@@ -184,18 +181,18 @@ public:
                                                         const SetAllowedTouchBehaviorCallback& aCallback);
 
     /* Notify content of a mouse scroll testing event. */
-    static void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent);
+    static void NotifyMozMouseScrollEvent(const ScrollableLayerGuid::ViewID& aScrollId, const nsString& aEvent);
 
     /* Notify content that the repaint flush is complete. */
     static void NotifyFlushComplete(nsIPresShell* aShell);
 
-    static void NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId);
-    static void NotifyAsyncAutoscrollRejected(const FrameMetrics::ViewID& aScrollId);
+    static void NotifyAsyncScrollbarDragRejected(const ScrollableLayerGuid::ViewID& aScrollId);
+    static void NotifyAsyncAutoscrollRejected(const ScrollableLayerGuid::ViewID& aScrollId);
 
-    static void CancelAutoscroll(const FrameMetrics::ViewID& aScrollId);
+    static void CancelAutoscroll(const ScrollableLayerGuid::ViewID& aScrollId);
 
-    static void
-    AdjustDisplayPortForScrollDelta(mozilla::layers::FrameMetrics& aFrameMetrics,
+    static ScreenMargin
+    AdjustDisplayPortForScrollDelta(const RepaintRequest& aRequest,
                                     const CSSPoint& aActualScrollOffset);
 
     /*

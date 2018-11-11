@@ -9,6 +9,7 @@
 #include "jit/JitSpewer.h"
 
 #include "mozilla/Atomics.h"
+#include "mozilla/Sprintf.h"
 
 #ifdef XP_WIN
 #include <process.h>
@@ -43,7 +44,6 @@ class IonSpewer
 {
   private:
     Mutex outputLock_;
-    Fprinter c1Output_;
     Fprinter jsonOutput_;
     bool firstFunction_;
     bool asyncLogging_;
@@ -156,9 +156,6 @@ jit::EnableIonDebugAsyncLogging()
 void
 IonSpewer::release()
 {
-    if (c1Output_.isInitialized()) {
-        c1Output_.finish();
-    }
     if (jsonOutput_.isInitialized()) {
         jsonOutput_.finish();
     }
@@ -176,9 +173,7 @@ IonSpewer::init()
     gSpewFilter = getenv("IONFILTER");
 
     const size_t bufferLength = 256;
-    char c1Buffer[bufferLength];
     char jsonBuffer[bufferLength];
-    const char *c1Filename = JIT_SPEW_DIR "/ion.cfg";
     const char *jsonFilename = JIT_SPEW_DIR "/ion.json";
 
     const char* usePid = getenv("ION_SPEW_BY_PID");
@@ -191,17 +186,9 @@ IonSpewer::init()
             return false;
         }
         jsonFilename = jsonBuffer;
-
-        len = snprintf(c1Buffer, bufferLength, JIT_SPEW_DIR "/ion%" PRIu32 ".cfg", pid);
-        if (bufferLength <= len) {
-            fprintf(stderr, "Warning: IonSpewer::init: Cannot serialize file name.");
-            return false;
-        }
-        c1Filename = c1Buffer;
     }
 
-    if (!c1Output_.init(c1Filename) ||
-        !jsonOutput_.init(jsonFilename))
+    if (!jsonOutput_.init(jsonFilename))
     {
         release();
         return false;
@@ -231,7 +218,7 @@ IonSpewer::spewPass(GraphSpewer* gs)
 {
     if (!getAsyncLogging()) {
         LockGuard<Mutex> guard(outputLock_);
-        gs->dump(c1Output_, jsonOutput_);
+        gs->dump(jsonOutput_);
     }
 }
 
@@ -243,7 +230,7 @@ IonSpewer::endFunction(GraphSpewer* gs)
         jsonOutput_.put(","); // separate functions
     }
 
-    gs->dump(c1Output_, jsonOutput_);
+    gs->dump(jsonOutput_);
     firstFunction_ = false;
 }
 
@@ -259,9 +246,7 @@ IonSpewer::~IonSpewer()
 
 GraphSpewer::GraphSpewer(TempAllocator *alloc)
   : graph_(nullptr),
-    c1Printer_(alloc->lifoAlloc()),
     jsonPrinter_(alloc->lifoAlloc()),
-    c1Spewer_(c1Printer_),
     jsonSpewer_(jsonPrinter_)
 {
 }
@@ -292,7 +277,6 @@ GraphSpewer::beginFunction(JSScript* function)
         return;
     }
 
-    c1Spewer_.beginFunction(graph_, function);
     jsonSpewer_.beginFunction(function);
 
     ionspewer.beginFunction();
@@ -304,8 +288,6 @@ GraphSpewer::spewPass(const char* pass)
     if (!isSpewing()) {
         return;
     }
-
-    c1Spewer_.spewPass(pass);
 
     jsonSpewer_.beginPass(pass);
     jsonSpewer_.spewMIR(graph_);
@@ -330,9 +312,6 @@ GraphSpewer::spewPass(const char* pass, BacktrackingAllocator* ra)
         return;
     }
 
-    c1Spewer_.spewPass(pass);
-    c1Spewer_.spewRanges(pass, ra);
-
     jsonSpewer_.beginPass(pass);
     jsonSpewer_.spewMIR(graph_);
     jsonSpewer_.spewLIR(graph_);
@@ -355,7 +334,6 @@ GraphSpewer::endFunction()
         return;
     }
 
-    c1Spewer_.endFunction();
     jsonSpewer_.endFunction();
 
     ionspewer.endFunction(this);
@@ -363,14 +341,8 @@ GraphSpewer::endFunction()
 }
 
 void
-GraphSpewer::dump(Fprinter& c1Out, Fprinter& jsonOut)
+GraphSpewer::dump(Fprinter& jsonOut)
 {
-    if (!c1Printer_.hadOutOfMemory()) {
-        c1Printer_.exportInto(c1Out);
-        c1Out.flush();
-    }
-    c1Printer_.clear();
-
     if (!jsonPrinter_.hadOutOfMemory()) {
         jsonPrinter_.exportInto(jsonOut);
     } else {
@@ -457,7 +429,7 @@ jit::CheckLogging()
             "  cacheflush    Instruction Cache flushes (ARM only for now)\n"
             "  range         Range Analysis\n"
             "  unroll        Loop unrolling\n"
-            "  logs          C1 and JSON visualization logging\n"
+            "  logs          JSON visualization logging\n"
             "  logs-sync     Same as logs, but flushes between each pass (sync. compiled functions only).\n"
             "  profiling     Profiling-related information\n"
             "  trackopts     Optimization tracking information gathered by the Gecko profiler. "
@@ -476,6 +448,7 @@ jit::CheckLogging()
             "  bl-bails      Baseline bailouts\n"
             "  bl-dbg-osr    Baseline debug mode on stack recompile messages\n"
             "  bl-all        All baseline spew\n"
+            "  bl-ic-stats   Baseline IC Statistics\n"
             "\n"
         );
         exit(0);
@@ -606,6 +579,9 @@ jit::CheckLogging()
     if (ContainsFlag(env, "bl-dbg-osr")) {
         EnableChannel(JitSpew_BaselineDebugModeOSR);
     }
+    if (ContainsFlag(env, "bl-ic-stats")) {
+        EnableChannel(JitSpew_BaselineIC_Statistics);
+    }
     if (ContainsFlag(env, "bl-all")) {
         EnableChannel(JitSpew_BaselineAbort);
         EnableChannel(JitSpew_BaselineScripts);
@@ -620,7 +596,9 @@ jit::CheckLogging()
     FILE* spewfh = stderr;
     const char* filename = getenv("ION_SPEW_FILENAME");
     if (filename && *filename) {
-        spewfh = fopen(filename, "w");
+        char actual_filename[2048] = {0};
+        SprintfLiteral(actual_filename, "%s.%d", filename, getpid());
+        spewfh = fopen(actual_filename, "w");
         MOZ_RELEASE_ASSERT(spewfh);
         setbuf(spewfh, nullptr); // Make unbuffered
     }

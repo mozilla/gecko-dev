@@ -12,6 +12,11 @@ basic-card-form .editCreditCardForm {
     "billingAddressGUID billingAddressGUID billingAddressGUID";
 }
 
+basic-card-form csc-input {
+  display: flex;
+  flex-grow: 1;
+}
+
 basic-card-form .editCreditCardForm > accepted-cards {
   grid-area: accepted;
   margin: 0;
@@ -24,11 +29,6 @@ basic-card-form .editCreditCardForm .persist-checkbox {
 
 #billingAddressGUID-container {
   display: grid;
-}
-
-#billingAddressGUID {
-  /* XXX: temporary until converted to a rich-picker in bug 1482689 */
-  margin: 14px 0;
 }
 
 basic-card-form > footer > .cancel-button {

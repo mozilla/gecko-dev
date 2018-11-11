@@ -956,8 +956,9 @@ ModuleGenerator::finishCodeTier()
     // All functions and stubs have been compiled.  Perform module-end
     // validation.
 
-    if (!deferredValidationState_.lock()->performDeferredValidation(*env_, error_))
+    if (!deferredValidationState_.lock()->performDeferredValidation(*env_, error_)) {
         return nullptr;
+    }
 
     // Finish linking and metadata.
 
@@ -977,7 +978,7 @@ ModuleGenerator::finishCodeTier()
     return js::MakeUnique<CodeTier>(std::move(metadataTier_), std::move(segment));
 }
 
-bool
+SharedMetadata
 ModuleGenerator::finishMetadata(const Bytes& bytecode)
 {
     // Finish initialization of Metadata, which is only needed for constructing
@@ -1004,14 +1005,14 @@ ModuleGenerator::finishMetadata(const Bytes& bytecode)
 
         const size_t numFuncTypes = env_->funcTypes.length();
         if (!metadata_->debugFuncArgTypes.resize(numFuncTypes)) {
-            return false;
+            return nullptr;
         }
         if (!metadata_->debugFuncReturnTypes.resize(numFuncTypes)) {
-            return false;
+            return nullptr;
         }
         for (size_t i = 0; i < numFuncTypes; i++) {
             if (!metadata_->debugFuncArgTypes[i].appendAll(env_->funcTypes[i]->args())) {
-                return false;
+                return nullptr;
             }
             metadata_->debugFuncReturnTypes[i] = env_->funcTypes[i]->ret();
         }
@@ -1025,13 +1026,18 @@ ModuleGenerator::finishMetadata(const Bytes& bytecode)
         memcpy(metadata_->debugHash, hash, sizeof(ModuleHash));
     }
 
-    return true;
+    MOZ_ASSERT_IF(env_->nameCustomSectionIndex, !!metadata_->namePayload);
+
+    // Metadata shouldn't be mutably modified after finishMetadata().
+    SharedMetadata metadata = metadata_;
+    metadata_ = nullptr;
+    return metadata;
 }
 
 SharedModule
 ModuleGenerator::finishModule(const ShareableBytes& bytecode,
                               JS::OptimizedEncodingListener* maybeTier2Listener,
-                              UniqueLinkData* maybeLinkDataOut)
+                              UniqueLinkData* maybeLinkData)
 {
     MOZ_ASSERT(mode() == CompileMode::Once || mode() == CompileMode::Tier1);
 
@@ -1042,23 +1048,6 @@ ModuleGenerator::finishModule(const ShareableBytes& bytecode,
 
     JumpTables jumpTables;
     if (!jumpTables.init(mode(), codeTier->segment(), codeTier->metadata().codeRanges)) {
-        return nullptr;
-    }
-
-    if (!finishMetadata(bytecode.bytes)) {
-        return nullptr;
-    }
-
-    StructTypeVector structTypes;
-    for (TypeDef& td : env_->types) {
-        if (td.isStructType() && !structTypes.append(std::move(td.structType()))) {
-            return nullptr;
-        }
-    }
-
-    MutableCode code = js_new<Code>(std::move(codeTier), *metadata_, std::move(jumpTables),
-                                    std::move(structTypes));
-    if (!code || !code->initialize(*linkData_)) {
         return nullptr;
     }
 
@@ -1104,6 +1093,24 @@ ModuleGenerator::finishModule(const ShareableBytes& bytecode,
         metadata_->namePayload = customSections[*env_->nameCustomSectionIndex].payload;
     }
 
+    SharedMetadata metadata = finishMetadata(bytecode.bytes);
+    if (!metadata) {
+        return nullptr;
+    }
+
+    StructTypeVector structTypes;
+    for (TypeDef& td : env_->types) {
+        if (td.isStructType() && !structTypes.append(std::move(td.structType()))) {
+            return nullptr;
+        }
+    }
+
+    MutableCode code = js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables),
+                                    std::move(structTypes));
+    if (!code || !code->initialize(*linkData_)) {
+        return nullptr;
+    }
+
     // See Module debugCodeClaimed_ comments for why we need to make a separate
     // debug copy.
 
@@ -1147,10 +1154,9 @@ ModuleGenerator::finishModule(const ShareableBytes& bytecode,
         module->serialize(*linkData_, *maybeTier2Listener);
     }
 
-    if (maybeLinkDataOut) {
-        MOZ_ASSERT(isAsmJS());
+    if (maybeLinkData) {
         MOZ_ASSERT(!env_->debugEnabled());
-        *maybeLinkDataOut = std::move(linkData_);
+        *maybeLinkData = std::move(linkData_);
     }
 
     return module;

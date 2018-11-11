@@ -53,33 +53,6 @@ class NMParser {
     });
     this._worker.postMessage({
       finish: true,
-      isDarwin: Services.appinfo.OS === "Darwin",
-    });
-    return promise;
-  }
-}
-
-class CppFiltParser {
-  constructor() {
-    this._worker = new ChromeWorker("resource://app/modules/ParseCppFiltSymbols-worker.js");
-  }
-
-  consume(buffer) {
-    this._worker.postMessage({buffer}, [buffer]);
-  }
-
-  finish() {
-    const promise = new Promise((resolve, reject) => {
-      this._worker.onmessage = (e) => {
-        if (e.data.error) {
-          reject(e.data.error);
-        } else {
-          resolve(e.data.result);
-        }
-      };
-    });
-    this._worker.postMessage({
-      finish: true,
     });
     return promise;
   }
@@ -118,6 +91,7 @@ const spawnProcess = async function(name, cmdArgs, processData, stdin = null) {
   }
 
   await readAllData(proc.stdout, processData);
+  return proc.exitCode;
 };
 
 const runCommandAndGetOutputAsString = async function(command, cmdArgs) {
@@ -138,26 +112,20 @@ const getSymbolsFromNM = async function(path, arch) {
   const args = [path];
   if (Services.appinfo.OS === "Darwin") {
     args.unshift("-arch", arch);
-  } else {
-    // Mac's `nm` doesn't support the demangle option, so we have to
-    // post-process the symbols with c++filt.
-    args.unshift("--demangle");
   }
 
-  await spawnProcess("nm", args, data => parser.consume(data));
-  await spawnProcess("nm", ["-D", ...args], data => parser.consume(data));
-  let result = await parser.finish();
+  const exitCode = await spawnProcess("nm", args, data => parser.consume(data));
+  if (exitCode === 69) {
+    throw new ExtensionError("Symbolication requires the Xcode command line tools to be installed " +
+                             "and the license accepted. Please run the following from the command " +
+                             "line to accept the xcode license:\n\n" +
+                             "sudo xcodebuild -license");
+  }
   if (Services.appinfo.OS !== "Darwin") {
-    return result;
+    // Darwin nm does not support the -D option.
+    await spawnProcess("nm", ["-D", ...args], data => parser.consume(data));
   }
-
-  const [addresses, symbolsJoinedBuffer] = result;
-  const decoder = new TextDecoder();
-  const symbolsJoined = decoder.decode(symbolsJoinedBuffer);
-  const demangler = new CppFiltParser(addresses.length);
-  await spawnProcess("c++filt", [], data => demangler.consume(data), symbolsJoined);
-  const [newIndex, newBuffer] = await demangler.finish();
-  return [addresses, newIndex, newBuffer];
+  return parser.finish();
 };
 
 const getEnvVarCaseInsensitive = function(env, name) {
@@ -449,12 +417,16 @@ this.geckoProfiler = class extends ExtensionAPI {
             } catch (e) {
               // Each of our options can go wrong for a variety of reasons, so on failure
               // we will try the next one.
+              // But we should still throw the explicit ExtensionErrors if there are any.
               // "localBreakpad" will fail if this is not a local build that's running from the object
               // directory or if the user hasn't run `mach buildsymbols` on it.
               // "nm" will fail if `nm` is not available.
               // "dump_syms.exe" will fail if this is not a local build that's running from the object
               // directory, or if dump_syms.exe doesn't exist in the object directory, or if
               // dump_syms.exe failed for other reasons.
+              if (e instanceof ExtensionError) {
+                throw e;
+              }
             }
           }
 

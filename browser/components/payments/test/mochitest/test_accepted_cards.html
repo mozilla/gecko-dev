@@ -11,7 +11,6 @@ Test the accepted-cards element
   <script type="application/javascript" src="/tests/SimpleTest/AddTask.js"></script>
   <script src="sinon-2.3.2.js"></script>
   <script src="payments_common.js"></script>
-  <script src="../../res/vendor/custom-elements.min.js"></script>
   <script src="../../res/unprivileged-fallbacks.js"></script>
 
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
@@ -29,6 +28,8 @@ Test the accepted-cards element
 </pre>
 <script type="module">
 /** Test the accepted-cards component **/
+
+/* global sinon, PaymentDialogUtils */
 
 import "../../res/components/accepted-cards.js";
 import {requestStore} from "../../res/mixins/PaymentStateSubscriberMixin.js";
@@ -74,6 +75,35 @@ add_task(async function test_someAccepted() {
          `Item for the ${network} network expected to be hidden`);
     }
   }
+});
+
+add_task(async function test_officialBranding() {
+  // verify we get the expected result when isOfficialBranding returns true
+  sinon.stub(PaymentDialogUtils, "isOfficialBranding").callsFake(() => { return true; });
+
+  let container = acceptedElem.parentNode;
+  let removed = container.removeChild(acceptedElem);
+  container.appendChild(removed);
+
+  ok(PaymentDialogUtils.isOfficialBranding.calledOnce,
+     "isOfficialBranding was called");
+  ok(acceptedElem.classList.contains("branded"),
+     "The branded class is added when isOfficialBranding returns true");
+  PaymentDialogUtils.isOfficialBranding.restore();
+
+  // verify we get the expected result when isOfficialBranding returns false
+  sinon.stub(PaymentDialogUtils, "isOfficialBranding").callsFake(() => { return false; });
+
+  // the branded class is toggled in the 'connectedCallback',
+  // so remove and re-add the element to re-evaluate branded-ness
+  removed = container.removeChild(acceptedElem);
+  container.appendChild(removed);
+
+  ok(PaymentDialogUtils.isOfficialBranding.calledOnce,
+     "isOfficialBranding was called");
+  ok(!acceptedElem.classList.contains("branded"),
+     "The branded class is removed when isOfficialBranding returns false");
+  PaymentDialogUtils.isOfficialBranding.restore();
 });
 
 </script>

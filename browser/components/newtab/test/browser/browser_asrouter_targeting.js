@@ -1,4 +1,4 @@
-const {ASRouterTargeting, TopFrecentSitesCache, TotalBookmarksCountCache} =
+const {ASRouterTargeting, QueryCache} =
   ChromeUtils.import("resource://activity-stream/lib/ASRouterTargeting.jsm", {});
 const {AddonTestUtils} =
   ChromeUtils.import("resource://testing-common/AddonTestUtils.jsm", {});
@@ -90,8 +90,26 @@ add_task(async function check_other_error_handling() {
 });
 
 // ASRouterTargeting.Environment
+add_task(async function check_locale() {
+  ok(Services.locale.appLocaleAsLangTag, "Services.locale.appLocaleAsLangTag exists");
+  const message = {id: "foo", targeting: `locale == "${Services.locale.appLocaleAsLangTag}"`};
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "should select correct item when filtering by locale");
+});
+add_task(async function check_localeLanguageCode() {
+  const currentLanguageCode = Services.locale.appLocaleAsLangTag.substr(0, 2);
+  is(
+    Services.locale.negotiateLanguages([currentLanguageCode], [Services.locale.appLocaleAsLangTag])[0],
+    Services.locale.appLocaleAsLangTag,
+    "currentLanguageCode should resolve to the current locale (e.g en => en-US)"
+  );
+  const message = {id: "foo", targeting: `localeLanguageCode == "${currentLanguageCode}"`};
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "should select correct item when filtering by localeLanguageCode");
+});
+
 add_task(async function checkProfileAgeCreated() {
-  let profileAccessor = new ProfileAge();
+  let profileAccessor = await ProfileAge();
   is(await ASRouterTargeting.Environment.profileAgeCreated, await profileAccessor.created,
     "should return correct profile age creation date");
 
@@ -101,7 +119,7 @@ add_task(async function checkProfileAgeCreated() {
 });
 
 add_task(async function checkProfileAgeReset() {
-  let profileAccessor = new ProfileAge();
+  let profileAccessor = await ProfileAge();
   is(await ASRouterTargeting.Environment.profileAgeReset, await profileAccessor.reset,
     "should return correct profile age reset");
 
@@ -135,8 +153,9 @@ add_task(async function check_totalBookmarksCount() {
   await clearHistoryAndBookmarks();
   const message = {id: "foo", targeting: "totalBookmarksCount > 0"};
 
-  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), undefined,
-    "Should not select any message because");
+  const results = await ASRouterTargeting.findMatchingMessage({messages: [message]});
+  is(results ? JSON.stringify(results) : results, undefined,
+    "Should not select any message because bookmarks count is not 0");
 
   const bookmark = await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
@@ -144,13 +163,27 @@ add_task(async function check_totalBookmarksCount() {
     url: "https://mozilla1.com/nowNew",
   });
 
-  TotalBookmarksCountCache.expire();
+  QueryCache.queries.TotalBookmarksCount.expire();
 
   is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
     "Should select correct item after bookmarks are added.");
 
   // Cleanup
   await PlacesUtils.bookmarks.remove(bookmark.guid);
+});
+
+add_task(async function check_needsUpdate() {
+  QueryCache.queries.CheckBrowserNeedsUpdate.setUp(true);
+
+  const message = {id: "foo", targeting: "needsUpdate"};
+
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "Should select message because update count > 0");
+
+  QueryCache.queries.CheckBrowserNeedsUpdate.setUp(false);
+
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), null,
+    "Should not select message because update count == 0");
 });
 
 add_task(async function checksearchEngines() {
@@ -305,7 +338,36 @@ add_task(async function checkFrecentSites() {
 
   // Cleanup
   await clearHistoryAndBookmarks();
-  TopFrecentSitesCache.expire();
+});
+
+add_task(async function check_pinned_sites() {
+  const originalPin = JSON.stringify(NewTabUtils.pinnedLinks.links);
+  const sitesToPin = [
+    {url: "https://foo.com"},
+    {url: "https://floogle.com", searchTopSite: true},
+  ];
+  sitesToPin.forEach((site => NewTabUtils.pinnedLinks.pin(site, NewTabUtils.pinnedLinks.links.length)));
+
+  let message;
+
+  message = {id: "foo", targeting: "'https://foo.com' in pinnedSites|mapToProperty('url')"};
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "should select correct item by url in pinnedSites");
+
+  message = {id: "foo", targeting: "'foo.com' in pinnedSites|mapToProperty('host')"};
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "should select correct item by host in pinnedSites");
+
+  message = {id: "foo", targeting: "'floogle.com' in pinnedSites[.searchTopSite == true]|mapToProperty('host')"};
+  is(await ASRouterTargeting.findMatchingMessage({messages: [message]}), message,
+    "should select correct item by host and searchTopSite in pinnedSites");
+
+  // Cleanup
+  sitesToPin.forEach(site => NewTabUtils.pinnedLinks.unpin(site));
+
+  await clearHistoryAndBookmarks();
+  is(JSON.stringify(NewTabUtils.pinnedLinks.links), originalPin,
+    "should restore pinned sites to its original state");
 });
 
 add_task(async function check_firefox_version() {
@@ -339,17 +401,19 @@ add_task(async function check_sync() {
     "should return correct mobileDevices info");
 });
 
-add_task(async function check_onboarding_cohort() {
-  await pushPrefs(["browser.newtabpage.activity-stream.asrouter.messageProviders", JSON.stringify([{id: "onboarding", messages: [], enabled: true, cohort: 1}])]);
-  is(await ASRouterTargeting.Environment.isInExperimentCohort, 1);
-  await pushPrefs(["browser.newtabpage.activity-stream.asrouter.messageProviders", JSON.stringify(17)]);
-  is(await ASRouterTargeting.Environment.isInExperimentCohort, 0);
-  await pushPrefs(["browser.newtabpage.activity-stream.asrouter.messageProviders", JSON.stringify([{id: "onboarding", messages: [], enabled: true, cohort: "hello"}])]);
-  is(await ASRouterTargeting.Environment.isInExperimentCohort, 0);
-});
-
 add_task(async function check_provider_cohorts() {
   await pushPrefs(["browser.newtabpage.activity-stream.asrouter.messageProviders", JSON.stringify([{id: "onboarding", messages: [], enabled: true, cohort: "foo"}, {id: "cfr", messages: [], cohort: "bar"}])]);
   is(await ASRouterTargeting.Environment.providerCohorts.onboarding, "foo");
   is(await ASRouterTargeting.Environment.providerCohorts.cfr, "bar");
+});
+
+add_task(async function check_xpinstall_enabled() {
+  // should default to true if pref doesn't exist
+  is(await ASRouterTargeting.Environment.xpinstallEnabled, true);
+  // flip to false, check targeting reflects that
+  await pushPrefs(["xpinstall.enabled", false]);
+  is(await ASRouterTargeting.Environment.xpinstallEnabled, false);
+  // flip to true, check targeting reflects that
+  await pushPrefs(["xpinstall.enabled", true]);
+  is(await ASRouterTargeting.Environment.xpinstallEnabled, true);
 });

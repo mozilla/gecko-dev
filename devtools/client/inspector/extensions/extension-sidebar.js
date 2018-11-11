@@ -5,12 +5,13 @@
 "use strict";
 
 const { createElement, createFactory } = require("devtools/client/shared/vendor/react");
+const EventEmitter = require("devtools/shared/event-emitter");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
-
 const ObjectClient = require("devtools/shared/client/object-client");
 const ExtensionSidebarComponent = createFactory(require("./components/ExtensionSidebar"));
 
 const {
+  updateExtensionPage,
   updateObjectTreeView,
   updateObjectValueGripView,
   removeExtensionSidebar,
@@ -35,6 +36,7 @@ const {
  */
 class ExtensionSidebar {
   constructor(inspector, {id, title}) {
+    EventEmitter.decorate(this);
     this.inspector = inspector;
     this.store = inspector.store;
     this.id = id;
@@ -54,6 +56,12 @@ class ExtensionSidebar {
         title: this.title,
       }, ExtensionSidebarComponent({
         id: this.id,
+        onExtensionPageMount: (containerEl) => {
+          this.emit("extension-page-mount", containerEl);
+        },
+        onExtensionPageUnmount: (containerEl) => {
+          this.emit("extension-page-unmount", containerEl);
+        },
         serviceContainer: {
           createObjectClient: (object) => {
             return new ObjectClient(this.inspector.toolbox.target.client, object);
@@ -92,11 +100,11 @@ class ExtensionSidebar {
             const front = await highlighterUtils.gripToNodeFront(grip);
             const onInspectorUpdated = this.inspector.once("inspector-updated");
             const onNodeFrontSet = this.inspector.toolbox.selection.setNodeFront(front, {
-              reason: "inspector-extension-sidebar"
+              reason: "inspector-extension-sidebar",
             });
 
             return Promise.all([onNodeFrontSet, onInspectorUpdated]);
-          }
+          },
         },
       }));
     }
@@ -151,6 +159,14 @@ class ExtensionSidebar {
     }
 
     this.store.dispatch(updateObjectValueGripView(this.id, objectValueGrip, rootTitle));
+  }
+
+  setExtensionPage(iframeURL) {
+    if (this.removed) {
+      throw new Error("Unable to set an object preview on a removed ExtensionSidebar");
+    }
+
+    this.store.dispatch(updateExtensionPage(this.id, iframeURL));
   }
 }
 

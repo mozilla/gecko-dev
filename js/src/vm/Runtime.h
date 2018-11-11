@@ -230,7 +230,14 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     friend class js::jit::JitActivation;
     friend class js::jit::CompileRuntime;
 
+    /* Space for interpreter frames. */
+    js::MainThreadData<js::InterpreterStack> interpreterStack_;
+
   public:
+    js::InterpreterStack& interpreterStack() {
+        return interpreterStack_.ref();
+    }
+
     /*
      * If non-null, another runtime guaranteed to outlive this one and whose
      * permanent data may be used by this one where possible.
@@ -973,6 +980,11 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     // A hook that implements the abstract operations
     // HostGetImportMetaProperties and HostFinalizeImportMeta.
     js::MainThreadData<JS::ModuleMetadataHook> moduleMetadataHook;
+
+    // A hook that implements the abstract operation
+    // HostImportModuleDynamically. This is also used to enable/disable dynamic
+    // module import and can accessed by off-thread parsing.
+    mozilla::Atomic<JS::ModuleDynamicImportHook> moduleDynamicImportHook;
 
   public:
 #if defined(JS_BUILD_BINAST)

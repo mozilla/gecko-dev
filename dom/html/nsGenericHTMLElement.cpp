@@ -322,7 +322,7 @@ nsGenericHTMLElement::Spellcheck()
   for (node = this; node; node = node->GetParent()) {
     if (node->IsHTMLElement()) {
       static Element::AttrValuesArray strings[] =
-        {&nsGkAtoms::_true, &nsGkAtoms::_false, nullptr};
+        {nsGkAtoms::_true, nsGkAtoms::_false, nullptr};
       switch (node->AsElement()->FindAttrValueIn(kNameSpaceID_None,
                                                  nsGkAtoms::spellcheck, strings,
                                                  eCaseMatters)) {
@@ -1128,14 +1128,38 @@ nsGenericHTMLElement::ParseReferrerAttribute(const nsAString& aString,
                                              nsAttrValue& aResult)
 {
   static const nsAttrValue::EnumTable kReferrerTable[] = {
-    { net::kRPS_No_Referrer, static_cast<int16_t>(net::RP_No_Referrer) },
-    { net::kRPS_Origin, static_cast<int16_t>(net::RP_Origin) },
-    { net::kRPS_Origin_When_Cross_Origin, static_cast<int16_t>(net::RP_Origin_When_Crossorigin) },
-    { net::kRPS_No_Referrer_When_Downgrade, static_cast<int16_t>(net::RP_No_Referrer_When_Downgrade) },
-    { net::kRPS_Unsafe_URL, static_cast<int16_t>(net::RP_Unsafe_URL) },
-    { net::kRPS_Strict_Origin, static_cast<int16_t>(net::RP_Strict_Origin) },
-    { net::kRPS_Same_Origin, static_cast<int16_t>(net::RP_Same_Origin) },
-    { net::kRPS_Strict_Origin_When_Cross_Origin, static_cast<int16_t>(net::RP_Strict_Origin_When_Cross_Origin) },
+    {
+      ReferrerPolicyToString(net::RP_No_Referrer),
+      static_cast<int16_t>(net::RP_No_Referrer)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Origin),
+      static_cast<int16_t>(net::RP_Origin)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Origin_When_Crossorigin),
+      static_cast<int16_t>(net::RP_Origin_When_Crossorigin)
+    },
+    {
+      ReferrerPolicyToString(net::RP_No_Referrer_When_Downgrade),
+      static_cast<int16_t>(net::RP_No_Referrer_When_Downgrade)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Unsafe_URL),
+      static_cast<int16_t>(net::RP_Unsafe_URL)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Strict_Origin),
+      static_cast<int16_t>(net::RP_Strict_Origin)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Same_Origin),
+      static_cast<int16_t>(net::RP_Same_Origin)
+    },
+    {
+      ReferrerPolicyToString(net::RP_Strict_Origin_When_Cross_Origin),
+      static_cast<int16_t>(net::RP_Strict_Origin_When_Cross_Origin)
+    },
     { nullptr, 0 }
   };
   return aResult.ParseEnumValue(aString, kReferrerTable, false);
@@ -1221,49 +1245,49 @@ nsGenericHTMLElement::MapCommonAttributesInto(const nsMappedAttributes* aAttribu
 
 /* static */ const nsGenericHTMLElement::MappedAttributeEntry
 nsGenericHTMLElement::sCommonAttributeMap[] = {
-  { &nsGkAtoms::contenteditable },
-  { &nsGkAtoms::lang },
-  { &nsGkAtoms::hidden },
+  { nsGkAtoms::contenteditable },
+  { nsGkAtoms::lang },
+  { nsGkAtoms::hidden },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageMarginSizeAttributeMap[] = {
-  { &nsGkAtoms::width },
-  { &nsGkAtoms::height },
-  { &nsGkAtoms::hspace },
-  { &nsGkAtoms::vspace },
+  { nsGkAtoms::width },
+  { nsGkAtoms::height },
+  { nsGkAtoms::hspace },
+  { nsGkAtoms::vspace },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageAlignAttributeMap[] = {
-  { &nsGkAtoms::align },
+  { nsGkAtoms::align },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sDivAlignAttributeMap[] = {
-  { &nsGkAtoms::align },
+  { nsGkAtoms::align },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageBorderAttributeMap[] = {
-  { &nsGkAtoms::border },
+  { nsGkAtoms::border },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sBackgroundAttributeMap[] = {
-  { &nsGkAtoms::background },
-  { &nsGkAtoms::bgcolor },
+  { nsGkAtoms::background },
+  { nsGkAtoms::bgcolor },
   { nullptr }
 };
 
 /* static */ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sBackgroundColorAttributeMap[] = {
-  { &nsGkAtoms::bgcolor },
+  { nsGkAtoms::bgcolor },
   { nullptr }
 };
 
@@ -2156,10 +2180,17 @@ nsGenericHTMLFormElement::FormIdUpdated(Element* aOldElement,
 }
 
 bool
-nsGenericHTMLFormElement::IsElementDisabledForEvents(EventMessage aMessage,
+nsGenericHTMLFormElement::IsElementDisabledForEvents(WidgetEvent* aEvent,
                                                      nsIFrame* aFrame)
 {
-  switch (aMessage) {
+  MOZ_ASSERT(aEvent);
+
+  // Allow dispatch of CustomEvent and untrusted Events.
+  if (!aEvent->IsTrusted()) {
+    return false;
+  }
+
+  switch (aEvent->mMessage) {
     case eMouseMove:
     case eMouseOver:
     case eMouseOut:
@@ -2416,8 +2447,9 @@ nsGenericHTMLFormElement::GetFormAction(nsString& aValue)
 void
 nsGenericHTMLElement::Click(CallerType aCallerType)
 {
-  if (HandlingClick())
+  if (IsDisabled() || HandlingClick()) {
     return;
+  }
 
   // Strong in case the event kills it
   nsCOMPtr<nsIDocument> doc = GetComposedDoc();
@@ -2858,6 +2890,21 @@ bool
 nsGenericHTMLElement::IsEventAttributeNameInternal(nsAtom *aName)
 {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_HTML);
+}
+
+void
+nsGenericHTMLElement::AttachAndSetUAShadowRoot()
+{
+  MOZ_DIAGNOSTIC_ASSERT(!CanAttachShadowDOM(),
+                        "Cannot be used to attach UI shadow DOM");
+  if (GetShadowRoot()) {
+    MOZ_ASSERT(GetShadowRoot()->IsUAWidget());
+    return;
+  }
+
+  RefPtr<ShadowRoot> shadowRoot =
+    AttachShadowWithoutNameChecks(ShadowRootMode::Closed);
+  shadowRoot->SetIsUAWidget();
 }
 
 /**

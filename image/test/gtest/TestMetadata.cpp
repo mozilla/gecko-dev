@@ -60,7 +60,8 @@ CheckMetadata(const ImageTestCase& aTestCase,
   RefPtr<Decoder> decoder =
     DecoderFactory::CreateAnonymousMetadataDecoder(decoderType, sourceBuffer);
   ASSERT_TRUE(decoder != nullptr);
-  RefPtr<IDecodingTask> task = new AnonymousDecodingTask(WrapNotNull(decoder));
+  RefPtr<IDecodingTask> task =
+    new AnonymousDecodingTask(WrapNotNull(decoder), /* aResumable */ false);
 
   if (aBMPWithinICO == BMPWithinICO::YES) {
     static_cast<nsBMPDecoder*>(decoder.get())->SetIsWithinICO();
@@ -111,7 +112,7 @@ CheckMetadata(const ImageTestCase& aTestCase,
                                            DecoderFlags::FIRST_FRAME_ONLY,
                                            DefaultSurfaceFlags());
   ASSERT_TRUE(decoder != nullptr);
-  task = new AnonymousDecodingTask(WrapNotNull(decoder));
+  task = new AnonymousDecodingTask(WrapNotNull(decoder), /* aResumable */ false);
 
   if (aBMPWithinICO == BMPWithinICO::YES) {
     static_cast<nsBMPDecoder*>(decoder.get())->SetIsWithinICO();
@@ -153,6 +154,7 @@ TEST_F(ImageDecoderMetadata, JPG) { CheckMetadata(GreenJPGTestCase()); }
 TEST_F(ImageDecoderMetadata, BMP) { CheckMetadata(GreenBMPTestCase()); }
 TEST_F(ImageDecoderMetadata, ICO) { CheckMetadata(GreenICOTestCase()); }
 TEST_F(ImageDecoderMetadata, Icon) { CheckMetadata(GreenIconTestCase()); }
+TEST_F(ImageDecoderMetadata, WebP) { CheckMetadata(GreenWebPTestCase()); }
 
 TEST_F(ImageDecoderMetadata, AnimatedGIF)
 {
@@ -250,12 +252,13 @@ TEST_F(ImageDecoderMetadata, NoFrameDelayGIFFullDecode)
     SurfaceCache::Lookup(ImageKey(image.get()),
                          RasterSurfaceKey(imageSize,
                                           DefaultSurfaceFlags(),
-                                          PlaybackType::eAnimated));
+                                          PlaybackType::eAnimated),
+                         /* aMarkUsed = */ true);
   ASSERT_EQ(MatchType::EXACT, result.Type());
 
   EXPECT_TRUE(NS_SUCCEEDED(result.Surface().Seek(0)));
   EXPECT_TRUE(bool(result.Surface()));
 
-  RawAccessFrameRef partialFrame = result.Surface().RawAccessRef(1);
+  RefPtr<imgFrame> partialFrame = result.Surface().GetFrame(1);
   EXPECT_TRUE(bool(partialFrame));
 }

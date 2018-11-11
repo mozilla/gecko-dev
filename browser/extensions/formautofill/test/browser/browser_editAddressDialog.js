@@ -22,14 +22,14 @@ add_task(async function test_cancelEditAddressDialogWithESC() {
 });
 
 add_task(async function test_defaultCountry() {
-  SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "CA"]]});
+  await SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "CA"]]});
   await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
     let doc = win.document;
     is(doc.querySelector("#country").value, "CA",
                          "Default country set to Canada");
     doc.querySelector("#cancel").click();
   });
-  SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "DE"]]});
+  await SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "DE"]]});
   await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
     let doc = win.document;
     is(doc.querySelector("#country").value, "DE",
@@ -37,14 +37,14 @@ add_task(async function test_defaultCountry() {
     doc.querySelector("#cancel").click();
   });
   // Test unsupported country
-  SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "XX"]]});
+  await SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "XX"]]});
   await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
     let doc = win.document;
     is(doc.querySelector("#country").value, "",
                          "Default country set to empty");
     doc.querySelector("#cancel").click();
   });
-  SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "US"]]});
+  await SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "US"]]});
 });
 
 add_task(async function test_saveAddress() {
@@ -101,7 +101,9 @@ add_task(async function test_editAddress() {
     EventUtils.synthesizeKey("VK_RIGHT", {}, win);
     EventUtils.synthesizeKey("test", {}, win);
     win.document.querySelector("#save").click();
-  }, addresses[0]);
+  }, {
+    record: addresses[0],
+  });
   addresses = await getAddresses();
 
   is(addresses.length, 1, "only one address is in storage");
@@ -110,6 +112,26 @@ add_task(async function test_editAddress() {
 
   addresses = await getAddresses();
   is(addresses.length, 0, "Address storage is empty");
+});
+
+add_task(async function test_editSparseAddress() {
+  let record = {...TEST_ADDRESS_1};
+  info("delete some usually required properties");
+  delete record["street-address"];
+  delete record["address-level1"];
+  delete record["address-level2"];
+  await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
+    is(win.document.querySelectorAll(":-moz-ui-invalid").length, 0,
+       "Check no fields are visually invalid");
+    EventUtils.synthesizeKey("VK_TAB", {}, win);
+    EventUtils.synthesizeKey("VK_RIGHT", {}, win);
+    EventUtils.synthesizeKey("test", {}, win);
+    is(win.document.querySelector("#save").disabled, false,
+       "Save button should be enabled after an edit");
+    win.document.querySelector("#cancel").click();
+  }, {
+    record,
+  });
 });
 
 add_task(async function test_saveAddressCA() {
@@ -302,8 +324,11 @@ add_task(async function test_countryFieldLabels() {
 
       // Check that the labels were filled
       for (let labelEl of mutatableLabels) {
-        await TestUtils.waitForCondition(() => labelEl.textContent,
-                                         "Wait for label to be populated by the mutation observer");
+        if (!labelEl.textContent) {
+          await TestUtils.waitForCondition(() => labelEl.textContent,
+                                           "Wait for label to be populated by the mutation observer",
+                                           10);
+        }
         isnot(labelEl.textContent, "",
               "Ensure textContent is non-empty for: " + countryOption.value);
         is(labelEl.dataset.localization, undefined,
@@ -397,6 +422,96 @@ add_task(async function test_combined_name_fields_error() {
     is(el, givenNameLabel, "Check that the label text is visible in the error state");
     is(win.getComputedStyle(givenNameField).getPropertyValue("border-top-color"),
        "rgba(0, 0, 0, 0)", "Border should be transparent so that only the error outline shows");
+    doc.querySelector("#cancel").click();
+  });
+});
+
+add_task(async function test_hiddenFieldNotSaved() {
+  await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
+    let doc = win.document;
+    doc.querySelector("#address-level2").focus();
+    EventUtils.synthesizeKey(TEST_ADDRESS_1["address-level2"], {}, win);
+    doc.querySelector("#address-level1").focus();
+    EventUtils.synthesizeKey(TEST_ADDRESS_1["address-level1"], {}, win);
+    doc.querySelector("#country").focus();
+    EventUtils.synthesizeKey("Germany", {}, win);
+    doc.querySelector("#save").focus();
+    EventUtils.synthesizeKey("VK_RETURN", {}, win);
+  });
+  let addresses = await getAddresses();
+  is(addresses[0].country, "DE", "check country");
+  is(addresses[0]["address-level2"], TEST_ADDRESS_1["address-level2"], "check address-level2");
+  is(addresses[0]["address-level1"], undefined, "address-level1 should not be saved");
+
+  await removeAllRecords();
+});
+
+add_task(async function test_hiddenFieldRemovedWhenCountryChanged() {
+  let addresses = await getAddresses();
+  ok(!addresses.length, "no addresses at start of test");
+  await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
+    let doc = win.document;
+    doc.querySelector("#address-level2").focus();
+    EventUtils.synthesizeKey(TEST_ADDRESS_1["address-level2"], {}, win);
+    doc.querySelector("#address-level1").focus();
+    EventUtils.synthesizeKey(TEST_ADDRESS_1["address-level1"], {}, win);
+    doc.querySelector("#save").focus();
+    EventUtils.synthesizeKey("VK_RETURN", {}, win);
+  });
+  addresses = await getAddresses();
+  is(addresses[0].country, "US", "check country");
+  is(addresses[0]["address-level2"], TEST_ADDRESS_1["address-level2"], "check address-level2");
+  is(addresses[0]["address-level1"], TEST_ADDRESS_1["address-level1"], "check address-level1");
+
+  await testDialog(EDIT_ADDRESS_DIALOG_URL, win => {
+    let doc = win.document;
+    doc.querySelector("#country").focus();
+    EventUtils.synthesizeKey("Germany", {}, win);
+    win.document.querySelector("#save").click();
+  }, {
+    record: addresses[0],
+  });
+  addresses = await getAddresses();
+
+  is(addresses.length, 1, "only one address is in storage");
+  is(addresses[0]["address-level2"], TEST_ADDRESS_1["address-level2"], "check address-level2");
+  is(addresses[0]["address-level1"], undefined, "address-level1 should be removed");
+  is(addresses[0].country, "DE", "country changed");
+  await removeAllRecords();
+});
+
+add_task(async function test_countrySpecificFieldsGetRequiredness() {
+  await SpecialPowers.pushPrefEnv({set: [[DEFAULT_REGION_PREF, "RO"]]});
+  await testDialog(EDIT_ADDRESS_DIALOG_URL, async win => {
+    let doc = win.document;
+    is(doc.querySelector("#country").value, "RO",
+                         "Default country set to Romania");
+    let provinceField = doc.getElementById("address-level1");
+    ok(!provinceField.required, "address-level1 should not be marked as required");
+    ok(provinceField.disabled, "address-level1 should be marked as disabled");
+    is(provinceField.parentNode.style.display, "none",
+       "address-level1 is hidden for Romania");
+
+    doc.querySelector("#country").focus();
+    EventUtils.synthesizeKey("United States", {}, win);
+
+    await TestUtils.waitForCondition(() => {
+      return provinceField.parentNode.style.display != "none";
+    }, "Wait for address-level1 to become visible", 10);
+
+    ok(provinceField.required, "address-level1 should be marked as required");
+    ok(!provinceField.disabled, "address-level1 should not be marked as disabled");
+
+    doc.querySelector("#country").focus();
+    EventUtils.synthesizeKey("Romania", {}, win);
+
+    await TestUtils.waitForCondition(() => {
+      return provinceField.parentNode.style.display == "none";
+    }, "Wait for address-level1 to become hidden", 10);
+
+    ok(provinceField.required, "address-level1 will still be marked as required");
+    ok(provinceField.disabled, "address-level1 should be marked as disabled");
+
     doc.querySelector("#cancel").click();
   });
 });

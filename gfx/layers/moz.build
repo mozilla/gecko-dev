@@ -227,7 +227,9 @@ EXPORTS.mozilla.layers += [
     'PersistentBufferProvider.h',
     'ProfilerScreenshots.h',
     'RenderTrace.h',
+    'RepaintRequest.h',
     'RotatedBuffer.h',
+    'ScrollableLayerGuid.h',
     'ShareableCanvasRenderer.h',
     'SourceSurfaceSharedData.h',
     'SourceSurfaceVolatileData.h',
@@ -254,6 +256,7 @@ EXPORTS.mozilla.layers += [
     'wr/WebRenderTextureHost.h',
     'wr/WebRenderTextureHostWrapper.h',
     'wr/WebRenderUserData.h',
+    'ZoomConstraints.h',
 ]
 
 if CONFIG['MOZ_X11']:
@@ -297,6 +300,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
         'apz/src/AndroidAPZ.cpp',
         'apz/src/AndroidDynamicToolbarAnimator.cpp',
         'apz/src/AndroidFlingPhysics.cpp',
+        'apz/src/AndroidVelocityTracker.cpp',
     ]
     EXPORTS.mozilla.layers += [
         'apz/src/AndroidDynamicToolbarAnimator.h',
@@ -328,6 +332,7 @@ UNIFIED_SOURCES += [
     'apz/src/OverscrollHandoffState.cpp',
     'apz/src/PotentialCheckerboardDurationTracker.cpp',
     'apz/src/QueuedInput.cpp',
+    'apz/src/SimpleVelocityTracker.cpp',
     'apz/src/TouchCounter.cpp',
     'apz/src/WheelScrollAnimation.cpp',
     'apz/testutil/APZTestData.cpp',

@@ -17,7 +17,6 @@
 #include "nsInterfaceHashtable.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsWeakPtr.h"
 #include "mozilla/dom/MediaKeySystemAccessManager.h"
 
 class nsPluginArray;
@@ -150,7 +149,7 @@ public:
   bool Vibrate(uint32_t aDuration);
   bool Vibrate(const nsTArray<uint32_t>& aDuration);
   void SetVibrationPermission(bool aPermitted, bool aPersistent);
-  uint32_t MaxTouchPoints();
+  uint32_t MaxTouchPoints(CallerType aCallerType);
   void GetAppCodeName(nsAString& aAppCodeName, ErrorResult& aRv);
   void GetOscpu(nsAString& aOscpu, CallerType aCallerType,
                 ErrorResult& aRv) const;

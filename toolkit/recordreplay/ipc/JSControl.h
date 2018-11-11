@@ -66,7 +66,11 @@ struct BreakpointPosition
     // Break when the debugger should pause even if no breakpoint has been
     // set: the beginning or end of the replay has been reached, or a time
     // warp has reached its destination.
-    ForcedPause
+    ForcedPause,
+
+    // Break when the child process reaches a checkpoint or we switch between
+    // recording and replaying child processes.
+    PositionChange
   ));
 
   Kind mKind;
@@ -120,6 +124,7 @@ struct BreakpointPosition
     case ConsoleMessage: return "ConsoleMessage";
     case WarpTarget: return "WarpTarget";
     case ForcedPause: return "ForcedPause";
+    case PositionChange: return "PositionChange";
     }
     MOZ_CRASH("Bad BreakpointPosition kind");
   }
@@ -140,9 +145,7 @@ struct ExecutionPoint
   // ID of the last normal checkpoint prior to this point.
   size_t mCheckpoint;
 
-  // How much progress execution has made prior to reaching the point,
-  // or zero if the execution point refers to the checkpoint itself.
-  //
+  // How much progress execution has made prior to reaching the point.
   // A given BreakpointPosition may not be reached twice without an intervening
   // increment of the global progress counter.
   ProgressCounter mProgress;
@@ -156,9 +159,9 @@ struct ExecutionPoint
     , mProgress(0)
   {}
 
-  explicit ExecutionPoint(size_t aCheckpoint)
+  ExecutionPoint(size_t aCheckpoint, ProgressCounter aProgress)
     : mCheckpoint(aCheckpoint)
-    , mProgress(0)
+    , mProgress(aProgress)
   {}
 
   ExecutionPoint(size_t aCheckpoint, ProgressCounter aProgress,

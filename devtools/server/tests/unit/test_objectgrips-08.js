@@ -8,6 +8,12 @@ var gClient;
 var gThreadClient;
 var gCallback;
 
+Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+});
+
 function run_test() {
   run_test_with_server(DebuggerServer, function() {
     run_test_with_server(WorkerDebuggerServer, do_test_finished);
@@ -26,7 +32,7 @@ function run_test_with_server(server, callback) {
   gClient = new DebuggerClient(server.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-grips",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_object_grip();
                            });

@@ -19,7 +19,7 @@ const { DebuggerServer } = require("devtools/server/main");
 const {
   getChildDocShells,
   BrowsingContextTargetActor,
-  browsingContextTargetPrototype
+  browsingContextTargetPrototype,
 } = require("devtools/server/actors/targets/browsing-context");
 const makeDebugger = require("devtools/server/actors/utils/make-debugger");
 
@@ -43,21 +43,26 @@ const parentProcessTargetPrototype = extend({}, browsingContextTargetPrototype);
  *
  * @param connection DebuggerServerConnection
  *        The connection to the client.
+ * @param window Window object (optional)
+ *        If the upper class already knows against which window the actor should attach,
+ *        it is passed as a constructor argument here.
  */
-parentProcessTargetPrototype.initialize = function(connection) {
+parentProcessTargetPrototype.initialize = function(connection, window) {
   BrowsingContextTargetActor.prototype.initialize.call(this, connection);
 
   // This creates a Debugger instance for chrome debugging all globals.
   this.makeDebugger = makeDebugger.bind(null, {
     findDebuggees: dbg => dbg.findAllGlobals(),
-    shouldAddNewGlobalAsDebuggee: () => true
+    shouldAddNewGlobalAsDebuggee: () => true,
   });
 
   // Ensure catching the creation of any new content docshell
   this.listenForNewDocShells = true;
 
   // Defines the default docshell selected for the target actor
-  let window = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  if (!window) {
+    window = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  }
 
   // Default to any available top level window if there is no expected window
   // (for example when we open firefox with -webide argument)
@@ -68,18 +73,12 @@ parentProcessTargetPrototype.initialize = function(connection) {
   // We really want _some_ window at least, so fallback to the hidden window if
   // there's nothing else (such as during early startup).
   if (!window) {
-    try {
-      window = Services.appShell.hiddenDOMWindow;
-    } catch (e) {
-      // On XPCShell, the above line will throw.
-    }
+    window = Services.appShell.hiddenDOMWindow;
   }
 
-  // On XPCShell, there is no window/docshell
-  const docShell = window ? window.docShell : null;
   Object.defineProperty(this, "docShell", {
-    value: docShell,
-    configurable: true
+    value: window.docShell,
+    configurable: true,
   });
 };
 
@@ -98,7 +97,7 @@ Object.defineProperty(parentProcessTargetPrototype, "docShells", {
     }
 
     return docShells;
-  }
+  },
 });
 
 parentProcessTargetPrototype.observe = function(subject, topic, data) {

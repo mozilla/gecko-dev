@@ -55,6 +55,8 @@ const SUMMARY_METHOD = L10N.getStr("netmonitor.summary.method");
 const SUMMARY_URL = L10N.getStr("netmonitor.summary.url");
 const SUMMARY_STATUS = L10N.getStr("netmonitor.summary.status");
 const SUMMARY_VERSION = L10N.getStr("netmonitor.summary.version");
+const SUMMARY_STATUS_LEARN_MORE = L10N.getStr("netmonitor.summary.learnMore");
+const SUMMARY_REFERRER_POLICY = L10N.getStr("netmonitor.summary.referrerPolicy");
 
 /**
  * Headers panel component
@@ -106,7 +108,7 @@ class HeadersPanel extends Component {
     if (headers && headers.headers.length) {
       const headerKey = `${title} (${getFormattedSize(headers.headersSize, 3)})`;
       const propertiesResult = {
-        [headerKey]: new HeaderList(headers.headers)
+        [headerKey]: new HeaderList(headers.headers),
       };
       return propertiesResult;
     }
@@ -179,6 +181,7 @@ class HeadersPanel extends Component {
         status,
         statusText,
         urlDetails,
+        referrerPolicy,
       },
     } = this.props;
     const item = { fromCache, fromServiceWorker, status, statusText };
@@ -232,6 +235,7 @@ class HeadersPanel extends Component {
           }),
           statusCodeDocURL ? MDNLink({
             url: statusCodeDocURL,
+            title: SUMMARY_STATUS_LEARN_MORE,
           }) : span({
             className: "headers-summary learn-more-link",
           }),
@@ -250,6 +254,10 @@ class HeadersPanel extends Component {
 
     const summaryVersion = httpVersion ?
       this.renderSummary(SUMMARY_VERSION, httpVersion) : null;
+
+    const summaryReferrerPolicy = referrerPolicy ?
+      this.renderSummary(SUMMARY_REFERRER_POLICY, referrerPolicy) : null;
+
     // display Status-Line above other response headers
     const statusLine = `${httpVersion} ${status} ${statusText}\n`;
 
@@ -287,6 +295,7 @@ class HeadersPanel extends Component {
           summaryAddress,
           summaryStatus,
           summaryVersion,
+          summaryReferrerPolicy,
           summaryRawHeaders,
         ),
         PropertiesView({

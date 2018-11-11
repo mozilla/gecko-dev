@@ -7,6 +7,7 @@
 #ifndef nsHttpChannel_h__
 #define nsHttpChannel_h__
 
+#include "DelayHttpChannelQueue.h"
 #include "HttpBaseChannel.h"
 #include "nsTArray.h"
 #include "nsICachingChannel.h"
@@ -205,6 +206,8 @@ public: /* internal necko use only */
         return mRequestTime;
     }
 
+    nsresult AsyncOpenFinal(TimeStamp aTimeStamp);
+
     MOZ_MUST_USE nsresult OpenCacheEntry(bool usingSSL);
     MOZ_MUST_USE nsresult OpenCacheEntryInternal(bool isHttps,
                                                  nsIApplicationCache *applicationCache,
@@ -297,6 +300,7 @@ private:
     // Connections will only be established in this function.
     // (including DNS prefetch and speculative connection.)
     nsresult BeginConnectActual();
+    void MaybeStartDNSPrefetch();
 
     // We might synchronously or asynchronously call BeginConnectActual,
     // which includes DNS prefetch and speculative connection, according to
@@ -644,6 +648,10 @@ private:
     // due to the tracking protection rules, but the asynchronous cancellation
     // process hasn't finished yet.
     uint32_t                          mTrackingProtectionCancellationPending : 1;
+
+    // True only when we are between Resume and async fire of mCallOnResume.
+    // Used to suspend any newly created pumps in mCallOnResume handler.
+    uint32_t                          mAsyncResumePending : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 

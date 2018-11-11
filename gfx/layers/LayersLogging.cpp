@@ -6,6 +6,7 @@
 
 #include "LayersLogging.h"
 #include <stdint.h>                     // for uint8_t
+#include "FrameMetrics.h"               // for FrameMetrics, etc
 #include "ImageTypes.h"                 // for ImageFormat
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4, Matrix
 #include "mozilla/gfx/Point.h"          // for IntSize
@@ -30,7 +31,7 @@ AppendToString(std::stringstream& aStream, const void* p,
 }
 
 void
-AppendToString(std::stringstream& aStream, FrameMetrics::ViewID n,
+AppendToString(std::stringstream& aStream, ScrollableLayerGuid::ViewID n,
                const char* pfx, const char* sfx)
 {
   aStream << pfx;
@@ -218,7 +219,7 @@ AppendToString(std::stringstream& aStream, const ScrollMetadata& m,
   aStream << pfx;
   AppendToString(aStream, m.GetMetrics(), "{ [metrics=");
   AppendToString(aStream, m.GetBackgroundColor(), "] [color=");
-  if (m.GetScrollParentId() != FrameMetrics::NULL_SCROLL_ID) {
+  if (m.GetScrollParentId() != ScrollableLayerGuid::NULL_SCROLL_ID) {
     AppendToString(aStream, m.GetScrollParentId(), "] [scrollParent=");
   }
   if (m.HasScrollClip()) {
@@ -390,6 +391,8 @@ AppendToString(std::stringstream& aStream, mozilla::gfx::SurfaceFormat format,
   case SurfaceFormat::A8:        aStream << "SurfaceFormat::A8"; break;
   case SurfaceFormat::YUV:       aStream << "SurfaceFormat::YUV"; break;
   case SurfaceFormat::NV12:      aStream << "SurfaceFormat::NV12"; break;
+  case SurfaceFormat::P010:      aStream << "SurfaceFormat::P010"; break;
+  case SurfaceFormat::P016:      aStream << "SurfaceFormat::P016"; break;
   case SurfaceFormat::YUV422:    aStream << "SurfaceFormat::YUV422"; break;
   case SurfaceFormat::UNKNOWN:   aStream << "SurfaceFormat::UNKNOWN"; break;
   default:

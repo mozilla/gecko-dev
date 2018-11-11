@@ -85,7 +85,7 @@ class TimingsPanel extends Component {
             },
           }),
           span({ className: "requests-list-timings-total" },
-            L10N.getFormatStr("networkMenu.totalMS", timings[type])
+            L10N.getFormatStr("networkMenu.totalMS2", timings[type])
           )
         ),
       );
@@ -96,6 +96,7 @@ class TimingsPanel extends Component {
         timelines,
         MDNLink({
           url: getNetMonitorTimingsURL(),
+          title: L10N.getStr("netmonitor.timings.learnMore"),
         }),
       )
     );

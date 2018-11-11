@@ -173,7 +173,7 @@ var gEditItemOverlay = {
    *        2. any of the following optional properties:
    *          - hiddenRows (Strings array): list of rows to be hidden regardless
    *            of the item edited. Possible values: "title", "location",
-   *            "keyword", "feedLocation", "siteLocation", folderPicker"
+   *            "keyword", "folderPicker".
    */
   initPanel(aInfo) {
     if (typeof(aInfo) != "object" || aInfo === null)
@@ -408,14 +408,27 @@ var gEditItemOverlay = {
     let title = (await PlacesUtils.bookmarks.fetch(aSelectedFolderGuid)).title;
     var defaultItem = this._getFolderMenuItem(aSelectedFolderGuid, title);
     this._folderMenuList.selectedItem = defaultItem;
+    // Ensure the selectedGuid attribute is set correctly (the above line wouldn't
+    // necessary trigger a select event, so handle it manually, then add the
+    // listener).
+    this._onFolderListSelected();
 
-    // Set a selectedIndex attribute to show special icons
-    this._folderMenuList.setAttribute("selectedIndex",
-                                      this._folderMenuList.selectedIndex);
+    this._folderMenuList.addEventListener("select", this);
+    this._folderMenuListListenerAdded = true;
 
     // Hide the folders-separator if no folder is annotated as recently-used
     this._element("foldersSeparator").hidden = (menupopup.children.length <= 6);
     this._folderMenuList.disabled = this.readOnly;
+  },
+
+  _onFolderListSelected() {
+    // Set a selectedGuid attribute to show special icons
+    let folderGuid = this.selectedFolderGuid;
+    if (folderGuid) {
+      this._folderMenuList.setAttribute("selectedGuid", folderGuid);
+    } else {
+      this._folderMenuList.removeAttribute("selectedGuid");
+    }
   },
 
   QueryInterface:
@@ -440,7 +453,13 @@ var gEditItemOverlay = {
 
     if (this._observersAdded) {
       PlacesUtils.bookmarks.removeObserver(this);
+      window.removeEventListener("unload", this);
       this._observersAdded = false;
+    }
+
+    if (this._folderMenuListListenerAdded) {
+      this._folderMenuList.removeEventListener("select", this);
+      this._folderMenuListListenerAdded = false;
     }
 
     this._setPaneInfo(null);
@@ -622,15 +641,15 @@ var gEditItemOverlay = {
   toggleFolderTreeVisibility() {
     var expander = this._element("foldersExpander");
     var folderTreeRow = this._element("folderTreeRow");
+    expander.classList.toggle("expander-up", folderTreeRow.collapsed);
+    expander.classList.toggle("expander-down", !folderTreeRow.collapsed);
     if (!folderTreeRow.collapsed) {
-      expander.className = "expander-down";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextdown"));
       folderTreeRow.collapsed = true;
       this._element("chooseFolderSeparator").hidden =
         this._element("chooseFolderMenuItem").hidden = false;
     } else {
-      expander.className = "expander-up";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextup"));
       folderTreeRow.collapsed = false;
@@ -681,9 +700,6 @@ var gEditItemOverlay = {
     if (!this._paneInfo) {
       return;
     }
-    // Set a selectedIndex attribute to show special icons
-    this._folderMenuList.setAttribute("selectedIndex",
-                                      this._folderMenuList.selectedIndex);
 
     if (aEvent.target.id == "editBMPanel_chooseFolderMenuItem") {
       // reset the selection back to where it was and expand the tree
@@ -786,8 +802,9 @@ var gEditItemOverlay = {
     var tagsSelector = this._element("tagsSelector");
     var tagsSelectorRow = this._element("tagsSelectorRow");
     var expander = this._element("tagsSelectorExpander");
+    expander.classList.toggle("expander-up", tagsSelectorRow.collapsed);
+    expander.classList.toggle("expander-down", !tagsSelectorRow.collapsed);
     if (tagsSelectorRow.collapsed) {
-      expander.className = "expander-up";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextup"));
       tagsSelectorRow.collapsed = false;
@@ -797,7 +814,6 @@ var gEditItemOverlay = {
       tagsSelector.addEventListener("mousedown", this);
       tagsSelector.addEventListener("keypress", this);
     } else {
-      expander.className = "expander-down";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextdown"));
       tagsSelectorRow.collapsed = true;
@@ -869,6 +885,9 @@ var gEditItemOverlay = {
       break;
     case "unload":
       this.uninitPanel(false);
+      break;
+    case "select":
+      this._onFolderListSelected();
       break;
     }
   },
@@ -1027,7 +1046,6 @@ var gEditItemOverlay = {
     });
   },
 
-  onItemAdded() {},
   onItemRemoved() { },
   onBeginUpdateBatch() { },
   onEndUpdateBatch() { },

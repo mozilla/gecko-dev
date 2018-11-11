@@ -81,8 +81,11 @@ using namespace JS;
 using mozilla::dom::AutoEntryScript;
 
 // The watchdog thread loop is pretty trivial, and should not require much stack
-// space to do its job. So only give it 32KiB.
-static constexpr size_t kWatchdogStackSize = 32 * 1024;
+// space to do its job. So only give it 32KiB or the platform minimum.
+#if ! defined(PTHREAD_STACK_MIN)
+#define PTHREAD_STACK_MIN 0
+#endif
+static constexpr size_t kWatchdogStackSize = PTHREAD_STACK_MIN < 32 * 1024 ? 32 * 1024 : PTHREAD_STACK_MIN;
 
 static void WatchdogMain(void* arg);
 class Watchdog;
@@ -822,6 +825,7 @@ ReloadPrefsCallback(const char* pref, XPCJSContext* xpccx)
 
     int32_t baselineThreshold = Preferences::GetInt(JS_OPTIONS_DOT_STR "baselinejit.threshold", -1);
     int32_t ionThreshold = Preferences::GetInt(JS_OPTIONS_DOT_STR "ion.threshold", -1);
+    int32_t ionFrequentBailoutThreshold = Preferences::GetInt(JS_OPTIONS_DOT_STR "ion.frequent_bailout_threshold", -1);
 
     sDiscardSystemSource = Preferences::GetBool(JS_OPTIONS_DOT_STR "discardSystemSource");
 
@@ -906,6 +910,9 @@ ReloadPrefsCallback(const char* pref, XPCJSContext* xpccx)
                                   useBaselineEager ? 0 : baselineThreshold);
     JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_WARMUP_TRIGGER,
                                   useIonEager ? 0 : ionThreshold);
+    JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_FREQUENT_BAILOUT_THRESHOLD,
+                                  ionFrequentBailoutThreshold);
+
 #ifdef DEBUG
     JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_FULL_DEBUG_CHECKS, fullJitDebugChecks);
 #endif

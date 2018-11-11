@@ -23,8 +23,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.AnyThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.UiThread;
 import android.text.Editable;
 import android.text.InputType;
 import android.util.Log;
@@ -273,21 +275,19 @@ public final class SessionTextInput {
     private final GeckoSession mSession;
     private final NativeQueue mQueue;
     private final GeckoEditable mEditable;
-    private final GeckoEditableChild mEditableChild;
     private InputConnectionClient mInputConnection;
     private GeckoSession.TextInputDelegate mDelegate;
     // Auto-fill nodes.
     private SparseArray<GeckoBundle> mAutoFillNodes;
     private SparseArray<EventCallback> mAutoFillRoots;
     private int mAutoFillFocusedId = View.NO_ID;
+    private int mAutoFillFocusedRoot = View.NO_ID;
 
     /* package */ SessionTextInput(final @NonNull GeckoSession session,
                                    final @NonNull NativeQueue queue) {
         mSession = session;
         mQueue = queue;
         mEditable = new GeckoEditable(session);
-        mEditableChild = new GeckoEditableChild(mEditable);
-        mEditable.setDefaultEditableChild(mEditableChild);
 
         session.getEventDispatcher().registerUiThreadListener(
                 new BundleEventListener() {
@@ -311,11 +311,10 @@ public final class SessionTextInput {
 
     /* package */ void onWindowChanged(final GeckoSession.Window window) {
         if (mQueue.isReady()) {
-            window.attachEditable(mEditable, mEditableChild);
+            window.attachEditable(mEditable);
         } else {
             mQueue.queueUntilReady(window, "attachEditable",
-                                   IGeckoEditableParent.class, mEditable,
-                                   GeckoEditableChild.class, mEditableChild);
+                                   IGeckoEditableParent.class, mEditable);
         }
     }
 
@@ -337,6 +336,7 @@ public final class SessionTextInput {
      * @param defHandler Handler returned by the system {@code getHandler} implementation.
      * @return Handler to return to the system through {@code getHandler}.
      */
+    @AnyThread
     public synchronized @NonNull Handler getHandler(final @NonNull Handler defHandler) {
         // May be called on any thread.
         if (mInputConnection != null) {
@@ -351,6 +351,7 @@ public final class SessionTextInput {
      * @return Current text input View or null if not set.
      * @see #setView(View)
      */
+    @UiThread
     public @Nullable View getView() {
         ThreadUtils.assertOnUiThread();
         return mInputConnection != null ? mInputConnection.getView() : null;
@@ -365,6 +366,7 @@ public final class SessionTextInput {
      * @param view Text input View or null to clear current View.
      * @see #getView()
      */
+    @UiThread
     public synchronized void setView(final @Nullable View view) {
         ThreadUtils.assertOnUiThread();
 
@@ -385,6 +387,7 @@ public final class SessionTextInput {
      * @return InputConnection instance, or null if there is no active input
      *         (or if in viewless mode).
      */
+    @AnyThread
     public synchronized @Nullable InputConnection onCreateInputConnection(
             final @NonNull EditorInfo attrs) {
         // May be called on any thread.
@@ -403,6 +406,7 @@ public final class SessionTextInput {
      * @param event KeyEvent instance.
      * @return True if the event was handled.
      */
+    @UiThread
     public boolean onKeyPreIme(final int keyCode, final @NonNull KeyEvent event) {
         ThreadUtils.assertOnUiThread();
         return mEditable.onKeyPreIme(getView(), keyCode, event);
@@ -415,6 +419,7 @@ public final class SessionTextInput {
      * @param event KeyEvent instance.
      * @return True if the event was handled.
      */
+    @UiThread
     public boolean onKeyDown(final int keyCode, final @NonNull KeyEvent event) {
         ThreadUtils.assertOnUiThread();
         return mEditable.onKeyDown(getView(), keyCode, event);
@@ -427,6 +432,7 @@ public final class SessionTextInput {
      * @param event KeyEvent instance.
      * @return True if the event was handled.
      */
+    @UiThread
     public boolean onKeyUp(final int keyCode, final @NonNull KeyEvent event) {
         ThreadUtils.assertOnUiThread();
         return mEditable.onKeyUp(getView(), keyCode, event);
@@ -439,6 +445,7 @@ public final class SessionTextInput {
      * @param event KeyEvent instance.
      * @return True if the event was handled.
      */
+    @UiThread
     public boolean onKeyLongPress(final int keyCode, final @NonNull KeyEvent event) {
         ThreadUtils.assertOnUiThread();
         return mEditable.onKeyLongPress(getView(), keyCode, event);
@@ -452,6 +459,7 @@ public final class SessionTextInput {
      * @param event KeyEvent instance.
      * @return True if the event was handled.
      */
+    @UiThread
     public boolean onKeyMultiple(final int keyCode, final int repeatCount,
                                  final @NonNull KeyEvent event) {
         ThreadUtils.assertOnUiThread();
@@ -463,6 +471,7 @@ public final class SessionTextInput {
      *
      * @param delegate TextInputDelegate instance or null to restore to default.
      */
+    @UiThread
     public void setDelegate(@Nullable final GeckoSession.TextInputDelegate delegate) {
         ThreadUtils.assertOnUiThread();
         mDelegate = delegate;
@@ -473,6 +482,7 @@ public final class SessionTextInput {
      *
      * @return TextInputDelegate instance or a default instance if no delegate has been set.
      */
+    @UiThread
     public GeckoSession.TextInputDelegate getDelegate() {
         ThreadUtils.assertOnUiThread();
         if (mDelegate == null) {
@@ -510,17 +520,10 @@ public final class SessionTextInput {
         final int size = mAutoFillRoots.size();
         structure.setChildCount(size);
 
-        int focusedRoot = View.NO_ID;
-        for (int newId = mAutoFillFocusedId; newId != View.NO_ID;) {
-            focusedRoot = newId;
-            newId = mAutoFillNodes.get(newId).getInt("parent", View.NO_ID);
-        }
-
         for (int i = 0; i < size; i++) {
             final int id = mAutoFillRoots.keyAt(i);
             final GeckoBundle root = mAutoFillNodes.get(id);
-            fillAutoFillStructure(view, id, root, structure.newChild(i),
-                                  (focusedRoot == id) ? rect : null);
+            fillAutoFillStructure(view, id, root, structure.newChild(i), rect);
         }
     }
 
@@ -542,8 +545,7 @@ public final class SessionTextInput {
             final CharSequence value = values.valueAt(i);
 
             if (DEBUG) {
-                Log.d(LOGTAG,
-                      "performAutoFill(" + id + ", " + values + ')');
+                Log.d(LOGTAG, "performAutoFill(" + id + ')');
             }
             int rootId = id;
             for (int currentId = id; currentId != View.NO_ID; ) {
@@ -575,7 +577,7 @@ public final class SessionTextInput {
     private void fillAutoFillStructure(@Nullable final View view, final int id,
                                        @NonNull final GeckoBundle bundle,
                                        @NonNull final ViewStructure structure,
-                                       @Nullable final Rect rect) {
+                                       @NonNull final Rect rect) {
         if (mAutoFillRoots == null) {
             return;
         }
@@ -592,7 +594,8 @@ public final class SessionTextInput {
         }
         structure.setId(id, null, null, null);
 
-        if (rect != null) {
+        if (mAutoFillFocusedRoot != View.NO_ID &&
+                mAutoFillFocusedRoot == bundle.getInt("root", View.NO_ID)) {
             structure.setDimens(0, 0, 0, 0, rect.width(), rect.height());
         }
 
@@ -721,6 +724,7 @@ public final class SessionTextInput {
         mAutoFillRoots = null;
         mAutoFillNodes = null;
         mAutoFillFocusedId = View.NO_ID;
+        mAutoFillFocusedRoot = View.NO_ID;
 
         getDelegate().notifyAutoFill(
                 mSession, GeckoSession.TextInputDelegate.AUTO_FILL_NOTIFY_CANCELED, View.NO_ID);
@@ -732,10 +736,12 @@ public final class SessionTextInput {
         }
 
         final int id;
+        final int root;
         if (message != null) {
             id = message.getInt("id");
+            root = message.getInt("root");
         } else {
-            id = View.NO_ID;
+            id = root = View.NO_ID;
         }
 
         if (DEBUG) {
@@ -751,6 +757,7 @@ public final class SessionTextInput {
         }
 
         mAutoFillFocusedId = id;
+        mAutoFillFocusedRoot = root;
         if (id != View.NO_ID) {
             getDelegate().notifyAutoFill(
                     mSession, GeckoSession.TextInputDelegate.AUTO_FILL_NOTIFY_VIEW_ENTERED, id);

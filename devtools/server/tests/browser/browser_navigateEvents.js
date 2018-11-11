@@ -102,12 +102,12 @@ async function connectAndAttachTab() {
   // Connect to this tab
   const transport = DebuggerServer.connectPipe();
   const client = new DebuggerClient(transport);
-  client.addListener("tabNavigated", function(event, packet) {
-    assertEvent("tabNavigated", packet);
-  });
   const form = await connectDebuggerClient(client);
   const actorID = form.actor;
-  await client.attachTarget(actorID);
+  const [, targetFront ] = await client.attachTarget(actorID);
+  targetFront.on("tabNavigated", function(packet) {
+    assertEvent("tabNavigated", packet);
+  });
   return { client, actorID };
 }
 
@@ -137,26 +137,26 @@ add_task(async function() {
     EventEmitter.on(targetActor, "will-navigate", function(data) {
       sendSyncMessage("devtools-test:event", {
         event: "will-navigate",
-        data: { newURI: data.newURI }
+        data: { newURI: data.newURI },
       });
     });
     EventEmitter.on(targetActor, "navigate", function(data) {
       sendSyncMessage("devtools-test:event", {
         event: "navigate",
-        data: { readyState: content.document.readyState }
+        data: { readyState: content.document.readyState },
       });
     });
     // Forward DOMContentLoaded and load events
     addEventListener("DOMContentLoaded", function() {
       sendSyncMessage("devtools-test:event", {
         event: "DOMContentLoaded",
-        data: { readyState: content.document.readyState }
+        data: { readyState: content.document.readyState },
       });
     }, { capture: true });
     addEventListener("load", function() {
       sendSyncMessage("devtools-test:event", {
         event: "load",
-        data: { readyState: content.document.readyState }
+        data: { readyState: content.document.readyState },
       });
     }, { capture: true });
   });

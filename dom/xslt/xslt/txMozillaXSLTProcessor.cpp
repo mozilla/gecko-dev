@@ -26,7 +26,7 @@
 #include "nsThreadUtils.h"
 #include "jsapi.h"
 #include "txExprParser.h"
-#include "nsIErrorService.h"
+#include "nsErrorService.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsJSUtils.h"
 #include "nsIXPConnect.h"
@@ -778,7 +778,6 @@ txMozillaXSLTProcessor::SetParameter(const nsAString& aNamespaceURI,
         // String
         case nsIDataType::VTYPE_CHAR:
         case nsIDataType::VTYPE_WCHAR:
-        case nsIDataType::VTYPE_DOMSTRING:
         case nsIDataType::VTYPE_CHAR_STR:
         case nsIDataType::VTYPE_WCHAR_STR:
         case nsIDataType::VTYPE_STRING_SIZE_IS:
@@ -1287,8 +1286,7 @@ txMozillaXSLTProcessor::Startup()
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    nsCOMPtr<nsIErrorService> errorService =
-        do_GetService(NS_ERRORSERVICE_CONTRACTID);
+    nsCOMPtr<nsIErrorService> errorService = nsErrorService::GetOrCreate();
     if (errorService) {
         errorService->RegisterErrorStringBundle(NS_ERROR_MODULE_XSLT,
                                                 XSLT_MSGS_URL);
@@ -1303,8 +1301,7 @@ txMozillaXSLTProcessor::Shutdown()
 {
     txXSLTProcessor::shutdown();
 
-    nsCOMPtr<nsIErrorService> errorService =
-        do_GetService(NS_ERRORSERVICE_CONTRACTID);
+    nsCOMPtr<nsIErrorService> errorService = nsErrorService::GetOrCreate();
     if (errorService) {
         errorService->UnregisterErrorStringBundle(NS_ERROR_MODULE_XSLT);
     }
@@ -1357,7 +1354,6 @@ txVariable::Convert(nsIVariant *aValue, txAExprResult** aResult)
         // String
         case nsIDataType::VTYPE_CHAR:
         case nsIDataType::VTYPE_WCHAR:
-        case nsIDataType::VTYPE_DOMSTRING:
         case nsIDataType::VTYPE_CHAR_STR:
         case nsIDataType::VTYPE_WCHAR_STR:
         case nsIDataType::VTYPE_STRING_SIZE_IS:

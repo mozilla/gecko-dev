@@ -481,12 +481,12 @@ ScriptLoader::CreateModuleScript(ModuleLoadRequest* aRequest)
   nsresult rv;
   {
     JSContext* cx = aes.cx();
-    JS::Rooted<JSScript*> script(cx);
+    JS::Rooted<JSObject*> module(cx);
 
     if (aRequest->mWasCompiledOMT) {
-      script = JS::FinishOffThreadModule(cx, aRequest->mOffThreadToken);
+      module = JS::FinishOffThreadModule(cx, aRequest->mOffThreadToken);
       aRequest->mOffThreadToken = nullptr;
-      rv = script ? NS_OK : NS_ERROR_FAILURE;
+      rv = module ? NS_OK : NS_ERROR_FAILURE;
     } else {
       JS::Rooted<JSObject*> global(cx, globalObject->GetGlobalJSObject());
 
@@ -496,19 +496,19 @@ ScriptLoader::CreateModuleScript(ModuleLoadRequest* aRequest)
       if (NS_SUCCEEDED(rv)) {
         auto srcBuf = GetScriptSource(cx, aRequest);
         if (srcBuf) {
-          rv = nsJSUtils::CompileModule(cx, *srcBuf, global, options, &script);
+          rv = nsJSUtils::CompileModule(cx, *srcBuf, global, options, &module);
         } else {
           rv = NS_ERROR_OUT_OF_MEMORY;
         }
       }
     }
 
-    MOZ_ASSERT(NS_SUCCEEDED(rv) == (script != nullptr));
+    MOZ_ASSERT(NS_SUCCEEDED(rv) == (module != nullptr));
 
     RefPtr<ModuleScript> moduleScript = new ModuleScript(this, aRequest->mBaseURL);
     aRequest->mModuleScript = moduleScript;
 
-    if (!script) {
+    if (!module) {
       LOG(("ScriptLoadRequest (%p):   compilation failed (%d)",
            aRequest, unsigned(rv)));
 
@@ -524,7 +524,7 @@ ScriptLoader::CreateModuleScript(ModuleLoadRequest* aRequest)
       return NS_OK;
     }
 
-    moduleScript->SetScript(script);
+    moduleScript->SetModuleRecord(module);
 
     // Validate requested modules and treat failure to resolve module specifiers
     // the same as a parse error.
@@ -617,14 +617,14 @@ ResolveRequestedModules(ModuleLoadRequest* aRequest, nsCOMArray<nsIURI>* aUrlsOu
   ModuleScript* ms = aRequest->mModuleScript;
 
   AutoJSAPI jsapi;
-  if (!jsapi.Init(JS::GetScriptGlobal(ms->Script()))) {
+  if (!jsapi.Init(ms->ModuleRecord())) {
     return NS_ERROR_FAILURE;
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSScript*> script(cx, ms->Script());
+  JS::Rooted<JSObject*> moduleRecord(cx, ms->ModuleRecord());
   JS::Rooted<JSObject*> requestedModules(cx);
-  requestedModules = JS::GetRequestedModules(cx, script);
+  requestedModules = JS::GetRequestedModules(cx, moduleRecord);
   MOZ_ASSERT(requestedModules);
 
   uint32_t length;
@@ -758,19 +758,14 @@ ScriptLoader::StartFetchingModuleAndDependencies(ModuleLoadRequest* aParent,
 }
 
 // 8.1.3.8.1 HostResolveImportedModule(referencingModule, specifier)
-JSScript*
-HostResolveImportedModule(JSContext* aCx, JS::Handle<JSScript*> aScript,
+JSObject*
+HostResolveImportedModule(JSContext* aCx,
+                          JS::Handle<JS::Value> aReferencingPrivate,
                           JS::Handle<JSString*> aSpecifier)
 {
   // Let referencing module script be referencingModule.[[HostDefined]].
-  void* value = JS::GetTopLevelScriptPrivate(aScript);
-  if (!value) {
-    JS_ReportErrorASCII(aCx, "Module script not found");
-    return nullptr;
-  }
-
-  auto script = static_cast<ModuleScript*>(value);
-  MOZ_ASSERT(script->Script() == aScript);
+  auto script = static_cast<ModuleScript*>(aReferencingPrivate.toPrivate());
+  MOZ_ASSERT(JS::GetModulePrivate(script->ModuleRecord()) == aReferencingPrivate);
 
   // Let url be the result of resolving a module specifier given referencing
   // module script and specifier.
@@ -791,25 +786,18 @@ HostResolveImportedModule(JSContext* aCx, JS::Handle<JSScript*> aScript,
   MOZ_ASSERT(ms, "Resolved module not found in module map");
 
   MOZ_ASSERT(!ms->HasParseError());
-  MOZ_ASSERT(ms->Script());
+  MOZ_ASSERT(ms->ModuleRecord());
 
-  return ms->Script();
+  return ms->ModuleRecord();
 }
 
 bool
-HostPopulateImportMeta(JSContext* aCx, JS::Handle<JSScript*> aScript,
+HostPopulateImportMeta(JSContext* aCx,
+                       JS::Handle<JS::Value> aReferencingPrivate,
                        JS::Handle<JSObject*> aMetaObject)
 {
-  MOZ_DIAGNOSTIC_ASSERT(aScript);
-
-  void* value = JS::GetTopLevelScriptPrivate(aScript);
-  if (!value) {
-    JS_ReportErrorASCII(aCx, "Module script not found");
-    return false;
-  }
-
-  auto script = static_cast<ModuleScript*>(value);
-  MOZ_DIAGNOSTIC_ASSERT(script->Script() == aScript);
+  auto script = static_cast<ModuleScript*>(aReferencingPrivate.toPrivate());
+  MOZ_ASSERT(JS::GetModulePrivate(script->ModuleRecord()) == aReferencingPrivate);
 
   nsAutoCString url;
   MOZ_DIAGNOSTIC_ASSERT(script->BaseURL());
@@ -940,18 +928,18 @@ ScriptLoader::InstantiateModuleTree(ModuleLoadRequest* aRequest)
     return true;
   }
 
-  MOZ_ASSERT(moduleScript->Script());
+  MOZ_ASSERT(moduleScript->ModuleRecord());
 
   nsAutoMicroTask mt;
   AutoJSAPI jsapi;
-  if (NS_WARN_IF(!jsapi.Init(JS::GetScriptGlobal(moduleScript->Script())))) {
+  if (NS_WARN_IF(!jsapi.Init(moduleScript->ModuleRecord()))) {
     return false;
   }
 
   EnsureModuleResolveHook(jsapi.cx());
 
-  JS::Rooted<JSScript*> script(jsapi.cx(), moduleScript->Script());
-  bool ok = NS_SUCCEEDED(nsJSUtils::ModuleInstantiate(jsapi.cx(), script));
+  JS::Rooted<JSObject*> module(jsapi.cx(), moduleScript->ModuleRecord());
+  bool ok = NS_SUCCEEDED(nsJSUtils::ModuleInstantiate(jsapi.cx(), module));
 
   if (!ok) {
     LOG(("ScriptLoadRequest (%p): Instantiate failed", aRequest));
@@ -987,14 +975,15 @@ ScriptLoader::AssociateSourceElementsForModuleTree(JSContext* aCx,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  JS::Rooted<JSScript*> script(aCx, moduleScript->Script());
-  MOZ_ASSERT(script);
+  JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+  MOZ_ASSERT(module);
 
-  nsresult rv = nsJSUtils::InitModuleSourceElement(aCx, script, aRequest->Element());
+  nsresult rv = nsJSUtils::InitModuleSourceElement(aCx, module, aRequest->Element());
   NS_ENSURE_SUCCESS(rv, rv);
   moduleScript->SetSourceElementAssociated();
 
   // The script is now ready to be exposed to the debugger.
+  JS::Rooted<JSScript*> script(aCx, JS::GetModuleScript(module));
   JS::ExposeScriptToDebugger(aCx, script);
 
   return NS_OK;
@@ -1074,9 +1063,8 @@ ScriptLoader::StartLoad(ScriptLoadRequest* aRequest)
     // According to the spec, module scripts have different behaviour to classic
     // scripts and always use CORS.
     securityFlags = nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS;
-    if (aRequest->CORSMode() == CORS_NONE) {
-      securityFlags |= nsILoadInfo::SEC_COOKIES_OMIT;
-    } else if (aRequest->CORSMode() == CORS_ANONYMOUS) {
+    if (aRequest->CORSMode() == CORS_NONE ||
+        aRequest->CORSMode() == CORS_ANONYMOUS) {
       securityFlags |= nsILoadInfo::SEC_COOKIES_SAME_ORIGIN;
     } else {
       MOZ_ASSERT(aRequest->CORSMode() == CORS_USE_CREDENTIALS);
@@ -1114,12 +1102,14 @@ ScriptLoader::StartLoad(ScriptLoadRequest* aRequest)
   // constant.
   aRequest->mCacheInfo = nullptr;
   nsCOMPtr<nsICacheInfoChannel> cic(do_QueryInterface(channel));
-  if (cic && nsContentUtils::IsBytecodeCacheEnabled()) {
+  if (cic && nsContentUtils::IsBytecodeCacheEnabled() &&
+      // Bug 1436400: no bytecode cache support for modules yet.
+      !aRequest->IsModuleRequest()) {
     if (!aRequest->IsLoadingSource()) {
       // Inform the HTTP cache that we prefer to have information coming from the
       // bytecode cache instead of the sources, if such entry is already registered.
       LOG(("ScriptLoadRequest (%p): Maybe request bytecode", aRequest));
-      cic->PreferAlternativeDataType(nsContentUtils::JSBytecodeMimeType());
+      cic->PreferAlternativeDataType(nsContentUtils::JSBytecodeMimeType(), EmptyCString());
     } else {
       // If we are explicitly loading from the sources, such as after a
       // restarted request, we might still want to save the bytecode after.
@@ -1128,7 +1118,7 @@ ScriptLoader::StartLoad(ScriptLoadRequest* aRequest)
       // does not exist, such that we can later save the bytecode with a
       // different alternative data type.
       LOG(("ScriptLoadRequest (%p): Request saving bytecode later", aRequest));
-      cic->PreferAlternativeDataType(kNullMimeType);
+      cic->PreferAlternativeDataType(kNullMimeType, EmptyCString());
     }
   }
 
@@ -1260,7 +1250,9 @@ CSPAllowsInlineScript(nsIScriptElement* aElement, nsIDocument* aDocument)
 
   bool allowInlineScript = false;
   rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_SCRIPT,
-                            nonce, parserCreated, scriptContent, EmptyString(),
+                            nonce, parserCreated, scriptContent,
+                            nullptr /* nsICSPEventListener */,
+                            EmptyString(),
                             aElement->GetScriptLineNumber(),
                             aElement->GetScriptColumnNumber(),
                             &allowInlineScript);
@@ -2141,9 +2133,7 @@ ScriptLoader::FillCompileOptionsForRequest(const AutoJSAPI&jsapi,
 {
   // It's very important to use aRequest->mURI, not the final URI of the channel
   // aRequest ended up getting script data from, as the script filename.
-  nsresult rv;
-  nsContentUtils::GetWrapperSafeScriptFilename(mDocument, aRequest->mURI,
-                                               aRequest->mURL, &rv);
+  nsresult rv = aRequest->mURI->GetSpec(aRequest->mURL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -2344,15 +2334,15 @@ ScriptLoader::EvaluateScript(ScriptLoadRequest* aRequest)
         return NS_OK; // An error is reported by AutoEntryScript.
       }
 
-      JS::Rooted<JSScript*> script(cx, moduleScript->Script());
-      MOZ_ASSERT(script);
+      JS::Rooted<JSObject*> module(cx, moduleScript->ModuleRecord());
+      MOZ_ASSERT(module);
 
       if (!moduleScript->SourceElementAssociated()) {
         rv = AssociateSourceElementsForModuleTree(cx, request);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
-      rv = nsJSUtils::ModuleEvaluate(cx, script);
+      rv = nsJSUtils::ModuleEvaluate(cx, module);
       MOZ_ASSERT(NS_FAILED(rv) == aes.HasException());
       if (NS_FAILED(rv)) {
         LOG(("ScriptLoadRequest (%p):   evaluation failed", aRequest));
@@ -2415,8 +2405,8 @@ ScriptLoader::EvaluateScript(ScriptLoadRequest* aRequest)
 
                 if (srcBuf) {
                   if (recordreplay::IsRecordingOrReplaying()) {
-                    recordreplay::NoteContentParse(this, options.filename(), "application/javascript",
-                                                   srcBuf->get(), srcBuf->length());
+                    recordreplay::NoteContentParse16(this, options.filename(), "application/javascript",
+                                                     srcBuf->get(), srcBuf->length());
                   }
                   rv = exec.CompileAndExec(options, *srcBuf, &script);
                 } else {
@@ -2823,14 +2813,24 @@ ScriptLoader::ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
     unicodeDecoder = WINDOWS_1252_ENCODING->NewDecoderWithoutBOMHandling();
   }
 
-  CheckedInt<size_t> unicodeLength =
-    unicodeDecoder->MaxUTF16BufferLength(aLength);
-  if (!unicodeLength.isValid()) {
+  CheckedInt<size_t> maxLength = unicodeDecoder->MaxUTF16BufferLength(aLength);
+  if (!maxLength.isValid()) {
+    aBufOut = nullptr;
+    aLengthOut = 0;
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  aBufOut =
-    static_cast<char16_t*>(js_malloc(unicodeLength.value() * sizeof(char16_t)));
+  size_t unicodeLength = maxLength.value();
+
+  maxLength *= sizeof(char16_t);
+
+  if (!maxLength.isValid()) {
+    aBufOut = nullptr;
+    aLengthOut = 0;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  aBufOut = static_cast<char16_t*>(js_malloc(maxLength.value()));
   if (!aBufOut) {
     aLengthOut = 0;
     return NS_ERROR_OUT_OF_MEMORY;
@@ -2840,11 +2840,11 @@ ScriptLoader::ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
   size_t read;
   size_t written;
   bool hadErrors;
-  Tie(result, read, written, hadErrors) = unicodeDecoder->DecodeToUTF16(
-    data, MakeSpan(aBufOut, unicodeLength.value()), true);
+  Tie(result, read, written, hadErrors) =
+    unicodeDecoder->DecodeToUTF16(data, MakeSpan(aBufOut, unicodeLength), true);
   MOZ_ASSERT(result == kInputEmpty);
   MOZ_ASSERT(read == aLength);
-  MOZ_ASSERT(written <= unicodeLength.value());
+  MOZ_ASSERT(written <= unicodeLength);
   Unused << hadErrors;
   aLengthOut = written;
 
@@ -2942,6 +2942,7 @@ ScriptLoader::VerifySRI(ScriptLoadRequest* aRequest,
       csp->LogViolationDetails(
         nsIContentSecurityPolicy::VIOLATION_TYPE_REQUIRE_SRI_FOR_SCRIPT,
         nullptr, // triggering element
+        nullptr, // nsICSPEventListener
         NS_ConvertUTF8toUTF16(violationURISpec),
         EmptyString(), lineNo, columnNo, EmptyString(), EmptyString());
       rv = NS_ERROR_SRI_CORRUPT;

@@ -56,6 +56,7 @@
 #include "vm/WrapperObject.h"
 #include "wasm/WasmJS.h"
 
+#include "vm/InlineCharBuffer-inl.h"
 #include "vm/JSContext-inl.h"
 #include "vm/JSObject-inl.h"
 
@@ -365,7 +366,6 @@ class SCInput {
     static void getPair(uint64_t data, uint32_t* tagp, uint32_t* datap);
 
     MOZ_MUST_USE bool read(uint64_t* p);
-    MOZ_MUST_USE bool readNativeEndian(uint64_t* p);
     MOZ_MUST_USE bool readPair(uint32_t* tagp, uint32_t* datap);
     MOZ_MUST_USE bool readDouble(double* p);
     MOZ_MUST_USE bool readBytes(void* p, size_t nbytes);
@@ -702,18 +702,6 @@ SCInput::read(uint64_t* p)
 }
 
 bool
-SCInput::readNativeEndian(uint64_t* p)
-{
-    if (!point.canPeek()) {
-        *p = 0;  // initialize to shut GCC up
-        return reportTruncated();
-    }
-    *p = point.peek();
-    point.next();
-    return true;
-}
-
-bool
 SCInput::readPair(uint32_t* tagp, uint32_t* datap)
 {
     uint64_t u;
@@ -853,7 +841,7 @@ bool
 SCInput::readPtr(void** p)
 {
     uint64_t u;
-    if (!readNativeEndian(&u)) {
+    if (!read(&u)) {
         return false;
     }
     *p = reinterpret_cast<void*>(u);
@@ -1839,16 +1827,16 @@ JSStructuredCloneWriter::startWrite(HandleValue v)
             break;
 
           case ESClass::Other: {
-            if (JS_IsTypedArrayObject(obj)) {
+            if (obj->canUnwrapAs<TypedArrayObject>()) {
                 return writeTypedArray(obj);
             }
-            if (JS_IsDataViewObject(obj)) {
+            if (obj->canUnwrapAs<DataViewObject>()) {
                 return writeDataView(obj);
             }
             if (wasm::IsSharedWasmMemoryObject(obj)) {
                 return writeSharedWasmMemory(obj);
             }
-            if (SavedFrame::isSavedFrameOrWrapperAndNotProto(*obj)) {
+            if (obj->canUnwrapAs<SavedFrame>()) {
                 return traverseSavedFrame(obj);
             }
             break;
@@ -2084,7 +2072,7 @@ JSStructuredCloneWriter::write(HandleValue v)
                 if (!startWrite(key) || !startWrite(val)) {
                     return false;
                 }
-            } else if (cls == ESClass::Set || SavedFrame::isSavedFrameOrWrapperAndNotProto(*obj)) {
+            } else if (cls == ESClass::Set || obj->canUnwrapAs<SavedFrame>()) {
                 key = otherEntries.popCopy();
                 checkStack();
 
@@ -2165,11 +2153,12 @@ JSStructuredCloneReader::readStringImpl(uint32_t nchars)
                                   "string length");
         return nullptr;
     }
-    UniquePtr<CharT[], JS::FreePolicy> chars = AllocateChars<CharT>(context(), nchars);
-    if (!chars || !in.readChars(chars.get(), nchars)) {
+
+    InlineCharBuffer<CharT> chars;
+    if (!chars.maybeAlloc(context(), nchars) || !in.readChars(chars.get(), nchars)) {
         return nullptr;
     }
-    return NewString<CanGC>(context(), std::move(chars), nchars);
+    return chars.toStringDontDeflate(context(), nchars);
 }
 
 JSString*
@@ -2606,8 +2595,7 @@ JSStructuredCloneReader::startRead(MutableHandleValue vp)
             return false;
         }
 
-        RegExpObject* reobj = RegExpObject::create(context(), atom, flags,
-                                                   context()->tempLifoAlloc(), GenericObject);
+        RegExpObject* reobj = RegExpObject::create(context(), atom, flags, GenericObject);
         if (!reobj) {
             return false;
         }

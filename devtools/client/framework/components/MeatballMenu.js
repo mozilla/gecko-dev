@@ -3,19 +3,20 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { PureComponent } = require("devtools/client/shared/vendor/react");
+const { PureComponent, createFactory } = require("devtools/client/shared/vendor/react");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-const { createFactory } = require("devtools/client/shared/vendor/react");
-const MenuItem = createFactory(
-  require("devtools/client/shared/components/menu/MenuItem")
-);
-const MenuList = createFactory(
-  require("devtools/client/shared/components/menu/MenuList")
-);
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const { hr } = dom;
-const { openDocLink } = require("devtools/client/shared/link");
-const { assert } = require("devtools/shared/DevToolsUtils");
+
+loader.lazyGetter(this, "MenuItem", function() {
+  return createFactory(require("devtools/client/shared/components/menu/MenuItem"));
+});
+loader.lazyGetter(this, "MenuList", function() {
+  return createFactory(require("devtools/client/shared/components/menu/MenuList"));
+});
+
+loader.lazyRequireGetter(this, "openDocLink", "devtools/client/shared/link", true);
+loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 
 const openDevToolsDocsLink = () => {
   openDocLink(

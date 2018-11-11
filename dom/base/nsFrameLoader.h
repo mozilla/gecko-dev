@@ -65,7 +65,7 @@ class StructuredCloneData;
 } // namespace dom
 
 namespace layout {
-class RenderFrameParent;
+class RenderFrame;
 } // namespace layout
 } // namespace mozilla
 
@@ -86,7 +86,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
   friend class AutoResetInFrameSwap;
   typedef mozilla::dom::PBrowserParent PBrowserParent;
   typedef mozilla::dom::TabParent TabParent;
-  typedef mozilla::layout::RenderFrameParent RenderFrameParent;
+  typedef mozilla::layout::RenderFrame RenderFrame;
 
 public:
   static nsFrameLoader* Create(mozilla::dom::Element* aOwner,
@@ -130,10 +130,14 @@ public:
   /**
    * Loads the specified URI in this frame. Behaves identically to loadFrame,
    * except that this method allows specifying the URI to load.
+   *
+   * @param aURI The URI to load.
+   * @param aTriggeringPrincipal The triggering principal for the load. May be
+   *        null, in which case the node principal of the owner content will be
+   *        used.
    */
-  nsresult LoadURI(nsIURI* aURI, bool aOriginalSrc);
-
-  void AddProcessChangeBlockingPromise(mozilla::dom::Promise& aPromise, mozilla::ErrorResult& aRv);
+  nsresult LoadURI(nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal,
+                   bool aOriginalSrc);
 
   /**
    * Destroy the frame loader and everything inside it. This will
@@ -160,14 +164,21 @@ public:
 
   void RequestNotifyAfterRemotePaint();
 
-  void RequestFrameLoaderClose(mozilla::ErrorResult& aRv);
-
   void RequestUpdatePosition(mozilla::ErrorResult& aRv);
 
   void Print(uint64_t aOuterWindowID,
              nsIPrintSettings* aPrintSettings,
              nsIWebProgressListener* aProgressListener,
              mozilla::ErrorResult& aRv);
+
+  already_AddRefed<mozilla::dom::Promise>
+  DrawSnapshot(double aX,
+               double aY,
+               double aW,
+               double aH,
+               double aScale,
+               const nsAString& aBackgroundColor,
+               mozilla::ErrorResult& aRv);
 
   void StartPersistence(uint64_t aOuterWindowID,
                         nsIWebBrowserPersistDocumentReceiver* aRecv,
@@ -285,7 +296,7 @@ public:
    * returned.  (In-process <browser> behaves similarly, and this
    * behavior seems desirable.)
    */
-  RenderFrameParent* GetCurrentRenderFrame() const;
+  RenderFrame* GetCurrentRenderFrame() const;
 
   mozilla::dom::ChromeMessageSender* GetFrameMessageManager() { return mMessageManager; }
 
@@ -412,10 +423,8 @@ private:
   bool ShowRemoteFrame(const mozilla::ScreenIntSize& size,
                        nsSubDocumentFrame *aFrame = nullptr);
 
-  bool AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
-                              nsIDocShellTreeOwner* aOwner,
-                              int32_t aParentType,
-                              nsIDocShell* aParentNode);
+  void AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
+                              nsIDocShellTreeOwner* aOwner);
 
   nsAtom* TypeAttrName() const {
     return mOwnerContent->IsXULElement()
@@ -436,25 +445,6 @@ private:
 
   nsresult
   PopulateUserContextIdFromAttribute(mozilla::OriginAttributes& aAttr);
-
-  // Swap ourselves with the frameloader aOther, and notify chrome code with
-  // a BrowserChangedProcess event.
-  bool SwapBrowsersAndNotify(nsFrameLoader* aOther);
-
-  // Returns a promise which will be resolved once all of the blockers have
-  // resolved which were added during the BrowserWillChangeProcess event.
-  already_AddRefed<mozilla::dom::Promise> FireWillChangeProcessEvent();
-
-  /**
-   * Triggers a load of the given URI.
-   *
-   * @param aURI The URI to load.
-   * @param aTriggeringPrincipal The triggering principal for the load. May be
-   *        null, in which case the node principal of the owner content will be
-   *        used.
-   */
-  nsresult LoadURI(nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal,
-                   bool aOriginalSrc);
 
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
@@ -486,10 +476,6 @@ private:
 
   // Holds the last known size of the frame.
   mozilla::ScreenIntSize mLazySize;
-
-  // A stack-maintained reference to an array of promises which are blocking
-  // grouped history navigation
-  nsTArray<RefPtr<mozilla::dom::Promise>>* mBrowserChangingProcessBlockers;
 
   RefPtr<mozilla::dom::ParentSHistory> mParentSHistory;
 

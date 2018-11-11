@@ -285,6 +285,7 @@ Http2BaseCompressor::Http2BaseCompressor()
   , mSetInitialMaxBufferSizeAllowed(true)
   , mPeakSize(0)
   , mPeakCount(0)
+  , mDumpTables(false)
 {
   mDynamicReporter = new HpackDynamicTableReporter(this);
   RegisterStrongMemoryReporter(mDynamicReporter);
@@ -349,11 +350,17 @@ Http2BaseCompressor::MakeRoom(uint32_t amount, const char *direction)
 }
 
 void
-Http2BaseCompressor::DumpState()
+Http2BaseCompressor::DumpState(const char *preamble)
 {
   if (!LOG_ENABLED()) {
     return;
   }
+
+  if (!mDumpTables) {
+    return;
+  }
+
+  LOG(("%s", preamble));
 
   LOG(("Header Table"));
   uint32_t i;
@@ -398,6 +405,12 @@ Http2BaseCompressor::SetInitialMaxBufferSize(uint32_t maxBufferSize)
   return NS_ERROR_FAILURE;
 }
 
+void
+Http2BaseCompressor::SetDumpTables(bool dumpTables)
+{
+  mDumpTables = dumpTables;
+}
+
 nsresult
 Http2Decompressor::DecodeHeaderBlock(const uint8_t *data, uint32_t datalen,
                                      nsACString &output, bool isPush)
@@ -421,27 +434,28 @@ Http2Decompressor::DecodeHeaderBlock(const uint8_t *data, uint32_t datalen,
 
   nsresult rv = NS_OK;
   nsresult softfail_rv = NS_OK;
-  while (NS_SUCCEEDED(rv) && (mOffset < datalen)) {
+  while (NS_SUCCEEDED(rv) && (mOffset < mDataLen)) {
     bool modifiesTable = true;
+    const char *preamble = "Decompressor state after ?";
     if (mData[mOffset] & 0x80) {
       rv = DoIndexed();
-      LOG(("Decompressor state after indexed"));
+      preamble = "Decompressor state after indexed";
     } else if (mData[mOffset] & 0x40) {
       rv = DoLiteralWithIncremental();
-      LOG(("Decompressor state after literal with incremental"));
+      preamble = "Decompressor state after literal with incremental";
     } else if (mData[mOffset] & 0x20) {
       rv = DoContextUpdate();
-      LOG(("Decompressor state after context update"));
+      preamble = "Decompressor state after context update";
     } else if (mData[mOffset] & 0x10) {
       modifiesTable = false;
       rv = DoLiteralNeverIndexed();
-      LOG(("Decompressor state after literal never index"));
+      preamble = "Decompressor state after literal never index";
     } else {
       modifiesTable = false;
       rv = DoLiteralWithoutIndex();
-      LOG(("Decompressor state after literal without index"));
+      preamble = "Decompressor state after literal without index";
     }
-    DumpState();
+    DumpState(preamble);
     if (rv == NS_ERROR_ILLEGAL_VALUE) {
       if (modifiesTable) {
         // Unfortunately, we can't count on our peer now having the same state
@@ -703,6 +717,11 @@ nsresult
 Http2Decompressor::DecodeFinalHuffmanCharacter(const HuffmanIncomingTable *table,
                                                uint8_t &c, uint8_t &bitsLeft)
 {
+  MOZ_ASSERT(mOffset <= mDataLen);
+  if (mOffset > mDataLen) {
+    NS_WARNING("DecodeFinalHuffmanCharacter would read beyond end of buffer");
+    return NS_ERROR_FAILURE;
+  }
   uint8_t mask = (1 << bitsLeft) - 1;
   uint8_t idx = mData[mOffset - 1] & mask;
   idx <<= (8 - bitsLeft);
@@ -740,6 +759,7 @@ Http2Decompressor::DecodeFinalHuffmanCharacter(const HuffmanIncomingTable *table
 uint8_t
 Http2Decompressor::ExtractByte(uint8_t bitsLeft, uint32_t &bytesConsumed)
 {
+  MOZ_DIAGNOSTIC_ASSERT(mOffset < mDataLen);
   uint8_t rv;
 
   if (bitsLeft) {
@@ -769,8 +789,8 @@ Http2Decompressor::DecodeHuffmanCharacter(const HuffmanIncomingTable *table,
   uint8_t idx = ExtractByte(bitsLeft, bytesConsumed);
 
   if (table->IndexHasANextTable(idx)) {
-    if (bytesConsumed >= mDataLen) {
-      if (!bitsLeft || (bytesConsumed > mDataLen)) {
+    if (mOffset >= mDataLen) {
+      if (!bitsLeft || (mOffset > mDataLen)) {
         // TODO - does this get me into trouble in the new world?
         // No info left in input to try to consume, we're done
         LOG(("DecodeHuffmanCharacter all out of bits to consume, can't chain"));
@@ -911,6 +931,13 @@ Http2Decompressor::DoLiteralInternal(nsACString &name, nsACString &value,
     return rv;
   }
 
+  // sanity check
+  if (mOffset >= mDataLen) {
+    NS_WARNING("Http2 Decompressor ran out of data");
+    // This is session-fatal
+    return NS_ERROR_FAILURE;
+  }
+
   bool isHuffmanEncoded;
 
   if (!index) {
@@ -936,6 +963,13 @@ Http2Decompressor::DoLiteralInternal(nsACString &name, nsACString &value,
   }
   if (NS_FAILED(rv)) {
     return rv;
+  }
+
+  // sanity check
+  if (mOffset >= mDataLen) {
+    NS_WARNING("Http2 Decompressor ran out of data");
+    // This is session-fatal
+    return NS_ERROR_FAILURE;
   }
 
   // now the value
@@ -1009,8 +1043,7 @@ Http2Decompressor::DoLiteralWithIncremental()
     ClearHeaderTable();
     LOG(("HTTP decompressor literal with index not inserted due to size %u %s %s\n",
          room, name.get(), value.get()));
-    LOG(("Decompressor state after ClearHeaderTable"));
-    DumpState();
+    DumpState("Decompressor state after ClearHeaderTable");
     return rv;
   }
 
@@ -1091,12 +1124,15 @@ nsresult
 Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
                                    const nsACString &method, const nsACString &path,
                                    const nsACString &host, const nsACString &scheme,
-                                   bool connectForm, nsACString &output)
+                                   const nsACString &protocol, bool simpleConnectForm,
+                                   nsACString &output)
 {
   mSetInitialMaxBufferSizeAllowed = false;
   mOutput = &output;
   output.Truncate();
   mParsedContentLength = -1;
+
+  bool isWebsocket = (!simpleConnectForm && !protocol.IsEmpty());
 
   // first thing's first - context size updates (if necessary)
   if (mBufferSizeChangeWaiting) {
@@ -1108,11 +1144,14 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
   }
 
   // colon headers first
-  if (!connectForm) {
+  if (!simpleConnectForm) {
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":method"), method), false, false);
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":path"), path), true, false);
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":authority"), host), false, false);
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":scheme"), scheme), false, false);
+    if (isWebsocket) {
+      ProcessHeader(nvPair(NS_LITERAL_CSTRING(":protocol"), protocol), false, false);
+    }
   } else {
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":method"), method), false, false);
     ProcessHeader(nvPair(NS_LITERAL_CSTRING(":authority"), host), false, false);
@@ -1149,7 +1188,8 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
         name.EqualsLiteral("proxy-connection") ||
         name.EqualsLiteral("te") ||
         name.EqualsLiteral("transfer-encoding") ||
-        name.EqualsLiteral("upgrade")) {
+        name.EqualsLiteral("upgrade") ||
+        name.EqualsLiteral("sec-websocket-key")) {
       continue;
     }
 
@@ -1215,7 +1255,7 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
   // transaction) would require totally reworking how/when the transaction
   // creates its request stream, which is not worth the effort and risk of
   // breakage just to add one header only to h2 connections.
-  if (!connectForm) {
+  if (!simpleConnectForm && !isWebsocket) {
     // Add in TE: trailers for regular requests
     nsAutoCString te("te");
     nsAutoCString trailers("trailers");
@@ -1223,8 +1263,7 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
   }
 
   mOutput = nullptr;
-  LOG(("Compressor state after EncodeHeaderBlock"));
-  DumpState();
+  DumpState("Compressor state after EncodeHeaderBlock");
   return NS_OK;
 }
 
@@ -1441,15 +1480,13 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool noLocalIndex,
   if (!match || noLocalIndex || neverIndex) {
     if (neverIndex) {
       DoOutput(kNeverIndexedLiteral, &inputPair, nameReference);
-      LOG(("Compressor state after literal never index"));
-      DumpState();
+      DumpState("Compressor state after literal never index");
       return;
     }
 
     if (noLocalIndex || (newSize > (mMaxBuffer / 2)) || (mMaxBuffer < 128)) {
       DoOutput(kPlainLiteral, &inputPair, nameReference);
-      LOG(("Compressor state after literal without index"));
-      DumpState();
+      DumpState("Compressor state after literal without index");
       return;
     }
 
@@ -1461,16 +1498,14 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool noLocalIndex,
     mHeaderTable.AddElement(inputPair.mName, inputPair.mValue);
     LOG(("HTTP compressor %p new literal placed at index 0\n",
          this));
-    LOG(("Compressor state after literal with index"));
-    DumpState();
+    DumpState("Compressor state after literal with index");
     return;
   }
 
   // emit an index
   DoOutput(kIndex, &inputPair, matchedIndex);
 
-  LOG(("Compressor state after index"));
-  DumpState();
+  DumpState("Compressor state after index");
 }
 
 void

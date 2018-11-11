@@ -16,9 +16,6 @@ loader.lazyRequireGetter(this, "Telemetry", "devtools/client/shared/telemetry");
 loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
 loader.lazyImporter(this, "BrowserToolboxProcess", "resource://devtools/client/framework/ToolboxProcess.jsm");
 
-loader.lazyRequireGetter(this, "WebExtensionInspectedWindowFront",
-      "devtools/shared/fronts/addon/webextension-inspected-window", true);
-
 const {defaultTools: DefaultTools, defaultThemes: DefaultThemes} =
   require("devtools/client/definitions");
 const EventEmitter = require("devtools/shared/event-emitter");
@@ -604,7 +601,7 @@ DevTools.prototype = {
    * @param  {XULTab} tab
    *         The tab to use in creating a new target.
    *
-   * @return {TabTarget} A target object
+   * @return {Target} A target object
    */
   getTargetForTab: function(tab) {
     return TargetFactory.forTab(tab);
@@ -614,7 +611,7 @@ DevTools.prototype = {
    * Compatibility layer for web-extensions. Used by DevToolsShim for
    * browser/components/extensions/ext-devtools.js
    *
-   * web-extensions need to use dedicated instances of TabTarget and cannot reuse the
+   * web-extensions need to use dedicated instances of Target and cannot reuse the
    * cached instances managed by DevTools target factory.
    */
   createTargetForTab: function(tab) {
@@ -626,7 +623,7 @@ DevTools.prototype = {
    * browser/components/extensions/ext-devtools-inspectedWindow.js
    */
   createWebExtensionInspectedWindowFront: function(tabTarget) {
-    return new WebExtensionInspectedWindowFront(tabTarget.client, tabTarget.form);
+    return tabTarget.getFront("webExtensionInspectedWindow");
   },
 
   /**
@@ -758,7 +755,7 @@ DevTools.prototype = {
       }
     }
 
-    for (const [key, ] of this.getToolDefinitionMap()) {
+    for (const [key ] of this.getToolDefinitionMap()) {
       this.unregisterTool(key, true);
     }
 

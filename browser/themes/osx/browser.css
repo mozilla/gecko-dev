@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include shared.inc
+%include ../../../toolkit/themes/osx/global/shared.inc
 %define toolbarButtonPressed :hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"])
 
 @namespace html url("http://www.w3.org/1999/xhtml");
@@ -13,17 +13,17 @@
   --toolbar-non-lwt-bgcolor: #f9f9fa;
   --toolbar-non-lwt-textcolor: #0c0c0d;
   --toolbar-non-lwt-bgimage: none;
-  --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
-  --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
 
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) + 1px);
   --toolbarbutton-border-radius: 4px;
   --toolbarbutton-icon-fill-opacity: .7;
 
   --panel-separator-color: hsla(210,4%,10%,.14);
-  --arrowpanel-dimmed: hsla(0,0%,80%,.3);
-  --arrowpanel-dimmed-further: hsla(0,0%,80%,.45);
+  --arrowpanel-dimmed: hsla(0,0%,80%,.35);
+  --arrowpanel-dimmed-further: hsla(0,0%,80%,.5);
   --arrowpanel-dimmed-even-further: hsla(0,0%,80%,.8);
+
+  --arrowpanel-field-background: rgba(249,249,250,.3);
 
   --urlbar-separator-color: hsla(0,0%,16%,.2);
 
@@ -31,9 +31,6 @@
 }
 
 :root:-moz-lwtheme {
-  --toolbar-bgcolor: rgba(255,255,255,.4);
-  --toolbar-bgimage: none;
-
   --toolbox-border-bottom-color: rgba(0,0,0,.3);
 }
 
@@ -43,6 +40,8 @@
   --arrowpanel-dimmed: rgba(249,249,250,.1);
   --arrowpanel-dimmed-further: rgba(249,249,250,.15);
   --arrowpanel-dimmed-even-further: rgba(249,249,250,.2);
+
+  --arrowpanel-field-background: rgba(12,12,13,.3);
 }
 
 #navigator-toolbox {
@@ -74,7 +73,7 @@
   text-shadow: inherit;
 }
 
-#main-window {
+:root {
   -moz-appearance: none;
   background-color: #eeeeee;
 }
@@ -84,11 +83,6 @@
 #titlebar {
   /* Centrally align content items vertically */
   -moz-box-pack: center;
-}
-
-#titlebar-content {
-  /* Ensure the the content part of the titlebar does not shrink. */
-  min-height: inherit;
 }
 
 #titlebar-buttonbox > .titlebar-button {
@@ -104,35 +98,23 @@
   -moz-box-align: center;
 }
 
-#titlebar-buttonbox-container {
+.titlebar-buttonbox-container {
   -moz-box-align: center;
 }
 
 /* These would be margin-inline-start/end if it wasn't for the fact that OS X
  * doesn't reverse the order of the items in the titlebar in RTL mode. */
-.titlebar-placeholder[type="caption-buttons"],
-#titlebar-buttonbox {
+.titlebar-buttonbox {
   margin-left: 12px;
+  margin-top: calc(-1 * var(--space-above-tabbar));
 }
 
 /* The fullscreen button doesnt show on Yosemite(10.10) or above so dont give it a
    border there */
 @media (-moz-mac-yosemite-theme: 0) {
-  .titlebar-placeholder[type="fullscreen-button"] {
+  .titlebar-spacer[type="fullscreen-button"] {
     margin-right: 4px;
   }
-}
-
-#main-window:not([tabsintitlebar]) > #titlebar {
-  height: 22px; /* The native titlebar on OS X is 22px tall. */
-}
-
-/**
- * For tabs in titlebar on OS X, we stretch the titlebar down so that the
- * tabstrip can overlap it.
- */
-#main-window[tabsintitlebar] > #titlebar {
-  min-height: calc(var(--tab-min-height) + var(--space-above-tabbar));
 }
 
 /** End titlebar **/
@@ -141,17 +123,17 @@
   border-top: 1px solid rgba(0,0,0,0.65);
 }
 
-.browser-toolbar:not(#TabsToolbar) {
+.browser-toolbar:not(.titlebar-color) {
   -moz-appearance: none;
   background: var(--toolbar-bgcolor);
-  color: var(--toolbar-color, inherit);
+  color: var(--toolbar-color);
 }
 
 /* Draw the bottom border of the tabs toolbar when it's not using
    -moz-appearance: toolbar. */
-#main-window:-moz-any([sizemode="fullscreen"],[customize-entered]) #TabsToolbar:not([collapsed="true"]) + #nav-bar,
-#main-window:not([tabsintitlebar]) #TabsToolbar:not([collapsed="true"]) + #nav-bar,
-#TabsToolbar:not([collapsed="true"]) + #nav-bar:-moz-lwtheme {
+#main-window:-moz-any([sizemode="fullscreen"],[customize-entered]) #nav-bar:not([tabs-hidden="true"]),
+#main-window:not([tabsintitlebar]) #nav-bar:not([tabs-hidden="true"]),
+#nav-bar:not([tabs-hidden="true"]):-moz-lwtheme {
   box-shadow: 0 -@navbarTabsShadowSize@ 0 var(--tabs-border-color);
 }
 
@@ -165,12 +147,12 @@
     --tabs-border-color: rgba(0,0,0,.05);
   }
 
-  #main-window[tabsintitlebar] #TabsToolbar:not([collapsed="true"]) + #nav-bar:not(:-moz-lwtheme) {
+  #main-window[tabsintitlebar] #nav-bar:not([tabs-hidden="true"]):not(:-moz-lwtheme) {
     box-shadow: 0 -@navbarTabsShadowSize@ 0 var(--tabs-border-color);
   }
 }
 
-#TabsToolbar:not([collapsed="true"]) + #nav-bar {
+#nav-bar:not([tabs-hidden="true"]) {
   /* The toolbar buttons that animate are only visible when the #TabsToolbar is not collapsed.
      The animations use position:absolute and require a positioned #nav-bar. */
   position: relative;
@@ -189,9 +171,7 @@
 }
 
 /* Workaround for native menubar inheritance */
-.openintabs-menuitem,
-.openlivemarksite-menuitem,
-.livemarkstatus-menuitem {
+.openintabs-menuitem {
   list-style-image: none;
 }
 
@@ -400,12 +380,10 @@ html|input.urlbar-input {
 #editBookmarkPanelRows > vbox > textbox,
 #editBookmarkPanelRows > vbox > hbox > textbox {
   -moz-appearance: none;
-  background: linear-gradient(#fafafa, #fff);
-  background-clip: padding-box;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,.3) !important;
-  box-shadow: inset 0 1px 1px 1px rgba(0,0,0,.05),
-              0 1px rgba(255,255,255,.3);
+  background-color: var(--arrowpanel-field-background);
+  color: inherit;
+  border-radius: 2px;
+  border: 1px solid var(--panel-separator-color) !important;
   margin: 0;
   padding: 3px 6px;
 }
@@ -422,36 +400,36 @@ html|input.urlbar-input {
    editBookmark.css. */
 
 #editBMPanel_newFolderBox {
-  background: linear-gradient(#fff, #f2f2f2);
-  background-origin: padding-box;
-  background-clip: padding-box;
-  border-radius: 0 0 3px 3px;
-  border: 1px solid #a5a5a5;
-  box-shadow: inset 0 1px rgba(255,255,255,.8),
-              inset 0 0 1px rgba(255,255, 255,.25),
-              0 1px rgba(255,255,255,.3);
+  background-color: var(--arrowpanel-field-background);
+  color: inherit;
+  border-radius: 0 2px;
+  border: 1px solid var(--panel-separator-color);
   margin: 0;
   padding: 0;
-  height:  20px;
+  height: 24px;
 }
 
 #editBMPanel_newFolderButton {
   -moz-appearance: none;
-  border: 0 solid #a5a5a5;
-  border-inline-end-width: 1px;
+  -moz-box-flex: 1;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
+  border: none;
   padding: 0 9px;
   margin: 0;
-  min-width: 21px;
-  min-height: 20px;
-  height:  20px;
-  color: #fff;
-  list-style-image: url("chrome://browser/skin/panel-plus-sign.png");
-  position: relative;
+  min-height: 24px;
+  height: 24px;
+  color: inherit;
+  list-style-image: url("chrome://browser/skin/add.svg");
+}
+
+#editBMPanel_newFolderButton:hover {
+  background-color: var(--arrowpanel-dimmed);
 }
 
 #editBMPanel_newFolderButton:hover:active {
-  background: linear-gradient(rgba(40,40,40,.9), rgba(70,70,70,.9));
-  box-shadow: inset 0 0 3px rgba(0,0,0,.2), inset 0 1px 7px rgba(0,0,0,.4);
+  background-color: var(--arrowpanel-dimmed-further);
 }
 
 #editBMPanel_newFolderButton:-moz-focusring {
@@ -459,12 +437,11 @@ html|input.urlbar-input {
 }
 
 #editBMPanel_newFolderButton .button-text {
-  display: none;
+  -moz-box-flex: 1; /* push the button icon to the start side */
+  text-align: start;
 }
 
 #editBMPanel_folderMenuList {
-  @hudButton@
-  background-clip: padding-box;
   margin: 0;
   min-height: 22px;
   padding-top: 2px;
@@ -477,18 +454,16 @@ html|input.urlbar-input {
   box-shadow: var(--focus-ring-box-shadow);
 }
 
-#editBMPanel_folderMenuList[open="true"],
-#editBMPanel_folderMenuList:hover:active {
-  @hudButtonPressed@
-}
-
 #editBMPanel_folderMenuList > .menulist-dropmarker {
   -moz-appearance: none;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
+  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
   display: -moz-box;
   -moz-box-align: center;
   padding-inline-end: 4px;
   width: 7px;
-  list-style-image: url("chrome://global/skin/icons/panel-dropmarker.png");
 }
 
 /**** folder tree and tag selector ****/
@@ -496,12 +471,10 @@ html|input.urlbar-input {
 #editBMPanel_folderTree,
 #editBMPanel_tagsSelector {
   -moz-appearance: none;
-  background: linear-gradient(#fafafa, #fff);
-  background-clip: padding-box;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,.3);
-  box-shadow: inset 0 1px 1px 1px rgba(0,0,0,.05),
-              0 1px rgba(255,255,255,.3);
+  background-color: var(--arrowpanel-field-background);
+  color: inherit;
+  border-radius: 2px;
+  border: 1px solid var(--panel-separator-color);
   margin: 0;
 }
 
@@ -509,6 +482,18 @@ html|input.urlbar-input {
 #editBMPanel_tagsSelector:-moz-focusring {
   border-color: -moz-mac-focusring;
   box-shadow: var(--focus-ring-box-shadow);
+}
+
+#editBMPanel_folderTree > treechildren::-moz-tree-row(blur,selected),
+#editBMPanel_tagsSelector:not(:focus) > richlistitem[selected] {
+  background-color: var(--arrowpanel-dimmed);
+}
+
+#editBMPanel_folderTree > treechildren::-moz-tree-twisty(blur,selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-image(blur,selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-cell-text(blur,selected),
+#editBMPanel_tagsSelector:not(:focus) > richlistitem[selected] {
+  color: inherit;
 }
 
 #editBMPanel_folderTree {
@@ -525,29 +510,14 @@ html|input.urlbar-input {
 
 #editBookmarkPanel .expander-up,
 #editBookmarkPanel .expander-down {
-  @hudButton@
+  -moz-appearance: none; /* override button.css */
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
   margin: 0;
   margin-inline-start: 4px;
   min-width: 27px;
   min-height: 22px;
-}
-
-#editBookmarkPanel .expander-up:-moz-focusring,
-#editBookmarkPanel .expander-down:-moz-focusring {
-  box-shadow: var(--focus-ring-box-shadow);
-}
-
-#editBookmarkPanel .expander-up:hover:active,
-#editBookmarkPanel .expander-down:hover:active {
-  @hudButtonPressed@
-}
-
-#editBookmarkPanel .expander-up {
-  list-style-image: url("chrome://browser/skin/panel-expander-open.png");
-}
-
-#editBookmarkPanel .expander-down {
-  list-style-image: url("chrome://browser/skin/panel-expander-closed.png");
 }
 
 #editBookmarkPanel .expander-up > .button-box > .button-icon,
@@ -560,24 +530,12 @@ html|input.urlbar-input {
   display: none;
 }
 
-@media (min-resolution: 2dppx) {
-  #editBookmarkPanel .expander-up {
-    list-style-image: url("chrome://browser/skin/panel-expander-open@2x.png");
-  }
-
-  #editBookmarkPanel .expander-down {
-    list-style-image: url("chrome://browser/skin/panel-expander-closed@2x.png");
-  }
-
-  #editBookmarkPanel .expander-up > .button-box > .button-icon,
-  #editBookmarkPanel .expander-down > .button-box > .button-icon {
-    width: 9px;
-  }
+#editBookmarkPanel .expander-up {
+  list-style-image: url("chrome://global/skin/icons/arrow-up-12.svg");
 }
 
-#editBMPanel_tagsField > moz-input-box > html|*.textbox-input::placeholder {
-  opacity: 1.0;
-  color: #bbb;
+#editBookmarkPanel .expander-down {
+  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
 }
 
 /* ----- SIDEBAR ELEMENTS ----- */
@@ -608,9 +566,9 @@ html|input.urlbar-input {
 }
 
 .browserContainer > findbar:-moz-lwtheme {
-  background-color: var(--toolbar-bgcolor);
-  background-image: none;
-  color: var(--toolbar-color, -moz-DialogText);
+  background-color: var(--lwt-accent-color);
+  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+  color: var(--toolbar-color);
 }
 
 .openintabs-menuitem {
@@ -668,12 +626,7 @@ html|input.urlbar-input {
 }
 
 #TabsToolbar {
-  -moz-appearance: none;
   padding-top: var(--space-above-tabbar);
-}
-
-:root:not([customizing]):not([tabsintitlebar]):not([inFullscreen]) #TabsToolbar:not(:-moz-lwtheme) {
-  -moz-appearance: toolbar;
 }
 
 #TabsToolbar:not(:-moz-lwtheme) {
@@ -785,14 +738,14 @@ button.translate-infobar-element {
   transition-duration: 150ms;
   min-height: 22px;
   min-width: 0;
-  padding: 0 0.8em !important;
+  padding: 0 0.8em;
   margin-left: 0.25em;
   margin-right: 0.25em;
 }
 
 button.translate-infobar-element .button-text {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 label.translate-infobar-element {
@@ -814,7 +767,7 @@ button.translate-infobar-element[anonid="translate"] {
   background: linear-gradient(#4cb1ff, #1793e5);
   box-shadow: 0 1px 0 hsla(0,0%,100%,.2) inset,  0 0 0 1px hsla(0,0%,100%,.1) inset,  0 1px 0 hsla(210,54%,20%,.03);
   border-color: hsla(210,54%,20%,.15) hsla(210,54%,20%,.17) hsla(210,54%,20%,.2);
-  padding: 0 1.1em  !important;;
+  padding: 0 1.1em;
 }
 
 button.translate-infobar-element[anonid="translate"]:hover {
@@ -823,15 +776,15 @@ button.translate-infobar-element[anonid="translate"]:hover {
 }
 
 button.translate-infobar-element.options-menu-button {
-  padding-inline-start: 0.5em !important;
-  padding-inline-end: 0em !important;
+  padding-inline-start: 0.5em;
+  padding-inline-end: 0;
 }
 
 button.translate-infobar-element.options-menu-button > .button-box > .button-menu-dropmarker {
   display: -moz-box;
   list-style-image: url("chrome://global/skin/icons/glyph-dropdown.png");
-  padding: 0 !important;
-  margin: 0 !important;
+  padding: 0;
+  margin: 0;
 }
 
 @media (min-resolution: 2dppx) {
@@ -986,10 +939,10 @@ html|*.addon-webext-perm-list {
 
 /* Private browsing and accessibility indicators */
 
-:root[accessibilitymode][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #TabsToolbar > .accessibility-indicator,
-:root[privatebrowsingmode=temporary][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #TabsToolbar > .private-browsing-indicator,
-:root[accessibilitymode]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .accessibility-indicator,
-:root[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
+:root[accessibilitymode][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #titlebar > #TabsToolbar > .accessibility-indicator,
+:root[privatebrowsingmode=temporary][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #titlebar > #TabsToolbar > .private-browsing-indicator,
+:root[accessibilitymode]:not([tabsintitlebar]) > #navigator-toolbox > #titlebar > #TabsToolbar > #titlebar-secondary-buttonbox > .accessibility-indicator,
+:root[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #navigator-toolbox > #titlebar > #TabsToolbar > #titlebar-secondary-buttonbox > .private-browsing-indicator {
   display: none;
 }
 

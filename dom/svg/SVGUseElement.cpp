@@ -38,16 +38,16 @@ SVGUseElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 
 nsSVGElement::LengthInfo SVGUseElement::sLengthInfo[4] =
 {
-  { &nsGkAtoms::x, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X },
-  { &nsGkAtoms::y, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::Y },
-  { &nsGkAtoms::width, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X },
-  { &nsGkAtoms::height, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::Y },
+  { nsGkAtoms::x, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X },
+  { nsGkAtoms::y, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::Y },
+  { nsGkAtoms::width, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X },
+  { nsGkAtoms::height, 0, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::Y },
 };
 
 nsSVGElement::StringInfo SVGUseElement::sStringInfo[2] =
 {
-  { &nsGkAtoms::href, kNameSpaceID_None, true },
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
+  { nsGkAtoms::href, kNameSpaceID_None, true },
+  { nsGkAtoms::href, kNameSpaceID_XLink, true }
 };
 
 //----------------------------------------------------------------------
@@ -91,6 +91,58 @@ SVGUseElement::~SVGUseElement()
 
 //----------------------------------------------------------------------
 // nsINode methods
+
+void
+SVGUseElement::ProcessAttributeChange(int32_t aNamespaceID, nsAtom* aAttribute)
+{
+  if (aNamespaceID == kNameSpaceID_None) {
+    if (aAttribute == nsGkAtoms::x || aAttribute == nsGkAtoms::y) {
+      if (auto* frame = GetFrame()) {
+        frame->PositionAttributeChanged();
+      }
+    } else if (aAttribute == nsGkAtoms::width ||
+               aAttribute == nsGkAtoms::height) {
+      const bool hadValidDimensions = HasValidDimensions();
+      const bool isUsed = OurWidthAndHeightAreUsed();
+      if (isUsed) {
+        SyncWidthOrHeight(aAttribute);
+      }
+
+      if (auto* frame = GetFrame()) {
+        frame->DimensionAttributeChanged(hadValidDimensions, isUsed);
+      }
+    }
+  }
+
+  if ((aNamespaceID == kNameSpaceID_XLink ||
+       aNamespaceID == kNameSpaceID_None) &&
+      aAttribute == nsGkAtoms::href) {
+    // We're changing our nature, clear out the clone information.
+    if (auto* frame = GetFrame()) {
+      frame->HrefChanged();
+    }
+    mOriginal = nullptr;
+    UnlinkSource();
+    TriggerReclone();
+  }
+}
+
+nsresult
+SVGUseElement::AfterSetAttr(int32_t aNamespaceID,
+                            nsAtom* aAttribute,
+                            const nsAttrValue* aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aSubjectPrincipal,
+                            bool aNotify)
+{
+  ProcessAttributeChange(aNamespaceID, aAttribute);
+  return SVGUseElementBase::AfterSetAttr(aNamespaceID,
+                                         aAttribute,
+                                         aValue,
+                                         aOldValue,
+                                         aSubjectPrincipal,
+                                         aNotify);
+}
 
 nsresult
 SVGUseElement::Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const
@@ -179,7 +231,7 @@ SVGUseElement::CharacterDataChanged(nsIContent* aContent,
 
 void
 SVGUseElement::AttributeChanged(Element* aElement,
-                                int32_t aNameSpaceID,
+                                int32_t aNamespaceID,
                                 nsAtom* aAttribute,
                                 int32_t aModType,
                                 const nsAttrValue* aOldValue)
@@ -377,7 +429,7 @@ SVGUseElement::SyncWidthOrHeight(nsAtom* aName)
   }
 
   auto* target = nsSVGElement::FromNode(GetClonedChild(*this));
-  uint32_t index = *sLengthInfo[ATTR_WIDTH].mName == aName ? ATTR_WIDTH : ATTR_HEIGHT;
+  uint32_t index = sLengthInfo[ATTR_WIDTH].mName == aName ? ATTR_WIDTH : ATTR_HEIGHT;
 
   if (mLengthAttributes[index].IsExplicitlySet()) {
     target->SetLength(aName, mLengthAttributes[index]);
@@ -422,9 +474,9 @@ SVGUseElement::LookupHref()
   nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI), href,
                                             GetComposedDoc(), baseURI);
   // Bug 1415044 to investigate which referrer we should use
-  mReferencedElementTracker.Reset(this, targetURI,
-                                  OwnerDoc()->GetDocumentURI(),
-                                  OwnerDoc()->GetReferrerPolicy());
+  mReferencedElementTracker.ResetToURIFragmentID(this, targetURI,
+                                                 OwnerDoc()->GetDocumentURI(),
+                                                 OwnerDoc()->GetReferrerPolicy());
 }
 
 void
@@ -511,7 +563,12 @@ nsSVGUseFrame*
 SVGUseElement::GetFrame() const
 {
   nsIFrame* frame = GetPrimaryFrame();
-  MOZ_ASSERT_IF(frame, frame->IsSVGUseFrame());
+  // We might be a plain nsSVGContainerFrame if we didn't pass the conditional
+  // processing checks.
+  if (!frame || !frame->IsSVGUseFrame()) {
+    MOZ_ASSERT_IF(frame, frame->Type() == LayoutFrameType::None);
+    return nullptr;
+  }
   return static_cast<nsSVGUseFrame*>(frame);
 }
 

@@ -14,7 +14,7 @@ const { getConfig } = require("./bin/configure");
 
 const webpackConfig = {
   entry: {
-    netmonitor: [path.join(__dirname, "launchpad.js")]
+    netmonitor: [path.join(__dirname, "launchpad.js")],
   },
 
   module: {
@@ -42,15 +42,15 @@ const webpackConfig = {
           // Replace all references to loader.lazyGetter() by require()
           "rewrite-lazy-getter",
         ],
-      }
-    ]
+      },
+    ],
   },
 
   resolveLoader: {
     modules: [
       "node_modules",
       path.resolve("../shared/webpack"),
-    ]
+    ],
   },
 
   output: {
@@ -86,7 +86,6 @@ const webpackConfig = {
       "devtools/client/sourceeditor/editor": "devtools-source-editor/src/source-editor",
 
       "devtools/shared/event-emitter": "devtools-modules/src/utils/event-emitter",
-      "devtools/shared/fronts/timeline": path.join(__dirname, "../../client/shared/webpack/shims/fronts-timeline-shim"),
       "devtools/shared/platform/clipboard": path.join(__dirname, "../../client/shared/webpack/shims/platform-clipboard-stub"),
       "devtools/client/netmonitor/src/utils/firefox/open-request-in-tab": path.join(__dirname, "src/utils/open-request-in-tab"),
       "devtools/client/shared/unicode-url": "./node_modules/devtools-modules/src/unicode-url",
@@ -110,21 +109,21 @@ const mappings = [
     (result) => {
       result.request = result.request
         .replace("./chrome://devtools/skin", path.join(__dirname, "../themes"));
-    }
+    },
   ],
   [
     /chrome:\/\/devtools\/content/,
     (result) => {
       result.request = result.request
         .replace("./chrome://devtools/content", path.join(__dirname, ".."));
-    }
+    },
   ],
   [
     /resource:\/\/devtools/,
     (result) => {
       result.request = result.request
         .replace("./resource://devtools/client", path.join(__dirname, ".."));
-    }
+    },
   ],
 ];
 
@@ -136,7 +135,7 @@ const baseName = path.basename(__dirname);
 
 const config = toolboxConfig(webpackConfig, getConfig(), {
   // Exclude to transpile all scripts in devtools/ but not for this folder
-  babelExcludes: new RegExp(`^${basePath}(.(?!${baseName}))*$`)
+  babelExcludes: new RegExp(`^${basePath}(.(?!${baseName}))*$`),
 });
 
 // Remove loaders from devtools-launchpad's webpack.config.js

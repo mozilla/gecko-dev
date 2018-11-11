@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const bmsvc    = PlacesUtils.bookmarks;
+const obsvc    = PlacesUtils.observers;
 const tagssvc  = PlacesUtils.tagging;
 const annosvc  = PlacesUtils.annotations;
 const PT       = PlacesTransactions;
@@ -30,30 +31,29 @@ var observer = {
     this.endUpdateBatch = false;
   },
 
+  handlePlacesEvents(events) {
+    for (let event of events) {
+      // Ignore tag items.
+      if (event.isTagging) {
+        this.tagRelatedGuids.add(event.guid);
+        return;
+      }
+
+      this.itemsAdded.set(event.guid, { itemId:         event.id,
+                                        parentGuid:     event.parentGuid,
+                                        index:          event.index,
+                                        itemType:       event.itemType,
+                                        title:          event.title,
+                                        url:            event.url });
+    }
+  },
+
   onBeginUpdateBatch() {
     this.beginUpdateBatch = true;
   },
 
   onEndUpdateBatch() {
     this.endUpdateBatch = true;
-  },
-
-  onItemAdded(aItemId, aParentId, aIndex, aItemType, aURI, aTitle, aDateAdded,
-           aGuid, aParentGuid) {
-    // Ignore tag items.
-    if (aParentId == PlacesUtils.tagsFolderId ||
-        (aParentId != PlacesUtils.placesRootId &&
-         bmsvc.getFolderIdForItem(aParentId) == PlacesUtils.tagsFolderId)) {
-      this.tagRelatedGuids.add(aGuid);
-      return;
-    }
-
-    this.itemsAdded.set(aGuid, { itemId:         aItemId,
-                                 parentGuid:     aParentGuid,
-                                 index:          aIndex,
-                                 itemType:       aItemType,
-                                 title:          aTitle,
-                                 url:            aURI });
   },
 
   onItemRemoved(aItemId, aParentId, aIndex, aItemType, aURI, aGuid, aParentGuid) {
@@ -108,8 +108,11 @@ var bmStartIndex = 0;
 
 function run_test() {
   bmsvc.addObserver(observer);
+  observer.handlePlacesEvents = observer.handlePlacesEvents.bind(observer);
+  obsvc.addListener(["bookmark-added"], observer.handlePlacesEvents);
   registerCleanupFunction(function() {
     bmsvc.removeObserver(observer);
+    obsvc.removeListener(["bookmark-added"], observer.handlePlacesEvents);
   });
 
   run_next_test();
@@ -180,7 +183,7 @@ function ensureItemsAdded(...items) {
         Assert.equal(info[propName], item[propName]);
     }
     if ("url" in item)
-      Assert.ok(info.url.equals(Services.io.newURI(item.url)),
+      Assert.ok(Services.io.newURI(info.url).equals(Services.io.newURI(item.url)),
         "Should have the correct url");
   }
 
@@ -284,16 +287,6 @@ function createTestFolderInfo(title = "Test Folder", parentGuid = menuGuid,
   return info;
 }
 
-function isLivemarkTree(aTree) {
-  return !!aTree.annos &&
-         aTree.annos.some( a => a.name == PlacesUtils.LMANNO_FEEDURI );
-}
-
-async function ensureLivemarkCreatedByAddLivemark(aLivemarkGuid) {
-  // This throws otherwise.
-  await PlacesUtils.livemarks.getLivemark({ guid: aLivemarkGuid });
-}
-
 function removeAllDatesInTree(tree) {
   if ("lastModified" in tree) {
     delete tree.lastModified;
@@ -331,8 +324,6 @@ async function ensureEqualBookmarksTrees(aOriginal,
       aNew.lastModified = aOriginal.lastModified;
     }
     Assert.deepEqual(aOriginal, aNew);
-    if (isLivemarkTree(aNew))
-      await ensureLivemarkCreatedByAddLivemark(aNew.guid);
     return;
   }
 
@@ -363,9 +354,6 @@ async function ensureEqualBookmarksTrees(aOriginal,
       Assert.deepEqual(aOriginal[property], aNew[property]);
     }
   }
-
-  if (isLivemarkTree(aNew))
-    await ensureLivemarkCreatedByAddLivemark(aNew.guid);
 }
 
 async function ensureBookmarksTreeRestoredCorrectly(...aOriginalBookmarksTrees) {
@@ -1112,50 +1100,6 @@ add_task(async function test_creating_and_removing_a_separator() {
   ensureUndoState();
 });
 
-add_task(async function test_add_and_remove_livemark() {
-  let createLivemarkTxn = PT.NewLivemark(
-    { feedUrl: "http://test.remove.livemark",
-      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
-      title: "Test Remove Livemark" });
-  let guid = await createLivemarkTxn.transact();
-  let originalInfo = await PlacesUtils.promiseBookmarksTree(guid);
-  Assert.ok(originalInfo);
-  await ensureLivemarkCreatedByAddLivemark(guid);
-
-  let removeTxn = PT.Remove(guid);
-  await removeTxn.transact();
-  await ensureNonExistent(guid);
-
-  async function undo() {
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 0);
-    await PT.undo();
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 1);
-    await ensureBookmarksTreeRestoredCorrectly(originalInfo);
-    await PT.undo();
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 2);
-    await ensureNonExistent(guid);
-  }
-  async function redo() {
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 2);
-    await PT.redo();
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 1);
-    await ensureBookmarksTreeRestoredCorrectly(originalInfo);
-    await PT.redo();
-    ensureUndoState([[removeTxn], [createLivemarkTxn]], 0);
-    await ensureNonExistent(guid);
-  }
-
-  await undo();
-  await redo();
-  await undo();
-  await redo();
-
-  // Cleanup
-  await undo();
-  observer.reset();
-  await PT.clearTransactionsHistory();
-});
-
 add_task(async function test_edit_title() {
   let bm_info = {
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
@@ -1601,55 +1545,6 @@ add_task(async function test_sort_folder_by_name() {
   ensureItemsRemoved(...originalOrder, folder_info);
 });
 
-add_task(async function test_livemark_txns() {
-  let livemark_info =
-    { feedUrl: "http://test.feed.uri/",
-      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
-      title: "Test Livemark" };
-  function ensureLivemarkAdded() {
-    ensureItemsAdded({ guid:       livemark_info.guid,
-                       title:      livemark_info.title,
-                       parentGuid: livemark_info.parentGuid,
-                       itemType:   bmsvc.TYPE_FOLDER });
-    let annos = [{ name:  PlacesUtils.LMANNO_FEEDURI,
-                   value: livemark_info.feedUrl }];
-    if ("siteUrl" in livemark_info) {
-      annos.push({ name: PlacesUtils.LMANNO_SITEURI,
-                   value: livemark_info.siteUrl });
-    }
-    ensureAnnotationsSet(livemark_info.guid, annos);
-  }
-  function ensureLivemarkRemoved() {
-    ensureItemsRemoved({ guid:       livemark_info.guid,
-                         parentGuid: livemark_info.parentGuid });
-  }
-
-  async function _testDoUndoRedoUndo() {
-    observer.reset();
-    livemark_info.guid = await PT.NewLivemark(livemark_info).transact();
-    ensureLivemarkAdded();
-
-    observer.reset();
-    await PT.undo();
-    ensureLivemarkRemoved();
-
-    observer.reset();
-    await PT.redo();
-    ensureLivemarkAdded();
-
-    await PT.undo();
-    ensureLivemarkRemoved();
-  }
-
-  await _testDoUndoRedoUndo();
-  livemark_info.siteUrl = "http://feed.site.uri/";
-  await _testDoUndoRedoUndo();
-
-  // Cleanup
-  observer.reset();
-  await PT.clearTransactionsHistory();
-});
-
 add_task(async function test_copy() {
   async function duplicate_and_test(aOriginalGuid) {
     let txn = PT.Copy({
@@ -1699,12 +1594,9 @@ add_task(async function test_copy() {
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: 1,
   });
-  let livemarkTxn = PT.NewLivemark(
-    { feedUrl: "http://test.feed.uri",
-      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
-      title: "Test Livemark", index: 1 });
+
   let emptyFolderTxn = PT.NewFolder(createTestFolderInfo());
-  for (let txn of [livemarkTxn, sepTxn, emptyFolderTxn]) {
+  for (let txn of [sepTxn, emptyFolderTxn]) {
     let guid = await txn.transact();
     await duplicate_and_test(guid);
   }

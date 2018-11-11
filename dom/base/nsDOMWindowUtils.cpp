@@ -2537,7 +2537,7 @@ nsDOMWindowUtils::SetAsyncScrollOffset(Element* aElement,
   if (!aElement) {
     return NS_ERROR_INVALID_ARG;
   }
-  FrameMetrics::ViewID viewId;
+  ScrollableLayerGuid::ViewID viewId;
   if (!nsLayoutUtils::FindIDFor(aElement, &viewId)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -2571,7 +2571,7 @@ nsDOMWindowUtils::SetAsyncZoom(Element* aRootElement, float aValue)
   if (!aRootElement) {
     return NS_ERROR_INVALID_ARG;
   }
-  FrameMetrics::ViewID viewId;
+  ScrollableLayerGuid::ViewID viewId;
   if (!nsLayoutUtils::FindIDFor(aRootElement, &viewId)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -2697,7 +2697,7 @@ nsDOMWindowUtils::ZoomToFocusedInput()
   }
 
   uint32_t presShellId;
-  FrameMetrics::ViewID viewId;
+  ScrollableLayerGuid::ViewID viewId;
   if (APZCCallbackHelper::GetOrCreateScrollIdentifiers(document->GetDocumentElement(), &presShellId, &viewId)) {
     uint32_t flags = layers::DISABLE_ZOOM_OUT;
     if (!Preferences::GetBool("formhelper.autozoom")) {
@@ -2794,23 +2794,6 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(Element* aElement,
   }
   Servo_AnimationValue_Serialize(value, propertyID, &aResult);
   return NS_OK;
-}
-
-nsresult
-nsDOMWindowUtils::RenderDocument(const nsRect& aRect,
-                                 uint32_t aFlags,
-                                 nscolor aBackgroundColor,
-                                 gfxContext* aThebesContext)
-{
-    nsCOMPtr<nsIDocument> doc = GetDocument();
-    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
-    // Get Primary Shell
-    nsCOMPtr<nsIPresShell> presShell = doc->GetShell();
-    NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
-
-    // Render Document
-    return presShell->RenderDocument(aRect, aFlags, aBackgroundColor, aThebesContext);
 }
 
 NS_IMETHODIMP
@@ -3603,7 +3586,8 @@ nsDOMWindowUtils::IsNodeDisabledForEvents(nsINode* aNode, bool* aRetVal)
   while (node) {
     if (node->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
       nsCOMPtr<nsIFormControl> fc = do_QueryInterface(node);
-      if (fc && fc->IsDisabledForEvents(eVoidEvent)) {
+      WidgetEvent event(true, eVoidEvent);
+      if (fc && fc->IsDisabledForEvents(&event)) {
         *aRetVal = true;
         break;
       }
@@ -4250,21 +4234,6 @@ nsDOMWindowUtils::GetGpuProcessPid(int32_t* aPid)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDOMWindowUtils::IsTimeoutTracking(uint32_t aTimeoutId, bool* aResult)
-{
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = false;
-
-  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
-  NS_ENSURE_STATE(window);
-  nsCOMPtr<nsPIDOMWindowInner> innerWindow = window->GetCurrentInnerWindow();
-  NS_ENSURE_STATE(innerWindow);
-
-  *aResult = innerWindow->TimeoutManager().IsTimeoutTracking(aTimeoutId);
-  return NS_OK;
-}
-
 struct StateTableEntry
 {
   const char* mStateString;
@@ -4493,4 +4462,3 @@ nsDOMWindowUtils::IsCssPropertyRecordedInUseCounter(const nsACString& aPropName,
                                             &knownProp);
   return knownProp ? NS_OK : NS_ERROR_FAILURE;
 }
-

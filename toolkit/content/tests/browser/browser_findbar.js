@@ -2,7 +2,7 @@
 ChromeUtils.import("resource://gre/modules/Timer.jsm", this);
 
 const TEST_PAGE_URI = "data:text/html;charset=utf-8,The letter s.";
-// Using 'javascript' schema to bypass E10SUtils.canLoadURIInProcess, because
+// Using 'javascript' schema to bypass E10SUtils.canLoadURIInRemoteType, because
 // it does not allow 'data:' URI to be loaded in the parent process.
 const E10S_PARENT_TEST_PAGE_URI = "javascript:document.write('The letter s.');";
 
@@ -165,6 +165,11 @@ add_task(async function e10sLostKeys() {
   // This test only makes sence in e10s evironment.
   if (!gMultiProcessBrowser) {
     info("Skipping this test because of non-e10s environment.");
+    return;
+  }
+
+  if (AppConstants.platform == "linux" && !AppConstants.DEBUG) {
+    info("Skipping this test because of linux opt (Bug 1491484).");
     return;
   }
 

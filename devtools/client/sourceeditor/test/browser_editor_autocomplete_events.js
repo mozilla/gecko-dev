@@ -15,12 +15,12 @@ add_task(async function() {
 async function runTests() {
   const target = await TargetFactory.forTab(gBrowser.selectedTab);
   await target.attach();
-  const inspector = target.getFront("inspector");
-  const walker = await inspector.getWalker();
+  const inspector = await target.getInspector();
+  const walker = inspector.walker;
   const {ed, win, edWin} = await setup(null, {
     autocomplete: true,
     mode: Editor.modes.css,
-    autocompleteOpts: {walker: walker, cssProperties: getClientCssProperties()}
+    autocompleteOpts: {walker: walker, cssProperties: getClientCssProperties()},
   });
   await testMouse(ed, edWin);
   await testKeyboard(ed, edWin);

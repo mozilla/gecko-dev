@@ -13,6 +13,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h" // for KeyNameIndex, temporarily
 #include "mozilla/FontRange.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/TextRange.h"
 #include "mozilla/WritingModes.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
@@ -165,6 +166,7 @@ protected:
     , mIsComposing(false)
     , mIsSynthesizedByTIP(false)
     , mMaybeSkippableInRemoteProcess(true)
+    , mUseLegacyKeyCodeAndCharCodeValues(false)
     , mEditCommandsForSingleLineEditorInitialized(false)
     , mEditCommandsForMultiLineEditorInitialized(false)
     , mEditCommandsForRichTextEditorInitialized(false)
@@ -194,6 +196,7 @@ public:
     , mIsComposing(false)
     , mIsSynthesizedByTIP(false)
     , mMaybeSkippableInRemoteProcess(true)
+    , mUseLegacyKeyCodeAndCharCodeValues(false)
     , mEditCommandsForSingleLineEditorInitialized(false)
     , mEditCommandsForMultiLineEditorInitialized(false)
     , mEditCommandsForRichTextEditorInitialized(false)
@@ -399,6 +402,10 @@ public:
   // Don't refer this member directly when you need to check this.
   // Use CanSkipInRemoteProcess() instead.
   bool mMaybeSkippableInRemoteProcess;
+  // Indicates whether the event should return legacy keyCode value and
+  // charCode value to web apps (one of them is always 0) or not, when it's
+  // an eKeyPress event.
+  bool mUseLegacyKeyCodeAndCharCodeValues;
 
   bool CanSkipInRemoteProcess() const
   {
@@ -593,10 +600,47 @@ public:
   static uint32_t ComputeKeyCodeFromKeyNameIndex(KeyNameIndex aKeyNameIndex);
 
   /**
+   * ComputeCodeNameIndexFromKeyNameIndex() returns a code name index which
+   * is typically mapped to given key name index on the platform.
+   * Note that this returns CODE_NAME_INDEX_UNKNOWN if the key name index is
+   * KEY_NAME_INDEX_Unidentified or KEY_NAME_INDEX_USE_STRING.
+   * This means that this method is useful only for non-printable keys.
+   *
+   * @param aKeyNameIndex      A non-printable key name index.
+   * @param aLocation          Should be one of location value.  This is
+   *                           important when aKeyNameIndex may exist in
+   *                           both Numpad or Standard, or in both Left or
+   *                           Right.  If this is nothing, this method
+   *                           returns Left or Standard position's code
+   *                           value.
+   */
+  static CodeNameIndex
+  ComputeCodeNameIndexFromKeyNameIndex(KeyNameIndex aKeyNameIndex,
+                                       const Maybe<uint32_t>& aLocation);
+
+  /**
    * GetModifierForKeyName() returns a value of Modifier which is activated
    * by the aKeyNameIndex.
    */
   static Modifier GetModifierForKeyName(KeyNameIndex aKeyNameIndex);
+
+  /**
+   * IsLeftOrRightModiferKeyNameIndex() returns true if aKeyNameIndex is a
+   * modifier key which may be in Left and Right location.
+   */
+  static bool IsLeftOrRightModiferKeyNameIndex(KeyNameIndex aKeyNameIndex)
+  {
+    switch (aKeyNameIndex) {
+      case KEY_NAME_INDEX_Alt:
+      case KEY_NAME_INDEX_Control:
+      case KEY_NAME_INDEX_Meta:
+      case KEY_NAME_INDEX_OS:
+      case KEY_NAME_INDEX_Shift:
+        return true;
+      default:
+        return false;
+    }
+  }
 
   /**
    * IsLockableModifier() returns true if aKeyNameIndex is a lockable modifier
@@ -643,6 +687,8 @@ public:
 #endif
     mIsSynthesizedByTIP = aEvent.mIsSynthesizedByTIP;
     mMaybeSkippableInRemoteProcess = aEvent.mMaybeSkippableInRemoteProcess;
+    mUseLegacyKeyCodeAndCharCodeValues =
+      aEvent.mUseLegacyKeyCodeAndCharCodeValues;
 
     // Don't copy mEditCommandsFor*Editor because it may require a lot of
     // memory space.  For example, if the event is dispatched but grabbed by
@@ -654,6 +700,34 @@ public:
       aEvent.mEditCommandsForMultiLineEditorInitialized;
     mEditCommandsForRichTextEditorInitialized =
       aEvent.mEditCommandsForRichTextEditorInitialized;
+  }
+
+  void AssignCommands(const WidgetKeyboardEvent& aEvent)
+  {
+    mEditCommandsForSingleLineEditorInitialized =
+      aEvent.mEditCommandsForSingleLineEditorInitialized;
+    if (mEditCommandsForSingleLineEditorInitialized) {
+      mEditCommandsForSingleLineEditor =
+        aEvent.mEditCommandsForSingleLineEditor;
+    } else {
+      mEditCommandsForSingleLineEditor.Clear();
+    }
+    mEditCommandsForMultiLineEditorInitialized =
+      aEvent.mEditCommandsForMultiLineEditorInitialized;
+    if (mEditCommandsForMultiLineEditorInitialized) {
+      mEditCommandsForMultiLineEditor =
+        aEvent.mEditCommandsForMultiLineEditor;
+    } else {
+      mEditCommandsForMultiLineEditor.Clear();
+    }
+    mEditCommandsForRichTextEditorInitialized =
+      aEvent.mEditCommandsForRichTextEditorInitialized;
+    if (mEditCommandsForRichTextEditorInitialized) {
+      mEditCommandsForRichTextEditor =
+        aEvent.mEditCommandsForRichTextEditor;
+    } else {
+      mEditCommandsForRichTextEditor.Clear();
+    }
   }
 
 private:
@@ -848,6 +922,7 @@ private:
     : mSucceeded(false)
     , mUseNativeLineBreak(true)
     , mWithFontRanges(false)
+    , mNeedsToFlushLayout(true)
   {
     MOZ_CRASH("WidgetQueryContentEvent is created without proper arguments");
   }
@@ -864,6 +939,7 @@ public:
     , mSucceeded(false)
     , mUseNativeLineBreak(true)
     , mWithFontRanges(false)
+    , mNeedsToFlushLayout(true)
   {
   }
 
@@ -875,6 +951,7 @@ public:
     , mSucceeded(false)
     , mUseNativeLineBreak(aOtherEvent.mUseNativeLineBreak)
     , mWithFontRanges(false)
+    , mNeedsToFlushLayout(aOtherEvent.mNeedsToFlushLayout)
   {
   }
 
@@ -969,6 +1046,15 @@ public:
     Init(aOptions);
   }
 
+  bool NeedsToFlushLayout() const
+  {
+#ifdef XP_MACOSX
+    return true;
+#else
+    return mNeedsToFlushLayout;
+#endif
+  }
+
   void RequestFontRanges()
   {
     NS_ASSERTION(mMessage == eQueryTextContent,
@@ -1002,6 +1088,7 @@ public:
   bool mSucceeded;
   bool mUseNativeLineBreak;
   bool mWithFontRanges;
+  bool mNeedsToFlushLayout;
   struct Input final
   {
     uint32_t EndOffset() const

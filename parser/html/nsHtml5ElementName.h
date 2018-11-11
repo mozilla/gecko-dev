@@ -76,11 +76,10 @@ public:
   static const int32_t OPTIONAL_END_TAG = (1 << 23);
 
 private:
-  nsAtom* name;
-  nsAtom* camelCaseName;
+  RefPtr<nsAtom> name;
+  RefPtr<nsAtom> camelCaseName;
   mozilla::dom::HTMLContentCreatorFunction htmlCreator;
   mozilla::dom::SVGContentCreatorFunction svgCreator;
-
 public:
   int32_t flags;
   inline nsAtom* getName() { return name; }
@@ -406,11 +405,9 @@ public:
   static nsHtml5ElementName* ELT_RUBY;
   static nsHtml5ElementName* ELT_SUMMARY;
   static nsHtml5ElementName* ELT_TBODY;
-
 private:
   static nsHtml5ElementName** ELEMENT_NAMES;
   static staticJArray<int32_t, int32_t> ELEMENT_HASHES;
-
 public:
   static void initializeStatics();
   static void releaseStatics();

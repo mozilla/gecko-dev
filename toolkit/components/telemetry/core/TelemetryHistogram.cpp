@@ -4,17 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "TelemetryHistogram.h"
+
+#include <limits>
+#include "base/histogram.h"
+#include "ipc/TelemetryIPCAccumulator.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/GCAPI.h"
-#include "nsString.h"
-#include "nsTHashtable.h"
-#include "nsHashKeys.h"
-#include "nsBaseHashtable.h"
-#include "nsClassHashtable.h"
-#include "nsITelemetry.h"
-#include "nsPrintfCString.h"
-
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/Atomics.h"
@@ -22,16 +19,16 @@
 #include "mozilla/StartupTimeline.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/Unused.h"
-
+#include "nsBaseHashtable.h"
+#include "nsClassHashtable.h"
+#include "nsString.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
+#include "nsITelemetry.h"
+#include "nsPrintfCString.h"
 #include "TelemetryCommon.h"
-#include "TelemetryHistogram.h"
 #include "TelemetryHistogramNameMap.h"
 #include "TelemetryScalar.h"
-#include "ipc/TelemetryIPCAccumulator.h"
-
-#include "base/histogram.h"
-
-#include <limits>
 
 using base::Histogram;
 using base::BooleanHistogram;
@@ -130,20 +127,27 @@ namespace {
 typedef nsDataHashtable<nsCStringHashKey, HistogramID> StringToHistogramIdMap;
 
 // Hardcoded probes
+//
+// The order of elements here is important to minimize the memory footprint of a
+// HistogramInfo instance.
+//
+// Any adjustements need to be reflected in gen_histogram_data.py
 struct HistogramInfo {
   uint32_t min;
   uint32_t max;
   uint32_t bucketCount;
-  uint32_t histogramType;
   uint32_t name_offset;
   uint32_t expiration_offset;
-  uint32_t dataset;
-  uint32_t label_index;
   uint32_t label_count;
-  uint32_t key_index;
   uint32_t key_count;
-  RecordedProcessType record_in_processes;
+  uint32_t store_count;
+  uint16_t label_index;
+  uint16_t key_index;
+  uint16_t store_index;
   bool keyed;
+  uint8_t histogramType;
+  uint8_t dataset;
+  RecordedProcessType record_in_processes;
   SupportedProduct products;
 
   const char *name() const;
@@ -268,6 +272,8 @@ const HistogramID kRecordingInitiallyDisabledIDs[] = {
   mozilla::Telemetry::TELEMETRY_TEST_COUNT_INIT_NO_RECORD,
   mozilla::Telemetry::TELEMETRY_TEST_KEYED_COUNT_INIT_NO_RECORD
 };
+
+const char* TEST_HISTOGRAM_PREFIX = "TELEMETRY_TEST_";
 
 } // namespace
 
@@ -745,16 +751,25 @@ internal_GetHistogramAndSamples(const StaticMutexAutoLock& aLock,
   return NS_OK;
 }
 
+/**
+ * Reflect a histogram snapshot into a JavaScript object.
+ * The returned histogram object will have the following properties:
+ *
+ *   bucket_count - Number of buckets of this histogram
+ *   histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, HISTOGRAM_BOOLEAN,
+ *                    HISTOGRAM_FLAG, HISTOGRAM_COUNT, or HISTOGRAM_CATEGORICAL
+ *   sum - sum of the bucket contents
+ *   range - A 2-item array of minimum and maximum bucket size
+ *   values - Map from bucket start to the bucket's count
+ */
 nsresult
 internal_ReflectHistogramAndSamples(JSContext *cx,
                                     JS::Handle<JSObject*> obj,
                                     const HistogramInfo& aHistogramInfo,
                                     const HistogramSnapshotData& aSnapshot)
 {
-  if (!(JS_DefineProperty(cx, obj, "min",
-                          aHistogramInfo.min, JSPROP_ENUMERATE)
-        && JS_DefineProperty(cx, obj, "max",
-                             aHistogramInfo.max, JSPROP_ENUMERATE)
+  if (!(JS_DefineProperty(cx, obj, "bucket_count",
+                             aHistogramInfo.bucketCount, JSPROP_ENUMERATE)
         && JS_DefineProperty(cx, obj, "histogram_type",
                              aHistogramInfo.histogramType, JSPROP_ENUMERATE)
         && JS_DefineProperty(cx, obj, "sum",
@@ -769,29 +784,54 @@ internal_ReflectHistogramAndSamples(JSContext *cx,
   MOZ_ASSERT(count == aSnapshot.mBucketRanges.Length(),
              "The number of buckets and the number of counts must match.");
 
-  // Create the "ranges" property and add it to the final object.
-  JS::Rooted<JSObject*> rarray(cx, JS_NewArrayObject(cx, count));
-  if (!rarray
-      || !JS_DefineProperty(cx, obj, "ranges", rarray, JSPROP_ENUMERATE)) {
+  // Create the "range" property and add it to the final object.
+  JS::Rooted<JSObject*> rarray(cx, JS_NewArrayObject(cx, 2));
+  if (rarray == nullptr
+      || !JS_DefineProperty(cx, obj, "range", rarray, JSPROP_ENUMERATE)) {
+    return NS_ERROR_FAILURE;
+  }
+  // Add [min, max] into the range array
+  if (!JS_DefineElement(cx, rarray, 0, aHistogramInfo.min, JSPROP_ENUMERATE)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (!JS_DefineElement(cx, rarray, 1, aHistogramInfo.max, JSPROP_ENUMERATE)) {
     return NS_ERROR_FAILURE;
   }
 
-  // Fill the "ranges" property.
+  JS::Rooted<JSObject*> values(cx, JS_NewPlainObject(cx));
+  if (values == nullptr
+      || !JS_DefineProperty(cx, obj, "values", values, JSPROP_ENUMERATE)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  bool first = true;
+  size_t last = 0;
+
   for (size_t i = 0; i < count; i++) {
-    if (!JS_DefineElement(cx, rarray, i, aSnapshot.mBucketRanges[i], JSPROP_ENUMERATE)) {
+    auto value = aSnapshot.mBucketCounts[i];
+    if (value == 0) {
+      continue;
+    }
+
+    if (i > 0 && first) {
+      auto range = aSnapshot.mBucketRanges[i - 1];
+      if (!JS_DefineProperty(cx, values, nsPrintfCString("%d", range).get(), 0, JSPROP_ENUMERATE)) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
+    first = false;
+    last = i + 1;
+
+    auto range = aSnapshot.mBucketRanges[i];
+    if (!JS_DefineProperty(cx, values, nsPrintfCString("%d", range).get(), value, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
 
-  JS::Rooted<JSObject*> counts_array(cx, JS_NewArrayObject(cx, count));
-  if (!counts_array
-      || !JS_DefineProperty(cx, obj, "counts", counts_array, JSPROP_ENUMERATE)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Fill the "counts" property.
-  for (size_t i = 0; i < count; i++) {
-    if (!JS_DefineElement(cx, counts_array, i, aSnapshot.mBucketCounts[i], JSPROP_ENUMERATE)) {
+  if (last > 0 && last < count) {
+    auto range = aSnapshot.mBucketRanges[last];
+    if (!JS_DefineProperty(cx, values, nsPrintfCString("%d", range).get(), 0, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -836,6 +876,7 @@ internal_GetHistogramsSnapshot(const StaticMutexAutoLock& aLock,
                                unsigned int aDataset,
                                bool aClearSubsession,
                                bool aIncludeGPU,
+                               bool aFilterTest,
                                HistogramProcessSnapshotsArray& aOutSnapshot)
 {
   if (!aOutSnapshot.resize(static_cast<uint32_t>(ProcessID::Count))) {
@@ -869,6 +910,15 @@ internal_GetHistogramsSnapshot(const StaticMutexAutoLock& aLock,
       if (!h || internal_IsExpired(aLock, h) || !internal_ShouldReflectHistogram(aLock, h, id)) {
         continue;
       }
+
+      const char* name = info.name();
+      if (aFilterTest && strncmp(TEST_HISTOGRAM_PREFIX, name, strlen(TEST_HISTOGRAM_PREFIX)) == 0) {
+        if (aClearSubsession) {
+          h->Clear();
+        }
+        continue;
+      }
+
 
       HistogramSnapshotData snapshotData;
       if (NS_FAILED(internal_GetHistogramAndSamples(aLock, h, snapshotData))) {
@@ -1137,6 +1187,7 @@ internal_GetKeyedHistogramsSnapshot(const StaticMutexAutoLock& aLock,
                                     unsigned int aDataset,
                                     bool aClearSubsession,
                                     bool aIncludeGPU,
+                                    bool aFilterTest,
                                     KeyedHistogramProcessSnapshotsArray& aOutSnapshot,
                                     bool aSkipEmpty = false)
 {
@@ -1167,6 +1218,14 @@ internal_GetKeyedHistogramsSnapshot(const StaticMutexAutoLock& aLock,
                                                              ProcessID(process),
                                                              /* instantiate = */ false);
       if (!keyed || (aSkipEmpty && keyed->IsEmpty()) || keyed->IsExpired()) {
+        continue;
+      }
+
+      const char* name = info.name();
+      if (aFilterTest && strncmp(TEST_HISTOGRAM_PREFIX, name, strlen(TEST_HISTOGRAM_PREFIX)) == 0) {
+        if (aClearSubsession) {
+          keyed->Clear();
+        }
         continue;
       }
 
@@ -2228,22 +2287,23 @@ TelemetryHistogram::Accumulate(HistogramID aID, const nsCString& aKey,
   }
 }
 
-void
+bool
 TelemetryHistogram::Accumulate(const char* name, uint32_t sample)
 {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
   if (!internal_CanRecordBase()) {
-    return;
+    return false;
   }
   HistogramID id;
   nsresult rv = internal_GetHistogramIdByName(locker, nsDependentCString(name), &id);
   if (NS_FAILED(rv)) {
-    return;
+    return false;
   }
   internal_Accumulate(locker, id, sample);
+  return true;
 }
 
-void
+bool
 TelemetryHistogram::Accumulate(const char* name,
                                const nsCString& key, uint32_t sample)
 {
@@ -2252,7 +2312,7 @@ TelemetryHistogram::Accumulate(const char* name,
   {
     StaticMutexAutoLock locker(gTelemetryHistogramMutex);
     if (!internal_CanRecordBase()) {
-      return;
+      return false;
     }
     HistogramID id;
     nsresult rv = internal_GetHistogramIdByName(locker, nsDependentCString(name), &id);
@@ -2260,7 +2320,7 @@ TelemetryHistogram::Accumulate(const char* name,
       // Check if we're allowed to record in the provided key, for this histogram.
       if (gHistogramInfos[id].allows_key(key)) {
         internal_Accumulate(locker, id, key, sample);
-        return;
+        return true;
       }
       // We're holding |gTelemetryHistogramMutex|, so we can't print a message
       // here.
@@ -2275,6 +2335,7 @@ TelemetryHistogram::Accumulate(const char* name,
       mozilla::Telemetry::ScalarID::TELEMETRY_ACCUMULATE_UNKNOWN_HISTOGRAM_KEYS,
       NS_ConvertASCIItoUTF16(name), 1);
   }
+  return false;
 }
 
 void
@@ -2432,7 +2493,8 @@ nsresult
 TelemetryHistogram::CreateHistogramSnapshots(JSContext* aCx,
                                              JS::MutableHandleValue aResult,
                                              unsigned int aDataset,
-                                             bool aClearSubsession)
+                                             bool aClearSubsession,
+                                             bool aFilterTest)
 {
   // Runs without protection from |gTelemetryHistogramMutex|
   JS::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
@@ -2452,6 +2514,7 @@ TelemetryHistogram::CreateHistogramSnapshots(JSContext* aCx,
                                                  aDataset,
                                                  aClearSubsession,
                                                  includeGPUProcess,
+                                                 aFilterTest,
                                                  processHistArray);
     if (NS_FAILED(rv)) {
       return rv;
@@ -2498,7 +2561,8 @@ nsresult
 TelemetryHistogram::GetKeyedHistogramSnapshots(JSContext* aCx,
                                                JS::MutableHandleValue aResult,
                                                unsigned int aDataset,
-                                               bool aClearSubsession)
+                                               bool aClearSubsession,
+                                               bool aFilterTest)
 {
   // Runs without protection from |gTelemetryHistogramMutex|
   JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
@@ -2519,7 +2583,9 @@ TelemetryHistogram::GetKeyedHistogramSnapshots(JSContext* aCx,
                                                       aDataset,
                                                       aClearSubsession,
                                                       includeGPUProcess,
-                                                      processHistArray);
+                                                      aFilterTest,
+                                                      processHistArray,
+                                                      true /* skipEmpty */);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -2785,6 +2851,7 @@ TelemetryHistogram::SerializeHistograms(mozilla::JSONWriter& aWriter)
                                                  nsITelemetry::DATASET_RELEASE_CHANNEL_OPTIN,
                                                  false /* aClearSubsession */,
                                                  includeGPUProcess,
+                                                 false /* aFilterTest */,
                                                  processHistArray))) {
       return NS_ERROR_FAILURE;
     }
@@ -2832,6 +2899,7 @@ TelemetryHistogram::SerializeKeyedHistograms(mozilla::JSONWriter& aWriter)
                                                       nsITelemetry::DATASET_RELEASE_CHANNEL_OPTIN,
                                                       false /* aClearSubsession */,
                                                       includeGPUProcess,
+                                                      false /* aFilterTest */,
                                                       processHistArray,
                                                       true /* aSkipEmpty */))) {
       return NS_ERROR_FAILURE;

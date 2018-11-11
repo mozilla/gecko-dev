@@ -96,6 +96,11 @@ payment-dialog > header > .page-error {
   color: #D70022;
 }
 
+.manage-text {
+  margin: 0;
+  padding: 18px 0;
+}
+
 .page > footer {
   align-items: center;
   justify-content: end;
@@ -140,6 +145,11 @@ payment-dialog > header > .page-error {
   flex: 0 1 auto;
 }
 
+payment-dialog[complete-status="processing"] #pay {
+  /* Force opacity to 1 even when disabled in the processing state. */
+  opacity: 1;
+}
+
 payment-dialog #pay::before {
   -moz-context-properties: fill;
   content: url(chrome://browser/skin/connection-secure.svg);
@@ -156,7 +166,7 @@ payment-dialog[changes-prevented][complete-status="processing"] #pay,
 payment-dialog[changes-prevented][complete-status="success"] #pay {
   /* Show the pay button above #disabled-overlay */
   position: relative;
-  z-index: 1;
+  z-index: 51;
 }
 
 #disabled-overlay {
@@ -170,6 +180,9 @@ payment-dialog[changes-prevented][complete-status="success"] #pay {
   right: 0;
   bottom: 0;
   left: 0;
+  /* z-index must be greater than some positioned fields and #pay with z-index
+     but less than 99, the z-index of the debugging console. */
+  z-index: 50;
 }
 
 .persist-checkbox {
@@ -197,12 +210,14 @@ payment-dialog[changes-prevented][complete-status="success"] #pay {
   content: attr(aria-label);
   display: block;
   position: absolute;
-  padding: 2px 5px;
+  padding: 3px 5px;
   background-color: #fff;
   border: 1px solid #bebebf;
   box-shadow: 1px 1px 3px #bebebf;
   font-size: smaller;
-  min-width: 188px;
+  line-height: normal;
+  width: 188px;
+  /* Center the tooltip over the (i) icon (188px / 2 - 5px (padding) - 1px (border)). */
   left: -86px;
   bottom: 20px;
 }
@@ -211,6 +226,28 @@ payment-dialog[changes-prevented][complete-status="success"] #pay {
 .info-tooltip:dir(rtl):hover::after {
   left: auto;
   right: -86px;
+}
+
+.csc.info-tooltip:focus::after,
+.csc.info-tooltip:hover::after {
+  /* Right-align the tooltip over the (i) icon (-188px - 60px (padding) - 2px (border) + 4px ((i) start padding) + 16px ((i) icon width)). */
+  left: -226px;
+  background-position: top 5px left 5px;
+  background-image: url(./containers/cvv-hint-image-back.svg);
+  background-repeat: no-repeat;
+  padding-inline-start: 55px;
+}
+
+.csc.info-tooltip[cc-type="amex"]::after {
+  background-image: url(./containers/cvv-hint-image-front.svg);
+}
+
+.csc.info-tooltip:dir(rtl):focus::after,
+.csc.info-tooltip:dir(rtl):hover::after {
+  left: auto;
+  /* Left-align the tooltip over the (i) icon (-188px - 60px (padding) - 2px (border) + 4px ((i) start padding) + 16px ((i) icon width)). */
+  right: -226px;
+  background-position: top 5px right 5px;
 }
 
 .branding {

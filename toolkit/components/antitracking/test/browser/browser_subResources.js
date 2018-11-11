@@ -7,8 +7,6 @@ add_task(async function() {
   await SpecialPowers.pushPrefEnv({"set": [
     ["browser.contentblocking.allowlist.annotations.enabled", true],
     ["browser.contentblocking.allowlist.storage.enabled", true],
-    ["browser.contentblocking.enabled", true],
-    ["browser.contentblocking.ui.enabled", true],
     ["browser.fastblock.enabled", false],
     ["network.cookie.cookieBehavior", Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER],
     ["privacy.trackingprotection.enabled", false],
@@ -157,6 +155,31 @@ add_task(async function() {
     .then(text => {
       is(text, 1, "One cookie received received for scripts.");
     });
+
+  let log = JSON.parse(await browser.getContentBlockingLog());
+  for (let trackerOrigin in log) {
+    is(trackerOrigin, TEST_3RD_PARTY_DOMAIN, "Correct tracker origin must be reported");
+    let originLog = log[trackerOrigin];
+    is(originLog.length, 3, "We should have 3 entries in the compressed log");
+    is(originLog[0][0], Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT,
+       "Correct blocking type reported");
+    is(originLog[0][1], true,
+       "Correct blocking status reported");
+    ok(originLog[0][2] >= 1,
+       "Correct repeat count reported");
+    is(originLog[1][0], Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_TRACKER,
+       "Correct blocking type reported");
+    is(originLog[1][1], true,
+       "Correct blocking status reported");
+    is(originLog[1][2], 6,
+       "Correct repeat count reported");
+    is(originLog[2][0], Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_TRACKER,
+       "Correct blocking type reported");
+    is(originLog[2][1], false,
+       "Correct blocking status reported");
+    ok(originLog[2][2] >= 1,
+       "Correct repeat count reported");
+  }
 
   info("Removing the tab");
   BrowserTestUtils.removeTab(tab);

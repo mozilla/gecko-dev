@@ -100,6 +100,7 @@ int32_t TransportLayerNSPRAdapter::Write(const void *buf, int32_t length) {
   MediaPacket packet;
   // Copies. Oh well.
   packet.Copy(static_cast<const uint8_t*>(buf), static_cast<size_t>(length));
+  packet.SetType(MediaPacket::DTLS);
 
   TransportResult r = output_->SendPacket(packet);
   if (r >= 0) {
@@ -699,6 +700,9 @@ static const uint32_t DisabledCiphers[] = {
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,
   TLS_DHE_DSS_WITH_AES_256_GCM_SHA384,
 
+  TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+  TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+
   TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
@@ -807,6 +811,19 @@ nsresult TransportLayerDtls::GetCipherSuite(uint16_t* cipherSuite) const {
   }
   *cipherSuite = info.cipherSuite;
   return NS_OK;
+}
+
+std::vector<uint16_t> TransportLayerDtls::GetDefaultSrtpCiphers() {
+  std::vector<uint16_t> ciphers;
+
+  ciphers.push_back(kDtlsSrtpAeadAes128Gcm);
+  // Since we don't support DTLS 1.3 or SHA384 ciphers (see bug 1312976)
+  // we don't really enough entropy to prefer this over 128 bit
+  ciphers.push_back(kDtlsSrtpAeadAes256Gcm);
+  ciphers.push_back(kDtlsSrtpAes128CmHmacSha1_80);
+  ciphers.push_back(kDtlsSrtpAes128CmHmacSha1_32);
+
+  return ciphers;
 }
 
 void TransportLayerDtls::StateChange(TransportLayer *layer, State state) {
@@ -1001,8 +1018,7 @@ void TransportLayerDtls::PacketReceived(TransportLayer* layer,
     return;
   }
 
-  // not DTLS per RFC 7983
-  if (packet.data()[0] < 20 || packet.data()[0] > 63) {
+  if (packet.type() != MediaPacket::DTLS) {
     return;
   }
 
@@ -1032,6 +1048,7 @@ TransportLayerDtls::GetDecryptedPackets()
         // We have data
         MOZ_MTLOG(ML_DEBUG, LAYER_INFO << "Read " << rv << " bytes from NSS");
         MediaPacket packet;
+        packet.SetType(MediaPacket::SCTP);
         packet.Take(std::move(buffer), static_cast<size_t>(rv));
         SignalPacketReceived(this, packet);
       } else if (rv == 0) {

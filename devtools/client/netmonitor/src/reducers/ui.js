@@ -26,10 +26,10 @@ const {
 const cols = {
   status: true,
   method: true,
+  domain: true,
   file: true,
   protocol: false,
   scheme: false,
-  domain: true,
   remoteip: false,
   cause: true,
   type: true,
@@ -69,21 +69,21 @@ function UI(initialState = {}) {
 function resetColumns(state) {
   return {
     ...state,
-    columns: Columns()
+    columns: Columns(),
   };
 }
 
 function resizeWaterfall(state, action) {
   return {
     ...state,
-    waterfallWidth: action.width
+    waterfallWidth: action.width,
   };
 }
 
 function openNetworkDetails(state, action) {
   return {
     ...state,
-    networkDetailsOpen: action.open
+    networkDetailsOpen: action.open,
   };
 }
 
@@ -98,28 +98,28 @@ function resizeNetworkDetails(state, action) {
 function enablePersistentLogs(state, action) {
   return {
     ...state,
-    persistentLogsEnabled: action.enabled
+    persistentLogsEnabled: action.enabled,
   };
 }
 
 function disableBrowserCache(state, action) {
   return {
     ...state,
-    browserCacheDisabled: action.disabled
+    browserCacheDisabled: action.disabled,
   };
 }
 
 function openStatistics(state, action) {
   return {
     ...state,
-    statisticsOpen: action.open
+    statisticsOpen: action.open,
   };
 }
 
 function setDetailsPanelTab(state, action) {
   return {
     ...state,
-    detailsPanelSelectedTab: action.id
+    detailsPanelSelectedTab: action.id,
   };
 }
 
@@ -134,8 +134,8 @@ function toggleColumn(state, action) {
     ...state,
     columns: {
       ...state.columns,
-      [column]: !state.columns[column]
-    }
+      [column]: !state.columns[column],
+    },
   };
 }
 
@@ -156,6 +156,7 @@ function ui(state = UI(), action) {
     case RESET_COLUMNS:
       return resetColumns(state);
     case REMOVE_SELECTED_CUSTOM_REQUEST:
+      return openNetworkDetails(state, { open: true });
     case SEND_CUSTOM_REQUEST:
       return openNetworkDetails(state, { open: false });
     case SELECT_DETAILS_PANEL_TAB:
@@ -174,5 +175,5 @@ function ui(state = UI(), action) {
 module.exports = {
   Columns,
   UI,
-  ui
+  ui,
 };

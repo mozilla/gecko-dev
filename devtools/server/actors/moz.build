@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += [
+    'accessibility',
     'addon',
     'canvas',
     'emulation',
@@ -20,14 +21,13 @@ DIRS += [
 ]
 
 DevToolsModules(
-    'accessibility-parent.js',
-    'accessibility.js',
     'actor-registry.js',
     'animation-type-longhand.js',
     'animation.js',
     'array-buffer.js',
     'breakpoint.js',
     'canvas.js',
+    'changes.js',
     'common.js',
     'css-properties.js',
     'csscoverage.js',
@@ -62,7 +62,6 @@ DevToolsModules(
     'styles.js',
     'stylesheets.js',
     'thread.js',
-    'timeline.js',
     'webaudio.js',
     'webbrowser.js',
     'webconsole.js',

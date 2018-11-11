@@ -7,6 +7,9 @@
 #include "ProcessRedirect.h"
 
 #include "InfallibleVector.h"
+#include "MiddlemanCall.h"
+#include "ipc/ChildInternal.h"
+#include "ipc/ParentInternal.h"
 #include "mozilla/Sprintf.h"
 
 #include <dlfcn.h>
@@ -27,6 +30,24 @@ namespace recordreplay {
 // Redirection Skeleton
 ///////////////////////////////////////////////////////////////////////////////
 
+static bool
+CallPreambleHook(PreambleFn aPreamble, size_t aCallId, CallArguments* aArguments)
+{
+  PreambleResult result = aPreamble(aArguments);
+  switch (result) {
+  case PreambleResult::Veto:
+    return true;
+  case PreambleResult::PassThrough: {
+    AutoEnsurePassThroughThreadEvents pt;
+    RecordReplayInvokeCall(aCallId, aArguments);
+    return true;
+  }
+  case PreambleResult::Redirect:
+    return false;
+  }
+  Unreachable();
+}
+
 extern "C" {
 
 __attribute__((used)) int
@@ -37,42 +58,71 @@ RecordReplayInterceptCall(int aCallId, CallArguments* aArguments)
   // Call the preamble to see if this call needs special handling, even when
   // events have been passed through.
   if (redirection.mPreamble) {
-    PreambleResult result = redirection.mPreamble(aArguments);
-    switch (result) {
-    case PreambleResult::Veto:
+    if (CallPreambleHook(redirection.mPreamble, aCallId, aArguments)) {
       return 0;
-    case PreambleResult::PassThrough: {
-      AutoEnsurePassThroughThreadEvents pt;
-      RecordReplayInvokeCall(aCallId, aArguments);
-      return 0;
-    }
-    case PreambleResult::Redirect:
-      break;
     }
   }
 
   Thread* thread = Thread::Current();
+  Maybe<RecordingEventSection> res;
+  res.emplace(thread);
 
-  // When events are passed through, invoke the call with the original stack
-  // and register state.
-  if (!thread || thread->PassThroughEvents()) {
-    // RecordReplayRedirectCall will load the function to call from the
-    // return value slot.
-    aArguments->Rval<uint8_t*>() = redirection.mOriginalFunction;
-    return 1;
+  if (!res.ref().CanAccessEvents()) {
+    // When events are passed through, invoke the call with the original stack
+    // and register state.
+    if (!thread || thread->PassThroughEvents()) {
+      // RecordReplayRedirectCall will load the function to call from the
+      // return value slot.
+      aArguments->Rval<uint8_t*>() = redirection.mOriginalFunction;
+      return 1;
+    }
+
+    MOZ_RELEASE_ASSERT(thread->HasDivergedFromRecording());
+
+    // After we have diverged from the recording, we can't access the thread's
+    // recording anymore.
+
+    // If the redirection has a middleman preamble hook, call it to see if it
+    // can handle this call. The middleman preamble hook is separate from the
+    // normal preamble hook because entering the RecordingEventSection can
+    // cause the current thread to diverge from the recording; testing for
+    // HasDivergedFromRecording() does not work reliably in the normal preamble.
+    if (redirection.mMiddlemanPreamble) {
+      if (CallPreambleHook(redirection.mMiddlemanPreamble, aCallId, aArguments)) {
+        return 0;
+      }
+    }
+
+    // If the redirection has a middleman call hook, try to perform the call in
+    // the middleman instead.
+    if (redirection.mMiddlemanCall) {
+      if (SendCallToMiddleman(aCallId, aArguments, /* aPopulateOutput = */ true)) {
+        return 0;
+      }
+    }
+
+    if (child::CurrentRepaintCannotFail()) {
+      // EnsureNotDivergedFromRecording is going to force us to crash, so fail
+      // earlier with a more helpful error message.
+      child::ReportFatalError(Nothing(), "Could not perform middleman call: %s\n",
+                              redirection.mName);
+    }
+
+    // Calling any redirection which performs the standard steps will cause
+    // debugger operations that have diverged from the recording to fail.
+    EnsureNotDivergedFromRecording();
+    Unreachable();
   }
-
-  // Calling any redirection which performs the standard steps will cause
-  // debugger operations that have diverged from the recording to fail.
-  EnsureNotDivergedFromRecording();
-
-  MOZ_RELEASE_ASSERT(thread->CanAccessRecording());
 
   if (IsRecording()) {
     // Call the original function, passing through events while we do so.
+    // Destroy the RecordingEventSection so that we don't prevent the file
+    // from being flushed in case we end up blocking.
+    res.reset();
     thread->SetPassThrough(true);
     RecordReplayInvokeCall(aCallId, aArguments);
     thread->SetPassThrough(false);
+    res.emplace(thread);
   }
 
   // Save any system error in case we want to record/replay it.
@@ -84,6 +134,13 @@ RecordReplayInterceptCall(int aCallId, CallArguments* aArguments)
   // Save any output produced by the call.
   if (redirection.mSaveOutput) {
     redirection.mSaveOutput(thread->Events(), aArguments, &error);
+  }
+
+  // Save information about any potential middleman calls encountered if we
+  // haven't diverged from the recording, in case we diverge and later calls
+  // access data produced by this one.
+  if (IsReplaying() && redirection.mMiddlemanCall) {
+    (void) SendCallToMiddleman(aCallId, aArguments, /* aDiverged = */ false);
   }
 
   RestoreError(error);
@@ -371,6 +428,7 @@ MaybeInternalJumpTarget(uint8_t* aIpStart, uint8_t* aIpEnd)
          !strstr(startName, "CTRunGetPositionsPtr")) ||
         (strstr(startName, "CTRunGetStringIndices") &&
          !strstr(startName, "CTRunGetStringIndicesPtr")) ||
+        strstr(startName, "CGColorSpaceCreateDeviceGray") ||
         strstr(startName, "CGColorSpaceCreateDeviceRGB") ||
         // For these functions, there is a syscall near the beginning which
         // other system threads might be inside.
@@ -532,6 +590,35 @@ CopySpecialInstruction(uint8_t* aIp, ud_t* aUd, size_t aNbytes, Assembler& aAsse
       aAssembler.CompareRaxWithTopOfStack();
       aAssembler.PopRax();
       aAssembler.PopRax();
+      return true;
+    }
+  }
+
+  if (mnemonic == UD_Ixchg) {
+    const ud_operand* dst = ud_insn_opr(aUd, 0);
+    const ud_operand* src = ud_insn_opr(aUd, 1);
+    if (src->type == UD_OP_REG && src->size == 8 &&
+        dst->type == UD_OP_MEM && dst->base == UD_R_RIP && !dst->index && dst->offset == 32) {
+      // xchgb reg, $offset32(%rip)
+      int reg = Assembler::NormalizeRegister(src->base);
+      if (!reg) {
+        return false;
+      }
+      uint8_t* addr = aIp + aNbytes + dst->lval.sdword;
+      if (reg == UD_R_RBX) {
+        aAssembler.PushRax();
+        aAssembler.MoveImmediateToRax(addr);
+        aAssembler.ExchangeByteRbxWithAddressAtRax();
+        aAssembler.PopRax();
+      } else {
+        aAssembler.PushRbx();
+        aAssembler.PushRax();
+        aAssembler.MoveImmediateToRax(addr);
+        aAssembler.MoveRaxToRegister(UD_R_RBX);
+        aAssembler.PopRax();
+        aAssembler.ExchangeByteRegisterWithAddressAtRbx(reg);
+        aAssembler.PopRbx();
+      }
       return true;
     }
   }

@@ -5,8 +5,8 @@
 "use strict";
 
 const Services = require("Services");
-const { throttle } = require("devtools/client/inspector/shared/utils");
 const flags = require("devtools/shared/flags");
+const { throttle } = require("devtools/shared/throttle");
 
 const {
   updateGridColor,
@@ -46,7 +46,7 @@ const GRID_COLORS = [
   "#B5007F",
   "#058B00",
   "#A47F00",
-  "#005A71"
+  "#005A71",
 ];
 
 class GridInspector {

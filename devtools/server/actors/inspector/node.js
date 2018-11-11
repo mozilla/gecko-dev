@@ -10,8 +10,6 @@ const InspectorUtils = require("InspectorUtils");
 const protocol = require("devtools/shared/protocol");
 const { nodeSpec, nodeListSpec } = require("devtools/shared/specs/node");
 
-loader.lazyRequireGetter(this, "colorUtils", "devtools/shared/css/color", true);
-
 loader.lazyRequireGetter(this, "getCssPath", "devtools/shared/inspector/css-logic", true);
 loader.lazyRequireGetter(this, "getXPath", "devtools/shared/inspector/css-logic", true);
 loader.lazyRequireGetter(this, "findCssSelector", "devtools/shared/inspector/css-logic", true);
@@ -36,7 +34,7 @@ loader.lazyRequireGetter(this, "EventParsers", "devtools/server/actors/inspector
 const SUBGRID_ENABLED =
   Services.prefs.getBoolPref("layout.css.grid-template-subgrid-value.enabled");
 
-const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
+const PSEUDO_CLASSES = [":hover", ":active", ":focus", ":focus-within"];
 const FONT_FAMILY_PREVIEW_TEXT = "The quick brown fox jumps over the lazy dog";
 const FONT_FAMILY_PREVIEW_TEXT_SIZE = 20;
 
@@ -168,7 +166,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
       characterData: true,
       characterDataOldValue: true,
       childList: true,
-      subtree: true
+      subtree: true,
     });
     this.mutationObserver = observer;
   },
@@ -225,9 +223,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
   get displayType() {
     // Consider all non-element nodes as displayed.
     if (InspectorActorUtils.isNodeDead(this) ||
-        this.rawNode.nodeType !== Node.ELEMENT_NODE ||
-        isAfterPseudoElement(this.rawNode) ||
-        isBeforePseudoElement(this.rawNode)) {
+        this.rawNode.nodeType !== Node.ELEMENT_NODE) {
       return null;
     }
 
@@ -526,7 +522,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
       capturing: typeof override.capturing !== "undefined" ?
                  override.capturing : capturing,
       hide: typeof override.hide !== "undefined" ? override.hide : hide,
-      native
+      native,
     };
 
     // Hide the debugger icon for DOM0 and native listeners. DOM0 listeners are
@@ -611,7 +607,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     return InspectorActorUtils.imageToImageData(this.rawNode, maxDim).then(imageData => {
       return {
         data: LongStringActor(this.conn, imageData.data),
-        size: imageData.size
+        size: imageData.size,
       };
     });
   },
@@ -678,7 +674,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     const options = {
       previewText: FONT_FAMILY_PREVIEW_TEXT,
       previewFontSize: FONT_FAMILY_PREVIEW_TEXT_SIZE,
-      fillStyle: fillStyle
+      fillStyle: fillStyle,
     };
     const { dataURL, size } = getFontPreviewData(font, doc, options);
 
@@ -686,26 +682,15 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
   },
 
   /**
-   * Finds the computed background color of the closest parent with
-   * a set background color.
-   * Returns a string with the background color of the form
-   * rgba(r, g, b, a). Defaults to rgba(255, 255, 255, 1) if no
-   * background color is found.
+   * Finds the computed background color of the closest parent with a set background
+   * color.
+   *
+   * @return {String}
+   *         String with the background color of the form rgba(r, g, b, a). Defaults to
+   *         rgba(255, 255, 255, 1) if no background color is found.
    */
   getClosestBackgroundColor: function() {
-    let current = this.rawNode;
-    while (current) {
-      const computedStyle = CssLogic.getComputedStyle(current);
-      const currentStyle = computedStyle.getPropertyValue("background-color");
-      if (colorUtils.isValidCSSColor(currentStyle)) {
-        const currentCssColor = new colorUtils.CssColor(currentStyle);
-        if (!currentCssColor.isTransparent()) {
-          return currentCssColor.rgba;
-        }
-      }
-      current = current.parentNode;
-    }
-    return "rgba(255, 255, 255, 1)";
+    return InspectorActorUtils.getClosestBackgroundColor(this.rawNode);
   },
 
   /**
@@ -719,7 +704,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
       innerWidth: win.innerWidth,
       innerHeight: win.innerHeight,
     };
-  }
+  },
 });
 
 /**
@@ -757,7 +742,7 @@ const NodeListActor = protocol.ActorClassWithSpec(nodeListSpec, {
   form: function() {
     return {
       actor: this.actorID,
-      length: this.nodeList ? this.nodeList.length : 0
+      length: this.nodeList ? this.nodeList.length : 0,
     };
   },
 
@@ -777,7 +762,7 @@ const NodeListActor = protocol.ActorClassWithSpec(nodeListSpec, {
     return this.walker.attachElements(items);
   },
 
-  release: function() {}
+  release: function() {},
 });
 
 exports.NodeActor = NodeActor;

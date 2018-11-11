@@ -77,6 +77,7 @@ fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu)||/^Windows\x20NT\x206\.[12]/
 == clipPath-basic-05.svg pass.svg
 == clipPath-basic-06.svg pass.svg
 == clipPath-basic-07.svg pass.svg
+== clipPath-basic-08.svg pass.svg
 == clipPath-on-outflowElement-01a.html clipPath-on-outflowElement-01-ref.html
 == clipPath-on-outflowElement-01b.html clipPath-on-outflowElement-01-ref.html
 fuzzy(0-1,0-32400) == clipPath-on-outflowElement-02a.html clipPath-on-outflowElement-02-ref.html
@@ -260,7 +261,7 @@ fuzzy-if(cocoaWidget,0-15,0-19679) fuzzy-if(winWidget,0-1,0-8800) fuzzy-if(!coco
 
 fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu)||skiaContent,0-1,0-800000) == markers-and-group-opacity-01.svg markers-and-group-opacity-01-ref.svg
 == marker-attribute-01.svg pass.svg
-== marker-dynamic-opacity.html marker-dynamic-opacity-ref.html
+fuzzy-if(skiaContent,0-1,0-1) == marker-dynamic-opacity.html marker-dynamic-opacity-ref.html
 == marker-effects-01.svg marker-effects-01-ref.svg
 fuzzy-if(skiaContent,0-1,0-100) == marker-viewBox-01.svg marker-viewBox-01-ref.svg
 fuzzy-if(skiaContent,0-1,0-100) == marker-orientation-01.svg marker-orientation-01-ref.svg
@@ -323,7 +324,7 @@ fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu)||skiaContent,0-1,0-10000) ==
 
 fuzzy-if(Android,0-8,0-200) == outer-svg-border-and-padding-01.svg outer-svg-border-and-padding-01-ref.svg
 
-fuzzy-if(skiaContent,0-7,0-175) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == outline.html outline-ref.html # Bug 1392106
+fuzzy-if(skiaContent,0-7,0-175) fuzzy-if(webrender,54-54,124-124) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == outline.html outline-ref.html # Bug 1392106
 
 == overflow-on-outer-svg-01.svg overflow-on-outer-svg-01-ref.svg
 == overflow-on-outer-svg-02a.xhtml overflow-on-outer-svg-02-ref.xhtml
@@ -338,7 +339,7 @@ fuzzy-if(skiaContent,0-7,0-175) random-if(/^Windows\x20NT\x206\.1/.test(http.osc
 == paint-on-maskLayer-1c.html paint-on-maskLayer-1-ref.html
 fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-15,0-5) == paint-order-01.svg paint-order-01-ref.svg
 == paint-order-02.svg paint-order-02-ref.svg
-== paint-order-03.svg paint-order-03-ref.svg
+fuzzy-if(webrender,72-72,96-143) == paint-order-03.svg paint-order-03-ref.svg
 
 #fuzzy(0-23,0-60) fails-if(d2d) == path-01.svg path-01-ref.svg
 == path-02.svg pass.svg
@@ -552,6 +553,8 @@ fuzzy-if(skiaContent,0-1,0-100) == tspan-xy-anchor-end-01.svg tspan-xy-anchor-en
 == currentColor-override-flood.svg pass.svg
 == currentColor-override-lighting.svg currentColor-override-lighting-ref.svg
 == currentColor-override-stop.svg pass.svg
+
+== mask-invalidation.html mask-invalidation-ref.html
 
 # Shadow DOM id tracking.
 pref(dom.webcomponents.shadowdom.enabled,true) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == fragid-shadow-1.html fragid-shadow-ref.html # Bug 1392106

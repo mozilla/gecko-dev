@@ -35,7 +35,6 @@
 #endif
 #include "mozilla/widget/CompositorWidget.h"
 #include "VRManager.h"
-#include "VRThread.h"
 
 namespace mozilla {
 
@@ -77,13 +76,12 @@ CompositorVsyncScheduler::CompositorVsyncScheduler(CompositorVsyncSchedulerOwner
   : mVsyncSchedulerOwner(aVsyncSchedulerOwner)
   , mLastCompose(TimeStamp::Now())
   , mIsObservingVsync(false)
-  , mNeedsComposite(0)
   , mVsyncNotificationsSkipped(0)
   , mWidget(aWidget)
   , mCurrentCompositeTaskMonitor("CurrentCompositeTaskMonitor")
   , mCurrentCompositeTask(nullptr)
-  , mCurrentVRListenerTaskMonitor("CurrentVRTaskMonitor")
-  , mCurrentVRListenerTask(nullptr)
+  , mCurrentVRTaskMonitor("CurrentVRTaskMonitor")
+  , mCurrentVRTask(nullptr)
 {
   mVsyncObserver = new Observer(this);
 
@@ -115,7 +113,7 @@ CompositorVsyncScheduler::Destroy()
   mVsyncObserver->Destroy();
   mVsyncObserver = nullptr;
 
-  mNeedsComposite = 0;
+  mCompositeRequestedAt = TimeStamp();
   CancelCurrentCompositeTask();
 }
 
@@ -137,15 +135,15 @@ CompositorVsyncScheduler::PostCompositeTask(TimeStamp aCompositeTimestamp)
 void
 CompositorVsyncScheduler::PostVRTask(TimeStamp aTimestamp)
 {
-  MonitorAutoLock lockVR(mCurrentVRListenerTaskMonitor);
-  if (mCurrentVRListenerTask == nullptr && VRListenerThreadHolder::Loop()) {
+  MonitorAutoLock lockVR(mCurrentVRTaskMonitor);
+  if (mCurrentVRTask == nullptr && CompositorThreadHolder::Loop()) {
     RefPtr<Runnable> task = NewRunnableMethod<TimeStamp>(
       "layers::CompositorVsyncScheduler::DispatchVREvents",
       this,
       &CompositorVsyncScheduler::DispatchVREvents,
       aTimestamp);
-    mCurrentVRListenerTask = task;
-    VRListenerThreadHolder::Loop()->PostDelayedTask(task.forget(), 0);
+    mCurrentVRTask = task;
+    CompositorThreadHolder::Loop()->PostDelayedTask(task.forget(), 0);
   }
 }
 
@@ -163,8 +161,9 @@ CompositorVsyncScheduler::ScheduleComposition()
     // to ensure that graphics are up to date.
     PostCompositeTask(TimeStamp::Now());
 #ifdef MOZ_WIDGET_ANDROID
-  } else if (mNeedsComposite >= 2 && mIsObservingVsync) {
-    // uh-oh, we already requested a composite at least twice so far, and a
+  } else if (mIsObservingVsync && mCompositeRequestedAt &&
+      (TimeStamp::Now() - mCompositeRequestedAt) >= mVsyncSchedulerOwner->GetVsyncInterval() * 2) {
+    // uh-oh, we already requested a composite at least two vsyncs ago, and a
     // composite hasn't happened yet. It is possible that the vsync observation
     // is blocked on the main thread, so let's just composite ASAP and not
     // wait for the vsync. Note that this should only ever happen on Fennec
@@ -173,8 +172,10 @@ CompositorVsyncScheduler::ScheduleComposition()
     PostCompositeTask(TimeStamp::Now());
 #endif
   } else {
-    mNeedsComposite++;
-    if (!mIsObservingVsync && mNeedsComposite) {
+    if (!mCompositeRequestedAt) {
+      mCompositeRequestedAt = TimeStamp::Now();
+    }
+    if (!mIsObservingVsync && mCompositeRequestedAt) {
       ObserveVsync();
       // Starting to observe vsync is an async operation that goes
       // through the main thread of the UI process. It's possible that
@@ -237,8 +238,8 @@ CompositorVsyncScheduler::Composite(TimeStamp aVsyncTimestamp)
     }
   }
 
-  if (mNeedsComposite || mAsapScheduling) {
-    mNeedsComposite = 0;
+  if (mCompositeRequestedAt || mAsapScheduling) {
+    mCompositeRequestedAt = TimeStamp();
     mLastCompose = aVsyncTimestamp;
 
     // Tell the owner to do a composite
@@ -263,7 +264,7 @@ CompositorVsyncScheduler::ForceComposeToTarget(gfx::DrawTarget* aTarget, const I
    * bug 1138502 - There are cases such as during long-running window resizing
    * events where we receive many force-composites. We also continue to get
    * vsync notifications. Because the force-composites trigger compositing and
-   * clear the mNeedsComposite counter, the vsync notifications will not need
+   * clear the mCompositeRequestedAt timestamp, the vsync notifications will not need
    * to do anything and so will increment the mVsyncNotificationsSkipped counter
    * to indicate the vsync was ignored. If this happens enough times, we will
    * disable listening for vsync entirely. On the next force-composite we will
@@ -285,14 +286,14 @@ bool
 CompositorVsyncScheduler::NeedsComposite()
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  return mNeedsComposite;
+  return (bool)mCompositeRequestedAt;
 }
 
 bool
 CompositorVsyncScheduler::FlushPendingComposite()
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  if (mNeedsComposite) {
+  if (mCompositeRequestedAt) {
     CancelCurrentCompositeTask();
     ForceComposeToTarget(nullptr, nullptr);
     return true;
@@ -320,13 +321,13 @@ void
 CompositorVsyncScheduler::DispatchVREvents(TimeStamp aVsyncTimestamp)
 {
   {
-    MonitorAutoLock lock(mCurrentVRListenerTaskMonitor);
-    mCurrentVRListenerTask = nullptr;
+    MonitorAutoLock lock(mCurrentVRTaskMonitor);
+    mCurrentVRTask = nullptr;
   }
   // This only allows to be called by CompositorVsyncScheduler::PostVRTask()
   // When the process is going to shutdown, the runnable has chance to be executed
-  // by other threads, we only want it to be run at VRListenerThread.
-  if (!VRListenerThreadHolder::IsInVRListenerThread()) {
+  // by other threads, we only want it to be run in the compositor thread.
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
     return;
   }
 

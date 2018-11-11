@@ -23,12 +23,12 @@ using AutoList = BinTokenReaderTester::AutoList;
 using AutoTaggedTuple = BinTokenReaderTester::AutoTaggedTuple;
 using AutoTuple = BinTokenReaderTester::AutoTuple;
 
-BinTokenReaderTester::BinTokenReaderTester(JSContext* cx, const uint8_t* start, const size_t length)
-    : BinTokenReaderBase(cx, start, length)
+BinTokenReaderTester::BinTokenReaderTester(JSContext* cx, ErrorReporter* er, const uint8_t* start, const size_t length)
+    : BinTokenReaderBase(cx, er, start, length)
 { }
 
-BinTokenReaderTester::BinTokenReaderTester(JSContext* cx, const Vector<uint8_t>& buf)
-    : BinTokenReaderBase(cx, buf.begin(), buf.length())
+BinTokenReaderTester::BinTokenReaderTester(JSContext* cx, ErrorReporter* er, const Vector<uint8_t>& buf)
+    : BinTokenReaderBase(cx, er, buf.begin(), buf.length())
 { }
 
 JS::Result<Ok>
@@ -140,6 +140,26 @@ BinTokenReaderTester::readMaybeAtom()
     return result.get();
 }
 
+JS::Result<JSAtom*>
+BinTokenReaderTester::readMaybeIdentifierName() {
+    return readMaybeAtom();
+}
+
+JS::Result<JSAtom*>
+BinTokenReaderTester::readIdentifierName() {
+    return readAtom();
+}
+
+JS::Result<JSAtom*>
+BinTokenReaderTester::readMaybePropertyKey() {
+    return readMaybeAtom();
+}
+
+JS::Result<JSAtom*>
+BinTokenReaderTester::readPropertyKey() {
+    return readAtom();
+}
+
 
 // Nullable strings:
 // - "<string>" (not counted in byte length)
@@ -240,7 +260,7 @@ BinTokenReaderTester::readSkippableSubTree()
         return raiseError("Invalid byte length in readSkippableSubTree");
     }
 
-    const auto start = current_;
+    const auto start = offset();
 
     current_ += byteLen;
 
@@ -295,6 +315,10 @@ BinTokenReaderTester::enterTaggedTuple(BinKind& tag, BinFields& fields, AutoTagg
 
     // Now fields.
     BINJS_MOZ_TRY_DECL(fieldNum, readInternalUint32());
+
+    if (fieldNum > FIELD_NUM_MAX) {
+        return raiseError("Too many fields");
+    }
 
     fields.clear();
     if (!fields.reserve(fieldNum)) {

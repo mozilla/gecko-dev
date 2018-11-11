@@ -48,11 +48,7 @@ class TempAllocator
     MOZ_MUST_USE void* allocate(size_t bytes)
     {
         LifoAlloc::AutoFallibleScope fallibleAllocator(lifoAlloc());
-        void* p = lifoScope_.alloc().alloc(bytes);
-        if (!ensureBallast()) {
-            return nullptr;
-        }
-        return p;
+        return lifoScope_.alloc().allocEnsureUnused(bytes, BallastSize);
     }
 
     template <typename T>
@@ -63,11 +59,7 @@ class TempAllocator
         if (MOZ_UNLIKELY(!CalculateAllocSize<T>(n, &bytes))) {
             return nullptr;
         }
-        T* p = static_cast<T*>(lifoScope_.alloc().alloc(bytes));
-        if (MOZ_UNLIKELY(!ensureBallast())) {
-            return nullptr;
-        }
-        return p;
+        return static_cast<T*>(lifoScope_.alloc().allocEnsureUnused(bytes, BallastSize));
     }
 
     // View this allocator as a fallible allocator.

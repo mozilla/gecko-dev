@@ -84,7 +84,7 @@ const ConsoleObserver = {
     if (message && /Failed propType/.test(message.toString())) {
       ok(false, message);
     }
-  }
+  },
 };
 
 Services.obs.addObserver(ConsoleObserver, "console-api-log-event");
@@ -123,11 +123,9 @@ function loadFrameScriptUtils(browser = gBrowser.selectedBrowser) {
 }
 
 Services.prefs.setBoolPref("devtools.inspector.three-pane-enabled", true);
-Services.prefs.setBoolPref("devtools.inspector.show-three-pane-tooltip", false);
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.inspector.three-pane-enabled");
-  Services.prefs.clearUserPref("devtools.inspector.show-three-pane-tooltip");
   Services.prefs.clearUserPref("devtools.toolbox.host");
   Services.prefs.clearUserPref("devtools.toolbox.previousHost");
   Services.prefs.clearUserPref("devtools.toolbox.splitconsoleEnabled");
@@ -234,7 +232,7 @@ function synthesizeKeyFromKeyTag(key) {
     ctrlKey: !!modifiersAttr.match("control"),
     altKey: !!modifiersAttr.match("alt"),
     metaKey: !!modifiersAttr.match("meta"),
-    accelKey: !!modifiersAttr.match("accel")
+    accelKey: !!modifiersAttr.match("accel"),
   };
 
   info("Synthesizing key " + name + " " + JSON.stringify(modifiers));
@@ -257,7 +255,7 @@ function synthesizeKeyShortcut(key, target) {
     altKey: shortcut.alt,
     ctrlKey: shortcut.ctrl,
     metaKey: shortcut.meta,
-    shiftKey: shortcut.shift
+    shiftKey: shortcut.shift,
   };
   if (shortcut.keyCode) {
     keyEvent.keyCode = shortcut.keyCode;
@@ -290,7 +288,7 @@ function waitForNEvents(target, eventName, numTimes, useCapture = false) {
       ["on", "off"],
       ["addEventListener", "removeEventListener"],
       ["addListener", "removeListener"],
-      ["addMessageListener", "removeMessageListener"]
+      ["addMessageListener", "removeMessageListener"],
     ]) {
       if ((add in target) && (remove in target)) {
         target[add](eventName, function onEvent(...args) {

@@ -54,6 +54,15 @@ function convertTestData(testData) {
   return result;
 }
 
+function getLastNonemptyBucket(buckets) {
+  for (var i = buckets.length - 1; i >= 0; --i) {
+    if (buckets[i].scrollFrames.length > 0) {
+      return buckets[i];
+    }
+  }
+  return null;
+}
+
 // Given APZ test data for a single paint on the compositor side,
 // reconstruct the APZC tree structure from the 'parentScrollId'
 // entries that were logged. More specifically, the subset of the
@@ -254,7 +263,12 @@ function runSubtestsSeriallyInFreshWindows(aSubtests) {
         w.isApzSubtest = true;
         w.SimpleTest = SimpleTest;
         w.is = function(a, b, msg) { return is(a, b, aFile + " | " + msg); };
-        w.ok = function(cond, name, diag) { return ok(cond, aFile + " | " + name, diag); };
+        w.ok = function(cond, msg) {
+          arguments[1] = aFile + " | " + msg;
+          // Forward all arguments to SimpleTest.ok where we will check that ok() was
+          // called with at most 2 arguments.
+          return SimpleTest.ok.apply(SimpleTest, arguments);
+        };
         if (test.onload) {
           w.addEventListener('load', function(e) { test.onload(w); }, { once: true });
         }
@@ -424,7 +438,11 @@ function runContinuation(testFunction) {
         }
       }
 
-      driveTest();
+      try {
+        driveTest();
+      } catch (ex) {
+        SimpleTest.ok(false, "APZ test continuation failed with exception: " + ex);
+      }
     });
   };
 }

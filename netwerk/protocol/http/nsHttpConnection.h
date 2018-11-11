@@ -53,6 +53,7 @@ class nsHttpConnection final : public nsAHttpSegmentReader
                              , public ARefBase
                              , public nsSupportsWeakReference
 {
+private:
     virtual ~nsHttpConnection();
 
 public:
@@ -214,8 +215,9 @@ public:
 
     static MOZ_MUST_USE nsresult MakeConnectString(nsAHttpTransaction *trans,
                                                    nsHttpRequestHead *request,
-                                                   nsACString &result);
-    void    SetupSecondaryTLS();
+                                                   nsACString &result,
+                                                   bool h2ws);
+    void    SetupSecondaryTLS(nsAHttpTransaction *aSpdyConnectTransaction = nullptr);
     void    SetInSpdyTunnel(bool arg);
 
     // Check active connections for traffic (or not). SPDY connections send a
@@ -247,6 +249,9 @@ public:
     // authenticated using a client certificate.  Before SSL negotiation
     // has finished this returns false.
     bool NoClientCertAuth() const;
+
+    // HTTP/2 websocket support
+    bool CanAcceptWebsocket();
 
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
@@ -310,6 +315,7 @@ private:
     // transaction is open, otherwise it is null.
     RefPtr<nsAHttpTransaction>    mTransaction;
     RefPtr<TLSFilterTransaction>  mTLSFilter;
+    nsWeakPtr                     mWeakTrans; // SpdyConnectTransaction *
 
     RefPtr<nsHttpHandler>         mHttpHandler; // keep gHttpHandler alive
 

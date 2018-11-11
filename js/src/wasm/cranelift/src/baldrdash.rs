@@ -16,9 +16,7 @@
 // Safe wrappers to the low-level ABI.  This re-exports all types in
 // baldrapi but none of the functions.
 
-// TODO: Should many u32 arguments and return values here really be
-// usize, to be more conventional?
-
+use baldrapi::CraneliftModuleEnvironment;
 use cranelift_codegen::binemit::CodeOffset;
 use cranelift_codegen::cursor::{Cursor, FuncCursor};
 use cranelift_codegen::entity::EntityRef;
@@ -29,17 +27,16 @@ use cranelift_codegen::{CodegenError, CodegenResult};
 use cranelift_wasm::{FuncIndex, GlobalIndex, SignatureIndex, TableIndex};
 use std::mem;
 use std::slice;
-use baldrapi::CraneliftModuleEnvironment;
 
 use baldrapi;
 
+pub use baldrapi::BD_SymbolicAddress as SymbolicAddress;
 pub use baldrapi::BD_ValType as ValType;
 pub use baldrapi::CraneliftCompiledFunc as CompiledFunc;
 pub use baldrapi::CraneliftFuncCompileInput as FuncCompileInput;
 pub use baldrapi::CraneliftMetadataEntry as MetadataEntry;
 pub use baldrapi::CraneliftStaticEnvironment as StaticEnvironment;
 pub use baldrapi::FuncTypeIdDescKind;
-pub use baldrapi::BD_SymbolicAddress as SymbolicAddress;
 pub use baldrapi::Trap;
 pub use baldrapi::TypeCode;
 
@@ -72,7 +69,7 @@ impl Into<ir::Type> for TypeCode {
     fn into(self) -> ir::Type {
         match self.into() {
             Some(t) => t,
-            None => panic!("unexpected void type")
+            None => panic!("unexpected void type"),
         }
     }
 }
@@ -183,10 +180,10 @@ impl FuncTypeWithId {
 /// Thin wrapper for the CraneliftModuleEnvironment structure.
 
 pub struct ModuleEnvironment<'a> {
-    env: &'a CraneliftModuleEnvironment
+    env: &'a CraneliftModuleEnvironment,
 }
 
-impl <'a> ModuleEnvironment<'a> {
+impl<'a> ModuleEnvironment<'a> {
     pub fn new(env: &'a CraneliftModuleEnvironment) -> Self {
         Self { env }
     }
@@ -200,13 +197,13 @@ impl <'a> ModuleEnvironment<'a> {
         unsafe { baldrapi::env_func_is_import(self.env, func_index.index()) }
     }
     pub fn signature(&self, sig_index: SignatureIndex) -> FuncTypeWithId {
-        FuncTypeWithId(unsafe { baldrapi::env_signature(self.env, sig_index) })
+        FuncTypeWithId(unsafe { baldrapi::env_signature(self.env, sig_index.index()) })
     }
     pub fn table(&self, table_index: TableIndex) -> TableDesc {
-        TableDesc(unsafe { baldrapi::env_table(self.env, table_index) })
+        TableDesc(unsafe { baldrapi::env_table(self.env, table_index.index()) })
     }
     pub fn global(&self, global_index: GlobalIndex) -> GlobalDesc {
-        GlobalDesc(unsafe { baldrapi::env_global(self.env, global_index) })
+        GlobalDesc(unsafe { baldrapi::env_global(self.env, global_index.index()) })
     }
     pub fn min_memory_length(&self) -> i64 {
         self.env.min_memory_length as i64

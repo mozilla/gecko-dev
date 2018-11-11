@@ -74,7 +74,7 @@ def lint(paths, config, binary=None, fix=None, setup=None, **lintargs):
 
     # eslint requires that --fix be set before the --ext argument.
     if fix:
-        cmd_args.insert(1, '--fix')
+        cmd_args.insert(2, '--fix')
 
     shell = False
     if os.environ.get('MSYSTEM') in ('MINGW32', 'MINGW64'):
@@ -109,7 +109,7 @@ def lint(paths, config, binary=None, fix=None, setup=None, **lintargs):
             err.update({
                 'hint': err.get('fix'),
                 'level': 'error' if err['severity'] == 2 else 'warning',
-                'lineno': err.get('line'),
+                'lineno': err.get('line') or 0,
                 'path': obj['filePath'],
                 'rule': err.get('ruleId'),
             })

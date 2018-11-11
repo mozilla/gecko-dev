@@ -371,7 +371,7 @@ OptionsPanel.prototype = {
       pref: "devtools.performance.new-panel-enabled",
       label: "Enable new performance recorder (then re-open DevTools)",
       id: "devtools-new-performance",
-      parentId: "context-options"
+      parentId: "context-options",
     }];
 
     const createPreferenceOption = ({pref, label, id}) => {
@@ -460,9 +460,8 @@ OptionsPanel.prototype = {
     }
 
     if (this.target.activeTab && !this.target.chrome) {
-      const [ response ] = await this.target.client.attachTarget(this.target.activeTab._actor);
-      this._origJavascriptEnabled = !response.javascriptEnabled;
-      this.disableJSNode.checked = this._origJavascriptEnabled;
+      this.disableJSNode.checked =
+        !this.target.activeTab.configureOptions.javascriptEnabled;
       this.disableJSNode.addEventListener("click", this._disableJSClicked);
     } else {
       // Hide the checkbox and label
@@ -509,10 +508,10 @@ OptionsPanel.prototype = {
     const checked = event.target.checked;
 
     const options = {
-      "javascriptEnabled": !checked
+      "javascriptEnabled": !checked,
     };
 
-    this.target.activeTab.reconfigure(options);
+    this.target.activeTab.reconfigure({ options });
   },
 
   destroy: function() {
@@ -528,5 +527,5 @@ OptionsPanel.prototype = {
     }
 
     this.panelWin = this.panelDoc = this.disableJSNode = this.toolbox = null;
-  }
+  },
 };

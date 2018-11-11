@@ -100,8 +100,8 @@ with Files("DynamicsCompressorNode.webidl"):
 with Files("FakePluginTagInit.webidl"):
     BUG_COMPONENT = ("Core", "Plug-ins")
 
-with Files("Flex.webidl"):
-    BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
+with Files("FeaturePolicy.webidl"):
+    BUG_COMPONENT = ("Core", "DOM: Security")
 
 with Files("FocusEvent.webidl"):
     BUG_COMPONENT = ("Core", "DOM: Events")
@@ -129,9 +129,6 @@ with Files("GetUserMediaRequest.webidl"):
 
 with Files("Grid.webidl"):
     BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
-
-with Files("GroupedHistoryEvent.webidl"):
-    BUG_COMPONENT = ("Core", "Document Navigation")
 
 with Files("HTML*"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
@@ -171,9 +168,6 @@ with Files("KeyIdsInitData.webidl"):
 
 with Files("Keyframe*"):
     BUG_COMPONENT = ("Core", "DOM: Animation")
-
-with Files("LocalMediaStream.webidl"):
-    BUG_COMPONENT = ("Core", "Audio/Video")
 
 with Files("MediaDevice*"):
     BUG_COMPONENT = ("Core", "WebRTC")
@@ -387,7 +381,6 @@ WEBIDL_FILES = [
     'AudioParamMap.webidl',
     'AudioProcessingEvent.webidl',
     'AudioScheduledSourceNode.webidl',
-    'AudioStreamTrack.webidl',
     'AudioTrack.webidl',
     'AudioTrackList.webidl',
     'AudioWorklet.webidl',
@@ -497,6 +490,7 @@ WEBIDL_FILES = [
     'ExtendableEvent.webidl',
     'ExtendableMessageEvent.webidl',
     'FakePluginTagInit.webidl',
+    'FeaturePolicy.webidl',
     'Fetch.webidl',
     'FetchEvent.webidl',
     'FetchObserver.webidl',
@@ -510,7 +504,6 @@ WEBIDL_FILES = [
     'FileSystemDirectoryReader.webidl',
     'FileSystemEntry.webidl',
     'FileSystemFileEntry.webidl',
-    'Flex.webidl',
     'FocusEvent.webidl',
     'FontFace.webidl',
     'FontFaceSet.webidl',
@@ -638,7 +631,6 @@ WEBIDL_FILES = [
     'L10nUtils.webidl',
     'LegacyQueryInterface.webidl',
     'LinkStyle.webidl',
-    'LocalMediaStream.webidl',
     'Location.webidl',
     'MediaCapabilities.webidl',
     'MediaDeviceInfo.webidl',
@@ -773,6 +765,7 @@ WEBIDL_FILES = [
     'StorageType.webidl',
     'StreamFilter.webidl',
     'StreamFilterDataEvent.webidl',
+    'StructuredCloneTester.webidl',
     'StyleSheet.webidl',
     'StyleSheetList.webidl',
     'SubtleCrypto.webidl',
@@ -916,7 +909,6 @@ WEBIDL_FILES = [
     'URLSearchParams.webidl',
     'ValidityState.webidl',
     'VideoPlaybackQuality.webidl',
-    'VideoStreamTrack.webidl',
     'VideoTrack.webidl',
     'VideoTrackList.webidl',
     'VisualViewport.webidl',
@@ -1048,7 +1040,6 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'GamepadAxisMoveEvent.webidl',
     'GamepadButtonEvent.webidl',
     'GamepadEvent.webidl',
-    'GroupedHistoryEvent.webidl',
     'HashChangeEvent.webidl',
     'HiddenPluginEvent.webidl',
     'ImageCaptureErrorEvent.webidl',
@@ -1094,11 +1085,6 @@ if CONFIG['MOZ_WEBSPEECH']:
         'SpeechRecognitionEvent.webidl',
         'SpeechSynthesisErrorEvent.webidl',
         'SpeechSynthesisEvent.webidl',
-    ]
-
-if CONFIG['MOZ_BUILD_APP'] in ['browser', 'xulrunner'] or CONFIG['MOZ_SUITE']:
-    WEBIDL_FILES += [
-        'BrowserFeedWriter.webidl',
     ]
 
 if CONFIG['MOZ_BUILD_APP'] in ['browser', 'mobile/android', 'xulrunner']:

@@ -28,10 +28,7 @@ toolbarbutton.tabbable {
 }
 
 toolbarbutton:-moz-focusring {
-  /* -moz-appearance looks redundant here but is necessary.
-      Without it, the outline won't appear. */
-  -moz-appearance: toolbarbutton;
-  outline: 1px dotted -moz-DialogText;
+  outline: 1px dotted;
   outline-offset: -2px;
 }
 
@@ -58,10 +55,6 @@ toolbarbutton[disabled="true"] {
 }
 
 @media (-moz-windows-default-theme: 0) {
-  :root[lwtheme-image] toolbarbutton {
-    -moz-appearance: none;
-  }
-
   :root[lwtheme-image] toolbarbutton:not([disabled="true"]) {
     text-shadow: inherit;
   }

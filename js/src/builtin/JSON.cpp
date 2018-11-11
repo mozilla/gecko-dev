@@ -57,6 +57,7 @@ InfallibleQuote(RangedPtr<const SrcCharT> srcBegin, RangedPtr<const SrcCharT> sr
     // Entries with 'u' are handled as \\u00xy, and entries with 0 are not escaped in any way.
     // Characters >= 256 are all assumed to be unescaped.
     static const Latin1Char escapeLookup[256] = {
+        // clang-format off
         'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'b', 't',
         'n', 'u', 'f', 'r', 'u', 'u', 'u', 'u', 'u', 'u',
         'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u',
@@ -67,31 +68,72 @@ InfallibleQuote(RangedPtr<const SrcCharT> srcBegin, RangedPtr<const SrcCharT> sr
         0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
         0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
         0,   0,  '\\', // rest are all zeros
+        // clang-format on
     };
 
     /* Step 1. */
     *dstPtr++ = '"';
 
+    auto ToLowerHex = [](uint8_t u) {
+        MOZ_ASSERT(u <= 0xF);
+        return "0123456789abcdef"[u];
+    };
+
     /* Step 2. */
     while (srcBegin != srcEnd) {
-        SrcCharT c = *srcBegin++;
-        size_t escapeIndex = c % sizeof(escapeLookup);
-        Latin1Char escaped = escapeLookup[escapeIndex];
-        if (MOZ_LIKELY((escapeIndex != size_t(c)) || !escaped)) {
+        const SrcCharT c = *srcBegin++;
+
+        // Handle the Latin-1 cases.
+        if (MOZ_LIKELY(c < sizeof(escapeLookup))) {
+            Latin1Char escaped = escapeLookup[c];
+
+            // Directly copy non-escaped code points.
+            if (escaped == 0) {
+                *dstPtr++ = c;
+                continue;
+            }
+
+            // Escape the rest, elaborating Unicode escapes when needed.
+            *dstPtr++ = '\\';
+            *dstPtr++ = escaped;
+            if (escaped == 'u') {
+                *dstPtr++ = '0';
+                *dstPtr++ = '0';
+
+                uint8_t x = c >> 4;
+                MOZ_ASSERT(x < 10);
+                *dstPtr++ = '0' + x;
+
+                *dstPtr++ = ToLowerHex(c & 0xF);
+            }
+
+            continue;
+        }
+
+        // Non-ASCII non-surrogates are directly copied.
+        if (!unicode::IsSurrogate(c)) {
             *dstPtr++ = c;
             continue;
         }
-        *dstPtr++ = '\\';
-        *dstPtr++ = escaped;
-        if (escaped == 'u') {
-            MOZ_ASSERT(c < ' ');
-            MOZ_ASSERT((c >> 4) < 10);
-            uint8_t x = c >> 4, y = c % 16;
-            *dstPtr++ = '0';
-            *dstPtr++ = '0';
-            *dstPtr++ = '0' + x;
-            *dstPtr++ = y < 10 ? '0' + y : 'a' + (y - 10);
+
+        // So too for complete surrogate pairs.
+        if (MOZ_LIKELY(unicode::IsLeadSurrogate(c) &&
+                       srcBegin < srcEnd &&
+                       unicode::IsTrailSurrogate(*srcBegin)))
+        {
+            *dstPtr++ = c;
+            *dstPtr++ = *srcBegin++;
+            continue;
         }
+
+        // But lone surrogates are Unicode-escaped.
+        char32_t as32 = char32_t(c);
+        *dstPtr++ = '\\';
+        *dstPtr++ = 'u';
+        *dstPtr++ = ToLowerHex(as32 >> 12);
+        *dstPtr++ = ToLowerHex((as32 >> 8) & 0xF);
+        *dstPtr++ = ToLowerHex((as32 >> 4) & 0xF);
+        *dstPtr++ = ToLowerHex(as32 & 0xF);
     }
 
     /* Steps 3-4. */
@@ -1063,10 +1105,12 @@ json_stringify(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static const JSFunctionSpec json_static_methods[] = {
+    // clang-format off
     JS_FN(js_toSource_str,  json_toSource,      0, 0),
     JS_FN("parse",          json_parse,         2, 0),
     JS_FN("stringify",      json_stringify,     3, 0),
     JS_FS_END
+    // clang-format on
 };
 
 JSObject*

@@ -4,27 +4,6 @@
 // META: script=/wasm/jsapi/assertions.js
 // META: script=/wasm/jsapi/instanceTestFactory.js
 
-function assert_WebAssemblyInstantiatedSource(actual, expected_exports={}) {
-  assert_equals(Object.getPrototypeOf(actual), Object.prototype,
-                "Prototype");
-  assert_true(Object.isExtensible(actual), "Extensibility");
-
-  const module = Object.getOwnPropertyDescriptor(actual, "module");
-  assert_equals(typeof module, "object", "module: type of descriptor");
-  assert_true(module.writable, "module: writable");
-  assert_true(module.enumerable, "module: enumerable");
-  assert_true(module.configurable, "module: configurable");
-  assert_equals(Object.getPrototypeOf(module.value), WebAssembly.Module.prototype,
-                "module: prototype");
-
-  const instance = Object.getOwnPropertyDescriptor(actual, "instance");
-  assert_equals(typeof instance, "object", "instance: type of descriptor");
-  assert_true(instance.writable, "instance: writable");
-  assert_true(instance.enumerable, "instance: enumerable");
-  assert_true(instance.configurable, "instance: configurable");
-  assert_Instance(instance.value, expected_exports);
-}
-
 let emptyModuleBinary;
 setup(() => {
   emptyModuleBinary = new WasmModuleBuilder().toBuffer();
@@ -103,7 +82,7 @@ promise_test(t => {
 }, "Invalid code");
 
 promise_test(() => {
-  const buffer = new WasmModuleBuilder().toBuffer();
+  const buffer = new Uint8Array(new WasmModuleBuilder().toBuffer());
   assert_equals(buffer[0], 0);
   const promise = WebAssembly.instantiate(buffer);
   buffer[0] = 1;

@@ -397,6 +397,7 @@ class Capabilities extends Map {
       ["proxy", new Proxy()],
       ["setWindowRect", appinfo.name == "firefox"],
       ["timeouts", new Timeouts()],
+      ["strictFileInteractability", false],
       ["unhandledPromptBehavior", UnhandledPromptBehavior.DismissAndNotify],
 
       // features
@@ -407,6 +408,7 @@ class Capabilities extends Map {
       ["moz:headless", Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo).isHeadless],
       ["moz:processID", Services.appinfo.processID],
       ["moz:profile", maybeProfile()],
+      ["moz:shutdownTimeout", Services.prefs.getIntPref("toolkit.asyncshutdown.crash_timeout")],
       ["moz:useNonSpecCompliantPointerOrigin", false],
       ["moz:webdriverClick", true],
     ]);
@@ -490,6 +492,10 @@ class Capabilities extends Map {
 
         case "timeouts":
           v = Timeouts.fromJSON(v);
+          break;
+
+        case "strictFileInteractability":
+          v = assert.boolean(v);
           break;
 
         case "unhandledPromptBehavior":

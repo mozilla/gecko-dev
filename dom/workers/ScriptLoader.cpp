@@ -67,6 +67,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SRILogHelper.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"
+#include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/UniquePtr.h"
 #include "Principal.h"
 #include "WorkerHolder.h"
@@ -221,6 +222,7 @@ ChannelFromScriptURL(nsIPrincipal* principal,
                        nullptr, // aCallbacks
                        aLoadFlags,
                        ios);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SECURITY_ERR);
   } else {
     // We must have a loadGroup with a load context for the principal to
     // traverse the channel correctly.
@@ -228,8 +230,10 @@ ChannelFromScriptURL(nsIPrincipal* principal,
     MOZ_ASSERT(NS_LoadGroupMatchesPrincipal(loadGroup, principal));
 
     RefPtr<PerformanceStorage> performanceStorage;
+    nsCOMPtr<nsICSPEventListener> cspEventListener;
     if (aWorkerPrivate && !aIsMainScript) {
       performanceStorage = aWorkerPrivate->GetPerformanceStorage();
+      cspEventListener = aWorkerPrivate->CSPEventListener();
     }
 
     if (aClientInfo.isSome()) {
@@ -257,9 +261,19 @@ ChannelFromScriptURL(nsIPrincipal* principal,
                          aLoadFlags,
                          ios);
     }
-  }
 
-  NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SECURITY_ERR);
+
+    if (cspEventListener) {
+      nsCOMPtr<nsILoadInfo> loadInfo = channel->GetLoadInfo();
+      if (NS_WARN_IF(!loadInfo)) {
+        return NS_ERROR_UNEXPECTED;
+      }
+
+      rv = loadInfo->SetCspEventListener(cspEventListener);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
 
   if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel)) {
     mozilla::net::ReferrerPolicy referrerPolicy = parentDoc ?
@@ -743,6 +757,33 @@ private:
 
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
 
+    // Checking the MIME type is only required for ServiceWorkers'
+    // importScripts, per step 10 of https://w3c.github.io/ServiceWorker/#importscripts
+    //
+    // "Extract a MIME type from the response’s header list. If this MIME type
+    // (ignoring parameters) is not a JavaScript MIME type, return a network error."
+    if (mWorkerPrivate->IsServiceWorker()) {
+      nsAutoCString mimeType;
+      channel->GetContentType(mimeType);
+
+      if (!nsContentUtils::IsJavascriptMIMEType(NS_ConvertUTF8toUTF16(mimeType))) {
+        const nsCString& scope =
+          mWorkerPrivate->GetServiceWorkerRegistrationDescriptor().Scope();
+
+        ServiceWorkerManager::LocalizeAndReportToAllClients(
+          scope, "ServiceWorkerRegisterMimeTypeError2",
+          nsTArray<nsString> {
+            NS_ConvertUTF8toUTF16(scope),
+            NS_ConvertUTF8toUTF16(mimeType),
+            loadInfo.mURL
+          }
+        );
+
+        channel->Cancel(NS_ERROR_DOM_NETWORK_ERR);
+        return NS_ERROR_DOM_NETWORK_ERR;
+      }
+    }
+
     // Note that importScripts() can redirect.  In theory the main
     // script could also encounter an internal redirect, but currently
     // the assert does not allow that.
@@ -801,6 +842,7 @@ private:
     ErrorResult error;
     RefPtr<Promise> cachePromise =
       mCacheCreator->Cache_()->Put(jsapi.cx(), request, *response, error);
+    error.WouldReportJSException();
     if (NS_WARN_IF(error.Failed())) {
       nsresult rv = error.StealNSResult();
       channel->Cancel(rv);
@@ -1229,6 +1271,7 @@ private:
         wcsp->LogViolationDetails(
             nsIContentSecurityPolicy::VIOLATION_TYPE_REQUIRE_SRI_FOR_SCRIPT,
             nullptr, // triggering element
+            mWorkerPrivate->CSPEventListener(),
             aLoadInfo.mURL, EmptyString(), 0, 0, EmptyString(), EmptyString());
       }
       return NS_ERROR_SRI_CORRUPT;

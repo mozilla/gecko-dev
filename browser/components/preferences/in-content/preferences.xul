@@ -18,14 +18,10 @@
 
 <!DOCTYPE page [
 <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd">
-<!ENTITY % historyDTD SYSTEM "chrome://mozapps/locale/update/history.dtd">
 <!ENTITY % certManagerDTD SYSTEM "chrome://pippki/locale/certManager.dtd">
 <!ENTITY % deviceManangerDTD SYSTEM "chrome://pippki/locale/deviceManager.dtd">
 <!ENTITY % sanitizeDTD SYSTEM "chrome://browser/locale/sanitize.dtd">
-<!ENTITY % aboutDialogDTD SYSTEM "chrome://browser/locale/aboutDialog.dtd" >
-%aboutDialogDTD;
 %brandDTD;
-%historyDTD;
 %certManagerDTD;
 %deviceManangerDTD;
 %sanitizeDTD;
@@ -33,7 +29,6 @@
 
 <page xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml"
-      disablefastfind="true"
       data-l10n-id="pref-page"
       data-l10n-attrs="title">
 
@@ -53,6 +48,8 @@
     <link rel="localization" href="browser/preferences/permissions.ftl"/>
     <link rel="localization" href="browser/preferences/selectBookmark.ftl"/>
     <link rel="localization" href="browser/preferences/siteDataSettings.ftl"/>
+    <link rel="localization" href="browser/aboutDialog.ftl"/>
+    <link rel="localization" href="toolkit/updates/history.ftl"/>
   </linkset>
 
   <html:link rel="shortcut icon"
@@ -150,11 +147,20 @@
 
       <spacer flex="1"/>
 
-      <hbox class="help-button" pack="center">
-        <label class="text-link">
+      <hbox class="sidebar-footer-button" pack="center">
+        <label id="addonsButton" class="text-link">
           <hbox align="center">
-            <image class="help-icon"/>
-              <label class="help-label" flex="1" data-l10n-id="help-button-label"></label>
+            <image class="sidebar-footer-icon addons-icon"/>
+            <label class="sidebar-footer-label" flex="1" data-l10n-id="addons-button-label"></label>
+          </hbox>
+        </label>
+      </hbox>
+
+      <hbox class="sidebar-footer-button help-button" pack="center">
+        <label id="helpButton" class="text-link">
+          <hbox align="center">
+            <image class="sidebar-footer-icon help-icon"/>
+            <label class="sidebar-footer-label" flex="1" data-l10n-id="help-button-label"></label>
           </hbox>
         </label>
       </hbox>
@@ -181,7 +187,7 @@
             data-l10n-attrs="style"
             hidden="true" clickSelectsAll="true"/>
         </hbox>
-        <vbox id="mainPrefPane" class="prefpane prefwindow">
+        <vbox id="mainPrefPane">
 #include searchResults.xul
 #include main.xul
 #include home.xul
@@ -196,20 +202,19 @@
 
   <stack id="dialogStack" hidden="true"/>
   <vbox id="dialogTemplate" class="dialogOverlay" align="center" pack="center" topmost="true" hidden="true">
-    <groupbox class="dialogBox"
-              orient="vertical"
-              pack="end"
-              role="dialog"
-              aria-labelledby="dialogTitle">
-      <caption flex="1" align="center">
-        <label class="dialogTitle" flex="1"></label>
+    <vbox class="dialogBox"
+          pack="end"
+          role="dialog"
+          aria-labelledby="dialogTitle">
+      <hbox class="dialogTitleBar" align="center">
+        <label class="dialogTitle" flex="1"/>
         <button class="dialogClose close-icon"
                 data-l10n-id="close-button"/>
-      </caption>
+      </hbox>
       <browser class="dialogFrame"
                autoscroll="false"
                disablehistory="true"/>
-    </groupbox>
+    </vbox>
   </vbox>
   </stack>
 </page>

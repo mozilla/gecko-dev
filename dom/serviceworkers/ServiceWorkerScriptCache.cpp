@@ -618,13 +618,11 @@ private:
       return NS_OK;
     }
 
-    ErrorResult result;
     nsCOMPtr<nsIInputStream> body;
-    result = NS_NewCStringInputStream(getter_AddRefs(body),
-                                      NS_ConvertUTF16toUTF8(aCN->Buffer()));
-    if (NS_WARN_IF(result.Failed())) {
-      MOZ_ASSERT(!result.IsErrorWithMessage());
-      return result.StealNSResult();
+    nsresult rv = NS_NewCStringInputStream(getter_AddRefs(body),
+                                           NS_ConvertUTF16toUTF8(aCN->Buffer()));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
 
     RefPtr<InternalResponse> ir =
@@ -650,7 +648,9 @@ private:
     // For now we have to wait until the Put Promise is fulfilled before we can
     // continue since Cache does not yet support starting a read that is being
     // written to.
+    ErrorResult result;
     RefPtr<Promise> cachePromise = aCache->Put(aCx, request, *response, result);
+    result.WouldReportJSException();
     if (NS_WARN_IF(result.Failed())) {
       // No exception here because there are no ReadableStreams involved here.
       MOZ_ASSERT(!result.IsJSException());
@@ -1031,11 +1031,10 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aContext
     return rv;
   }
 
-  if (!mimeType.LowerCaseEqualsLiteral("text/javascript") &&
-      !mimeType.LowerCaseEqualsLiteral("application/x-javascript") &&
-      !mimeType.LowerCaseEqualsLiteral("application/javascript")) {
+  if (mimeType.IsEmpty() ||
+      !nsContentUtils::IsJavascriptMIMEType(NS_ConvertUTF8toUTF16(mimeType))) {
     ServiceWorkerManager::LocalizeAndReportToAllClients(
-      mRegistration->Scope(), "ServiceWorkerRegisterMimeTypeError",
+      mRegistration->Scope(), "ServiceWorkerRegisterMimeTypeError2",
       nsTArray<nsString> { NS_ConvertUTF8toUTF16(mRegistration->Scope()),
         NS_ConvertUTF8toUTF16(mimeType), mURL });
     rv = NS_ERROR_DOM_SECURITY_ERR;

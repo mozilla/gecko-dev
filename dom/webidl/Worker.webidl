@@ -13,12 +13,14 @@
  */
 
 [Constructor(USVString scriptURL, optional WorkerOptions options),
- Exposed=(Window,DedicatedWorker,SharedWorker,System)]
+ Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface Worker : EventTarget {
   void terminate();
 
   [Throws]
-  void postMessage(any message, optional sequence<object> transfer = []);
+  void postMessage(any message, sequence<object> transfer);
+  [Throws]
+  void postMessage(any message, optional PostMessageOptions aOptions);
 
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
@@ -34,6 +36,6 @@ dictionary WorkerOptions {
 
 [Constructor(USVString scriptURL),
  Func="mozilla::dom::ChromeWorker::WorkerAvailable",
- Exposed=(Window,DedicatedWorker,SharedWorker,System)]
+ Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface ChromeWorker : Worker {
 };

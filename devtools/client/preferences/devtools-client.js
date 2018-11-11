@@ -33,30 +33,23 @@ pref("devtools.command-button-noautohide.enabled", false);
 // Enable the Inspector
 pref("devtools.inspector.enabled", true);
 // What was the last active sidebar in the inspector
-pref("devtools.inspector.activeSidebar", "ruleview");
+pref("devtools.inspector.activeSidebar", "layoutview");
 pref("devtools.inspector.remote", false);
 
-// Show the 3 pane onboarding tooltip in the inspector only in release or beta builds.
-#if defined(RELEASE_OR_BETA)
-pref("devtools.inspector.show-three-pane-tooltip", true);
-#else
-pref("devtools.inspector.show-three-pane-tooltip", false);
-#endif
 // Enable the 3 pane mode in the inspector
 pref("devtools.inspector.three-pane-enabled", true);
 // Enable the 3 pane mode in the chrome inspector
 pref("devtools.inspector.chrome.three-pane-enabled", false);
-// Whether or not this is the first run of the 3 pane mode. Used to reset the default
-// inspector sidebar widths for its first run.
-pref("devtools.inspector.three-pane-first-run", true);
 // Collapse pseudo-elements by default in the rule-view
 pref("devtools.inspector.show_pseudo_elements", false);
 // The default size for image preview tooltips in the rule-view/computed-view/markup-view
 pref("devtools.inspector.imagePreviewTooltipSize", 300);
 // Enable user agent style inspection in rule-view
 pref("devtools.inspector.showUserAgentStyles", false);
-// Show all native anonymous content (like controls in <video> tags)
+// Show all native anonymous content
 pref("devtools.inspector.showAllAnonymousContent", false);
+// Show user agent shadow roots
+pref("devtools.inspector.showUserAgentShadowRoots", false);
 // Enable the CSS shapes highlighter
 pref("devtools.inspector.shapesHighlighter.enabled", true);
 // Enable the Font Editor
@@ -67,8 +60,8 @@ pref("devtools.inspector.fonthighlighter.enabled", true);
 pref("devtools.inspector.changes.enabled", false);
 
 // Flexbox preferences
-// Enable the Flexbox highlighter and inspector panel in Nightly
-#if defined(NIGHTLY_BUILD)
+// Enable the Flexbox highlighter and inspector panel in Nightly and DevEdition
+#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION)
 pref("devtools.inspector.flexboxHighlighter.enabled", true);
 pref("devtools.flexboxinspector.enabled", true);
 #else
@@ -83,7 +76,7 @@ pref("devtools.gridinspector.showGridAreas", false);
 pref("devtools.gridinspector.showGridLineNumbers", false);
 pref("devtools.gridinspector.showInfiniteLines", false);
 // Max number of grid highlighters that can be displayed
-pref("devtools.gridinspector.maxHighlighters", 1);
+pref("devtools.gridinspector.maxHighlighters", 3);
 
 // Whether or not the box model panel is opened in the layout view
 pref("devtools.layout.boxmodel.opened", true);
@@ -125,7 +118,7 @@ pref("devtools.performance.memory.max-log-length", 125000);
 pref("devtools.performance.timeline.hidden-markers",
   "[\"Composite\",\"CompositeForwardTransaction\"]");
 pref("devtools.performance.profiler.buffer-size", 10000000);
-pref("devtools.performance.profiler.sample-frequency-khz", 1);
+pref("devtools.performance.profiler.sample-frequency-hz", 1000);
 pref("devtools.performance.ui.invert-call-tree", true);
 pref("devtools.performance.ui.invert-flame-graph", false);
 pref("devtools.performance.ui.flatten-tree-recursion", true);
@@ -149,6 +142,13 @@ pref("devtools.performance.ui.experimental", true);
 pref("devtools.performance.ui.experimental", false);
 #endif
 
+// Preferences for the new performance panel
+// This pref configures the base URL for the perf.html instance to use. This is
+// useful so that a developer can change it while working on perf.html, or in
+// tests.
+// This isn't exposed directly to the user.
+pref("devtools.performance.recording.ui-base-url", "https://perf-html.io");
+
 // The default cache UI setting
 pref("devtools.cache.disabled", false);
 
@@ -166,7 +166,7 @@ pref("devtools.netmonitor.panes-network-details-width", 550);
 pref("devtools.netmonitor.panes-network-details-height", 450);
 pref("devtools.netmonitor.filters", "[\"all\"]");
 pref("devtools.netmonitor.visibleColumns",
-  "[\"status\",\"method\",\"file\",\"domain\",\"cause\",\"type\",\"transferred\",\"contentSize\",\"waterfall\"]"
+  "[\"status\",\"method\",\"domain\",\"file\",\"cause\",\"type\",\"transferred\",\"contentSize\",\"waterfall\"]"
 );
 
 // Save request/response bodies yes/no.
@@ -232,9 +232,6 @@ pref("devtools.dom.enabled", false);
 
 // Enable the Accessibility panel.
 pref("devtools.accessibility.enabled", true);
-// Counter to promote the Accessibility panel.
-// @remove after release 63 (See Bug 1482461)
-pref("devtools.promote.accessibility", 1);
 
 // Web Audio Editor Inspector Width should be a preference
 pref("devtools.webaudioeditor.inspectorWidth", 300);
@@ -319,6 +316,12 @@ pref("devtools.editor.detectindentation", true);
 pref("devtools.editor.enableCodeFolding", true);
 pref("devtools.editor.autocomplete", true);
 
+// The width of the viewport.
+pref("devtools.responsive.viewport.width", 320);
+// The height of the viewport.
+pref("devtools.responsive.viewport.height", 480);
+// The pixel ratio of the viewport.
+pref("devtools.responsive.viewport.pixelRatio", 0);
 // Whether or not the viewports are left aligned.
 pref("devtools.responsive.leftAlignViewport.enabled", false);
 // Whether to reload when touch simulation is toggled
@@ -327,6 +330,11 @@ pref("devtools.responsive.reloadConditions.touchSimulation", false);
 pref("devtools.responsive.reloadConditions.userAgent", false);
 // Whether to show the notification about reloading to apply emulation
 pref("devtools.responsive.reloadNotification.enabled", true);
+// Whether or not touch simulation is enabled.
+pref("devtools.responsive.touchSimulation.enabled", false);
+// The user agent of the viewport.
+pref("devtools.responsive.userAgent", "");
+
 // Whether to show the settings onboarding tooltip only in release or beta builds.
 #if defined(RELEASE_OR_BETA)
 pref("devtools.responsive.show-setting-tooltip", true);
@@ -359,8 +367,4 @@ pref("devtools.aboutdebugging.collapsibilities.temporaryExtension", false);
 #endif
 
 // Map top-level await expressions in the console
-#if defined(NIGHTLY_BUILD)
 pref("devtools.debugger.features.map-await-expression", true);
-#else
-pref("devtools.debugger.features.map-await-expression", false);
-#endif

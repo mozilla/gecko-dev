@@ -118,7 +118,7 @@ public:
   void RemoveUnusedAndResetWebRenderUserData();
   void ClearCachedResources();
 
-  bool ShouldDumpDisplayList();
+  bool ShouldDumpDisplayList(nsDisplayListBuilder* aBuilder);
   wr::usize GetBuilderDumpIndex() { return mBuilderDumpIndex; }
 
   bool GetContainsSVGGroup() { return mContainsSVGGroup; }
@@ -193,6 +193,11 @@ private:
 
   wr::usize mBuilderDumpIndex;
   wr::usize mDumpIndent;
+
+  // When zooming is enabled, this stores the animation property that we use
+  // to manipulate the zoom from APZ.
+  Maybe<wr::WrAnimationProperty> mZoomProp;
+
 public:
   // Whether consecutive inactive display items should be grouped into one
   // blob image.

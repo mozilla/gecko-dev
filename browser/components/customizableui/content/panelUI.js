@@ -700,7 +700,12 @@ const PanelUI = {
     if (this.panel.state == "showing" || this.panel.state == "open") {
       // If the menu is already showing, then we need to dismiss all notifications
       // since we don't want their doorhangers competing for attention
-      doorhangers.forEach(n => { n.dismissed = true; });
+      doorhangers.forEach(n => {
+        n.dismissed = true;
+        if (n.options.onDismissed) {
+          n.options.onDismissed();
+        }
+      });
       this._hidePopup();
       this._clearBadge();
       if (!notifications[0].options.badgeOnly) {
@@ -753,6 +758,15 @@ const PanelUI = {
     this._clearBannerItem();
   },
 
+  _formatDescriptionMessage(n) {
+    let text = {};
+    let array = n.options.message.split("<>");
+    text.start = array[0] || "";
+    text.name = n.options.name || "";
+    text.end = array[1] || "";
+    return text;
+  },
+
   _refreshNotificationPanel(notification) {
     this._clearNotificationPanel();
 
@@ -763,6 +777,16 @@ const PanelUI = {
     popupnotification.setAttribute("buttoncommand", "PanelUI._onNotificationButtonEvent(event, 'buttoncommand');");
     popupnotification.setAttribute("secondarybuttoncommand",
       "PanelUI._onNotificationButtonEvent(event, 'secondarybuttoncommand');");
+
+    if (notification.options.message) {
+      let desc = this._formatDescriptionMessage(notification);
+      popupnotification.setAttribute("label", desc.start);
+      popupnotification.setAttribute("name", desc.name);
+      popupnotification.setAttribute("endlabel", desc.end);
+    }
+    if (notification.options.popupIconURL) {
+      popupnotification.setAttribute("icon", notification.options.popupIconURL);
+    }
 
     popupnotification.notification = notification;
     popupnotification.hidden = false;

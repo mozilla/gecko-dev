@@ -1,7 +1,5 @@
-/* eslint-disable mozilla/use-chromeutils-import */
-
-Cu.import("resource://gre/modules/Messaging.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Messaging.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var java = new JavaBridge(this);
 
@@ -184,7 +182,7 @@ let listener = {
 
     do_check_eq(data.emptyObjectArray.length, 0);
     do_check_eq(data.nullObjectArray, null);
-  }
+  },
 };
 
 let callbackListener = {
@@ -199,7 +197,7 @@ let callbackListener = {
     } else {
       ok(false, "Response type should be valid: " + data.response);
     }
-  }
+  },
 };
 
 function register_js_events(scope, type, callbackType) {

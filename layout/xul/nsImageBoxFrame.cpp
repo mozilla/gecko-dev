@@ -301,7 +301,7 @@ void
 nsImageBoxFrame::UpdateLoadFlags()
 {
   static Element::AttrValuesArray strings[] =
-    {&nsGkAtoms::always, &nsGkAtoms::never, nullptr};
+    {nsGkAtoms::always, nsGkAtoms::never, nullptr};
   switch (mContent->AsElement()->FindAttrValueIn(kNameSpaceID_None,
                                                  nsGkAtoms::validate, strings,
                                                  eCaseMatters)) {
@@ -851,6 +851,8 @@ nsImageBoxFrame::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
   // 'cleaned up' by the Request when it is destroyed, but only then.
   aRequest->IncrementAnimationConsumers();
 
+  aImage->SetAnimationMode(PresContext()->ImageAnimationMode());
+
   nscoord w, h;
   aImage->GetWidth(&w);
   aImage->GetHeight(&h);
@@ -910,18 +912,12 @@ nsImageBoxFrame::OnFrameUpdate(imgIRequest* aRequest)
 
   // Check if WebRender has interacted with this frame. If it has
   // we need to let it know that things have changed.
-  if (HasProperty(WebRenderUserDataProperty::Key())) {
-    uint32_t key = static_cast<uint32_t>(DisplayItemType::TYPE_XUL_IMAGE);
-    RefPtr<WebRenderFallbackData> data =
-      GetWebRenderUserData<WebRenderFallbackData>(this, key);
-    if (data) {
-      data->SetInvalid(true);
-    }
-    SchedulePaint();
+  const auto type = DisplayItemType::TYPE_XUL_IMAGE;
+  if (WebRenderUserData::ProcessInvalidateForImage(this, type)) {
     return NS_OK;
   }
 
-  InvalidateLayer(DisplayItemType::TYPE_XUL_IMAGE);
+  InvalidateLayer(type);
 
   return NS_OK;
 }

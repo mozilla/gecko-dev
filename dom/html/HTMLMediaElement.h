@@ -66,6 +66,7 @@ class VideoStreamTrack;
 } // namespace dom
 } // namespace mozilla
 
+class AudioDeviceInfo;
 class nsIChannel;
 class nsIHttpChannel;
 class nsILoadGroup;
@@ -827,6 +828,17 @@ public:
     return mMainThreadEventTarget;
   }
 
+  // Set the sink id (of the output device) that the audio will play. If aSinkId
+  // is empty the default device will be set.
+  already_AddRefed<Promise> SetSinkId(const nsAString& aSinkId, ErrorResult& aRv);
+  // Get the sink id of the device that audio is being played. Initial value is
+  // empty and the default device is being used.
+  void GetSinkId(nsString& aSinkId)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    aSinkId = mSink.first();
+  }
+
 protected:
   virtual ~HTMLMediaElement();
 
@@ -843,8 +855,6 @@ protected:
   MediaDecoderOwner::NextFrameStatus NextFrameStatus();
 
   void SetDecoder(MediaDecoder* aDecoder);
-
-  void UpdateWakeLock();
 
   // Holds references to the DOM wrappers for the MediaStreams that we're
   // writing to.
@@ -882,11 +892,14 @@ protected:
   void ChangeNetworkState(nsMediaNetworkState aState);
 
   /**
-   * These two methods are called when mPaused is changed to ensure we have
-   * a wake lock active when we're playing audibly.
+   * The MediaElement will be responsible for creating and releasing the audio
+   * wakelock depending on the playing and audible state.
    */
-  virtual void WakeLockCreate();
   virtual void WakeLockRelease();
+  virtual void UpdateWakeLock();
+
+  void CreateAudioWakeLockIfNeeded();
+  void ReleaseAudioWakeLockIfExists();
   RefPtr<WakeLock> mWakeLock;
 
   /**
@@ -1890,8 +1903,13 @@ private:
   // For debugging bug 1407148.
   void AssertReadyStateIsNothing();
 
-  // Attach UA Shadow Root if it is not attached.
-  void AttachAndSetUAShadowRoot();
+  // Contains the unique id of the sink device and the device info.
+  // The initial value is ("", nullptr) and the default output device is used.
+  // It can contain an invalid id and info if the device has been
+  // unplugged. It can be set to ("", nullptr). It follows the spec attribute:
+  // https://w3c.github.io/mediacapture-output/#htmlmediaelement-extensions
+  // Read/Write from the main thread only.
+  Pair<nsString, RefPtr<AudioDeviceInfo>> mSink;
 };
 
 // Check if the context is chrome or has the debugger or tabs permission

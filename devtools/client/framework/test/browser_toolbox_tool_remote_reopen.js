@@ -76,7 +76,7 @@ function getTarget(client) {
       const target = TargetFactory.forRemoteTab({
         client: client,
         form: tabList.tabs[tabList.selected],
-        chrome: false
+        chrome: false,
       });
       resolve(target);
     });
@@ -108,15 +108,15 @@ function test() {
       }
 
       for (const actor of pool.__poolMap.keys()) {
+        // Ignore the root front as it is only release on client close
+        if (actor == "root") {
+          continue;
+        }
         // Bug 1056342: Profiler fails today because of framerate actor, but
         // this appears more complex to rework, so leave it for that bug to
         // resolve.
         if (actor.includes("framerateActor")) {
           todo(false, "Front for " + actor + " still held in pool!");
-          continue;
-        }
-        // gcliActor is for the commandline which is separate to the toolbox
-        if (actor.includes("gcliActor")) {
           continue;
         }
         ok(false, "Front for " + actor + " still held in pool!");

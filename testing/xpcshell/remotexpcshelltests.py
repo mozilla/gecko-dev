@@ -129,19 +129,17 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         self.httpdManifest = posixpath.join(self.remoteComponentsDir, 'httpd.manifest')
         self.testingModulesDir = self.remoteModulesDir
         self.testharnessdir = self.remoteScriptsDir
-        xpcshell.XPCShellTestThread.buildXpcsCmd(self)
+        xpcsCmd = xpcshell.XPCShellTestThread.buildXpcsCmd(self)
         # remove "-g <dir> -a <dir>" and add "--greomni <apk>"
-        del(self.xpcsCmd[1:5])
+        del xpcsCmd[1:5]
         if self.options['localAPK']:
-            self.xpcsCmd.insert(3, '--greomni')
-            self.xpcsCmd.insert(4, self.remoteAPK)
+            xpcsCmd.insert(3, '--greomni')
+            xpcsCmd.insert(4, self.remoteAPK)
 
         if self.remoteDebugger:
             # for example, "/data/local/gdbserver" "localhost:12345"
-            self.xpcsCmd = [
-              self.remoteDebugger,
-              self.remoteDebuggerArgs,
-              self.xpcsCmd]
+            xpcsCmd = [self.remoteDebugger, self.remoteDebuggerArgs] + xpcsCmd
+        return xpcsCmd
 
     def killTimeout(self, proc):
         self.kill(proc)
@@ -350,6 +348,16 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.device.chmod(remoteWrapper, root=True)
         os.remove(localWrapper)
 
+    def buildPrefsFile(self, extraPrefs):
+        prefs = super(XPCShellRemote, self).buildPrefsFile(extraPrefs)
+
+        remotePrefsFile = posixpath.join(self.remoteTestRoot, 'user.js')
+        self.device.push(self.prefsFile, remotePrefsFile)
+        self.device.chmod(remotePrefsFile, root=True)
+        os.remove(self.prefsFile)
+        self.prefsFile = remotePrefsFile
+        return prefs
+
     def buildEnvironment(self):
         self.buildCoreEnvironment()
         self.setLD_LIBRARY_PATH()
@@ -432,12 +440,9 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.pushLibs()
 
     def pushLibs(self):
-        elfhack = None
-        xrePath = self.options.get('xrePath')
-        if xrePath:
-            elfhack = os.path.join(xrePath, 'elfhack')
-            if not os.path.exists(elfhack):
-                elfhack = None
+        elfhack = os.path.join(self.localBin, 'elfhack')
+        if not os.path.exists(elfhack):
+            elfhack = None
         pushed_libs_count = 0
         if self.options['localAPK']:
             try:

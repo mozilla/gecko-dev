@@ -12,12 +12,19 @@ ChromeUtils.import("resource://gre/modules/Services.jsm", this);
 ChromeUtils.import("resource://gre/modules/ctypes.jsm", this);
 ChromeUtils.import("resource://gre/modules/UpdateTelemetry.jsm", this);
 ChromeUtils.import("resource://gre/modules/AppConstants.jsm", this);
+ChromeUtils.import("resource://gre/modules/osfile.jsm", this);
 XPCOMUtils.defineLazyGlobalGetters(this, ["DOMParser", "XMLHttpRequest"]);
 
 const UPDATESERVICE_CID = Components.ID("{B3C290A6-3943-4B89-8BBE-C01EB7B3B311}");
 
 const PREF_APP_UPDATE_ALTWINDOWTYPE        = "app.update.altwindowtype";
+// Do not use PREF_APP_UPDATE_AUTO directly! Call getAutoUpdateIsEnabled or
+// setAutoUpdateIsEnabled.
+// See nsIApplicationUpdateService::getAutoUpdateIsEnabled and
+// nsIApplicationUpdateService::setAutoUpdateIsEnabled in nsIUpdateService.idl
+// for additional details.
 const PREF_APP_UPDATE_AUTO                 = "app.update.auto";
+const PREF_APP_UPDATE_AUTO_MIGRATED        = "app.update.auto.migrated";
 const PREF_APP_UPDATE_BACKGROUNDINTERVAL   = "app.update.download.backgroundInterval";
 const PREF_APP_UPDATE_BACKGROUNDERRORS     = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BACKGROUNDMAXERRORS  = "app.update.backgroundMaxErrors";
@@ -46,6 +53,14 @@ const PREF_APP_UPDATE_SOCKET_RETRYTIMEOUT  = "app.update.socket.retryTimeout";
 const PREF_APP_UPDATE_STAGING_ENABLED      = "app.update.staging.enabled";
 const PREF_APP_UPDATE_URL                  = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS          = "app.update.url.details";
+// Note that although this value has the same format as those above, it is very
+// different. It is not stored as part of the user's prefs. Instead it is stored
+// in the file indicated by FILE_UPDATE_CONFIG_JSON , which will be located in
+// the update directory. This allows it to be accessible from all Firefox
+// profiles and from the Background Update Agent.
+const CONFIG_APP_UPDATE_AUTO               = "app.update.auto";
+// The default value for the above setting
+const DEFAULT_APP_UPDATE_AUTO = true;
 
 const URI_BRAND_PROPERTIES      = "chrome://branding/locale/brand.properties";
 const URI_UPDATE_HISTORY_DIALOG = "chrome://mozapps/content/update/history.xul";
@@ -60,8 +75,10 @@ const DIR_UPDATES         = "updates";
 
 const FILE_ACTIVE_UPDATE_XML = "active-update.xml";
 const FILE_BACKUP_UPDATE_LOG = "backup-update.log";
+const FILE_BT_RESULT         = "bt.result";
 const FILE_LAST_UPDATE_LOG   = "last-update.log";
 const FILE_UPDATES_XML       = "updates.xml";
+const FILE_UPDATE_CONFIG_JSON = "update-config.json";
 const FILE_UPDATE_LOG        = "update.log";
 const FILE_UPDATE_MAR        = "update.mar";
 const FILE_UPDATE_STATUS     = "update.status";
@@ -189,6 +206,9 @@ const APPID_TO_TOPIC = {
 // A var is used for the delay so tests can set a smaller value.
 var gSaveUpdateXMLDelay = 2000;
 var gUpdateMutexHandle = null;
+// The permissions of the update directory should be fixed no more than once per
+// session
+var gUpdateDirPermissionFixAttempted = false;
 
 ChromeUtils.defineModuleGetter(this, "UpdateUtils",
                                "resource://gre/modules/UpdateUtils.jsm");
@@ -210,6 +230,8 @@ XPCOMUtils.defineLazyGetter(this, "gLogEnabled", function aus_gLogEnabled() {
 XPCOMUtils.defineLazyGetter(this, "gUpdateBundle", function aus_gUpdateBundle() {
   return Services.strings.createBundle(URI_UPDATES_PROPERTIES);
 });
+
+XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => new TextDecoder());
 
 /**
  * Tests to make sure that we can write to a given directory.
@@ -648,6 +670,29 @@ function readStatusFile(dir) {
 }
 
 /**
+ * Reads the binary transparency result file from the given directory.
+ * Removes the file if it is present (so don't call this twice and expect a
+ * result the second time).
+ * @param   dir
+ *          The dir to look for an update.bt file in
+ * @return  A error code from verifying binary transparency information or null
+ *          if the file was not present (indicating there was no error).
+ */
+function readBinaryTransparencyResult(dir) {
+  let binaryTransparencyResultFile = dir.clone();
+  binaryTransparencyResultFile.append(FILE_BT_RESULT);
+  let result = readStringFromFile(binaryTransparencyResultFile);
+  LOG("readBinaryTransparencyResult - result: " + result + ", path: "
+      + binaryTransparencyResultFile.path);
+  // If result is non-null, the file exists. We should remove it to avoid
+  // double-reporting this result.
+  if (result) {
+    binaryTransparencyResultFile.remove(false);
+  }
+  return result;
+}
+
+/**
  * Writes the current update operation/state to a file in the patch
  * directory, indicating to the patching system that operations need
  * to be performed.
@@ -660,7 +705,10 @@ function readStatusFile(dir) {
 function writeStatusFile(dir, state) {
   let statusFile = dir.clone();
   statusFile.append(FILE_UPDATE_STATUS);
-  writeStringToFile(statusFile, state);
+  let success = writeStringToFile(statusFile, state);
+  if (!success) {
+    handleCriticalWriteFailure(statusFile.path);
+  }
 }
 
 /**
@@ -681,7 +729,10 @@ function writeStatusFile(dir, state) {
 function writeVersionFile(dir, version) {
   let versionFile = dir.clone();
   versionFile.append(FILE_UPDATE_VERSION);
-  writeStringToFile(versionFile, version);
+  let success = writeStringToFile(versionFile, version);
+  if (!success) {
+    handleCriticalWriteFailure(versionFile.path);
+  }
 }
 
 /**
@@ -813,12 +864,20 @@ function cleanupActiveUpdate() {
 /**
  * Writes a string of text to a file.  A newline will be appended to the data
  * written to the file.  This function only works with ASCII text.
+ * @param file An nsIFile indicating what file to write to.
+ * @param text A string containing the text to write to the file.
+ * @return true on success, false on failure.
  */
 function writeStringToFile(file, text) {
-  let fos = FileUtils.openSafeFileOutputStream(file);
-  text += "\n";
-  fos.write(text, text.length);
-  FileUtils.closeSafeFileOutputStream(fos);
+  try {
+    let fos = FileUtils.openSafeFileOutputStream(file);
+    text += "\n";
+    fos.write(text, text.length);
+    FileUtils.closeSafeFileOutputStream(fos);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }
 
 function readStringFromInputStream(inputStream) {
@@ -1026,6 +1085,8 @@ function pingStateAndStatusCodes(aUpdate, aStartup, aStatus) {
       case STATE_PENDING_ELEVATE:
         stateCode = 13;
         break;
+      // Note: Do not use stateCode 14 here. It is defined in
+      // UpdateTelemetry.jsm
       default:
         stateCode = 1;
     }
@@ -1038,7 +1099,106 @@ function pingStateAndStatusCodes(aUpdate, aStartup, aStatus) {
       AUSTLMY.pingStatusErrorCode(suffix, statusErrorCode);
     }
   }
+  let binaryTransparencyResult = readBinaryTransparencyResult(getUpdatesDir());
+  if (binaryTransparencyResult) {
+    AUSTLMY.pingBinaryTransparencyResult(suffix, parseInt(binaryTransparencyResult));
+  }
   AUSTLMY.pingStateCode(suffix, stateCode);
+}
+
+/**
+ * This function should be called whenever we fail to write to a file required
+ * for update to function. This function will, if possible, attempt to fix the
+ * file permissions. If the file permissions cannot be fixed, the user will be
+ * prompted to reinstall.
+ *
+ * All functionality happens asynchronously.
+ *
+ * Returns false if the permission-fixing process cannot be started. Since this
+ * is asynchronous, a true return value does not mean that the permissions were
+ * actually fixed.
+ *
+ * @param path A string representing the path that could not be written. This
+ *             value will only be used for logging purposes.
+ */
+function handleCriticalWriteFailure(path) {
+  LOG("Unable to write to critical update file: " + path);
+
+  let updateManager = Cc["@mozilla.org/updates/update-manager;1"].
+                      getService(Ci.nsIUpdateManager);
+
+  let update = updateManager.activeUpdate;
+  if (update) {
+    let patch = update.selectedPatch;
+    let patchType = AUSTLMY.PATCH_UNKNOWN;
+    if (patch.type == "complete") {
+      patchType = AUSTLMY.PATCH_COMPLETE;
+    } else if (patch.type == "partial") {
+      patchType = AUSTLMY.PATCH_PARTIAL;
+    }
+    if (update.state == STATE_DOWNLOADING) {
+      if (!patch.downloadWriteFailureTelemetrySent) {
+        AUSTLMY.pingDownloadCode(patchType, AUSTLMY.DWNLD_ERR_WRITE_FAILURE);
+        patch.downloadWriteFailureTelemetrySent = true;
+      }
+    } else if (!patch.applyWriteFailureTelemetrySent) {
+      // It's not ideal to hardcode AUSTLMY.STARTUP below (it could be
+      // AUSTLMY.STAGE). But staging is not used anymore and neither value
+      // really makes sense for this code. For the other codes it indicates when
+      // that code was read from the update status file, but this code was never
+      // read from the update status file.
+      let suffix = patchType + "_" + AUSTLMY.STARTUP;
+      AUSTLMY.pingStateCode(suffix, AUSTLMY.STATE_WRITE_FAILURE);
+      patch.applyWriteFailureTelemetrySent = true;
+    }
+  } else {
+    let updateServiceInstance = UpdateServiceFactory.createInstance();
+    let request = updateServiceInstance.backgroundChecker._request;
+    if (!request.checkWriteFailureTelemetrySent) {
+      let pingSuffix = updateServiceInstance._pingSuffix;
+      AUSTLMY.pingCheckCode(pingSuffix, AUSTLMY.CHK_ERR_WRITE_FAILURE);
+      request.checkWriteFailureTelemetrySent = true;
+    }
+  }
+
+  if (!gUpdateDirPermissionFixAttempted) {
+    // Currently, we only have a mechanism for fixing update directory permissions
+    // on Windows.
+    if (AppConstants.platform != "win") {
+      LOG("There is currently no implementation for fixing update directory " +
+          "permissions on this platform");
+      return false;
+    }
+    LOG("Attempting to fix update directory permissions");
+    try {
+      Cc["@mozilla.org/updates/update-processor;1"].
+        createInstance(Ci.nsIUpdateProcessor).
+        fixUpdateDirectoryPerms(shouldUseService());
+    } catch (e) {
+      LOG("Attempt to fix update directory permissions failed. Exception: " + e);
+      return false;
+    }
+    gUpdateDirPermissionFixAttempted = true;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * This is a convenience function for calling the above function depending on a
+ * boolean success value.
+ *
+ * @param wroteSuccessfully A boolean representing whether or not the write was
+ *                          successful. When this is true, this function does
+ *                          nothing.
+ * @param path A string representing the path to the file that the operation
+ *             attempted to write to. This value is only used for logging
+ *             purposes.
+ */
+function handleCriticalWriteResult(wroteSuccessfully, path) {
+  if (!wroteSuccessfully) {
+    handleCriticalWriteFailure(path);
+  }
 }
 
 /**
@@ -1546,6 +1706,11 @@ UpdateService.prototype = {
   observe: function AUS_observe(subject, topic, data) {
     switch (topic) {
       case "post-update-processing":
+        // This pref was not cleared out of profiles after it stopped being used
+        // (Bug 1420514), so clear it out on the next update to avoid confusion
+        // regarding its use.
+        Services.prefs.clearUserPref("app.update.enabled");
+
         if (readStatusFile(getUpdatesDir()) == STATE_SUCCEEDED) {
           // After a successful update the post update preference needs to be
           // set early during startup so applications can perform post update
@@ -1966,8 +2131,10 @@ UpdateService.prototype = {
     // Histogram IDs:
     // UPDATE_NOT_PREF_UPDATE_AUTO_EXTERNAL
     // UPDATE_NOT_PREF_UPDATE_AUTO_NOTIFY
-    AUSTLMY.pingBoolPref("UPDATE_NOT_PREF_UPDATE_AUTO_" + this._pingSuffix,
-                         PREF_APP_UPDATE_AUTO, true, true);
+    this.getAutoUpdateIsEnabled().then(enabled => {
+      AUSTLMY.pingGeneric("UPDATE_NOT_PREF_UPDATE_AUTO_" + this._pingSuffix,
+                          enabled, DEFAULT_APP_UPDATE_AUTO);
+    });
     // Histogram IDs:
     // UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_EXTERNAL
     // UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_NOTIFY
@@ -2182,7 +2349,7 @@ UpdateService.prototype = {
    * @param   updates
    *          An array of available updates
    */
-  _selectAndInstallUpdate: function AUS__selectAndInstallUpdate(updates) {
+  _selectAndInstallUpdate: async function AUS__selectAndInstallUpdate(updates) {
     // Return early if there's an active update. The user is already aware and
     // is downloading or performed some user action to prevent notification.
     var um = Cc["@mozilla.org/updates/update-manager;1"].
@@ -2245,7 +2412,8 @@ UpdateService.prototype = {
      * Major         Notify
      * Minor         Auto Install
      */
-    if (!Services.prefs.getBoolPref(PREF_APP_UPDATE_AUTO, true)) {
+    let updateAuto = await this.getAutoUpdateIsEnabled();
+    if (!updateAuto) {
       LOG("UpdateService:_selectAndInstallUpdate - prompting because silent " +
           "install is disabled. Notifying observers. topic: update-available, " +
           "status: show-prompt");
@@ -2326,6 +2494,132 @@ UpdateService.prototype = {
 
     LOG("UpdateService.canCheckForUpdates - able to check for updates");
     return true;
+  },
+
+  _updateAutoSettingCachedVal: null,
+  // Used for serializing reads and writes of the app update json config file.
+  // This is especially important for making sure writes don't happen out of
+  // order. It would be bad if a user double-toggling this setting resulted in a
+  // race condition. The last write must be the one that ultimately controls
+  // the setting's value.
+  _updateAutoIOPromise: Promise.resolve(),
+
+  _readUpdateAutoConfig: async function AUS__readUpdateAuto() {
+    let configFile = getUpdateFile([FILE_UPDATE_CONFIG_JSON ]);
+    let binaryData = await OS.File.read(configFile.path);
+    let jsonData = gTextDecoder.decode(binaryData);
+    let configData = JSON.parse(jsonData);
+    return !!configData[CONFIG_APP_UPDATE_AUTO];
+  },
+
+  _writeUpdateAutoConfig: async function AUS__writeUpdateAutoPref(enabledValue) {
+    let enabledBoolValue = !!enabledValue;
+    let configFile = getUpdateFile([FILE_UPDATE_CONFIG_JSON]);
+    let configObject = {[CONFIG_APP_UPDATE_AUTO]: enabledBoolValue};
+
+    await OS.File.writeAtomic(configFile.path, JSON.stringify(configObject));
+    return enabledBoolValue;
+  },
+
+  // If the value of app.update.auto has changed, notify observers. Returns the
+  // new value for app.update.auto.
+  _maybeUpdateAutoConfigChanged: function AUS__maybeUpdateAutoConfigChanged(newValue) {
+    if (newValue != this._updateAutoSettingCachedVal) {
+      this._updateAutoSettingCachedVal = newValue;
+      Services.obs.notifyObservers(null, "auto-update-config-change",
+                                   newValue.toString());
+    }
+    return newValue;
+  },
+
+  /**
+   * See nsIUpdateService.idl
+   */
+  getAutoUpdateIsEnabled: function AUS_getAutoUpdateIsEnabled() {
+    if (AppConstants.platform != "win") {
+      // Only in Windows do we store the update config in the update directory
+      let prefValue = Services.prefs.getBoolPref(PREF_APP_UPDATE_AUTO,
+                                                 DEFAULT_APP_UPDATE_AUTO);
+      return Promise.resolve(prefValue);
+    }
+    // Justification for the empty catch statement below:
+    // All promises returned by (get|set)AutoUpdateIsEnabled are part of a
+    // single promise chain in order to serialize disk operations. We don't want
+    // the entire promise chain to reject when one operation fails.
+    //
+    // There is only one situation when a promise in this chain should ever
+    // reject, which is when writing fails and the error is logged and
+    // re-thrown. All other possible exceptions are wrapped in try blocks, which
+    // also log any exception that may occur.
+    let readPromise = this._updateAutoIOPromise.catch(() => {}).then(async () => {
+      try {
+        let configValue = await this._readUpdateAutoConfig();
+        // If we read a value out of this file, don't later perform migration.
+        // If the file is deleted, we don't want some stale pref getting
+        // written to it just because a different profile performed migration.
+        Services.prefs.setBoolPref(PREF_APP_UPDATE_AUTO_MIGRATED, true);
+        return configValue;
+      } catch (e) {
+        LOG("UpdateService.getAutoUpdateIsEnabled - Unable to read app " +
+            "update configuration file. Exception: " + e);
+        let valueMigrated = Services.prefs.getBoolPref(
+                              PREF_APP_UPDATE_AUTO_MIGRATED,
+                              false);
+        if (!valueMigrated) {
+          LOG("UpdateService.getAutoUpdateIsEnabled - Attempting migration.");
+          Services.prefs.setBoolPref(PREF_APP_UPDATE_AUTO_MIGRATED, true);
+          let prefValue = Services.prefs.getBoolPref(PREF_APP_UPDATE_AUTO,
+                                                     DEFAULT_APP_UPDATE_AUTO);
+          try {
+            let writtenValue = await this._writeUpdateAutoConfig(prefValue);
+            Services.prefs.clearUserPref(PREF_APP_UPDATE_AUTO);
+            return writtenValue;
+          } catch (e) {
+            LOG("UpdateService.getAutoUpdateIsEnabled - Migration failed. " +
+                "Exception: " + e);
+          }
+        }
+      }
+      // Fallthrough for if the value could not be read or migrated.
+      return DEFAULT_APP_UPDATE_AUTO;
+    }).then(this._maybeUpdateAutoConfigChanged.bind(this));
+    this._updateAutoIOPromise = readPromise;
+    return readPromise;
+  },
+
+  /**
+   * See nsIUpdateService.idl
+   */
+  setAutoUpdateIsEnabled: function AUS_setAutoUpdateIsEnabled(enabledValue) {
+    if (AppConstants.platform != "win") {
+      // Only in Windows do we store the update config in the update directory
+      let prefValue = !!enabledValue;
+      Services.prefs.setBoolPref(PREF_APP_UPDATE_AUTO, prefValue);
+      this._maybeUpdateAutoConfigChanged(prefValue);
+      return Promise.resolve(prefValue);
+    }
+    // Justification for the empty catch statement below:
+    // All promises returned by (get|set)AutoUpdateIsEnabled are part of a
+    // single promise chain in order to serialize disk operations. We don't want
+    // the entire promise chain to reject when one operation fails.
+    //
+    // There is only one situation when a promise in this chain should ever
+    // reject, which is when writing fails and the error is logged and
+    // re-thrown. All other possible exceptions are wrapped in try blocks, which
+    // also log any exception that may occur.
+    let writePromise = this._updateAutoIOPromise.catch(() => {}).then(async () => {
+      try {
+        return await this._writeUpdateAutoConfig(enabledValue);
+      } catch (e) {
+        LOG("UpdateService.setAutoUpdateIsEnabled - App update configuration " +
+            "file write failed. Exception: " + e);
+        // After logging, rethrow the error so the caller knows that writing the
+        // value in the app update config file failed.
+        throw e;
+      }
+    }).then(this._maybeUpdateAutoConfigChanged.bind(this));
+    this._updateAutoIOPromise = writePromise;
+    return writePromise;
   },
 
   /**
@@ -2551,9 +2845,15 @@ UpdateManager.prototype = {
       return updates;
     }
 
-    var fileStream = Cc["@mozilla.org/network/file-input-stream;1"].
+    let fileStream = Cc["@mozilla.org/network/file-input-stream;1"].
                      createInstance(Ci.nsIFileInputStream);
-    fileStream.init(file, FileUtils.MODE_RDONLY, FileUtils.PERMS_FILE, 0);
+    try {
+      fileStream.init(file, FileUtils.MODE_RDONLY, FileUtils.PERMS_FILE, 0);
+    } catch (e) {
+      LOG("UpdateManager:_loadXMLFileIntoArray - error initializing file " +
+          "stream. Exception: " + e);
+      return updates;
+    }
     try {
       var parser = new DOMParser();
       var doc = parser.parseFromStream(fileStream, "UTF-8",
@@ -2650,14 +2950,28 @@ UpdateManager.prototype = {
    *          An array of nsIUpdate objects
    * @param   fileName
    *          The file name in the updates directory to write to.
+   * @return  true on success, false on error
    */
   _writeUpdatesToXMLFile: async function UM__writeUpdatesToXMLFile(updates, fileName) {
-    let file = getUpdateFile([fileName]);
+    let file;
+    try {
+      file = getUpdateFile([fileName]);
+    } catch (e) {
+      LOG("UpdateManager:_writeUpdatesToXMLFile - Unable to get XML file - " +
+          "Exception: " + e);
+      return false;
+    }
     if (updates.length == 0) {
       LOG("UpdateManager:_writeUpdatesToXMLFile - no updates to write. " +
           "removing file: " + file.path);
-      await OS.File.remove(file.path, {ignoreAbsent: true});
-      return;
+      try {
+        await OS.File.remove(file.path, {ignoreAbsent: true});
+      } catch (e) {
+        LOG("UpdateManager:_writeUpdatesToXMLFile - Delete file exception: " +
+            e);
+        return false;
+      }
+      return true;
     }
 
     const EMPTY_UPDATES_DOCUMENT_OPEN = "<?xml version=\"1.0\"?><updates xmlns=\"http://www.mozilla.org/2005/app-update\">";
@@ -2677,7 +2991,9 @@ UpdateManager.prototype = {
       await OS.File.setPermissions(file.path, {unixMode: FileUtils.PERMS_FILE});
     } catch (e) {
       LOG("UpdateManager:_writeUpdatesToXMLFile - Exception: " + e);
+      return false;
     }
+    return true;
   },
 
   _updatesXMLSaver: null,
@@ -2713,13 +3029,19 @@ UpdateManager.prototype = {
     // the lifetime of an active update and the file should always be updated
     // when saveUpdates is called.
     this._writeUpdatesToXMLFile(this._activeUpdate ? [this._activeUpdate] : [],
-                                FILE_ACTIVE_UPDATE_XML);
+                                FILE_ACTIVE_UPDATE_XML).then(
+      wroteSuccessfully => handleCriticalWriteResult(wroteSuccessfully,
+                                                     FILE_ACTIVE_UPDATE_XML)
+    );
     // The update history stored in the updates.xml file should only need to be
     // updated when an active update has been added to it in which case
     // |_updatesDirty| will be true.
     if (this._updatesDirty) {
       this._updatesDirty = false;
-      this._writeUpdatesToXMLFile(this._updates, FILE_UPDATES_XML);
+      this._writeUpdatesToXMLFile(this._updates, FILE_UPDATES_XML).then(
+        wroteSuccessfully => handleCriticalWriteResult(wroteSuccessfully,
+                                                       FILE_UPDATES_XML)
+      );
     }
   },
 
@@ -3525,6 +3847,7 @@ Downloader.prototype = {
    * @param   status
    *          Status code containing the reason for the cessation.
    */
+   /* eslint-disable-next-line complexity */
   onStopRequest: function Downloader_onStopRequest(request, context, status) {
     if (request instanceof Ci.nsIIncrementalDownload)
       LOG("Downloader:onStopRequest - original URI spec: " + request.URI.spec +
@@ -3545,6 +3868,7 @@ Downloader.prototype = {
                                             DEFAULT_SOCKET_MAX_ERRORS);
     // Prevent the preference from setting a value greater than 20.
     maxFail = Math.min(maxFail, 20);
+    let permissionFixingInProgress = false;
     LOG("Downloader:onStopRequest - status: " + status + ", " +
         "current fail: " + this.updateService._consecutiveSocketErrors + ", " +
         "max fail: " + maxFail + ", " +
@@ -3619,7 +3943,18 @@ Downloader.prototype = {
       deleteActiveUpdate = false;
     } else if (status != Cr.NS_BINDING_ABORTED &&
                status != Cr.NS_ERROR_ABORT) {
-      LOG("Downloader:onStopRequest - non-verification failure");
+      if (status == Cr.NS_ERROR_FILE_ACCESS_DENIED ||
+          status == Cr.NS_ERROR_FILE_READ_ONLY) {
+        LOG("Downloader:onStopRequest - permission error");
+        // This will either fix the permissions, or asynchronously show the
+        // reinstall prompt if it cannot fix them.
+        let patchFile = getUpdatesDir().clone();
+        patchFile.append(FILE_UPDATE_MAR);
+        permissionFixingInProgress = handleCriticalWriteFailure(patchFile.path);
+      } else {
+        LOG("Downloader:onStopRequest - non-verification failure");
+      }
+
       let dwnldCode = AUSTLMY.DWNLD_ERR_BINDING_ABORTED;
       if (status == Cr.NS_ERROR_ABORT) {
         dwnldCode = AUSTLMY.DWNLD_ERR_ABORT;
@@ -3682,7 +4017,7 @@ Downloader.prototype = {
         }
       }
 
-      if (allFailed) {
+      if (allFailed && !permissionFixingInProgress) {
         if (Services.prefs.getBoolPref(PREF_APP_UPDATE_DOORHANGER, false)) {
           let downloadAttempts = Services.prefs.getIntPref(PREF_APP_UPDATE_DOWNLOAD_ATTEMPTS, 0);
           downloadAttempts++;
@@ -3713,7 +4048,8 @@ Downloader.prototype = {
                          createInstance(Ci.nsIUpdatePrompt);
           prompter.showUpdateError(this._update);
         }
-
+      }
+      if (allFailed) {
         // Prevent leaking the update object (bug 454964).
         this._update = null;
       }

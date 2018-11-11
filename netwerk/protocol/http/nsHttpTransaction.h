@@ -33,6 +33,8 @@ class nsHttpChunkedDecoder;
 class nsHttpHeaderArray;
 class nsHttpRequestHead;
 class nsHttpResponseHead;
+class NullHttpTransaction;
+class SpdyConnectTransaction;
 
 //-----------------------------------------------------------------------------
 // nsHttpTransaction represents a single HTTP transaction.  It is thread-safe,
@@ -138,6 +140,8 @@ public:
     void DispatchedAsBlocking();
     void RemoveDispatchedAsBlocking();
 
+    void DisableSpdy() override;
+
     nsHttpTransaction *QueryHttpTransaction() override { return this; }
 
     Http2PushedStream *GetPushedStream() { return mPushedStream; }
@@ -193,6 +197,9 @@ public:
     void SetFastOpenStatus(uint8_t aStatus) override;
 
     void SetHttpTrailers(nsCString &aTrailers);
+
+    bool IsWebsocketUpgrade();
+    void SetH2WSTransaction(SpdyConnectTransaction *);
 private:
     friend class DeleteHttpTransaction;
     virtual ~nsHttpTransaction();
@@ -223,7 +230,6 @@ private:
 
     bool ResponseTimeoutEnabled() const final;
 
-    void DisableSpdy() override;
     void ReuseConnectionOnRestartOK(bool reuseOk) override { mReuseOnRestart = reuseOk; }
 
     // Called right after we parsed the response head.  Checks for connection based
@@ -466,6 +472,9 @@ private:
     } mEarlyDataDisposition;
 
     uint8_t mFastOpenStatus;
+
+    // H2 websocket support
+    RefPtr<SpdyConnectTransaction> mH2WSTransaction;
 };
 
 } // namespace net

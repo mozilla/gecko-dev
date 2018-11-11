@@ -30,18 +30,20 @@ add_task(async function() {
     return DebuggerServer.AuthenticationResult.ALLOW;
   };
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.authenticator = authenticator;
-  listener.encryption = true;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
   const transport = await DebuggerClient.socketConnect({
     host: "127.0.0.1",
     port: listener.port,
-    encryption: true
+    encryption: true,
   });
   ok(transport, "Client transport created");
 
@@ -54,11 +56,7 @@ add_task(async function() {
 
   // Send a message the server will echo back
   const message = "secrets";
-  const reply = await client.request({
-    to: "root",
-    type: "echo",
-    message
-  });
+  const reply = await client.mainRoot.echo({ message });
   equal(reply.message, message, "Encrypted echo matches");
 
   client.removeListener("closed", onUnexpectedClose);
@@ -77,18 +75,20 @@ add_task(async function() {
     return DebuggerServer.AuthenticationResult.ALLOW;
   };
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.authenticator = authenticator;
-  listener.encryption = true;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
   try {
     await DebuggerClient.socketConnect({
       host: "127.0.0.1",
-      port: listener.port
+      port: listener.port,
       // encryption: false is the default
     });
   } catch (e) {

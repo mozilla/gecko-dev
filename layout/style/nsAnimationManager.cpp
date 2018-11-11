@@ -421,7 +421,7 @@ private:
 static void
 UpdateOldAnimationPropertiesWithNew(
     CSSAnimation& aOld,
-    TimingParams& aNewTiming,
+    TimingParams&& aNewTiming,
     nsTArray<Keyframe>&& aNewKeyframes,
     bool aNewIsStylePaused,
     ServoCSSAnimationBuilder& aBuilder)
@@ -433,7 +433,7 @@ UpdateOldAnimationPropertiesWithNew(
   if (aOld.GetEffect()) {
     dom::AnimationEffect* oldEffect = aOld.GetEffect();
     animationChanged = oldEffect->SpecifiedTiming() != aNewTiming;
-    oldEffect->SetSpecifiedTiming(aNewTiming);
+    oldEffect->SetSpecifiedTiming(std::move(aNewTiming));
 
     KeyframeEffect* oldKeyframeEffect = oldEffect->AsKeyframeEffect();
     if (oldKeyframeEffect) {
@@ -500,7 +500,7 @@ BuildAnimation(nsPresContext* aPresContext,
 
   bool isStylePaused =
     aStyleDisplay.GetAnimationPlayState(animIdx) ==
-      NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
+      StyleAnimationPlayState::Paused;
 
   // Find the matching animation with animation name in the old list
   // of animations and remove the matched animation from the list.
@@ -517,7 +517,7 @@ BuildAnimation(nsPresContext* aPresContext,
     // http://lists.w3.org/Archives/Public/www-style/2011Apr/0079.html
     // In order to honor what the spec said, we'd copy more data over.
     UpdateOldAnimationPropertiesWithNew(*oldAnim,
-                                        timing,
+                                        std::move(timing),
                                         std::move(keyframes),
                                         isStylePaused,
                                         aBuilder);
@@ -529,7 +529,7 @@ BuildAnimation(nsPresContext* aPresContext,
   target.emplace(aTarget.mElement, aTarget.mPseudoType);
   KeyframeEffectParams effectOptions;
   RefPtr<KeyframeEffect> effect =
-    new KeyframeEffect(aPresContext->Document(), target, timing, effectOptions);
+    new KeyframeEffect(aPresContext->Document(), target, std::move(timing), effectOptions);
 
   aBuilder.SetKeyframes(*effect, std::move(keyframes));
 

@@ -2,13 +2,18 @@ buildDir "${topobjdir}/gradle/build/mobile/android/app"
 
 apply plugin: 'com.android.application'
 apply plugin: 'checkstyle'
-apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: 'findbugs'
+
+if (mozconfig.substs.MOZILLA_OFFICIAL) {
+    apply plugin: 'com.getkeepsafe.dexcount'
+}
 
 apply from: "${topsrcdir}/mobile/android/gradle/product_flavors.gradle"
 
-dexcount {
-    format = "tree"
+if (mozconfig.substs.MOZILLA_OFFICIAL) {
+    dexcount {
+        format = "tree"
+    }
 }
 
 android {
@@ -88,27 +93,10 @@ android {
         }
     }
 
-    // The "audience" flavour dimension distinguishes between _local_ builds (intended for
-    // development) and _official_ builds (intended for testing in automation and to ship in one of
-    // the Fennec distribution channels).
-    //
-    // The "skin" flavor dimension distinguishes between different user interfaces.  We sometimes
-    // want to develop significant new user interface pieces in-tree that don't ship (even in the
-    // Nightly channel) while under development.  A new "skin" flavour allows us to develop such
-    // pieces in Gradle without changing the mainline configuration.
-
     project.configureProductFlavors.delegate = it
     project.configureProductFlavors()
 
-    flavorDimensions "audience", "geckoBinaries", "minApi", "skin"
-
-    productFlavors {
-        // Since Firefox 57, the mobile user interface has followed the Photon design.
-        // Before Firefox 57, the user interface followed the Australis design.
-        photon {
-            dimension "skin"
-        }
-    }
+    flavorDimensions "geckoBinaries"
 
     sourceSets {
         main {
@@ -250,11 +238,12 @@ dependencies {
         implementation "com.google.android.gms:play-services-gcm:$google_play_services_version"
     }
 
-    // Include LeakCanary in local builds, but not in official builds.  Mach
-    // builds target the official audience, so LeakCanary will not be included
-    // in any Mach build.
-    localImplementation 'com.squareup.leakcanary:leakcanary-android:1.4-beta1'
-    officialImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+    // Include LeakCanary in local builds, but not in official builds.
+    if (mozconfig.substs.MOZILLA_OFFICIAL) {
+        implementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+    } else {
+        implementation 'com.squareup.leakcanary:leakcanary-android:1.4-beta1'
+    }
     testImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
 
     implementation project(path: ':geckoview')
@@ -318,7 +307,27 @@ android.applicationVariants.all { variant ->
             filter(ExpandXMLEntitiesFilter)
         }
         exclude('**/*.mkdir.done')
+
+        // Bug 1478411: We want to turn XML entity expansion errors into the "error:" strings that
+        // Tree Herder parses.  It's surprisingly difficult to do useful things with exceptions in a
+        // filter, but it appears that something deep in the XML parser prints errors to stderr, so
+        // we amplify those error outputs to achieve the goal.
+        def listener = {
+            def matches = (it =~ /\[Fatal Error\] +(.*)/)
+            if (matches) {
+                def (_, message) = matches[0]
+                logger.lifecycle "error: ${topobjdir}/mobile/android/base/res/values/strings.xml${message}"
+            }
+        } as StandardOutputListener
+
+        doFirst {
+            logging.addStandardErrorListener(listener)
+        }
+        doLast {
+            logging.removeStandardErrorListener(listener)
+        }
     }
+
     // This is an Android-Gradle plugin 3+-ism.  Determined by reading the
     // source.  The added directory doesn't appear in the paths listed by the
     // `sourceSets` task, for reasons unknown.
@@ -349,7 +358,7 @@ android.applicationVariants.all { variant ->
     // this, the Gradle build calls out to the moz.build system, which can be
     // re-entrant.  Official builds are driven by the moz.build system and
     // should never be re-entrant in this way.
-    if (!((variant.productFlavors*.name).contains('official'))) {
+    if (!mozconfig.substs.MOZILLA_OFFICIAL) {
         syncPreprocessedJava.dependsOn rootProject.generateCodeAndResources
         syncPreprocessedRes.dependsOn rootProject.generateCodeAndResources
         rewriteManifestPackage.dependsOn rootProject.generateCodeAndResources
@@ -462,9 +471,7 @@ configurations.all {
 }
 
 android.applicationVariants.all { variant ->
-    // Like 'local', 'localOld', or 'official'.
-    def audienceDimension = variant.productFlavors[0].name
-    if (!audienceDimension.equals('official')) {
+    if (!mozconfig.substs.MOZILLA_OFFICIAL) {
         return
     }
 

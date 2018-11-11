@@ -3,7 +3,6 @@
 const TEST_SELECTORS = {
   selRecords: "#credit-cards",
   btnRemove: "#remove",
-  btnShowHideCreditCards: "#show-hide-credit-cards",
   btnAdd: "#add",
   btnEdit: "#edit",
 };
@@ -15,13 +14,11 @@ add_task(async function test_manageCreditCardsInitialState() {
     await ContentTask.spawn(browser, TEST_SELECTORS, (args) => {
       let selRecords = content.document.querySelector(args.selRecords);
       let btnRemove = content.document.querySelector(args.btnRemove);
-      let btnShowHideCreditCards = content.document.querySelector(args.btnShowHideCreditCards);
       let btnAdd = content.document.querySelector(args.btnAdd);
       let btnEdit = content.document.querySelector(args.btnEdit);
 
       is(selRecords.length, 0, "No credit card");
       is(btnRemove.disabled, true, "Remove button disabled");
-      is(btnShowHideCreditCards.disabled, true, "Show Credit Cards button disabled");
       is(btnAdd.disabled, false, "Add button enabled");
       is(btnEdit.disabled, true, "Edit button disabled");
     });
@@ -107,85 +104,72 @@ add_task(async function test_creditCardsDialogWatchesStorageChanges() {
   win.close();
 });
 
-add_task(async function test_showCreditCards() {
+add_task(async function test_showCreditCardIcons() {
   await SpecialPowers.pushPrefEnv({"set": [["privacy.reduceTimerPrecision", false]]});
   await saveCreditCard(TEST_CREDIT_CARD_1);
-  await saveCreditCard(TEST_CREDIT_CARD_2);
-  await saveCreditCard(TEST_CREDIT_CARD_3);
+  let unknownCard = Object.assign({}, TEST_CREDIT_CARD_3, {"cc-type": "gringotts"});
+  await saveCreditCard(unknownCard);
 
   let win = window.openDialog(MANAGE_CREDIT_CARDS_DIALOG_URL, null, DIALOG_SIZE);
   await waitForFocusAndFormReady(win);
 
   let selRecords = win.document.querySelector(TEST_SELECTORS.selRecords);
-  let btnShowHideCreditCards = win.document.querySelector(TEST_SELECTORS.btnShowHideCreditCards);
 
-  is(btnShowHideCreditCards.disabled, false, "Show credit cards button enabled");
-  is(btnShowHideCreditCards.textContent, "Show Credit Cards", "Label should be 'Show Credit Cards'");
+  is(selRecords.classList.contains("branded"), AppConstants.MOZILLA_OFFICIAL,
+     "record picker has 'branded' class in an MOZILLA_OFFICIAL build");
 
-  // Show credit card numbers
-  EventUtils.synthesizeMouseAtCenter(btnShowHideCreditCards, {}, win);
-  await BrowserTestUtils.waitForEvent(selRecords, "LabelsUpdated");
-  is(selRecords[0].text, "5103059495477870", "Decrypted credit card 3");
-  is(selRecords[1].text, "4929001587121045, Timothy Berners-Lee", "Decrypted credit card 2");
-  is(selRecords[2].text, "4111111111111111, John Doe", "Decrypted credit card 1");
-  is(btnShowHideCreditCards.textContent, "Hide Credit Cards", "Label should be 'Hide Credit Cards'");
+  let option0 = selRecords.options[0];
+  let icon0Url = win.getComputedStyle(option0, "::before").backgroundImage;
+  let option1 = selRecords.options[1];
+  let icon1Url = win.getComputedStyle(option1, "::before").backgroundImage;
 
-  // Hide credit card numbers
-  EventUtils.synthesizeMouseAtCenter(btnShowHideCreditCards, {}, win);
-  await BrowserTestUtils.waitForEvent(selRecords, "LabelsUpdated");
-  is(selRecords[0].text, "**** 7870", "Masked credit card 3");
-  is(selRecords[1].text, "**** 1045, Timothy Berners-Lee", "Masked credit card 2");
-  is(selRecords[2].text, "**** 1111, John Doe", "Masked credit card 1");
-  is(btnShowHideCreditCards.textContent, "Show Credit Cards", "Label should be 'Show Credit Cards'");
+  is(option0.getAttribute("cc-type"), "gringotts", "Option has the expected cc-type");
+  is(option1.getAttribute("cc-type"), "visa", "Option has the expected cc-type");
 
-  // Show credit card numbers again to test if they revert back to masked form when reloaded
-  EventUtils.synthesizeMouseAtCenter(btnShowHideCreditCards, {}, win);
-  await BrowserTestUtils.waitForEvent(selRecords, "LabelsUpdated");
-  // Ensure credit card numbers are shown again
-  is(selRecords[0].text, "5103059495477870", "Decrypted credit card 3");
-  // Remove a card to trigger reloading
-  await removeCreditCards([selRecords.options[2].value]);
+  if (AppConstants.MOZILLA_OFFICIAL) {
+    ok(icon0Url.includes("icon-credit-card-generic.svg"),
+       "unknown network option ::before element has the generic icon as backgroundImage: " + icon0Url);
+    ok(icon1Url.includes("cc-logo-visa.svg"),
+       "visa option ::before element has the visa icon as backgroundImage " + icon1Url);
+  }
+
+  await removeCreditCards([option0.value, option1.value]);
   await BrowserTestUtils.waitForEvent(selRecords, "RecordsLoaded");
-  is(selRecords[0].text, "**** 7870", "Masked credit card 3");
-  is(selRecords[1].text, "**** 1045, Timothy Berners-Lee", "Masked credit card 2");
-
-  // Remove the rest of the cards
-  await removeCreditCards([selRecords.options[1].value]);
-  await removeCreditCards([selRecords.options[0].value]);
-  await BrowserTestUtils.waitForEvent(selRecords, "RecordsLoaded");
-  is(btnShowHideCreditCards.disabled, true, "Show credit cards button is disabled when there is no card");
-
+  is(selRecords.length, 0, "Credit card is removed");
   win.close();
 });
 
-add_task(async function test_hasMasterPassword() {
+add_task(async function test_hasEditLoginPrompt() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    todo(OSKeyStoreTestUtils.canTestOSKeyStoreLogin(), "Cannot test OS key store login on official builds.");
+    return;
+  }
+
   await saveCreditCard(TEST_CREDIT_CARD_1);
-  LoginTestUtils.masterPassword.enable();
 
   let win = window.openDialog(MANAGE_CREDIT_CARDS_DIALOG_URL, null, DIALOG_SIZE);
   await waitForFocusAndFormReady(win);
 
   let selRecords = win.document.querySelector(TEST_SELECTORS.selRecords);
   let btnRemove = win.document.querySelector(TEST_SELECTORS.btnRemove);
-  let btnShowHideCreditCards = win.document.querySelector(TEST_SELECTORS.btnShowHideCreditCards);
   let btnAdd = win.document.querySelector(TEST_SELECTORS.btnAdd);
   let btnEdit = win.document.querySelector(TEST_SELECTORS.btnEdit);
-  let masterPasswordDialogShown = waitForMasterPasswordDialog();
 
-  is(btnShowHideCreditCards.hidden, true, "Show credit cards button is hidden");
-
-  // Master password dialog should show when trying to edit a credit card record.
   EventUtils.synthesizeMouseAtCenter(selRecords.children[0], {}, win);
-  EventUtils.synthesizeMouseAtCenter(btnEdit, {}, win);
-  await masterPasswordDialogShown;
 
-  // Master password is not required for removing credit cards.
+  let osKeyStoreLoginShown = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(); // cancel
+  EventUtils.synthesizeMouseAtCenter(btnEdit, {}, win);
+  await osKeyStoreLoginShown;
+  await new Promise(resolve => waitForFocus(resolve, win));
+  await new Promise(resolve => executeSoon(resolve));
+
+  // Login is not required for removing credit cards.
   EventUtils.synthesizeMouseAtCenter(btnRemove, {}, win);
   await BrowserTestUtils.waitForEvent(selRecords, "RecordsRemoved");
   is(selRecords.length, 0, "Credit card is removed");
 
   // gSubDialog.open should be called when trying to add a credit card,
-  // no master password is required.
+  // no OS login dialog is required.
   window.gSubDialog = {
     open: url => is(url, EDIT_CREDIT_CARD_DIALOG_URL, "Edit credit card dialog is called"),
   };

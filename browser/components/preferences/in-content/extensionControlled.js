@@ -17,9 +17,6 @@ ChromeUtils.defineModuleGetter(this, "DeferredTask",
 ChromeUtils.defineModuleGetter(this, "ExtensionSettingsStore",
                                   "resource://gre/modules/ExtensionSettingsStore.jsm");
 
-XPCOMUtils.defineLazyPreferenceGetter(this, "contentBlockingUiEnabled",
-                                      "browser.contentblocking.ui.enabled");
-
 const PREF_SETTING_TYPE = "prefs";
 const PROXY_KEY = "proxy.settings";
 const API_PROXY_PREFS = [
@@ -44,16 +41,13 @@ let extensionControlledContentIds = {
   "privacy.containers": "browserContainersExtensionContent",
   "homepage_override": "browserHomePageExtensionContent",
   "newTabURL": "browserNewTabExtensionContent",
+  "webNotificationsDisabled": "browserNotificationsPermissionExtensionContent",
   "defaultSearch": "browserDefaultSearchExtensionContent",
   "proxy.settings": "proxyExtensionContent",
   get "websites.trackingProtectionMode"() {
     return {
-      button: contentBlockingUiEnabled ?
-        "contentBlockingDisableTrackingProtectionExtension" :
-        "trackingProtectionExtensionContentButton",
-      section: contentBlockingUiEnabled ?
-        "contentBlockingTrackingProtectionExtensionContentLabel" :
-        "trackingProtectionExtensionContentLabel",
+      button: "contentBlockingDisableTrackingProtectionExtension",
+      section: "contentBlockingTrackingProtectionExtensionContentLabel",
     };
   },
 };
@@ -61,11 +55,10 @@ let extensionControlledContentIds = {
 const extensionControlledL10nKeys = {
   "homepage_override": "homepage-override",
   "newTabURL": "new-tab-url",
+  "webNotificationsDisabled": "web-notifications",
   "defaultSearch": "default-search",
   "privacy.containers": "privacy-containers",
-  "websites.trackingProtectionMode": contentBlockingUiEnabled ?
-                                       "websites-content-blocking-all-trackers" :
-                                       "websites-tracking-protection-mode",
+  "websites.trackingProtectionMode": "websites-content-blocking-all-trackers",
   "proxy.settings": "proxy-config",
 };
 

@@ -89,8 +89,7 @@ import org.mozilla.gecko.dlc.DlcStudyService;
 import org.mozilla.gecko.dlc.DlcSyncService;
 import org.mozilla.gecko.extensions.ExtensionPermissionsHelper;
 import org.mozilla.gecko.firstrun.OnboardingHelper;
-import org.mozilla.gecko.gfx.DynamicToolbarAnimator;
-import org.mozilla.gecko.gfx.DynamicToolbarAnimator.PinReason;
+import org.mozilla.geckoview.DynamicToolbarAnimator.PinReason;
 import org.mozilla.gecko.home.BrowserSearch;
 import org.mozilla.gecko.home.HomeBanner;
 import org.mozilla.gecko.home.HomeConfig;
@@ -118,7 +117,6 @@ import org.mozilla.gecko.overlays.ui.ShareDialog;
 import org.mozilla.gecko.permissions.Permissions;
 import org.mozilla.gecko.preferences.ClearOnShutdownPref;
 import org.mozilla.gecko.preferences.GeckoPreferences;
-import org.mozilla.gecko.promotion.AddToHomeScreenPromotion;
 import org.mozilla.gecko.promotion.ReaderViewBookmarkPromotion;
 import org.mozilla.gecko.prompts.Prompt;
 import org.mozilla.gecko.reader.ReaderModeUtils;
@@ -167,6 +165,7 @@ import org.mozilla.gecko.widget.AnchoredPopup;
 import org.mozilla.gecko.widget.AnimatedProgressBar;
 import org.mozilla.gecko.widget.GeckoActionProvider;
 import org.mozilla.gecko.widget.SplashScreen;
+import org.mozilla.geckoview.DynamicToolbarAnimator;
 import org.mozilla.geckoview.GeckoSession;
 
 import java.io.File;
@@ -318,7 +317,6 @@ public class BrowserApp extends GeckoApp
     private final TelemetryCorePingDelegate mTelemetryCorePingDelegate = new TelemetryCorePingDelegate();
 
     private final List<BrowserAppDelegate> delegates = Collections.unmodifiableList(Arrays.asList(
-            new AddToHomeScreenPromotion(),
             new ScreenshotDelegate(),
             new BookmarkStateChangeDelegate(),
             new ReaderViewBookmarkPromotion(),
@@ -1040,6 +1038,8 @@ public class BrowserApp extends GeckoApp
 
     @Override
     public void onPause() {
+        dismissTabHistoryFragment();
+
         super.onPause();
         if (mIsAbortingAppLaunch) {
             return;
@@ -1749,7 +1749,7 @@ public class BrowserApp extends GeckoApp
                 break;
 
             case "GeckoView:AccessibilityEnabled":
-                mDynamicToolbar.setAccessibilityEnabled(message.getBoolean("enabled"));
+                mDynamicToolbar.setAccessibilityEnabled(message.getBoolean("touchEnabled"));
                 break;
 
             case "Menu:Open":
@@ -3120,10 +3120,7 @@ public class BrowserApp extends GeckoApp
             return false;
 
         // Hide the tab history panel when hardware menu button is pressed.
-        TabHistoryFragment frag = (TabHistoryFragment) getSupportFragmentManager().findFragmentByTag(TAB_HISTORY_FRAGMENT_TAG);
-        if (frag != null) {
-            frag.dismiss();
-        }
+        dismissTabHistoryFragment();
 
         if (!GeckoThread.isRunning()) {
             aMenu.findItem(R.id.settings).setEnabled(false);
@@ -3352,7 +3349,7 @@ public class BrowserApp extends GeckoApp
         if (SwitchBoard.isInExperiment(this, Experiments.TOP_ADDONS_MENU)) {
             MenuUtils.safeSetVisible(aMenu, R.id.addons_top_level, true);
             GeckoMenuItem item = (GeckoMenuItem) aMenu.findItem(R.id.addons_top_level);
-            if (item != null) {
+            if (item != null && mExtensionPermissionsHelper != null) {
                 if (mExtensionPermissionsHelper.getShowUpdateIcon()) {
                     item.setIcon(R.drawable.ic_addon_update);
                 } else {
@@ -4140,6 +4137,13 @@ public class BrowserApp extends GeckoApp
     public void onFinishedOnboarding(final boolean showBrowserHint) {
         if (showBrowserHint && !Tabs.hasHomepage(this)) {
             enterEditingMode();
+        }
+    }
+
+    private void dismissTabHistoryFragment() {
+        TabHistoryFragment frag = (TabHistoryFragment) getSupportFragmentManager().findFragmentByTag(TAB_HISTORY_FRAGMENT_TAG);
+        if (frag != null) {
+            frag.dismiss();
         }
     }
 }

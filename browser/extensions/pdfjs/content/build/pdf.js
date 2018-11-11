@@ -123,8 +123,8 @@ return /******/ (function(modules) { // webpackBootstrap
 "use strict";
 
 
-var pdfjsVersion = '2.0.866';
-var pdfjsBuild = '0e41eb16';
+var pdfjsVersion = '2.1.42';
+var pdfjsBuild = '2194aef0';
 var pdfjsSharedUtil = __w_pdfjs_require__(1);
 var pdfjsDisplayAPI = __w_pdfjs_require__(7);
 var pdfjsDisplayTextLayer = __w_pdfjs_require__(19);
@@ -148,6 +148,8 @@ exports.InvalidPDFException = pdfjsSharedUtil.InvalidPDFException;
 exports.MissingPDFException = pdfjsSharedUtil.MissingPDFException;
 exports.SVGGraphics = pdfjsDisplaySVG.SVGGraphics;
 exports.NativeImageDecoding = pdfjsSharedUtil.NativeImageDecoding;
+exports.CMapCompressionType = pdfjsSharedUtil.CMapCompressionType;
+exports.PermissionFlag = pdfjsSharedUtil.PermissionFlag;
 exports.UnexpectedResponseException = pdfjsSharedUtil.UnexpectedResponseException;
 exports.OPS = pdfjsSharedUtil.OPS;
 exports.VerbosityLevel = pdfjsSharedUtil.VerbosityLevel;
@@ -4078,12 +4080,10 @@ var _webgl = __w_pdfjs_require__(18);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var DEFAULT_RANGE_CHUNK_SIZE = 65536;
+const DEFAULT_RANGE_CHUNK_SIZE = 65536;
 let isWorkerDisabled = false;
-let workerSrc;
-const pdfjsFilePath = null;
-var fakeWorkerFilesLoader = null;
-var useRequireEnsure = false;
+let fallbackWorkerSrc;
+let fakeWorkerFilesLoader = null;
 ;
 var createPDFNetworkStream;
 function setPDFNetworkStreamFactory(pdfNetworkStreamFactory) {
@@ -4226,7 +4226,7 @@ function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
   }
   return worker.messageHandler.sendWithPromise('GetDocRequest', {
     docId,
-    apiVersion: '2.0.866',
+    apiVersion: '2.1.42',
     source: {
       data: source.data,
       url: source.url,
@@ -4283,8 +4283,8 @@ var PDFDocumentLoadingTask = function PDFDocumentLoadingTaskClosure() {
   };
   return PDFDocumentLoadingTask;
 }();
-var PDFDataRangeTransport = function pdfDataRangeTransportClosure() {
-  function PDFDataRangeTransport(length, initialData) {
+class PDFDataRangeTransport {
+  constructor(length, initialData) {
     this.length = length;
     this.initialData = initialData;
     this._rangeListeners = [];
@@ -4292,48 +4292,42 @@ var PDFDataRangeTransport = function pdfDataRangeTransportClosure() {
     this._progressiveReadListeners = [];
     this._readyCapability = (0, _util.createPromiseCapability)();
   }
-  PDFDataRangeTransport.prototype = {
-    addRangeListener: function PDFDataRangeTransport_addRangeListener(listener) {
-      this._rangeListeners.push(listener);
-    },
-    addProgressListener: function PDFDataRangeTransport_addProgressListener(listener) {
-      this._progressListeners.push(listener);
-    },
-    addProgressiveReadListener: function PDFDataRangeTransport_addProgressiveReadListener(listener) {
-      this._progressiveReadListeners.push(listener);
-    },
-    onDataRange: function PDFDataRangeTransport_onDataRange(begin, chunk) {
-      var listeners = this._rangeListeners;
-      for (var i = 0, n = listeners.length; i < n; ++i) {
-        listeners[i](begin, chunk);
+  addRangeListener(listener) {
+    this._rangeListeners.push(listener);
+  }
+  addProgressListener(listener) {
+    this._progressListeners.push(listener);
+  }
+  addProgressiveReadListener(listener) {
+    this._progressiveReadListeners.push(listener);
+  }
+  onDataRange(begin, chunk) {
+    for (const listener of this._rangeListeners) {
+      listener(begin, chunk);
+    }
+  }
+  onDataProgress(loaded) {
+    this._readyCapability.promise.then(() => {
+      for (const listener of this._progressListeners) {
+        listener(loaded);
       }
-    },
-    onDataProgress: function PDFDataRangeTransport_onDataProgress(loaded) {
-      this._readyCapability.promise.then(() => {
-        var listeners = this._progressListeners;
-        for (var i = 0, n = listeners.length; i < n; ++i) {
-          listeners[i](loaded);
-        }
-      });
-    },
-    onDataProgressiveRead: function PDFDataRangeTransport_onDataProgress(chunk) {
-      this._readyCapability.promise.then(() => {
-        var listeners = this._progressiveReadListeners;
-        for (var i = 0, n = listeners.length; i < n; ++i) {
-          listeners[i](chunk);
-        }
-      });
-    },
-    transportReady: function PDFDataRangeTransport_transportReady() {
-      this._readyCapability.resolve();
-    },
-    requestDataRange: function PDFDataRangeTransport_requestDataRange(begin, end) {
-      (0, _util.unreachable)('Abstract method PDFDataRangeTransport.requestDataRange');
-    },
-    abort: function PDFDataRangeTransport_abort() {}
-  };
-  return PDFDataRangeTransport;
-}();
+    });
+  }
+  onDataProgressiveRead(chunk) {
+    this._readyCapability.promise.then(() => {
+      for (const listener of this._progressiveReadListeners) {
+        listener(chunk);
+      }
+    });
+  }
+  transportReady() {
+    this._readyCapability.resolve();
+  }
+  requestDataRange(begin, end) {
+    (0, _util.unreachable)('Abstract method PDFDataRangeTransport.requestDataRange');
+  }
+  abort() {}
+}
 class PDFDocumentProxy {
   constructor(pdfInfo, transport, loadingTask) {
     this.loadingTask = loadingTask;
@@ -4720,16 +4714,18 @@ var PDFWorker = function PDFWorkerClosure() {
     if (_worker_options.GlobalWorkerOptions.workerSrc) {
       return _worker_options.GlobalWorkerOptions.workerSrc;
     }
-    if (typeof workerSrc !== 'undefined') {
-      return workerSrc;
+    if (typeof fallbackWorkerSrc !== 'undefined') {
+      return fallbackWorkerSrc;
     }
     throw new Error('No "GlobalWorkerOptions.workerSrc" specified.');
   }
   function getMainThreadWorkerMessageHandler() {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    return window.pdfjsWorker && window.pdfjsWorker.WorkerMessageHandler;
+    try {
+      if (typeof window !== 'undefined') {
+        return window.pdfjsWorker && window.pdfjsWorker.WorkerMessageHandler;
+      }
+    } catch (ex) {}
+    return null;
   }
   let fakeWorkerFilesLoadedCapability;
   function setupFakeWorkerGlobal() {
@@ -4742,12 +4738,12 @@ var PDFWorker = function PDFWorkerClosure() {
       fakeWorkerFilesLoadedCapability.resolve(mainWorkerMessageHandler);
       return fakeWorkerFilesLoadedCapability.promise;
     }
-    let loader = fakeWorkerFilesLoader || function (callback) {
-      (0, _dom_utils.loadScript)(getWorkerSrc()).then(function () {
-        callback(window.pdfjsWorker.WorkerMessageHandler);
+    const loader = fakeWorkerFilesLoader || function () {
+      return (0, _dom_utils.loadScript)(getWorkerSrc()).then(function () {
+        return window.pdfjsWorker.WorkerMessageHandler;
       });
     };
-    loader(fakeWorkerFilesLoadedCapability.resolve);
+    loader().then(fakeWorkerFilesLoadedCapability.resolve, fakeWorkerFilesLoadedCapability.reject);
     return fakeWorkerFilesLoadedCapability.promise;
   }
   function createCDNWrapper(url) {
@@ -4792,7 +4788,7 @@ var PDFWorker = function PDFWorkerClosure() {
     },
     _initialize: function PDFWorker_initialize() {
       if (typeof Worker !== 'undefined' && !isWorkerDisabled && !getMainThreadWorkerMessageHandler()) {
-        var workerSrc = getWorkerSrc();
+        let workerSrc = getWorkerSrc();
         try {
           var worker = new Worker(workerSrc);
           var messageHandler = new _message_handler.MessageHandler('main', 'worker', worker);
@@ -4881,6 +4877,8 @@ var PDFWorker = function PDFWorkerClosure() {
         var messageHandler = new _message_handler.MessageHandler(id, id + '_worker', port);
         this._messageHandler = messageHandler;
         this._readyCapability.resolve();
+      }).catch(reason => {
+        this._readyCapability.reject(new Error(`Setting up fake worker failed: "${reason.message}".`));
       });
     },
     destroy: function PDFWorker_destroy() {
@@ -4997,10 +4995,8 @@ class WorkerTransport {
       const fullReader = this._fullReader;
       fullReader.headersReady.then(() => {
         if (!fullReader.isStreamingSupported || !fullReader.isRangeSupported) {
-          if (this._lastProgress) {
-            if (loadingTask.onProgress) {
-              loadingTask.onProgress(this._lastProgress);
-            }
+          if (this._lastProgress && loadingTask.onProgress) {
+            loadingTask.onProgress(this._lastProgress);
           }
           fullReader.onProgress = evt => {
             if (loadingTask.onProgress) {
@@ -5075,6 +5071,12 @@ class WorkerTransport {
       loadingTask._capability.reject(new _util.UnknownErrorException(exception.message, exception.details));
     }, this);
     messageHandler.on('DataLoaded', function (data) {
+      if (loadingTask.onProgress) {
+        loadingTask.onProgress({
+          loaded: data.length,
+          total: data.length
+        });
+      }
       this.downloadInfoCapability.resolve(data);
     }, this);
     messageHandler.on('StartRenderPage', function (data) {
@@ -5097,7 +5099,7 @@ class WorkerTransport {
         return;
       }
       const [id, type, exportedData] = data;
-      if (this.commonObjs.hasData(id)) {
+      if (this.commonObjs.has(id)) {
         return;
       }
       switch (type) {
@@ -5142,7 +5144,7 @@ class WorkerTransport {
       }
       const [id, pageIndex, type, imageData] = data;
       const pageProxy = this.pageCache[pageIndex];
-      if (pageProxy.objs.hasData(id)) {
+      if (pageProxy.objs.has(id)) {
         return;
       }
       switch (type) {
@@ -5357,63 +5359,45 @@ class WorkerTransport {
     });
   }
 }
-var PDFObjects = function PDFObjectsClosure() {
-  function PDFObjects() {
-    this.objs = Object.create(null);
+class PDFObjects {
+  constructor() {
+    this._objs = Object.create(null);
   }
-  PDFObjects.prototype = {
-    ensureObj: function PDFObjects_ensureObj(objId) {
-      if (this.objs[objId]) {
-        return this.objs[objId];
-      }
-      var obj = {
-        capability: (0, _util.createPromiseCapability)(),
-        data: null,
-        resolved: false
-      };
-      this.objs[objId] = obj;
-      return obj;
-    },
-    get: function PDFObjects_get(objId, callback) {
-      if (callback) {
-        this.ensureObj(objId).capability.promise.then(callback);
-        return null;
-      }
-      var obj = this.objs[objId];
-      if (!obj || !obj.resolved) {
-        throw new Error(`Requesting object that isn't resolved yet ${objId}`);
-      }
-      return obj.data;
-    },
-    resolve: function PDFObjects_resolve(objId, data) {
-      var obj = this.ensureObj(objId);
-      obj.resolved = true;
-      obj.data = data;
-      obj.capability.resolve(data);
-    },
-    isResolved: function PDFObjects_isResolved(objId) {
-      var objs = this.objs;
-      if (!objs[objId]) {
-        return false;
-      }
-      return objs[objId].resolved;
-    },
-    hasData: function PDFObjects_hasData(objId) {
-      return this.isResolved(objId);
-    },
-    getData: function PDFObjects_getData(objId) {
-      var objs = this.objs;
-      if (!objs[objId] || !objs[objId].resolved) {
-        return null;
-      }
-      return objs[objId].data;
-    },
-    clear: function PDFObjects_clear() {
-      this.objs = Object.create(null);
+  _ensureObj(objId) {
+    if (this._objs[objId]) {
+      return this._objs[objId];
     }
-  };
-  return PDFObjects;
-}();
+    return this._objs[objId] = {
+      capability: (0, _util.createPromiseCapability)(),
+      data: null,
+      resolved: false
+    };
+  }
+  get(objId, callback = null) {
+    if (callback) {
+      this._ensureObj(objId).capability.promise.then(callback);
+      return null;
+    }
+    const obj = this._objs[objId];
+    if (!obj || !obj.resolved) {
+      throw new Error(`Requesting object that isn't resolved yet ${objId}.`);
+    }
+    return obj.data;
+  }
+  has(objId) {
+    const obj = this._objs[objId];
+    return obj ? obj.resolved : false;
+  }
+  resolve(objId, data) {
+    const obj = this._ensureObj(objId);
+    obj.resolved = true;
+    obj.data = data;
+    obj.capability.resolve(data);
+  }
+  clear() {
+    this._objs = Object.create(null);
+  }
+}
 var RenderTask = function RenderTaskClosure() {
   function RenderTask(internalRenderTask) {
     this._internalRenderTask = internalRenderTask;
@@ -5433,7 +5417,7 @@ var RenderTask = function RenderTaskClosure() {
   return RenderTask;
 }();
 var InternalRenderTask = function InternalRenderTaskClosure() {
-  let canvasInRendering = new WeakMap();
+  let canvasInRendering = new WeakSet();
   function InternalRenderTask(callback, params, objs, commonObjs, operatorList, pageNumber, canvasFactory, webGLContext, pdfBug = false) {
     this.callback = callback;
     this.params = params;
@@ -5466,7 +5450,7 @@ var InternalRenderTask = function InternalRenderTaskClosure() {
         if (canvasInRendering.has(this._canvas)) {
           throw new Error('Cannot use the same canvas during multiple render() operations. ' + 'Use different canvas or ensure previous operations were ' + 'cancelled or completed.');
         }
-        canvasInRendering.set(this._canvas, this);
+        canvasInRendering.add(this._canvas);
       }
       if (this._pdfBug && _global_scope2.default.StepperManager && _global_scope2.default.StepperManager.enabled) {
         this.stepper = _global_scope2.default.StepperManager.create(this.pageNumber - 1);
@@ -5490,6 +5474,9 @@ var InternalRenderTask = function InternalRenderTaskClosure() {
     cancel: function InternalRenderTask_cancel() {
       this.running = false;
       this.cancelled = true;
+      if (this.gfx) {
+        this.gfx.endDrawing();
+      }
       if (this._canvas) {
         canvasInRendering.delete(this._canvas);
       }
@@ -5553,8 +5540,8 @@ var InternalRenderTask = function InternalRenderTaskClosure() {
 }();
 var version, build;
 {
-  exports.version = version = '2.0.866';
-  exports.build = build = '0e41eb16';
+  exports.version = version = '2.1.42';
+  exports.build = build = '2194aef0';
 }
 exports.getDocument = getDocument;
 exports.LoopbackPort = LoopbackPort;
@@ -5885,55 +5872,133 @@ exports.FontLoader = exports.FontFaceObject = undefined;
 
 var _util = __w_pdfjs_require__(1);
 
-function FontLoader(docId) {
-  this.docId = docId;
-  this.styleElement = null;
-}
-FontLoader.prototype = {
-  insertRule: function fontLoaderInsertRule(rule) {
-    var styleElement = this.styleElement;
+class BaseFontLoader {
+  constructor(docId) {
+    if (this.constructor === BaseFontLoader) {
+      (0, _util.unreachable)('Cannot initialize BaseFontLoader.');
+    }
+    this.docId = docId;
+    this.nativeFontFaces = [];
+    this.styleElement = null;
+    this.loadingContext = {
+      requests: [],
+      nextRequestId: 0
+    };
+  }
+  addNativeFontFace(nativeFontFace) {
+    this.nativeFontFaces.push(nativeFontFace);
+    document.fonts.add(nativeFontFace);
+  }
+  insertRule(rule) {
+    let styleElement = this.styleElement;
     if (!styleElement) {
       styleElement = this.styleElement = document.createElement('style');
-      styleElement.id = 'PDFJS_FONT_STYLE_TAG_' + this.docId;
+      styleElement.id = `PDFJS_FONT_STYLE_TAG_${this.docId}`;
       document.documentElement.getElementsByTagName('head')[0].appendChild(styleElement);
     }
-    var styleSheet = styleElement.sheet;
+    const styleSheet = styleElement.sheet;
     styleSheet.insertRule(rule, styleSheet.cssRules.length);
-  },
-  clear: function fontLoaderClear() {
+  }
+  clear() {
+    this.nativeFontFaces.forEach(function (nativeFontFace) {
+      document.fonts.delete(nativeFontFace);
+    });
+    this.nativeFontFaces.length = 0;
     if (this.styleElement) {
       this.styleElement.remove();
       this.styleElement = null;
     }
   }
-};
-{
-  FontLoader.prototype.bind = function fontLoaderBind(fonts, callback) {
-    for (var i = 0, ii = fonts.length; i < ii; i++) {
-      var font = fonts[i];
-      if (font.attached) {
+  bind(fonts, callback) {
+    const rules = [];
+    const fontsToLoad = [];
+    const fontLoadPromises = [];
+    const getNativeFontPromise = function (nativeFontFace) {
+      return nativeFontFace.loaded.catch(function (reason) {
+        (0, _util.warn)(`Failed to load font "${nativeFontFace.family}": ${reason}`);
+      });
+    };
+    for (const font of fonts) {
+      if (font.attached || font.missingFile) {
         continue;
       }
       font.attached = true;
-      var rule = font.createFontFaceRule();
-      if (rule) {
-        this.insertRule(rule);
+      if (this.isFontLoadingAPISupported) {
+        const nativeFontFace = font.createNativeFontFace();
+        if (nativeFontFace) {
+          this.addNativeFontFace(nativeFontFace);
+          fontLoadPromises.push(getNativeFontPromise(nativeFontFace));
+        }
+      } else {
+        const rule = font.createFontFaceRule();
+        if (rule) {
+          this.insertRule(rule);
+          rules.push(rule);
+          fontsToLoad.push(font);
+        }
       }
     }
-    setTimeout(callback);
+    const request = this._queueLoadingCallback(callback);
+    if (this.isFontLoadingAPISupported) {
+      Promise.all(fontLoadPromises).then(request.complete);
+    } else if (rules.length > 0 && !this.isSyncFontLoadingSupported) {
+      this._prepareFontLoadEvent(rules, fontsToLoad, request);
+    } else {
+      request.complete();
+    }
+  }
+  _queueLoadingCallback(callback) {
+    function completeRequest() {
+      (0, _util.assert)(!request.done, 'completeRequest() cannot be called twice.');
+      request.done = true;
+      while (context.requests.length > 0 && context.requests[0].done) {
+        const otherRequest = context.requests.shift();
+        setTimeout(otherRequest.callback, 0);
+      }
+    }
+    const context = this.loadingContext;
+    const request = {
+      id: `pdfjs-font-loading-${context.nextRequestId++}`,
+      done: false,
+      complete: completeRequest,
+      callback
+    };
+    context.requests.push(request);
+    return request;
+  }
+  get isFontLoadingAPISupported() {
+    (0, _util.unreachable)('Abstract method `isFontLoadingAPISupported`.');
+  }
+  get isSyncFontLoadingSupported() {
+    (0, _util.unreachable)('Abstract method `isSyncFontLoadingSupported`.');
+  }
+  get _loadTestFont() {
+    (0, _util.unreachable)('Abstract method `_loadTestFont`.');
+  }
+  _prepareFontLoadEvent(rules, fontsToLoad, request) {
+    (0, _util.unreachable)('Abstract method `_prepareFontLoadEvent`.');
+  }
+}
+let FontLoader;
+{
+  exports.FontLoader = FontLoader = class MozcentralFontLoader extends BaseFontLoader {
+    get isFontLoadingAPISupported() {
+      return (0, _util.shadow)(this, 'isFontLoadingAPISupported', typeof document !== 'undefined' && !!document.fonts);
+    }
+    get isSyncFontLoadingSupported() {
+      return (0, _util.shadow)(this, 'isSyncFontLoadingSupported', true);
+    }
   };
 }
-;
-;
-var IsEvalSupportedCached = {
+const IsEvalSupportedCached = {
   get value() {
     return (0, _util.shadow)(this, 'value', (0, _util.isEvalSupported)());
   }
 };
-var FontFaceObject = function FontFaceObjectClosure() {
-  function FontFaceObject(translatedData, { isEvalSupported = true, disableFontFace = false, ignoreErrors = false, onUnsupportedFeature = null, fontRegistry = null }) {
+class FontFaceObject {
+  constructor(translatedData, { isEvalSupported = true, disableFontFace = false, ignoreErrors = false, onUnsupportedFeature = null, fontRegistry = null }) {
     this.compiledGlyphs = Object.create(null);
-    for (var i in translatedData) {
+    for (let i in translatedData) {
       this[i] = translatedData[i];
     }
     this.isEvalSupported = isEvalSupported !== false;
@@ -5942,67 +6007,70 @@ var FontFaceObject = function FontFaceObjectClosure() {
     this._onUnsupportedFeature = onUnsupportedFeature;
     this.fontRegistry = fontRegistry;
   }
-  FontFaceObject.prototype = {
-    createNativeFontFace: function FontFaceObject_createNativeFontFace() {
-      throw new Error('Not implemented: createNativeFontFace');
-    },
-    createFontFaceRule: function FontFaceObject_createFontFaceRule() {
-      if (!this.data || this.disableFontFace) {
-        return null;
-      }
-      var data = (0, _util.bytesToString)(new Uint8Array(this.data));
-      var fontName = this.loadedName;
-      var url = 'url(data:' + this.mimetype + ';base64,' + btoa(data) + ');';
-      var rule = '@font-face { font-family:"' + fontName + '";src:' + url + '}';
-      if (this.fontRegistry) {
-        this.fontRegistry.registerFont(this, url);
-      }
-      return rule;
-    },
-    getPathGenerator(objs, character) {
-      if (this.compiledGlyphs[character] !== undefined) {
-        return this.compiledGlyphs[character];
-      }
-      let cmds, current;
-      try {
-        cmds = objs.get(this.loadedName + '_path_' + character);
-      } catch (ex) {
-        if (!this.ignoreErrors) {
-          throw ex;
-        }
-        if (this._onUnsupportedFeature) {
-          this._onUnsupportedFeature({ featureId: _util.UNSUPPORTED_FEATURES.font });
-        }
-        (0, _util.warn)(`getPathGenerator - ignoring character: "${ex}".`);
-        return this.compiledGlyphs[character] = function (c, size) {};
-      }
-      if (this.isEvalSupported && IsEvalSupportedCached.value) {
-        let args,
-            js = '';
-        for (let i = 0, ii = cmds.length; i < ii; i++) {
-          current = cmds[i];
-          if (current.args !== undefined) {
-            args = current.args.join(',');
-          } else {
-            args = '';
-          }
-          js += 'c.' + current.cmd + '(' + args + ');\n';
-        }
-        return this.compiledGlyphs[character] = new Function('c', 'size', js);
-      }
-      return this.compiledGlyphs[character] = function (c, size) {
-        for (let i = 0, ii = cmds.length; i < ii; i++) {
-          current = cmds[i];
-          if (current.cmd === 'scale') {
-            current.args = [size, -size];
-          }
-          c[current.cmd].apply(c, current.args);
-        }
-      };
+  createNativeFontFace() {
+    if (!this.data || this.disableFontFace) {
+      return null;
     }
-  };
-  return FontFaceObject;
-}();
+    const nativeFontFace = new FontFace(this.loadedName, this.data, {});
+    if (this.fontRegistry) {
+      this.fontRegistry.registerFont(this);
+    }
+    return nativeFontFace;
+  }
+  createFontFaceRule() {
+    if (!this.data || this.disableFontFace) {
+      return null;
+    }
+    const data = (0, _util.bytesToString)(new Uint8Array(this.data));
+    const url = `url(data:${this.mimetype};base64,${btoa(data)});`;
+    const rule = `@font-face {font-family:"${this.loadedName}";src:${url}}`;
+    if (this.fontRegistry) {
+      this.fontRegistry.registerFont(this, url);
+    }
+    return rule;
+  }
+  getPathGenerator(objs, character) {
+    if (this.compiledGlyphs[character] !== undefined) {
+      return this.compiledGlyphs[character];
+    }
+    let cmds, current;
+    try {
+      cmds = objs.get(this.loadedName + '_path_' + character);
+    } catch (ex) {
+      if (!this.ignoreErrors) {
+        throw ex;
+      }
+      if (this._onUnsupportedFeature) {
+        this._onUnsupportedFeature({ featureId: _util.UNSUPPORTED_FEATURES.font });
+      }
+      (0, _util.warn)(`getPathGenerator - ignoring character: "${ex}".`);
+      return this.compiledGlyphs[character] = function (c, size) {};
+    }
+    if (this.isEvalSupported && IsEvalSupportedCached.value) {
+      let args,
+          js = '';
+      for (let i = 0, ii = cmds.length; i < ii; i++) {
+        current = cmds[i];
+        if (current.args !== undefined) {
+          args = current.args.join(',');
+        } else {
+          args = '';
+        }
+        js += 'c.' + current.cmd + '(' + args + ');\n';
+      }
+      return this.compiledGlyphs[character] = new Function('c', 'size', js);
+    }
+    return this.compiledGlyphs[character] = function (c, size) {
+      for (let i = 0, ii = cmds.length; i < ii; i++) {
+        current = cmds[i];
+        if (current.cmd === 'scale') {
+          current.args = [size, -size];
+        }
+        c[current.cmd].apply(c, current.args);
+      }
+    };
+  }
+}
 exports.FontFaceObject = FontFaceObject;
 exports.FontLoader = FontLoader;
 
@@ -6641,7 +6709,7 @@ var CanvasGraphics = function CanvasGraphicsClosure() {
             var depObjId = deps[n];
             var common = depObjId[0] === 'g' && depObjId[1] === '_';
             var objsPool = common ? commonObjs : objs;
-            if (!objsPool.isResolved(depObjId)) {
+            if (!objsPool.has(depObjId)) {
               objsPool.get(depObjId, continueCallback);
               return i;
             }
@@ -7379,7 +7447,7 @@ var CanvasGraphics = function CanvasGraphicsClosure() {
         this.transform.apply(this, matrix);
       }
       this.baseTransform = this.ctx.mozCurrentTransform;
-      if (Array.isArray(bbox) && bbox.length === 4) {
+      if (bbox) {
         var width = bbox[2] - bbox[0];
         var height = bbox[3] - bbox[1];
         this.ctx.rect(bbox[0], bbox[1], width, height);
@@ -10189,6 +10257,8 @@ class AnnotationElementFactory {
         return new CircleAnnotationElement(parameters);
       case _util.AnnotationType.POLYLINE:
         return new PolylineAnnotationElement(parameters);
+      case _util.AnnotationType.INK:
+        return new InkAnnotationElement(parameters);
       case _util.AnnotationType.POLYGON:
         return new PolygonAnnotationElement(parameters);
       case _util.AnnotationType.HIGHLIGHT:
@@ -10406,8 +10476,8 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
       element.style.verticalAlign = 'middle';
       element.style.display = 'table-cell';
       let font = null;
-      if (this.data.fontRefName) {
-        font = this.page.commonObjs.getData(this.data.fontRefName);
+      if (this.data.fontRefName && this.page.commonObjs.has(this.data.fontRefName)) {
+        font = this.page.commonObjs.get(this.data.fontRefName);
       }
       this._setTextStyle(element, font);
     }
@@ -10505,7 +10575,7 @@ class PopupAnnotationElement extends AnnotationElement {
     super(parameters, isRenderable);
   }
   render() {
-    const IGNORE_TYPES = ['Line', 'Square', 'Circle', 'PolyLine', 'Polygon'];
+    const IGNORE_TYPES = ['Line', 'Square', 'Circle', 'PolyLine', 'Polygon', 'Ink'];
     this.container.className = 'popupAnnotation';
     if (IGNORE_TYPES.includes(this.data.parentType)) {
       return this.container;
@@ -10721,6 +10791,42 @@ class PolygonAnnotationElement extends PolylineAnnotationElement {
     this.svgElementName = 'svg:polygon';
   }
 }
+class InkAnnotationElement extends AnnotationElement {
+  constructor(parameters) {
+    let isRenderable = !!(parameters.data.hasPopup || parameters.data.title || parameters.data.contents);
+    super(parameters, isRenderable, true);
+    this.containerClassName = 'inkAnnotation';
+    this.svgElementName = 'svg:polyline';
+  }
+  render() {
+    this.container.className = this.containerClassName;
+    let data = this.data;
+    let width = data.rect[2] - data.rect[0];
+    let height = data.rect[3] - data.rect[1];
+    let svg = this.svgFactory.create(width, height);
+    let inkLists = data.inkLists;
+    for (let i = 0, ii = inkLists.length; i < ii; i++) {
+      let inkList = inkLists[i];
+      let points = [];
+      for (let j = 0, jj = inkList.length; j < jj; j++) {
+        let x = inkList[j].x - data.rect[0];
+        let y = data.rect[3] - inkList[j].y;
+        points.push(x + ',' + y);
+      }
+      points = points.join(' ');
+      let borderWidth = data.borderStyle.width;
+      let polyline = this.svgFactory.createElement(this.svgElementName);
+      polyline.setAttribute('points', points);
+      polyline.setAttribute('stroke-width', borderWidth);
+      polyline.setAttribute('stroke', 'transparent');
+      polyline.setAttribute('fill', 'none');
+      this._createPopup(this.container, polyline, data);
+      svg.appendChild(polyline);
+    }
+    this.container.append(svg);
+    return this.container;
+  }
+}
 class HighlightAnnotationElement extends AnnotationElement {
   constructor(parameters) {
     let isRenderable = !!(parameters.data.hasPopup || parameters.data.title || parameters.data.contents);
@@ -10789,14 +10895,17 @@ class StampAnnotationElement extends AnnotationElement {
 class FileAttachmentAnnotationElement extends AnnotationElement {
   constructor(parameters) {
     super(parameters, true);
-    let file = this.data.file;
-    this.filename = (0, _dom_utils.getFilenameFromUrl)(file.filename);
-    this.content = file.content;
-    this.linkService.onFileAttachmentAnnotation({
-      id: (0, _util.stringToPDFString)(file.filename),
-      filename: file.filename,
-      content: file.content
-    });
+    const { filename, content } = this.data.file;
+    this.filename = (0, _dom_utils.getFilenameFromUrl)(filename);
+    this.content = content;
+    if (this.linkService.eventBus) {
+      this.linkService.eventBus.dispatch('fileattachmentannotation', {
+        source: this,
+        id: (0, _util.stringToPDFString)(filename),
+        filename,
+        content
+      });
+    }
   }
   render() {
     this.container.className = 'fileAttachmentAnnotation';
@@ -10890,7 +10999,7 @@ exports.SVGGraphics = SVGGraphics;
 
 
 module.exports = function isNodeJS() {
-  return typeof process === 'object' && process + '' === '[object process]';
+  return typeof process === 'object' && process + '' === '[object process]' && !process.versions['nw'];
 };
 
 /***/ })

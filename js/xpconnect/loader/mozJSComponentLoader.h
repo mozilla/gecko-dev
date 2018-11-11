@@ -8,13 +8,14 @@
 #define mozJSComponentLoader_h
 
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/FileLocation.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ModuleLoader.h"
+#include "mozilla/Module.h"
+#include "mozilla/StaticPtr.h"
 #include "nsAutoPtr.h"
 #include "nsISupports.h"
 #include "nsIObserver.h"
 #include "nsIURI.h"
-#include "xpcIJSModuleLoader.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
 #include "jsapi.h"
@@ -30,37 +31,35 @@ namespace mozilla {
 } // namespace mozilla
 
 
-/* 6bd13476-1dd2-11b2-bbef-f0ccb5fa64b6 (thanks, mozbot) */
-
-#define MOZJSCOMPONENTLOADER_CID                                              \
-  {0x6bd13476, 0x1dd2, 0x11b2,                                                \
-    { 0xbb, 0xef, 0xf0, 0xcc, 0xb5, 0xfa, 0x64, 0xb6 }}
-#define MOZJSCOMPONENTLOADER_CONTRACTID "@mozilla.org/moz/jsloader;1"
-
 #if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION) || defined(DEBUG)
 #define STARTUP_RECORDER_ENABLED
 #endif
 
-class mozJSComponentLoader final : public mozilla::ModuleLoader,
-                                   public xpcIJSModuleLoader,
-                                   public nsIObserver
+class mozJSComponentLoader final : public nsIObserver
 {
  public:
     NS_DECL_ISUPPORTS
-    NS_DECL_XPCIJSMODULELOADER
     NS_DECL_NSIOBSERVER
 
     mozJSComponentLoader();
 
-    // ModuleLoader
-    const mozilla::Module* LoadModule(mozilla::FileLocation& aFile) override;
+    void GetLoadedModules(nsTArray<nsCString>& aLoadedModules);
+    void GetLoadedComponents(nsTArray<nsCString>& aLoadedComponents);
+    nsresult GetModuleImportStack(const nsACString& aLocation, nsACString& aRetval);
+    nsresult GetComponentLoadStack(const nsACString& aLocation, nsACString& aRetval);
+
+    const mozilla::Module* LoadModule(mozilla::FileLocation& aFile);
 
     void FindTargetObject(JSContext* aCx,
                           JS::MutableHandleObject aTargetObject);
 
-    static already_AddRefed<mozJSComponentLoader> GetOrCreate();
+    static void InitStatics();
+    static void Shutdown();
 
-    static mozJSComponentLoader* Get() { return sSelf; }
+    static mozJSComponentLoader* Get() {
+        MOZ_ASSERT(sSelf, "Should have already created the component loader");
+        return sSelf;
+    }
 
     nsresult ImportInto(const nsACString& aResourceURI, JS::HandleValue aTargetObj,
                         JSContext* aCx, uint8_t aArgc, JS::MutableHandleValue aRetval);
@@ -100,7 +99,7 @@ class mozJSComponentLoader final : public mozilla::ModuleLoader,
     }
 
  private:
-    static mozJSComponentLoader* sSelf;
+    static mozilla::StaticRefPtr<mozJSComponentLoader> sSelf;
 
     nsresult ReallyInit();
     void UnloadModules();

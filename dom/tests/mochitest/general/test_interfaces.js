@@ -45,8 +45,8 @@ var ecmaGlobals =
     {name: "ArrayBuffer", insecureContext: true},
     {name: "Atomics", insecureContext: true, disabled: true},
     {name: "Boolean", insecureContext: true},
-    {name: "ByteLengthQueuingStrategy", insecureContext: true, disabled: true},
-    {name: "CountQueuingStrategy", insecureContext: true, disabled: true},
+    {name: "ByteLengthQueuingStrategy", insecureContext: true, nightly: true},
+    {name: "CountQueuingStrategy", insecureContext: true, nightly: true},
     {name: "DataView", insecureContext: true},
     {name: "Date", insecureContext: true},
     {name: "Error", insecureContext: true},
@@ -54,10 +54,7 @@ var ecmaGlobals =
     {name: "Float32Array", insecureContext: true},
     {name: "Float64Array", insecureContext: true},
     {name: "Function", insecureContext: true},
-    // NB: We haven't bothered to resolve constants like Infinity and NaN on
-    // Xrayed windows (which are seen from the XBL scope). We could support
-    // this if needed with some refactoring.
-    {name: "Infinity", insecureContext: true, xbl: false},
+    {name: "Infinity", insecureContext: true},
     {name: "Int16Array", insecureContext: true},
     {name: "Int32Array", insecureContext: true},
     {name: "Int8Array", insecureContext: true},
@@ -66,13 +63,13 @@ var ecmaGlobals =
     {name: "JSON", insecureContext: true},
     {name: "Map", insecureContext: true},
     {name: "Math", insecureContext: true},
-    {name: "NaN", insecureContext: true, xbl: false},
+    {name: "NaN", insecureContext: true},
     {name: "Number", insecureContext: true},
     {name: "Object", insecureContext: true},
     {name: "Promise", insecureContext: true},
     {name: "Proxy", insecureContext: true},
     {name: "RangeError", insecureContext: true},
-    {name: "ReadableStream", insecureContext: true, disabled: true},
+    {name: "ReadableStream", insecureContext: true, nightly: true},
     {name: "ReferenceError", insecureContext: true},
     {name: "Reflect", insecureContext: true},
     {name: "RegExp", insecureContext: true},
@@ -155,8 +152,6 @@ var interfaceNamesInGlobalScope =
     {name: "AudioProcessingEvent", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "AudioScheduledSourceNode", insecureContext: true},
-// IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "AudioStreamTrack", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "AudioWorkletNode", insecureContext: false, disabled: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -612,8 +607,6 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "KeyframeEffect", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "LocalMediaStream", insecureContext: true},
-// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "Location", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "MediaCapabilities", insecureContext: true},
@@ -665,6 +658,8 @@ var interfaceNamesInGlobalScope =
     {name: "MediaStreamTrackEvent", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "MediaStreamTrack", insecureContext: true},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "MerchantValidationEvent", insecureContext: false, desktop: true, nightly: true, linux: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "MessageChannel", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -745,6 +740,16 @@ var interfaceNamesInGlobalScope =
     {name: "PannerNode", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "Path2D", insecureContext: true},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PaymentAddress", insecureContext: false, desktop: true, nightly: true, linux: false},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PaymentMethodChangeEvent", insecureContext: false, desktop: true, nightly: true, linux: false},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PaymentRequest", insecureContext: false, desktop: true, nightly: true, linux: false},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PaymentRequestUpdateEvent", insecureContext: false, desktop: true, nightly: true, linux: false},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PaymentResponse", insecureContext: false, desktop: true, nightly: true, linux: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "Performance", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1158,25 +1163,23 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "VideoPlaybackQuality", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VideoStreamTrack", insecureContext: true},
-// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "VisualViewport", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRDisplay", insecureContext: true, releaseNonWindows: false},
+    {name: "VRDisplay", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRDisplayCapabilities", insecureContext: true, releaseNonWindows: false},
+    {name: "VRDisplayCapabilities", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRDisplayEvent", insecureContext: true, releaseNonWindows: false},
+    {name: "VRDisplayEvent", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VREyeParameters", insecureContext: true, releaseNonWindows: false},
+    {name: "VREyeParameters", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRFieldOfView", insecureContext: true, releaseNonWindows: false},
+    {name: "VRFieldOfView", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRFrameData", insecureContext: true, releaseNonWindows: false},
+    {name: "VRFrameData", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRPose", insecureContext: true, releaseNonWindows: false},
+    {name: "VRPose", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "VRStageParameters", insecureContext: true, releaseNonWindows: false},
+    {name: "VRStageParameters", insecureContext: true, releaseNonWindowsAndMac: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "VTTCue", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1266,6 +1269,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "XULScrollElement", insecureContext: true, xbl: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "XULTextElement", insecureContext: true, xbl: true},
+// IMPORTANT: Do not change this list without review from a DOM peer!
   ];
 // IMPORTANT: Do not change the list above without review from a DOM peer!
 
@@ -1288,6 +1293,7 @@ function createInterfaceMap(isXBLScope) {
             (entry.linux === !isLinux) ||
             (entry.android === !isAndroid && !entry.nightlyAndroid) ||
             (entry.release === !isRelease) ||
+            (entry.releaseNonWindowsAndMac === !(isRelease && !isWindows && !isMac)) ||
             (entry.releaseNonWindows === !(isRelease && !isWindows)) ||
 	    // The insecureContext test is very purposefully converting
 	    // entry.insecureContext to boolean, so undefined will convert to
@@ -1323,6 +1329,12 @@ function runTest(isXBLScope) {
        "If this is failing: DANGER, are you sure you want to expose the new interface " + name +
        " to all webpages as a property on the window (XBL: " + isXBLScope + ")? Do not make a change to this file without a " +
        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)");
+
+    ok(name in window,
+       `${name} is exposed as an own property on the window but tests false for "in" in the ${isXBLScope ? "XBL" : "global"} scope`);
+    ok(Object.getOwnPropertyDescriptor(window, name),
+       `${name} is exposed as an own property on the window but has no property descriptor in the ${isXBLScope ? "XBL" : "global"} scope`);
+
     delete interfaceMap[name];
   }
   for (var name of Object.keys(interfaceMap)) {
@@ -1332,13 +1344,8 @@ function runTest(isXBLScope) {
       delete interfaceMap[name];
     }
   }
-  if (isXBLScope) {
-    todo_is(Object.keys(interfaceMap).length, 0,
-            "The following interface(s) are not enumerated: " + Object.keys(interfaceMap).join(", "));
-  } else {
-    is(Object.keys(interfaceMap).length, 0,
-       "The following interface(s) are not enumerated: " + Object.keys(interfaceMap).join(", "));
-  }
+  is(Object.keys(interfaceMap).length, 0,
+     "The following interface(s) are not enumerated: " + Object.keys(interfaceMap).join(", "));
 }
 
 runTest(false);

@@ -35,9 +35,9 @@
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
 #include "nspr.h"
-#include "pkix/pkixnss.h"
-#include "pkix/pkixtypes.h"
-#include "pkix/Result.h"
+#include "mozpkix/pkixnss.h"
+#include "mozpkix/pkixtypes.h"
+#include "mozpkix/Result.h"
 #include "prerror.h"
 #include "secasn1.h"
 #include "secder.h"
@@ -891,6 +891,10 @@ nsNSSCertList::GetCertList()
 NS_IMETHODIMP
 nsNSSCertList::AddCert(nsIX509Cert* aCert)
 {
+  if (!aCert) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   // We need an owning handle when calling nsIX509Cert::GetCert().
   UniqueCERTCertificate cert(aCert->GetCert());
   if (!cert) {
@@ -1042,17 +1046,19 @@ nsNSSCertList::Read(nsIObjectInputStream* aStream)
     nsCOMPtr<nsISupports> certSupports;
     rv = aStream->ReadObject(true, getter_AddRefs(certSupports));
     if (NS_FAILED(rv)) {
-      break;
+      return rv;
     }
-
     nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(certSupports);
+    if (!cert) {
+      return NS_ERROR_UNEXPECTED;
+    }
     rv = AddCert(cert);
     if (NS_FAILED(rv)) {
-      break;
+      return rv;
     }
   }
 
-  return rv;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

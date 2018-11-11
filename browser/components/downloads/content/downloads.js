@@ -450,7 +450,7 @@ var DownloadsPanel = {
     // Getting the data or creating the nsIURI might fail
     try {
       let data = {};
-      trans.getAnyTransferData({}, data, {});
+      trans.getAnyTransferData({}, data);
       let [url, name] = data.value
                             .QueryInterface(Ci.nsISupportsString)
                             .data
@@ -732,6 +732,7 @@ var DownloadsView = {
     } else {
       this.richListBox.appendChild(element);
     }
+    viewItem.ensureActive();
   },
 
   /**
@@ -911,7 +912,6 @@ XPCOMUtils.defineConstant(this, "DownloadsView", DownloadsView);
  */
 function DownloadsViewItem(download, aElement) {
   this.download = download;
-  this.downloadState = DownloadsCommon.stateOfDownload(download);
   this.element = aElement;
   this.element._shell = this;
 
@@ -919,8 +919,6 @@ function DownloadsViewItem(download, aElement) {
   this.element.classList.add("download-state");
 
   this.isPanel = true;
-
-  this._updateState();
 }
 
 DownloadsViewItem.prototype = {
@@ -933,11 +931,12 @@ DownloadsViewItem.prototype = {
 
   onChanged() {
     let newState = DownloadsCommon.stateOfDownload(this.download);
-    if (this.downloadState != newState) {
+    if (this.downloadState !== newState) {
       this.downloadState = newState;
       this._updateState();
+    } else {
+      this._updateStateInner();
     }
-    this._updateProgress();
   },
 
   isCommandEnabled(aCommand) {
@@ -1030,9 +1029,7 @@ DownloadsViewItem.prototype = {
   },
 
   downloadsCmd_copyLocation() {
-    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
-                    .getService(Ci.nsIClipboardHelper);
-    clipboard.copyString(this.download.source.url);
+    DownloadsCommon.copyDownloadLink(this.download);
   },
 
   downloadsCmd_doDefault() {

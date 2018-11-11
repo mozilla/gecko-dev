@@ -80,6 +80,9 @@ class TypeVisitor:
     def visitEndpointType(self, s, *args):
         pass
 
+    def visitUniquePtrType(self, s, *args):
+        pass
+
 
 class Type:
     def __cmp__(self, o):
@@ -102,6 +105,9 @@ class Type:
     # Is this type neither compound nor an array?
 
     def isAtom(self):
+        return False
+
+    def isUniquePtr(self):
         return False
 
     def typename(self):
@@ -142,11 +148,12 @@ VOID = VoidType()
 
 
 class ImportedCxxType(Type):
-    def __init__(self, qname, refcounted):
+    def __init__(self, qname, refcounted, moveonly):
         assert isinstance(qname, QualifiedId)
         self.loc = qname.loc
         self.qname = qname
         self.refcounted = refcounted
+        self.moveonly = moveonly
 
     def isCxx(self):
         return True
@@ -156,6 +163,9 @@ class ImportedCxxType(Type):
 
     def isRefcounted(self):
         return self.refcounted
+
+    def isMoveonly(self):
+        return self.moveonly
 
     def name(self):
         return self.qname.baseid
@@ -485,6 +495,19 @@ class EndpointType(IPDLType):
 
     def fullname(self):
         return str(self.qname)
+
+
+class UniquePtrType(Type):
+    def __init__(self, innertype):
+        self.innertype = innertype
+
+    def isUniquePtr(self): return True
+
+    def name(self):
+        return 'UniquePtr<' + self.innertype.fullname() + '>'
+
+    def fullname(self):
+        return 'mozilla::UniquePtr<' + self.innertype.fullname() + '>'
 
 
 def iteractortypes(t, visited=None):
@@ -839,7 +862,10 @@ class GatherDecls(TcheckVisitor):
 
     def visitUsingStmt(self, using):
         fullname = str(using.type)
-        if using.type.basename() == fullname:
+        if (using.type.basename() == fullname) or using.type.uniqueptr:
+            # Prevent generation of typedefs.  If basename == fullname then
+            # there is nothing to typedef.  With UniquePtrs, basenames
+            # are generic so typedefs would be illegal.
             fullname = None
         if fullname == 'mozilla::ipc::Shmem':
             ipdltype = ShmemType(using.type.spec)
@@ -848,11 +874,14 @@ class GatherDecls(TcheckVisitor):
         elif fullname == 'mozilla::ipc::FileDescriptor':
             ipdltype = FDType(using.type.spec)
         else:
-            ipdltype = ImportedCxxType(using.type.spec, using.isRefcounted())
+            ipdltype = ImportedCxxType(using.type.spec, using.isRefcounted(), using.isMoveonly())
             existingType = self.symtab.lookup(ipdltype.fullname())
             if existingType and existingType.fullname == ipdltype.fullname():
                 if ipdltype.isRefcounted() != existingType.type.isRefcounted():
                     self.error(using.loc, "inconsistent refcounted status of type `%s`",
+                               str(using.type))
+                if ipdltype.isMoveonly() != existingType.type.isMoveonly():
+                    self.error(using.loc, "inconsistent moveonly status of type `%s`",
                                str(using.type))
                 using.decl = existingType
                 return
@@ -1043,6 +1072,9 @@ class GatherDecls(TcheckVisitor):
 
         if typespec.array:
             itype = ArrayType(itype)
+
+        if typespec.uniqueptr:
+            itype = UniquePtrType(itype)
 
         return itype
 

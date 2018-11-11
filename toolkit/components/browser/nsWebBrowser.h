@@ -35,7 +35,7 @@
 
 #include "mozilla/BasePrincipal.h"
 #include "nsTArray.h"
-#include "nsWeakPtr.h"
+#include "nsIWeakReferenceUtils.h"
 
 class nsWebBrowserInitInfo
 {
@@ -47,18 +47,6 @@ public:
   int32_t cy;
   bool visible;
   nsString name;
-};
-
-class nsWebBrowserListenerState
-{
-public:
-  bool Equals(nsIWeakReference* aListener, const nsIID& aID)
-  {
-    return mWeakPtr.get() == aListener && mID.Equals(aID);
-  }
-
-  nsWeakPtr mWeakPtr;
-  nsIID mID;
 };
 
 //  {cda5863a-aa9c-411e-be49-ea0d525ab4b5} -
@@ -99,7 +87,7 @@ public:
     nsWebBrowser* mWebBrowser;
   };
 
-  nsWebBrowser();
+  explicit nsWebBrowser(int aItemType = typeContentWrapper);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsWebBrowser, nsIWebBrowser)
@@ -126,7 +114,6 @@ protected:
   NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
   NS_IMETHOD EnsureDocShellTreeOwner();
   NS_IMETHOD BindListener(nsISupports* aListener, const nsIID& aIID);
-  NS_IMETHOD UnBindListener(nsISupports* aListener, const nsIID& aIID);
   NS_IMETHOD EnableGlobalHistory(bool aEnable);
 
   // nsIWidgetListener methods for WidgetListenerDelegate.
@@ -147,7 +134,7 @@ protected:
   nsCOMPtr<nsIWidget> mInternalWidget;
   nsCOMPtr<nsIWindowWatcher> mWWatch;
   nsAutoPtr<nsWebBrowserInitInfo> mInitInfo;
-  uint32_t mContentType;
+  const uint32_t mContentType;
   bool mActivating;
   bool mShouldEnableHistory;
   bool mIsActive;
@@ -170,7 +157,6 @@ protected:
 
   // Weak Reference interfaces...
   nsIWidget* mParentWidget;
-  nsAutoPtr<nsTArray<nsWebBrowserListenerState> > mListenerArray;
 };
 
 #endif /* nsWebBrowser_h__ */

@@ -11,17 +11,19 @@ add_task(async function test() {
 
   // test the ctrlTab.tabList
   pressCtrlTab();
-  ok(ctrlTab.tabList.length, 3, "Show 3 tabs in tab preview");
+  ok(ctrlTab.isOpen, "With 3 tab open, Ctrl+Tab opens the preview panel");
+  is(ctrlTab.tabList.length, 3, "Ctrl+Tab panel displays all visible tabs");
   releaseCtrl();
 
   gBrowser.showOnlyTheseTabs([origTab]);
   pressCtrlTab();
-  ok(ctrlTab.tabList.length, 1, "Show 1 tab in tab preview");
   ok(!ctrlTab.isOpen, "With 1 tab open, Ctrl+Tab doesn't open the preview panel");
+  releaseCtrl();
 
   gBrowser.showOnlyTheseTabs([origTab, tabOne, tabTwo]);
   pressCtrlTab();
-  ok(ctrlTab.isOpen, "With 3 tabs open, Ctrl+Tab does open the preview panel");
+  ok(ctrlTab.isOpen, "Ctrl+Tab opens the preview panel after re-showing hidden tabs");
+  is(ctrlTab.tabList.length, 3, "Ctrl+Tab panel displays all visible tabs after re-showing hidden ones");
   releaseCtrl();
 
   // cleanup

@@ -6,6 +6,8 @@ import sys
 latest_channels = {
     'firefox': 'nightly',
     'chrome': 'dev',
+    'safari': 'preview',
+    'safari_webdriver': 'preview',
     'servo': 'nightly'
 }
 
@@ -46,7 +48,7 @@ def get_parser():
 def get_channel(browser, channel):
     channel = channel_by_name[channel]
     if isinstance(channel, dict):
-        channel = channel[browser]
+        channel = channel.get(browser)
     return channel
 
 

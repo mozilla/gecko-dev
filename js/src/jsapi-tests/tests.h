@@ -8,6 +8,7 @@
 #define jsapi_tests_tests_h
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/TypeTraits.h"
 
 #include <errno.h>
@@ -138,6 +139,12 @@ class JSAPITest
         return JSAPITestString(buf);
     }
 
+    JSAPITestString toSource(double d) {
+        char buf[40];
+        SprintfLiteral(buf, "%17lg", d);
+        return JSAPITestString(buf);
+    }
+
     JSAPITestString toSource(unsigned int v) {
         return toSource((unsigned long)v);
     }
@@ -228,6 +235,8 @@ class JSAPITest
         message += msg;
 
         if (JS_IsExceptionPending(cx)) {
+            message += " -- ";
+
             js::gc::AutoSuppressGC gcoff(cx);
             JS::RootedValue v(cx);
             JS_GetPendingException(cx, &v);

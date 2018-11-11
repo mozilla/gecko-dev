@@ -309,7 +309,7 @@ APZUpdater::GetAPZTestData(LayersId aLayersId,
 
 void
 APZUpdater::SetTestAsyncScrollOffset(LayersId aLayersId,
-                                     const FrameMetrics::ViewID& aScrollId,
+                                     const ScrollableLayerGuid::ViewID& aScrollId,
                                      const CSSPoint& aOffset)
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
@@ -329,7 +329,7 @@ APZUpdater::SetTestAsyncScrollOffset(LayersId aLayersId,
 
 void
 APZUpdater::SetTestAsyncZoom(LayersId aLayersId,
-                             const FrameMetrics::ViewID& aScrollId,
+                             const ScrollableLayerGuid::ViewID& aScrollId,
                              const LayerToParentLayerScale& aZoom)
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
@@ -446,10 +446,12 @@ APZUpdater::RunOnControllerThread(LayersId aLayersId, already_AddRefed<Runnable>
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
+  RefPtr<Runnable> task = aTask;
+
   RunOnUpdaterThread(aLayersId, NewRunnableFunction(
       "APZUpdater::RunOnControllerThread",
       &APZThreadUtils::RunOnControllerThread,
-      std::move(aTask)));
+      std::move(task)));
 }
 
 bool

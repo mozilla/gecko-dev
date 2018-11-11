@@ -15,7 +15,7 @@ add_task(function() {
   const threadNode = new ThreadNode(gProfile.threads[0], { startTime: 0, endTime: 50,
                                                            invertTree: true });
   const treeRoot = new CallView({ frame: threadNode, inverted: true });
-  const container = document.createElement("vbox");
+  const container = document.createXULElement("vbox");
   treeRoot.attachTo(container);
 
   // Add 1 to each index to skip the hidden root node
@@ -84,77 +84,77 @@ const gProfile = RecordingUtils.deflateProfile({
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "C" }
-      ]
+        { location: "C" },
+      ],
     }, {
       time: 10,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "D" }
-      ]
+        { location: "D" },
+      ],
     }, {
       time: 15,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "C" },
-      ]
+      ],
     }, {
       time: 20,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-      ]
+      ],
     }, {
       time: 25,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "C" }
-      ]
+        { location: "C" },
+      ],
     }, {
       time: 30,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "C" }
-      ]
+        { location: "C" },
+      ],
     }, {
       time: 35,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "D" }
-      ]
+        { location: "D" },
+      ],
     }, {
       time: 40,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "D" }
-      ]
+        { location: "D" },
+      ],
     }, {
       time: 45,
       frames: [
         { location: "(root)" },
         { location: "B" },
-        { location: "C" }
-      ]
+        { location: "C" },
+      ],
     }, {
       time: 50,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-        { location: "D" }
-      ]
-    }]
-  }]
+        { location: "D" },
+      ],
+    }],
+  }],
 });

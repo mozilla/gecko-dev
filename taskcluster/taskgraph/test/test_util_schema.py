@@ -9,8 +9,8 @@ from mozunit import main
 from taskgraph.util.schema import (
     validate_schema,
     resolve_keyed_by,
+    Schema,
 )
-from voluptuous import Schema
 
 schema = Schema({
     'x': int,
@@ -29,6 +29,24 @@ class TestValidateSchema(unittest.TestCase):
             self.fail("no exception raised")
         except Exception as e:
             self.failUnless(str(e).startswith("pfx\n"))
+
+
+class TestCheckSchema(unittest.TestCase):
+
+    def test_schema(self):
+        "Creating a schema applies taskgraph checks."
+        with self.assertRaises(Exception):
+            Schema({"camelCase": int})
+
+    def test_extend_schema(self):
+        "Extending a schema applies taskgraph checks."
+        with self.assertRaises(Exception):
+            Schema({"kebab-case": int}).extend({"camelCase": int})
+
+    def test_extend_schema_twice(self):
+        "Extending a schema twice applies taskgraph checks."
+        with self.assertRaises(Exception):
+            Schema({"kebab-case": int}).extend({'more-kebab': int}).extend({"camelCase": int})
 
 
 class TestResolveKeyedBy(unittest.TestCase):
@@ -134,6 +152,26 @@ class TestResolveKeyedBy(unittest.TestCase):
         self.assertRaises(
             Exception, resolve_keyed_by,
             {'f': 'hats', 'x': {'by-f': {'hat.*': 'head', 'ha.*': 'hair'}}}, 'x', 'n')
+
+    def test_no_key_no_default(self):
+        """
+        When the key referenced in `by-*` doesn't exist, and there is not default value,
+        an exception is raised.
+        """
+        self.assertRaises(
+            Exception, resolve_keyed_by,
+            {'x': {'by-f': {'hat.*': 'head', 'ha.*': 'hair'}}}, 'x', 'n')
+
+    def test_no_key(self):
+        """
+        When the key referenced in `by-*` doesn't exist, and there is a default value,
+        that value is used as the result.
+        """
+        self.assertEqual(
+            resolve_keyed_by(
+                {'x': {'by-f': {'hat': 'head', 'default': 'anywhere'}}},
+                'x', 'n'),
+            {'x': 'anywhere'})
 
 
 if __name__ == '__main__':

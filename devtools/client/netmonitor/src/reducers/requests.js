@@ -132,19 +132,21 @@ function requestsReducer(state = Requests(), action) {
 
       const newRequest = {
         id: clonedRequest.id + "-clone",
+        cause: clonedRequest.cause,
         method: clonedRequest.method,
         url: clonedRequest.url,
         urlDetails: clonedRequest.urlDetails,
         requestHeaders: clonedRequest.requestHeaders,
         requestPostData: clonedRequest.requestPostData,
         requestPostDataAvailable: clonedRequest.requestPostDataAvailable,
-        isCustom: true
+        isCustom: true,
       };
 
       return {
         ...state,
         requests: mapSet(requests, newRequest.id, newRequest),
         selectedId: newRequest.id,
+        preselectedId: selectedId,
       };
     }
 

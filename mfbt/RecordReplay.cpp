@@ -9,6 +9,7 @@
 #include "js/GCAnnotations.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Casting.h"
+#include "mozilla/Utf8.h"
 
 #include <stdlib.h>
 
@@ -41,7 +42,7 @@ namespace recordreplay {
   Macro(DefineRecordReplayControlObject, bool, (JSContext* aCx, JSObject* aObj), (aCx, aObj))
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                          \
-  Macro(InternalBeginOrderedAtomicAccess, (), ())               \
+  Macro(InternalBeginOrderedAtomicAccess, (const void* aValue), (aValue)) \
   Macro(InternalEndOrderedAtomicAccess, (), ())                 \
   Macro(InternalBeginPassThroughThreadEvents, (), ())           \
   Macro(InternalEndPassThroughThreadEvents, (), ())             \
@@ -49,9 +50,6 @@ namespace recordreplay {
   Macro(InternalEndDisallowThreadEvents, (), ())                \
   Macro(InternalRecordReplayBytes,                              \
         (void* aData, size_t aSize), (aData, aSize))            \
-  Macro(NotifyUnrecordedWait,                                   \
-        (const std::function<void()>& aCallback), (aCallback))  \
-  Macro(MaybeWaitForCheckpointSave, (), ())                     \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy)) \
   Macro(InternalDestroyPLDHashTableCallbacks,                   \
         (const PLDHashTableOps* aOps), (aOps))                  \
@@ -76,7 +74,10 @@ namespace recordreplay {
   Macro(BeginContentParse,                                      \
         (const void* aToken, const char* aURL, const char* aContentType), \
         (aToken, aURL, aContentType))                           \
-  Macro(AddContentParseData,                                    \
+  Macro(AddContentParseData8,                                   \
+        (const void* aToken, const mozilla::Utf8Unit* aUtf8Buffer, size_t aLength), \
+        (aToken, aUtf8Buffer, aLength))                         \
+  Macro(AddContentParseData16,                                  \
         (const void* aToken, const char16_t* aBuffer, size_t aLength), \
         (aToken, aBuffer, aLength))                             \
   Macro(EndContentParse, (const void* aToken), (aToken))

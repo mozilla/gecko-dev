@@ -1,0 +1,36 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
+<html>
+<head>
+<script language="javascript" type="text/javascript">
+
+function runTest() {
+  dispatchEvent(
+    new CustomEvent("tresize@mozilla.org:chrome-run-event",
+                    { bubbles: true,
+                      detail: { locationSearch: location.search } })
+  );
+}
+
+function logResults(data) {
+  let error = data.error;
+  if (data.average) {
+    if (window.tpRecordTime) {
+      window.tpRecordTime(data.average);
+    }
+  } else {
+    error = "data.average and/or window.tpRecordTime is missing!";
+  }
+
+  if (error) {
+    dump(`TRESIZE ERROR: ${error}\n`);
+  }
+}
+
+</script>
+</head>
+<body id="body" onload="runTest();">
+<div style="text-align:center; margin-left:auto; margin-right:auto; background-color:Silver; width:100px; height:100%;">RESIZE</div>
+</body>
+</html>

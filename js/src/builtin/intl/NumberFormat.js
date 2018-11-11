@@ -22,7 +22,7 @@ var numberFormatInternalProperties = {
         addSpecialMissingLanguageTags(locales);
         return (this._availableLocales = locales);
     },
-    relevantExtensionKeys: ["nu"]
+    relevantExtensionKeys: ["nu"],
 };
 
 /**
@@ -107,18 +107,15 @@ function getNumberFormatInternals(obj) {
 /**
  * 11.1.11 UnwrapNumberFormat( nf )
  */
-function UnwrapNumberFormat(nf, methodName) {
-    // Step 1 (not applicable in our implementation).
-
-    // Step 2.
-    if (IsObject(nf) && (GuardToNumberFormat(nf)) === null && nf instanceof GetNumberFormatConstructor())
+function UnwrapNumberFormat(nf) {
+    // Steps 2 and 4 (error handling moved to caller).
+    if (IsObject(nf) &&
+        GuardToNumberFormat(nf) === null &&
+        !IsWrappedNumberFormat(nf) &&
+        nf instanceof GetNumberFormatConstructor())
+    {
         nf = nf[intlFallbackSymbol()];
-
-    // Step 3.
-    if (!IsObject(nf) || (nf = GuardToNumberFormat(nf)) === null)
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "NumberFormat", methodName, "NumberFormat");
-
-    // Step 4.
+    }
     return nf;
 }
 
@@ -381,7 +378,7 @@ function getNumberingSystems(locale) {
         "fullwide", "gujr", "guru", "hanidec", "khmr",
         "knda", "laoo", "latn", "limb", "mlym",
         "mong", "mymr", "orya", "tamldec", "telu",
-        "thai", "tibt"
+        "thai", "tibt",
     ];
 }
 
@@ -390,7 +387,7 @@ function numberFormatLocaleData() {
         nu: getNumberingSystems,
         default: {
             nu: intl_numberingSystem,
-        }
+        },
     };
 }
 
@@ -423,7 +420,12 @@ function numberFormatFormatToBind(value) {
  */
 function Intl_NumberFormat_format_get() {
     // Steps 1-3.
-    var nf = UnwrapNumberFormat(this, "format");
+    var thisArg = UnwrapNumberFormat(this);
+    var nf = thisArg;
+    if (!IsObject(nf) || (nf = GuardToNumberFormat(nf)) === null) {
+        return callFunction(CallNumberFormatMethodIfWrapped, thisArg,
+                            "Intl_NumberFormat_format_get");
+    }
 
     var internals = getNumberFormatInternals(nf);
 
@@ -450,8 +452,8 @@ function Intl_NumberFormat_formatToParts(value) {
 
     // Steps 2-3.
     if (!IsObject(nf) || (nf = GuardToNumberFormat(nf)) === null) {
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "NumberFormat", "formatToParts",
-                       "NumberFormat");
+        return callFunction(CallNumberFormatMethodIfWrapped, this, value,
+                            "Intl_NumberFormat_formatToParts");
     }
 
     // Ensure the NumberFormat internals are resolved.
@@ -471,7 +473,12 @@ function Intl_NumberFormat_formatToParts(value) {
  */
 function Intl_NumberFormat_resolvedOptions() {
     // Steps 1-3.
-    var nf = UnwrapNumberFormat(this, "resolvedOptions");
+    var thisArg = UnwrapNumberFormat(this);
+    var nf = thisArg;
+    if (!IsObject(nf) || (nf = GuardToNumberFormat(nf)) === null) {
+        return callFunction(CallNumberFormatMethodIfWrapped, thisArg,
+                            "Intl_NumberFormat_resolvedOptions");
+    }
 
     var internals = getNumberFormatInternals(nf);
 
@@ -480,10 +487,6 @@ function Intl_NumberFormat_resolvedOptions() {
         locale: internals.locale,
         numberingSystem: internals.numberingSystem,
         style: internals.style,
-        minimumIntegerDigits: internals.minimumIntegerDigits,
-        minimumFractionDigits: internals.minimumFractionDigits,
-        maximumFractionDigits: internals.maximumFractionDigits,
-        useGrouping: internals.useGrouping
     };
 
     // currency and currencyDisplay are only present for currency formatters.
@@ -497,6 +500,10 @@ function Intl_NumberFormat_resolvedOptions() {
         _DefineDataProperty(result, "currencyDisplay", internals.currencyDisplay);
     }
 
+    _DefineDataProperty(result, "minimumIntegerDigits", internals.minimumIntegerDigits);
+    _DefineDataProperty(result, "minimumFractionDigits", internals.minimumFractionDigits);
+    _DefineDataProperty(result, "maximumFractionDigits", internals.maximumFractionDigits);
+
     // Min/Max significant digits are either both present or not at all.
     assert(hasOwn("minimumSignificantDigits", internals) ===
            hasOwn("maximumSignificantDigits", internals),
@@ -508,6 +515,8 @@ function Intl_NumberFormat_resolvedOptions() {
         _DefineDataProperty(result, "maximumSignificantDigits",
                             internals.maximumSignificantDigits);
     }
+
+    _DefineDataProperty(result, "useGrouping", internals.useGrouping);
 
     // Step 6.
     return result;

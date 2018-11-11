@@ -82,14 +82,6 @@ searchfox
 
 Searchfox builds generate C++ index data for Searchfox.
 
-static-analysis
----------------
-
-Static analysis builds use the compiler to perform some detailed analysis of
-the source code while building.  The useful output from these tasks are their
-build logs, and while they produce a binary, they do not upload it as an
-artifact.
-
 static-analysis-autotest
 ------------------------
 
@@ -295,6 +287,10 @@ release-notify-promote
 ----------------------
 Notify when a release has been promoted.
 
+release-notify-started
+-------------------
+Notify when a release has been started.
+
 release-bouncer-sub
 -------------------
 Submits bouncer updates for releases.
@@ -302,6 +298,10 @@ Submits bouncer updates for releases.
 release-mark-as-shipped
 -----------------------
 Marks releases as shipped in Ship-It v1
+
+release-mark-as-started
+-----------------------
+Marks releases as started in Ship-It v1
 
 release-bouncer-aliases
 -----------------------
@@ -455,6 +455,15 @@ repackage-signing-l10n
 ----------------------
 Repackage-signing take the repackaged installers (windows) and update packaging (with
 the signed internal bits) and signs them for localized versions.
+
+repackage-msi
+-------------
+Repackage-msi takes the signed full installer and produces an msi installer (that wraps the full installer)
+Using the ```./mach repackage``` command
+
+repackage-signing-msi
+---------------------
+Repackage-signing-msi takes the repackaged msi installers and signs them.
 
 repo-update
 -----------

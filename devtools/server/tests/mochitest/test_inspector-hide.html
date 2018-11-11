@@ -21,17 +21,13 @@ window.onload = function() {
 let gWalker = null;
 let gInspectee = null;
 
-addTest(function setup() {
+addTest(async function setup() {
   const url = document.getElementById("inspectorContent").href;
-  attachURL(url, function(err, client, tab, doc) {
-    gInspectee = doc;
-    const {InspectorFront} = require("devtools/shared/fronts/inspector");
-    const inspector = InspectorFront(client, tab);
-    promiseDone(inspector.getWalker().then(walker => {
-      ok(walker, "getWalker() should return an actor.");
-      gWalker = walker;
-    }).then(runNextTest));
-  });
+  const { target, doc } = await attachURL(url);
+  const inspector = await target.getInspector();
+  gInspectee = doc;
+  gWalker = inspector.walker;
+  runNextTest();
 });
 
 addTest(function testRearrange() {
@@ -42,15 +38,15 @@ addTest(function testRearrange() {
     listFront = front;
   }).then(() => {
     const computed = gInspectee.defaultView.getComputedStyle(listNode);
-    ok(computed.visibility, "visible", "Node should be visible to start with");
+    is(computed.visibility, "visible", "Node should be visible to start with");
     return gWalker.hideNode(listFront);
   }).then(response => {
     const computed = gInspectee.defaultView.getComputedStyle(listNode);
-    ok(computed.visibility, "hidden", "Node should be hidden");
+    is(computed.visibility, "hidden", "Node should be hidden");
     return gWalker.unhideNode(listFront);
   }).then(() => {
     const computed = gInspectee.defaultView.getComputedStyle(listNode);
-    ok(computed.visibility, "visible", "Node should be visible again.");
+    is(computed.visibility, "visible", "Node should be visible again.");
   }).then(runNextTest));
 });
 

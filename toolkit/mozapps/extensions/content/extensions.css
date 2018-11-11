@@ -17,6 +17,11 @@ xhtml|link {
   -moz-binding: url("chrome://mozapps/content/extensions/extensions.xml#category");
 }
 
+.sidebar-footer-button > .text-link {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .addon[status="installed"] {
   -moz-box-orient: vertical;
   -moz-binding: url("chrome://mozapps/content/extensions/extensions.xml#addon-generic");
@@ -135,10 +140,17 @@ row[unsupported="true"] {
 #addons-page[warning="safemode"] #detail-view[loading="true"] .global-warning {
   display: none;
 }
-
-#addons-page .view-pane:not([type="theme"]) #getthemes-container,
 #addons-page .view-pane:not([type="plugin"]) #plugindeprecation-notice {
   display: none;
+}
+
+.list-view-notice {
+  margin-inline-start: 28px;
+  margin-bottom: 16px;
+}
+
+.list-view-notice > .message-bar {
+  width: 664px;
 }
 
 .addon .relnotes {
@@ -146,6 +158,12 @@ row[unsupported="true"] {
 }
 #detail-name, #detail-desc, #detail-fulldesc {
   -moz-user-select: text;
+}
+
+#detail-name-container {
+  /* Set a max-width on this so the labels inside of this will wrap instead of
+     growing the card horizontally with long names. */
+  max-width: 580px;
 }
 
 /* Make sure we're not animating hidden images. See bug 623739. */

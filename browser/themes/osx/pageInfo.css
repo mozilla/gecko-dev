@@ -4,7 +4,7 @@
 
 @import "chrome://global/skin/";
 
-%include shared.inc
+%include ../../../toolkit/themes/osx/global/shared.inc
 
 #topBar {
   -moz-appearance: toolbar;
@@ -109,29 +109,6 @@ treechildren::-moz-tree-cell-text(broken) {
   color: graytext;
 }
 
-/* Feeds Tab */
-#feedtree {
-  margin-bottom: 0px;
-}
-
-#feedListbox richlistitem {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-inline-start: 7px;
-  padding-inline-end: 7px;
-  min-height: 25px;
-  border-bottom: 1px dotted ThreeDShadow;
-}
-
-#feedListbox richlistitem[selected="true"] {
-  background-color: -moz-Dialog;
-  color: -moz-DialogText;
-}
-
-.feedTitle {
-  font-weight: bold;
-}
-
 /* Permissions Tab */
 #permList {
   margin: .5em;
@@ -156,21 +133,9 @@ treechildren::-moz-tree-cell-text(broken) {
 }
 
 /* Security Tab */
-#securityPanel .caption-icon {
-  display: none;
-}
 
-#securityPanel .header {
-  font-size: 120%;
-}
-
-#securityPanel .fieldLabel {
-  margin: 2px 10px 3px;
-}
-
-#securityPanel .fieldValue {
-  font-weight: bold;
-  margin: 2px 10px 3px;
+#securityPanel grid {
+  margin-bottom: 1em;
 }
 
 #securityPanel row {

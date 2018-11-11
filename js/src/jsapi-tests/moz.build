@@ -84,6 +84,7 @@ UNIFIED_SOURCES += [
     'testProfileStrings.cpp',
     'testPromise.cpp',
     'testPropCache.cpp',
+    'testReadableStream.cpp',
     'testRegExp.cpp',
     'testResolveRecursion.cpp',
     'tests.cpp',
@@ -96,6 +97,7 @@ UNIFIED_SOURCES += [
     'testSharedImmutableStringsCache.cpp',
     'testSourcePolicy.cpp',
     'testStringBuffer.cpp',
+    'testStringIsArrayIndex.cpp',
     'testStructuredClone.cpp',
     'testSymbol.cpp',
     'testThreadingConditionVariable.cpp',
@@ -139,6 +141,7 @@ if CONFIG['NIGHTLY_BUILD']:
     # The Error interceptor only exists on Nightly.
     UNIFIED_SOURCES += [
         'testErrorInterceptor.cpp',
+        'testErrorInterceptorGC.cpp',
     ]
 
 if CONFIG['JS_BUILD_BINAST'] and CONFIG['JS_STANDALONE'] and not CONFIG['FUZZING']:

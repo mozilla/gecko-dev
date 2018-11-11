@@ -151,27 +151,18 @@ InvokeFromInterpreterStub(JSContext* cx, InterpreterStubExitFrameLayout* frame)
     return true;
 }
 
-#ifdef JS_SIMULATOR
-static bool
-CheckSimulatorRecursionLimitWithExtra(JSContext* cx, uint32_t extra)
-{
-    if (cx->simulator()->overRecursedWithExtra(extra)) {
-        ReportOverRecursed(cx);
-        return false;
-    }
-    return true;
-}
-#endif
-
 bool
 CheckOverRecursed(JSContext* cx)
 {
     // We just failed the jitStackLimit check. There are two possible reasons:
-    //  - jitStackLimit was the real stack limit and we're over-recursed
-    //  - jitStackLimit was set to UINTPTR_MAX by JSRuntime::requestInterrupt
-    //    and we need to call JSRuntime::handleInterrupt.
+    //  1) jitStackLimit was the real stack limit and we're over-recursed
+    //  2) jitStackLimit was set to UINTPTR_MAX by JSContext::requestInterrupt
+    //     and we need to call JSContext::handleInterrupt.
+
+    // This handles 1).
 #ifdef JS_SIMULATOR
-    if (!CheckSimulatorRecursionLimitWithExtra(cx, 0)) {
+    if (cx->simulator()->overRecursedWithExtra(0)) {
+        ReportOverRecursed(cx);
         return false;
     }
 #else
@@ -179,62 +170,27 @@ CheckOverRecursed(JSContext* cx)
         return false;
     }
 #endif
+
+    // This handles 2).
     gc::MaybeVerifyBarriers(cx);
     return cx->handleInterrupt();
 }
 
-// This function can get called in two contexts.  In the usual context, it's
-// called with earlyCheck=false, after the env chain has been initialized on
-// a baseline frame.  In this case, it's ok to throw an exception, so a failed
-// stack check returns false, and a successful stack check promps a check for
-// an interrupt from the runtime, which may also cause a false return.
-//
-// In the second case, it's called with earlyCheck=true, prior to frame
-// initialization.  An exception cannot be thrown in this instance, so instead
-// an error flag is set on the frame and true returned.
+// This function gets called when the overrecursion check fails for a Baseline
+// frame. This is just like CheckOverRecursed, with an extra check to handle
+// early stack check failures.
 bool
-CheckOverRecursedWithExtra(JSContext* cx, BaselineFrame* frame,
-                           uint32_t extra, uint32_t earlyCheck)
+CheckOverRecursedBaseline(JSContext* cx, BaselineFrame* frame)
 {
-    MOZ_ASSERT_IF(earlyCheck, !frame->overRecursed());
-
-    // See |CheckOverRecursed| above.  This is a variant of that function which
-    // accepts an argument holding the extra stack space needed for the Baseline
-    // frame that's about to be pushed.
-    uint8_t spDummy;
-    uint8_t* checkSp = (&spDummy) - extra;
-    if (earlyCheck) {
-#ifdef JS_SIMULATOR
-        (void)checkSp;
-        if (!CheckSimulatorRecursionLimitWithExtra(cx, extra)) {
-            frame->setOverRecursed();
-        }
-#else
-        if (!CheckRecursionLimitWithStackPointer(cx, checkSp)) {
-            frame->setOverRecursed();
-        }
-#endif
-        return true;
-    }
-
     // The OVERRECURSED flag may have already been set on the frame by an
-    // early over-recursed check.  If so, throw immediately.
+    // early over-recursed check (before pushing the locals).  If so, throw
+    // immediately.
     if (frame->overRecursed()) {
+        ReportOverRecursed(cx);
         return false;
     }
 
-#ifdef JS_SIMULATOR
-    if (!CheckSimulatorRecursionLimitWithExtra(cx, extra)) {
-        return false;
-    }
-#else
-    if (!CheckRecursionLimitWithStackPointer(cx, checkSp)) {
-        return false;
-    }
-#endif
-
-    gc::MaybeVerifyBarriers(cx);
-    return cx->handleInterrupt();
+    return CheckOverRecursed(cx);
 }
 
 JSObject*
@@ -863,12 +819,12 @@ WrapObjectPure(JSContext* cx, JSObject* obj)
     return nullptr;
 }
 
-bool
-DebugPrologue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustReturn)
+static bool
+HandlePrologueResumeMode(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustReturn,
+                         ResumeMode resumeMode)
 {
     *mustReturn = false;
-
-    switch (Debugger::onEnterFrame(cx, frame)) {
+    switch (resumeMode) {
       case ResumeMode::Continue:
         return true;
 
@@ -886,6 +842,13 @@ DebugPrologue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustRet
       default:
         MOZ_CRASH("bad Debugger::onEnterFrame resume mode");
     }
+}
+
+bool
+DebugPrologue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustReturn)
+{
+    ResumeMode resumeMode = Debugger::onEnterFrame(cx, frame);
+    return HandlePrologueResumeMode(cx, frame, pc, mustReturn, resumeMode);
 }
 
 bool
@@ -1002,8 +965,6 @@ InterpretResume(JSContext* cx, HandleObject obj, HandleValue val, HandleProperty
 bool
 DebugAfterYield(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustReturn)
 {
-    *mustReturn = false;
-
     // The BaselineFrame has just been constructed by JSOP_RESUME in the
     // caller. We need to set its debuggee flag as necessary.
     //
@@ -1011,8 +972,11 @@ DebugAfterYield(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool* mustR
     // we may already have done this work. Don't fire onEnterFrame again.
     if (frame->script()->isDebuggee() && !frame->isDebuggee()) {
         frame->setIsDebuggee();
-        return DebugPrologue(cx, frame, pc, mustReturn);
+        ResumeMode resumeMode = Debugger::onResumeFrame(cx, frame);
+        return HandlePrologueResumeMode(cx, frame, pc, mustReturn, resumeMode);
     }
+
+    *mustReturn = false;
     return true;
 }
 
@@ -1024,7 +988,7 @@ GeneratorThrowOrReturn(JSContext* cx, BaselineFrame* frame, Handle<GeneratorObje
     // work. This function always returns false, so we're guaranteed to enter
     // the exception handler where we will clear the pc.
     JSScript* script = frame->script();
-    uint32_t offset = script->yieldAndAwaitOffsets()[genObj->yieldAndAwaitIndex()];
+    uint32_t offset = script->resumeOffsets()[genObj->resumeIndex()];
     jsbytecode* pc = script->offsetToPC(offset);
     frame->setOverridePc(pc);
 
@@ -1152,7 +1116,7 @@ HandleDebugTrap(JSContext* cx, BaselineFrame* frame, uint8_t* retAddr, bool* mus
     *mustReturn = false;
 
     RootedScript script(cx, frame->script());
-    jsbytecode* pc = script->baselineScript()->icEntryFromReturnAddress(retAddr).pc(script);
+    jsbytecode* pc = script->baselineScript()->retAddrEntryFromReturnAddress(retAddr).pc(script);
 
     if (*pc == JSOP_DEBUGAFTERYIELD) {
         // JSOP_DEBUGAFTERYIELD will set the frame's debuggee flag and call the
@@ -1645,7 +1609,7 @@ CallNativeSetter(JSContext* cx, HandleFunction callee, HandleObject obj, HandleV
 }
 
 bool
-EqualStringsHelper(JSString* str1, JSString* str2)
+EqualStringsHelperPure(JSString* str1, JSString* str2)
 {
     // IC code calls this directly so we shouldn't GC.
     AutoUnsafeCallWithABI unsafe;
@@ -1676,7 +1640,7 @@ CheckIsCallable(JSContext* cx, HandleValue v, CheckIsCallableKind kind)
 
 template <bool HandleMissing>
 static MOZ_ALWAYS_INLINE bool
-GetNativeDataProperty(JSContext* cx, NativeObject* obj, jsid id, Value* vp)
+GetNativeDataPropertyPure(JSContext* cx, NativeObject* obj, jsid id, Value* vp)
 {
     // Fast path used by megamorphic IC stubs. Unlike our other property
     // lookup paths, this is optimized to be as fast as possible for simple
@@ -1721,18 +1685,18 @@ GetNativeDataProperty(JSContext* cx, NativeObject* obj, jsid id, Value* vp)
 
 template <bool HandleMissing>
 bool
-GetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp)
+GetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp)
 {
     // Condition checked by caller.
     MOZ_ASSERT(obj->isNative());
-    return GetNativeDataProperty<HandleMissing>(cx, &obj->as<NativeObject>(), NameToId(name), vp);
+    return GetNativeDataPropertyPure<HandleMissing>(cx, &obj->as<NativeObject>(), NameToId(name), vp);
 }
 
 template bool
-GetNativeDataProperty<true>(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp);
+GetNativeDataPropertyPure<true>(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp);
 
 template bool
-GetNativeDataProperty<false>(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp);
+GetNativeDataPropertyPure<false>(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp);
 
 static MOZ_ALWAYS_INLINE bool
 ValueToAtomOrSymbolPure(JSContext* cx, Value& idVal, jsid* id)
@@ -1785,7 +1749,7 @@ GetNativeDataPropertyByValuePure(JSContext* cx, JSObject* obj, Value* vp)
     }
 
     Value* res = vp + 1;
-    return GetNativeDataProperty<HandleMissing>(cx, &obj->as<NativeObject>(), id, res);
+    return GetNativeDataPropertyPure<HandleMissing>(cx, &obj->as<NativeObject>(), id, res);
 }
 
 template bool
@@ -1796,7 +1760,7 @@ GetNativeDataPropertyByValuePure<false>(JSContext* cx, JSObject* obj, Value* vp)
 
 template <bool NeedsTypeBarrier>
 bool
-SetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* val)
+SetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name, Value* val)
 {
     AutoUnsafeCallWithABI unsafe;
 
@@ -1822,13 +1786,13 @@ SetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* v
 }
 
 template bool
-SetNativeDataProperty<true>(JSContext* cx, JSObject* obj, PropertyName* name, Value* val);
+SetNativeDataPropertyPure<true>(JSContext* cx, JSObject* obj, PropertyName* name, Value* val);
 
 template bool
-SetNativeDataProperty<false>(JSContext* cx, JSObject* obj, PropertyName* name, Value* val);
+SetNativeDataPropertyPure<false>(JSContext* cx, JSObject* obj, PropertyName* name, Value* val);
 
 bool
-ObjectHasGetterSetter(JSContext* cx, JSObject* objArg, Shape* propShape)
+ObjectHasGetterSetterPure(JSContext* cx, JSObject* objArg, Shape* propShape)
 {
     AutoUnsafeCallWithABI unsafe;
 
@@ -1937,7 +1901,7 @@ HasNativeDataPropertyPure<false>(JSContext* cx, JSObject* obj, Value* vp);
 
 
 bool
-HasNativeElement(JSContext* cx, NativeObject* obj, int32_t index, Value* vp)
+HasNativeElementPure(JSContext* cx, NativeObject* obj, int32_t index, Value* vp)
 {
     AutoUnsafeCallWithABI unsafe;
 
@@ -2110,6 +2074,21 @@ const VMFunction ProxyHasInfo = FunctionInfo<ProxyHasFn>(ProxyHas, "ProxyHas");
 
 typedef bool (*ProxyHasOwnFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
 const VMFunction ProxyHasOwnInfo = FunctionInfo<ProxyHasOwnFn>(ProxyHasOwn, "ProxyHasOwn");
+
+typedef bool (*NativeGetElementFn)(JSContext*, HandleNativeObject, HandleValue, int32_t,
+                                   MutableHandleValue);
+const VMFunction NativeGetElementInfo =
+    FunctionInfo<NativeGetElementFn>(NativeGetElement, "NativeGetProperty");
+
+typedef bool (*AddOrUpdateSparseElementHelperFn)(JSContext* cx, HandleArrayObject obj,
+                                                 int32_t int_id, HandleValue v, bool strict);
+const VMFunction AddOrUpdateSparseElementHelperInfo =
+    FunctionInfo<AddOrUpdateSparseElementHelperFn>(AddOrUpdateSparseElementHelper, "AddOrUpdateSparseElementHelper");
+
+typedef bool (*GetSparseElementHelperFn)(JSContext* cx, HandleArrayObject obj,
+                                         int32_t int_id, MutableHandleValue result);
+const VMFunction GetSparseElementHelperInfo =
+    FunctionInfo<GetSparseElementHelperFn>(GetSparseElementHelper, "getSparseElementHelper");
 
 } // namespace jit
 } // namespace js

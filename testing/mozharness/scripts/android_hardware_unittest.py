@@ -7,7 +7,6 @@
 
 import copy
 import datetime
-import glob
 import os
 import re
 import sys
@@ -17,7 +16,7 @@ import subprocess
 sys.path.insert(1, os.path.dirname(sys.path[0]))
 
 from mozharness.base.log import FATAL
-from mozharness.base.script import BaseScript, PreScriptAction, PostScriptAction
+from mozharness.base.script import BaseScript, PreScriptAction
 from mozharness.mozilla.mozbase import MozbaseMixin
 from mozharness.mozilla.testing.android import AndroidMixin
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
@@ -69,8 +68,6 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
          }
     ]] + copy.deepcopy(testing_config_options)
 
-    app_name = None
-
     def __init__(self, require_config_file=False):
         super(AndroidHardwareTest, self).__init__(
             config_options=self.config_options,
@@ -100,9 +97,6 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
         self.test_packages_url = c.get('test_packages_url')
         self.test_manifest = c.get('test_manifest')
         self.robocop_path = os.path.join(abs_dirs['abs_work_dir'], "robocop.apk")
-        self.device_name = os.environ['DEVICE_NAME']
-        self.device_serial = os.environ['DEVICE_SERIAL']
-        self.device_ip = os.environ['DEVICE_IP']
         self.test_suite = c.get('test_suite')
         self.this_chunk = c.get('this_chunk')
         self.total_chunks = c.get('total_chunks')
@@ -157,31 +151,6 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
         except Exception:
             test_dir = self.test_suite
         return os.path.join(dirs['abs_test_install_dir'], test_dir)
-
-    def _query_package_name(self):
-        if self.app_name is None:
-            # For convenience, assume geckoview.test/geckoview_example when install
-            # target looks like geckoview.
-            if 'androidTest' in self.installer_path:
-                self.app_name = 'org.mozilla.geckoview.test'
-            elif 'geckoview' in self.installer_path:
-                self.app_name = 'org.mozilla.geckoview_example'
-        if self.app_name is None:
-            # Find appname from package-name.txt - assumes download-and-extract
-            # has completed successfully.
-            # The app/package name will typically be org.mozilla.fennec,
-            # but org.mozilla.firefox for release builds, and there may be
-            # other variations. 'aapt dump badging <apk>' could be used as an
-            # alternative to package-name.txt, but introduces a dependency
-            # on aapt, found currently in the Android SDK build-tools component.
-            apk_dir = self.abs_dirs['abs_work_dir']
-            self.apk_path = os.path.join(apk_dir, self.installer_path)
-            unzip = self.query_exe("unzip")
-            package_path = os.path.join(apk_dir, 'package-name.txt')
-            unzip_cmd = [unzip, '-q', '-o', self.apk_path]
-            self.run_command(unzip_cmd, cwd=apk_dir, halt_on_failure=True)
-            self.app_name = str(self.read_from_file(package_path, verbose=True)).rstrip()
-        return self.app_name
 
     def _build_command(self):
         c = self.config
@@ -242,7 +211,7 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
 
             if '%(app)' in option:
                 # only query package name if requested
-                cmd.extend([option % {'app': self._query_package_name()}])
+                cmd.extend([option % {'app': self.query_package_name()}])
             else:
                 option = option % str_format_values
                 if option:
@@ -316,16 +285,6 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
             self.register_virtualenv_module(requirements=[requirements],
                                             two_pass=True)
 
-    def verify_device(self):
-        '''
-        Check to see if the device can be contacted via adb.
-        '''
-        self.mkdir_p(self.query_abs_dirs()['abs_blob_upload_dir'])
-        self.dump_perf_info()
-        self.logcat_start()
-        # Get a post-boot device process list for diagnostics
-        self.info(self.shell_output('ps'))
-
     def download_and_extract(self):
         """
         Download and extract fennec APK, tests.zip, host utils, and robocop (if required).
@@ -337,18 +296,7 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
             robocop_url = self.installer_url[:self.installer_url.rfind('/')] + '/robocop.apk'
             self.info("Downloading robocop...")
             self.download_file(robocop_url, 'robocop.apk', dirs['abs_work_dir'], error_level=FATAL)
-        self.rmtree(dirs['abs_xre_dir'])
-        self.mkdir_p(dirs['abs_xre_dir'])
-        if self.config["hostutils_manifest_path"]:
-            url = self._get_repo_url(self.config["hostutils_manifest_path"])
-            self._tooltool_fetch(url, dirs['abs_xre_dir'])
-            for p in glob.glob(os.path.join(dirs['abs_xre_dir'], 'host-utils-*')):
-                if os.path.isdir(p) and os.path.isfile(os.path.join(p, 'xpcshell')):
-                    self.xre_path = p
-            if not self.xre_path:
-                self.fatal("xre path not found in %s" % dirs['abs_xre_dir'])
-        else:
-            self.fatal("configure hostutils_manifest_path!")
+        self.xre_path = self.download_hostutils(dirs['abs_xre_dir'])
 
     def install(self):
         """
@@ -436,13 +384,6 @@ class AndroidHardwareTest(TestingMixin, BaseScript, MozbaseMixin,
                     self.record_status(tbpl_status, level=log_level)
                     self.log("The %s suite: %s ran with return status: %s" %
                              (suite_category, suite, tbpl_status), level=log_level)
-
-    @PostScriptAction('run-tests')
-    def stop_device(self, action, success=None):
-        '''
-        Cleanup after test run.
-        '''
-        self.logcat_stop()
 
 
 if __name__ == '__main__':

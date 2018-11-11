@@ -83,9 +83,15 @@ function init_all() {
   window.addEventListener("hashchange", onHashChange);
   gotoPref();
 
-  let helpButton = document.querySelector(".help-button > .text-link");
+  let helpButton = document.getElementById("helpButton");
   let helpUrl = Services.urlFormatter.formatURLPref("app.support.baseURL") + "preferences";
   helpButton.setAttribute("href", helpUrl);
+
+  document.getElementById("addonsButton")
+    .addEventListener("click", () => {
+      let mainWindow = window.docShell.rootTreeItem.domWindow;
+      mainWindow.BrowserOpenAddonsMgr();
+    });
 
   document.dispatchEvent(new CustomEvent("Initialized", {
     "bubbles": true,
@@ -182,10 +188,6 @@ function gotoPref(aCategory) {
   mainContent.scrollTop = 0;
 
   spotlight(subcategory);
-
-  Services.telemetry
-          .getHistogramById("FX_PREFERENCES_CATEGORY_OPENED_V2")
-          .add(telemetryBucketForCategory(friendlyName));
 }
 
 function search(aQuery, aAttribute) {
@@ -230,7 +232,7 @@ async function spotlight(subcategory) {
     if (!gSearchResultsPane.categoriesInitialized) {
       await waitForSystemAddonInjectionsFinished([{
         isGoingToInject: formAutofillParent.initialized,
-        elementId: "formAutofillGroupBox",
+        elementId: "formAutofillGroup",
       }]);
     }
     scrollAndHighlight(subcategory);
@@ -240,7 +242,7 @@ async function spotlight(subcategory) {
    * Wait for system addons finished their dom injections.
    * @param {Array} addons - The system addon information array.
    * For example, the element is looked like
-   * { isGoingToInject: true, elementId: "formAutofillGroupBox" }.
+   * { isGoingToInject: true, elementId: "formAutofillGroup" }.
    * The `isGoingToInject` means the system addon will be visible or not,
    * and the `elementId` means the id of the element will be injected into the dom
    * if the `isGoingToInject` is true.

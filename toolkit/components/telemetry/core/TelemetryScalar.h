@@ -6,9 +6,10 @@
 #ifndef TelemetryScalar_h__
 #define TelemetryScalar_h__
 
-#include "nsTArray.h"
-#include "mozilla/TelemetryScalarEnums.h"
+#include <stdint.h>
 #include "mozilla/TelemetryProcessEnums.h"
+#include "mozilla/TelemetryScalarEnums.h"
+#include "nsTArray.h"
 
 // This module is internal to Telemetry. It encapsulates Telemetry's
 // scalar accumulation and storage logic. It should only be used by
@@ -40,7 +41,7 @@ nsresult Set(const nsACString& aName, JS::HandleValue aVal, JSContext* aCx);
 nsresult SetMaximum(const nsACString& aName, JS::HandleValue aVal, JSContext* aCx);
 nsresult CreateSnapshots(unsigned int aDataset, bool aClearScalars,
                          JSContext* aCx, uint8_t optional_argc,
-                         JS::MutableHandle<JS::Value> aResult);
+                         JS::MutableHandle<JS::Value> aResult, bool aFilterTest=false);
 
 // Keyed JS API Endpoints.
 nsresult Add(const nsACString& aName, const nsAString& aKey, JS::HandleValue aVal,
@@ -51,7 +52,7 @@ nsresult SetMaximum(const nsACString& aName, const nsAString& aKey, JS::HandleVa
                     JSContext* aCx);
 nsresult CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars,
                               JSContext* aCx, uint8_t optional_argc,
-                              JS::MutableHandle<JS::Value> aResult);
+                              JS::MutableHandle<JS::Value> aResult, bool aFilterTest=false);
 
 // C++ API Endpoints.
 void Add(mozilla::Telemetry::ScalarID aId, uint32_t aValue);

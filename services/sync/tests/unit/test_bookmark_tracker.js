@@ -277,7 +277,7 @@ add_task(async function test_tracker_sql_batching() {
   await cleanup();
 });
 
-add_task(async function test_onItemAdded() {
+add_task(async function test_bookmarkAdded() {
   _("Items inserted via the synchronous bookmarks API should be tracked");
 
   try {
@@ -312,7 +312,7 @@ add_task(async function test_onItemAdded() {
   }
 });
 
-add_task(async function test_async_onItemAdded() {
+add_task(async function test_async_bookmarkAdded() {
   _("Items inserted via the asynchronous bookmarks API should be tracked");
 
   try {
@@ -713,7 +713,7 @@ add_task(async function test_async_onItemKeywordDeleted() {
   }
 });
 
-add_task(async function test_onItemAdded_filtered_root() {
+add_task(async function test_bookmarkAdded_filtered_root() {
   _("Items outside the change roots should not be tracked");
 
   try {
@@ -852,64 +852,6 @@ add_task(async function test_onFaviconChanged() {
     });
     await verifyTrackedItems([]);
     Assert.equal(tracker.score, 0);
-  } finally {
-    _("Clean up.");
-    await cleanup();
-  }
-});
-
-add_task(async function test_onLivemarkAdded() {
-  _("New livemarks should be tracked");
-
-  try {
-    await startTracking();
-
-    _("Insert a livemark");
-    let totalSyncChanges = PlacesUtils.bookmarks.totalSyncChanges;
-    let livemark = await PlacesUtils.livemarks.addLivemark({
-      parentGuid: PlacesUtils.bookmarks.menuGuid,
-      // Use a local address just in case, to avoid potential aborts for
-      // non-local connections.
-      feedURI: CommonUtils.makeURI("http://localhost:0"),
-    });
-    // Prevent the livemark refresh timer from requesting the URI.
-    livemark.terminate();
-
-    await verifyTrackedItems(["menu", livemark.guid]);
-    // Two observer notifications: one for creating the livemark folder, and
-    // one for setting the "livemark/feedURI" anno on the folder.
-    Assert.equal(tracker.score, SCORE_INCREMENT_XLARGE * 2);
-    Assert.equal(PlacesUtils.bookmarks.totalSyncChanges, totalSyncChanges + 2);
-  } finally {
-    _("Clean up.");
-    await cleanup();
-  }
-});
-
-add_task(async function test_onLivemarkDeleted() {
-  _("Deleted livemarks should be tracked");
-
-  try {
-    await tracker.stop();
-
-    _("Insert a livemark");
-    let livemark = await PlacesUtils.livemarks.addLivemark({
-      parentGuid: PlacesUtils.bookmarks.menuGuid,
-      feedURI: CommonUtils.makeURI("http://localhost:0"),
-    });
-    livemark.terminate();
-
-    await startTracking();
-
-    _("Remove a livemark");
-    let totalSyncChanges = PlacesUtils.bookmarks.totalSyncChanges;
-    await PlacesUtils.livemarks.removeLivemark({
-      guid: livemark.guid,
-    });
-
-    await verifyTrackedItems(["menu", livemark.guid]);
-    Assert.equal(tracker.score, SCORE_INCREMENT_XLARGE);
-    Assert.equal(PlacesUtils.bookmarks.totalSyncChanges, totalSyncChanges + 2);
   } finally {
     _("Clean up.");
     await cleanup();

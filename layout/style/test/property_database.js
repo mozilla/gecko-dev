@@ -130,6 +130,12 @@ var validGradientAndElementValues = [
   "linear-gradient(to right bottom, red, 50%, green 50%, 50%, blue)",
   "linear-gradient(to right bottom, red, 0%, green 50%, 100%, blue)",
 
+  "linear-gradient(red 0% 100%)",
+  "linear-gradient(red 0% 50%, blue 50%)",
+  "linear-gradient(red 0% 50%, blue 50% 100%)",
+  "linear-gradient(red 0% 50%, 0%, blue 50%)",
+  "linear-gradient(red 0% 50%, 0%, blue 50% 100%)",
+
   /* Unitless 0 is valid as an <angle> */
   "linear-gradient(0, red, blue)",
 
@@ -182,6 +188,12 @@ var validGradientAndElementValues = [
   "radial-gradient(7em 8em at 45px, red, blue)",
 
   "radial-gradient(circle at 15% 20%, red, blue)",
+
+  "radial-gradient(red 0% 100%)",
+  "radial-gradient(red 0% 50%, blue 50%)",
+  "radial-gradient(red 0% 50%, blue 50% 100%)",
+  "radial-gradient(red 0% 50%, 0%, blue 50%)",
+  "radial-gradient(red 0% 50%, 0%, blue 50% 100%)",
 
   "repeating-radial-gradient(red, blue)",
   "repeating-radial-gradient(red, yellow, blue)",
@@ -328,6 +340,16 @@ var invalidGradientAndElementValues = [
   "radial-gradient(45px 399grad, ellipse closest-corner, red, blue)",
   "radial-gradient(45px 399grad, farthest-side circle, red, blue)",
   "radial-gradient(circle red, blue)",
+
+  /* don't allow more than two positions with multi-position syntax */
+  "linear-gradient(red 0% 50% 100%)",
+  "linear-gradient(red 0% 50% 75%, blue 75%)",
+  "linear-gradient(to bottom, red 0% 50% 100%)",
+  "linear-gradient(to bottom, red 0% 50% 75%, blue 75%)",
+  "radial-gradient(red 0% 50% 100%)",
+  "radial-gradient(red 0% 50% 75%, blue 75%)",
+  "radial-gradient(center, red 0% 50% 100%)",
+  "radial-gradient(center, red 0% 50% 75%, blue 75%)",
 ];
 var unbalancedGradientAndElementValues = [
   "-moz-element(#a()",
@@ -3709,14 +3731,11 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     /* FIXME: test zero, and test calc clamping */
-    initial_values: [ " auto",
-      // these four keywords compute to the initial value when the
-      // writing mode is horizontal, and that's the context we're testing in
-      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-    ],
+    initial_values: [ " auto" ],
     /* computed value tests for height test more with display:block */
     prerequisites: { "display": "block" },
     other_values: [ "15px", "3em", "15%",
+      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
       "calc(2px)",
       "calc(50%)",
       "calc(3*25px)",
@@ -3967,12 +3986,9 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     prerequisites: { "display": "block" },
-    initial_values: [ "none",
-      // these four keywords compute to the initial value when the
-      // writing mode is horizontal, and that's the context we're testing in
-      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-    ],
+    initial_values: [ "none" ],
     other_values: [ "30px", "50%", "0",
+      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
       "calc(2px)",
       "calc(-2px)",
       "calc(0px)",
@@ -4011,12 +4027,9 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     prerequisites: { "display": "block" },
-    initial_values: [ "auto", "0", "calc(0em)", "calc(-2px)",
-      // these four keywords compute to the initial value when the
-      // writing mode is horizontal, and that's the context we're testing in
-      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-    ],
+    initial_values: [ "auto", "0", "calc(0em)", "calc(-2px)" ],
     other_values: [ "30px", "50%",
+      "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
       "calc(-1%)",
       "calc(2px)",
       "calc(50%)",
@@ -4398,7 +4411,7 @@ var gCSSProperties = {
     // don't know whether left and right are same as start
     initial_values: [ "start" ],
     other_values: [ "center", "justify", "end", "match-parent" ],
-    invalid_values: [ "true", "true true", "char", "-moz-center-or-inherit" ]
+    invalid_values: [ "true", "true true", "char", "-moz-center-or-inherit", "true left", "unsafe left" ]
   },
   "text-align-last": {
     domProp: "textAlignLast",
@@ -4563,7 +4576,7 @@ var gCSSProperties = {
     applies_to_first_line: true,
     applies_to_placeholder: true,
     initial_values: [ "none" ],
-    other_values: [ "capitalize", "uppercase", "lowercase", "full-width" ],
+    other_values: [ "capitalize", "uppercase", "lowercase", "full-width", "full-size-kana" ],
     invalid_values: []
   },
   "top": {
@@ -5184,6 +5197,46 @@ var gCSSProperties = {
     initial_values: [ "none" ],
     other_values: [ "url(#mysym)" ],
     invalid_values: []
+  },
+  "shape-image-threshold": {
+    domProp: "shapeImageThreshold",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    initial_values: [ "0", "0.0000", "-3", ],
+    other_values: [ "0.4", "1", "17", "397.376", "3e1", "3e+1", "3e-1", "3e0", "3e+0", "3e-0" ],
+    invalid_values: [ "0px", "1px", "20%", "default", "auto" ]
+  },
+  "shape-margin": {
+    domProp: "shapeMargin",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    initial_values: [ "0", ],
+    other_values: [ "2px", "2%", "1em", "calc(1px + 1em)", "calc(1%)" ],
+    invalid_values: [ "-1px", "auto", "none", "1px 1px", "-1%" ],
+  },
+  "shape-outside": {
+    domProp: "shapeOutside",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    initial_values: [ "none" ],
+    other_values: [
+      "url(#my-shape-outside)",
+    ].concat(
+      basicShapeOtherValues,
+      validGradientAndElementValues
+    ),
+    invalid_values: [].concat(
+      basicShapeSVGBoxValues,
+      basicShapeInvalidValues,
+      invalidGradientAndElementValues
+    ),
+    unbalanced_values: [].concat(
+      basicShapeUnbalancedValues,
+      unbalancedGradientAndElementValues
+    )
   },
   "shape-rendering": {
     domProp: "shapeRendering",
@@ -6426,14 +6479,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.font-variations.enabled")) {
     .push("'vert' calc(2.5)");
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.frames-timing.enabled")) {
-  gCSSProperties["animation-timing-function"].other_values.push(
-    "frames(2)", "frames(1000)", "frames( 2 )");
-  gCSSProperties["animation-timing-function"].invalid_values.push(
-    "frames(1)", "frames(-2)", "frames", "frames()", "frames(,)",
-    "frames(a)", "frames(2.0)", "frames(2.5)", "frames(2 3)");
-}
-
 if (IsCSSPropertyPrefEnabled("svg.transform-box.enabled")) {
   gCSSProperties["transform-box"] = {
     domProp: "transformBox",
@@ -6442,51 +6487,6 @@ if (IsCSSPropertyPrefEnabled("svg.transform-box.enabled")) {
     initial_values: [ "border-box" ],
     other_values: [ "fill-box", "view-box" ],
     invalid_values: ["content-box", "padding-box", "stroke-box", "margin-box"]
-  };
-}
-
-if (IsCSSPropertyPrefEnabled("layout.css.shape-outside.enabled")) {
-  gCSSProperties["shape-image-threshold"] = {
-    domProp: "shapeImageThreshold",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    applies_to_first_letter: true,
-    initial_values: [ "0", "0.0000", "-3", ],
-    other_values: [ "0.4", "1", "17", "397.376", "3e1", "3e+1", "3e-1", "3e0", "3e+0", "3e-0" ],
-    invalid_values: [ "0px", "1px", "20%", "default", "auto" ]
-  };
-
-  gCSSProperties["shape-margin"] = {
-    domProp: "shapeMargin",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    applies_to_first_letter: true,
-    initial_values: [ "0", ],
-    other_values: [ "2px", "2%", "1em", "calc(1px + 1em)", "calc(1%)" ],
-    invalid_values: [ "-1px", "auto", "none", "1px 1px", "-1%" ],
-  };
-
-  gCSSProperties["shape-outside"] = {
-    domProp: "shapeOutside",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    applies_to_first_letter: true,
-    initial_values: [ "none" ],
-    other_values: [
-      "url(#my-shape-outside)",
-    ].concat(
-      basicShapeOtherValues,
-      validGradientAndElementValues
-    ),
-    invalid_values: [].concat(
-      basicShapeSVGBoxValues,
-      basicShapeInvalidValues,
-      invalidGradientAndElementValues
-    ),
-    unbalanced_values: [].concat(
-      basicShapeUnbalancedValues,
-      unbalancedGradientAndElementValues
-    )
   };
 }
 
@@ -6682,7 +6682,7 @@ gCSSProperties["grid-template-columns"] = {
 if (isGridTemplateSubgridValueEnabled) {
   gCSSProperties["grid-template-columns"].other_values.push(
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=981300
-    "[none auto subgrid min-content max-content foo] 40px",
+    "[none subgrid min-content max-content foo] 40px",
 
     "subgrid",
     "subgrid [] [foo bar]",
@@ -7931,12 +7931,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.prefixes.gradients")) {
   );
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.text-align-unsafe-value.enabled")) {
-  gCSSProperties["text-align"].other_values.push("true left");
-} else {
-  gCSSProperties["text-align"].invalid_values.push("true left");
-}
-
 gCSSProperties["display"].other_values.push("flow-root");
 
 if (IsCSSPropertyPrefEnabled("layout.css.column-span.enabled")) {
@@ -8156,6 +8150,34 @@ if (IsCSSPropertyPrefEnabled("layout.css.clip-path-path.enabled")) {
     "path(nonzero)",
     "path(evenodd, '')",
     "path(abs, 'M 10 10 L 10 10 z')",
+  );
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.step-position-jump.enabled")) {
+  gCSSProperties["animation-timing-function"].other_values.push(
+    "steps(1, jump-start)",
+    "steps(1, jump-end)",
+    "steps(2, jump-none)",
+    "steps(1, jump-both)",
+  );
+  gCSSProperties["animation-timing-function"].invalid_values.push(
+    "steps(0, jump-start)",
+    "steps(0, jump-end)",
+    "steps(1, jump-none)",
+    "steps(0, jump-both)",
+  );
+
+  gCSSProperties["transition-timing-function"].other_values.push(
+    "steps(1, jump-start)",
+    "steps(1, jump-end)",
+    "steps(2, jump-none)",
+    "steps(1, jump-both)",
+  );
+  gCSSProperties["transition-timing-function"].invalid_values.push(
+    "steps(0, jump-start)",
+    "steps(0, jump-end)",
+    "steps(1, jump-none)",
+    "steps(0, jump-both)",
   );
 }
 

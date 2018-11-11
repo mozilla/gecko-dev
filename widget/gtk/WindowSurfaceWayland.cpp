@@ -13,10 +13,10 @@
 #include "mozilla/gfx/Tools.h"
 #include "gfxPlatform.h"
 #include "mozcontainer.h"
-#include "nsCOMArray.h"
+#include "nsTArray.h"
 #include "mozilla/StaticMutex.h"
+#include "mozwayland/mozwayland.h"
 
-#include <gdk/gdkwayland.h>
 #include <sys/mman.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -135,9 +135,9 @@ namespace mozilla {
 namespace widget {
 
 #define BUFFER_BPP 4
+#define MAX_DISPLAY_CONNECTIONS 2
 
-// TODO: How many rendering threads do we actualy handle?
-static nsCOMArray<nsWaylandDisplay> gWaylandDisplays;
+static nsWaylandDisplay* gWaylandDisplays[MAX_DISPLAY_CONNECTIONS];
 static StaticMutex gWaylandDisplaysMutex;
 
 // Each thread which is using wayland connection (wl_display) has to operate
@@ -159,23 +159,23 @@ static void WaylandDisplayLoop(wl_display *aDisplay);
 static nsWaylandDisplay*
 WaylandDisplayGetLocked(wl_display *aDisplay, const StaticMutexAutoLock&)
 {
-  nsWaylandDisplay* waylandDisplay = nullptr;
-
-  int len = gWaylandDisplays.Count();
-  for (int i = 0; i < len; i++) {
-    if (gWaylandDisplays[i]->Matches(aDisplay)) {
-      waylandDisplay = gWaylandDisplays[i];
-      break;
+  for (auto& display: gWaylandDisplays) {
+    if (display && display->Matches(aDisplay)) {
+      NS_ADDREF(display);
+      return display;
     }
   }
 
-  if (!waylandDisplay) {
-    waylandDisplay = new nsWaylandDisplay(aDisplay);
-    gWaylandDisplays.AppendObject(waylandDisplay);
+  for (auto& display: gWaylandDisplays) {
+    if (display == nullptr) {
+      display = new nsWaylandDisplay(aDisplay);
+      NS_ADDREF(display);
+      return display;
+    }
   }
 
-  NS_ADDREF(waylandDisplay);
-  return waylandDisplay;
+  MOZ_CRASH("There's too many wayland display conections!");
+  return nullptr;
 }
 
 static nsWaylandDisplay*
@@ -189,14 +189,11 @@ static bool
 WaylandDisplayReleaseLocked(wl_display *aDisplay,
                             const StaticMutexAutoLock&)
 {
-  int len = gWaylandDisplays.Count();
-  for (int i = 0; i < len; i++) {
-    if (gWaylandDisplays[i]->Matches(aDisplay)) {
-      int rc = gWaylandDisplays[i]->Release();
-      // nsCOMArray::AppendObject()/RemoveObjectAt() also call AddRef()/Release()
-      // so remove WaylandDisplay when ref count is 1.
-      if (rc == 1) {
-        gWaylandDisplays.RemoveObjectAt(i);
+  for (auto& display: gWaylandDisplays) {
+    if (display && display->Matches(aDisplay)) {
+      int rc = display->Release();
+      if (rc == 0) {
+        display = nullptr;
       }
       return true;
     }
@@ -216,10 +213,9 @@ static void
 WaylandDisplayLoopLocked(wl_display* aDisplay,
                          const StaticMutexAutoLock&)
 {
-  int len = gWaylandDisplays.Count();
-  for (int i = 0; i < len; i++) {
-    if (gWaylandDisplays[i]->Matches(aDisplay)) {
-      if (gWaylandDisplays[i]->DisplayLoop()) {
+  for (auto& display: gWaylandDisplays) {
+    if (display && display->Matches(aDisplay)) {
+      if (display->DisplayLoop()) {
         MessageLoop::current()->PostDelayedTask(
             NewRunnableFunction("WaylandDisplayLoop",
                                &WaylandDisplayLoop,
@@ -563,7 +559,6 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWindow)
   : mWindow(aWindow)
   , mWaylandDisplay(WaylandDisplayGet(aWindow->GetWaylandDisplay()))
   , mWaylandBuffer(nullptr)
-  , mBackupBuffer(nullptr)
   , mFrameCallback(nullptr)
   , mLastCommittedSurface(nullptr)
   , mDisplayThreadMessageLoop(MessageLoop::current())
@@ -574,6 +569,8 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWindow)
   , mIsMainThread(NS_IsMainThread())
   , mNeedScaleFactorUpdate(true)
 {
+  for (int i = 0; i < BACK_BUFFER_NUM; i++)
+    mBackupBuffer[i] = nullptr;
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
@@ -594,7 +591,12 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   }
 
   delete mWaylandBuffer;
-  delete mBackupBuffer;
+
+  for (int i = 0; i < BACK_BUFFER_NUM; i++) {
+    if (mBackupBuffer[i]) {
+      delete mBackupBuffer[i];
+    }
+  }
 
   if (!mIsMainThread) {
     // We can be destroyed from main thread even though we was created/used
@@ -614,7 +616,6 @@ WindowSurfaceWayland::GetWaylandBufferToDraw(int aWidth, int aHeight)
 {
   if (!mWaylandBuffer) {
     mWaylandBuffer = new WindowBackBuffer(mWaylandDisplay, aWidth, aHeight);
-    mBackupBuffer = new WindowBackBuffer(mWaylandDisplay, aWidth, aHeight);
     return mWaylandBuffer;
   }
 
@@ -628,24 +629,38 @@ WindowSurfaceWayland::GetWaylandBufferToDraw(int aWidth, int aHeight)
     return mWaylandBuffer;
   }
 
-  // Front buffer is used by compositor, draw to back buffer
-  if (mBackupBuffer->IsAttached()) {
+  MOZ_ASSERT(!mPendingCommit,
+             "Uncommitted buffer switch, screen artifacts ahead.");
+
+  // Front buffer is used by compositor, select a back buffer
+  int availableBuffer;
+  for (availableBuffer = 0; availableBuffer < BACK_BUFFER_NUM;
+       availableBuffer++) {
+    if (!mBackupBuffer[availableBuffer]) {
+      mBackupBuffer[availableBuffer] =
+          new WindowBackBuffer(mWaylandDisplay, aWidth, aHeight);
+      break;
+    }
+
+    if (!mBackupBuffer[availableBuffer]->IsAttached()) {
+      break;
+    }
+  }
+
+  if (MOZ_UNLIKELY(availableBuffer == BACK_BUFFER_NUM)) {
     NS_WARNING("No drawing buffer available");
     return nullptr;
   }
 
-  MOZ_ASSERT(!mPendingCommit,
-             "Uncommitted buffer switch, screen artifacts ahead.");
+  WindowBackBuffer *lastWaylandBuffer = mWaylandBuffer;
+  mWaylandBuffer = mBackupBuffer[availableBuffer];
+  mBackupBuffer[availableBuffer] = lastWaylandBuffer;
 
-  WindowBackBuffer *tmp = mWaylandBuffer;
-  mWaylandBuffer = mBackupBuffer;
-  mBackupBuffer = tmp;
-
-  if (mBackupBuffer->IsMatchingSize(aWidth, aHeight)) {
+  if (lastWaylandBuffer->IsMatchingSize(aWidth, aHeight)) {
     // Former front buffer has the same size as a requested one.
     // Gecko may expect a content already drawn on screen so copy
     // existing data to the new buffer.
-    mWaylandBuffer->SetImageDataFromBuffer(mBackupBuffer);
+    mWaylandBuffer->SetImageDataFromBuffer(lastWaylandBuffer);
     // When buffer switches we need to damage whole screen
     // (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
     mWaylandBufferFullScreenDamage = true;

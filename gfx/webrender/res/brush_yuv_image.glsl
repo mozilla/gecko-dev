@@ -77,7 +77,7 @@ struct YuvPrimitive {
 };
 
 YuvPrimitive fetch_yuv_primitive(int address) {
-    vec4 data = fetch_from_resource_cache_1(address);
+    vec4 data = fetch_from_gpu_cache_1(address);
     return YuvPrimitive(data.x);
 }
 
@@ -86,7 +86,7 @@ void brush_vs(
     int prim_address,
     RectWithSize local_rect,
     RectWithSize segment_rect,
-    ivec3 user_data,
+    ivec4 user_data,
     mat4 transform,
     PictureTask pic_task,
     int brush_flags,

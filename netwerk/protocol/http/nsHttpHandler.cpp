@@ -24,7 +24,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefLocalizedString.h"
-#include "nsISocketProviderService.h"
+#include "nsSocketProviderService.h"
 #include "nsISocketProvider.h"
 #include "nsPrintfCString.h"
 #include "nsCOMPtr.h"
@@ -61,6 +61,7 @@
 
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/NeckoParent.h"
+#include "mozilla/net/RequestContextService.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
@@ -259,6 +260,8 @@ nsHttpHandler::nsHttpHandler()
     , mEnableAltSvc(false)
     , mEnableAltSvcOE(false)
     , mEnableOriginExtension(false)
+    , mEnableH2Websockets(true)
+    , mDumpHpackTables(false)
     , mSpdySendingChunkSize(ASpdySession::kSendingChunkSize)
     , mSpdySendBufferSize(ASpdySession::kTCPSendBufferSize)
     , mSpdyPushAllowance(131072) // match default pref
@@ -510,13 +513,12 @@ nsHttpHandler::Init()
     rv = InitConnectionMgr();
     if (NS_FAILED(rv)) return rv;
 
-    mRequestContextService =
-        do_GetService("@mozilla.org/network/request-context-service;1");
+    mRequestContextService = RequestContextService::GetOrCreate();
 
 #if defined(ANDROID)
     mProductSub.AssignLiteral(MOZILLA_UAVERSION);
 #else
-    mProductSub.AssignLiteral(LEGACY_BUILD_ID);
+    mProductSub.AssignLiteral(LEGACY_UA_GECKO_TRAIL);
 #endif
 
 #if DEBUG
@@ -1443,8 +1445,8 @@ nsHttpHandler::PrefsChanged(const char *pref)
                 mDefaultSocketType.SetIsVoid(true);
             else {
                 // verify that this socket type is actually valid
-                nsCOMPtr<nsISocketProviderService> sps(
-                        do_GetService(NS_SOCKETPROVIDERSERVICE_CONTRACTID));
+                nsCOMPtr<nsISocketProviderService> sps =
+                  nsSocketProviderService::GetOrCreate();
                 if (sps) {
                     nsCOMPtr<nsISocketProvider> sp;
                     rv = sps->GetSocketProvider(sval.get(), getter_AddRefs(sp));
@@ -1582,6 +1584,14 @@ nsHttpHandler::PrefsChanged(const char *pref)
             mEnableOriginExtension = cVar;
     }
 
+    if (PREF_CHANGED(HTTP_PREF("spdy.websockets"))) {
+        rv = Preferences::GetBool(HTTP_PREF("spdy.websockets"),
+                                  &cVar);
+        if (NS_SUCCEEDED(rv)) {
+            mEnableH2Websockets = cVar;
+        }
+    }
+
     if (PREF_CHANGED(HTTP_PREF("spdy.push-allowance"))) {
         rv = Preferences::GetInt(HTTP_PREF("spdy.push-allowance"), &val);
         if (NS_SUCCEEDED(rv)) {
@@ -1613,6 +1623,13 @@ nsHttpHandler::PrefsChanged(const char *pref)
         rv = Preferences::GetInt(HTTP_PREF("spdy.send-buffer-size"), &val);
         if (NS_SUCCEEDED(rv))
             mSpdySendBufferSize = (uint32_t) clamped(val, 1500, 0x7fffffff);
+    }
+
+    if (PREF_CHANGED(HTTP_PREF("spdy.enable-hpack-dump"))) {
+        rv = Preferences::GetBool(HTTP_PREF("spdy.enable-hpack-dump"), &cVar);
+        if (NS_SUCCEEDED(rv)) {
+            mDumpHpackTables = cVar;
+        }
     }
 
     // The maximum amount of time to wait for socket transport to be
@@ -2605,25 +2622,11 @@ nsHttpHandler::SpeculativeConnectInternal(nsIURI *aURI,
 }
 
 NS_IMETHODIMP
-nsHttpHandler::SpeculativeConnect(nsIURI *aURI,
-                                  nsIInterfaceRequestor *aCallbacks)
-{
-    return SpeculativeConnectInternal(aURI, nullptr, aCallbacks, false);
-}
-
-NS_IMETHODIMP
 nsHttpHandler::SpeculativeConnect2(nsIURI *aURI,
                                    nsIPrincipal *aPrincipal,
                                    nsIInterfaceRequestor *aCallbacks)
 {
     return SpeculativeConnectInternal(aURI, aPrincipal, aCallbacks, false);
-}
-
-NS_IMETHODIMP
-nsHttpHandler::SpeculativeAnonymousConnect(nsIURI *aURI,
-                                           nsIInterfaceRequestor *aCallbacks)
-{
-    return SpeculativeConnectInternal(aURI, nullptr, aCallbacks, true);
 }
 
 NS_IMETHODIMP
@@ -2801,6 +2804,19 @@ nsHttpHandler::IsBeforeLastActiveTabLoadOptimization(TimeStamp const &when)
 
   return !mLastActiveTabLoadOptimizationHit.IsNull() &&
          when <= mLastActiveTabLoadOptimizationHit;
+}
+
+void
+nsHttpHandler::BlacklistSpdy(const nsHttpConnectionInfo *ci)
+{
+    mConnMgr->BlacklistSpdy(ci);
+    mBlacklistedSpdyOrigins.PutEntry(ci->GetOrigin());
+}
+
+bool
+nsHttpHandler::IsSpdyBlacklisted(const nsHttpConnectionInfo *ci)
+{
+    return mBlacklistedSpdyOrigins.Contains(ci->GetOrigin());
 }
 
 } // namespace net

@@ -8,9 +8,8 @@
 # Gradle binary is specified use the in tree Gradle wrapper.  The wrapper
 # downloads and installs Gradle, which is good for local developers but not
 # good in automation.
-option('--with-gradle', nargs='?',
-       default=True,
-       help='Enable building mobile/android with Gradle '
+option('--without-gradle', nargs='?',
+       help='Disable building mobile/android with Gradle '
             '(argument: location of binary or wrapper (gradle/gradlew))')
 
 @depends('--with-gradle')
@@ -52,26 +51,26 @@ def gradle_android_build_config():
         return namespace(
             productFlavors=productFlavors,
             buildType=buildType,
-            # Like 'OfficialWithoutGeckoBinariesPhotonDebug'
+            # Like 'WithoutGeckoBinariesDebug'
             name = ''.join(capitalize(t) for t in chain(productFlavors, (buildType, )))
         )
 
     return namespace(
         app=namespace(
-            variant=variant(('official', 'withoutGeckoBinaries', 'noMinApi', 'photon'), 'debug'),
+            variant=variant(('withoutGeckoBinaries',), 'debug'),
         ),
         geckoview=namespace(
-            variant=variant(('official', 'withGeckoBinaries', 'noMinApi'), 'debug'),
+            variant=variant(('withGeckoBinaries',), 'debug'),
         ),
         geckoview_example=namespace(
-            variant=variant(('official', 'withGeckoBinaries', 'noMinApi'), 'debug'),
+            variant=variant(('withGeckoBinaries',), 'debug'),
         ),
     )
 
 
 @depends(gradle_android_build_config)
 def gradle_android_variant_name(build_config):
-    '''Like "officialWithoutGeckoBinariesNoMinApiPhotonDebug".'''
+    '''Like "withoutGeckoBinariesDebug".'''
     def uncapitalize(s):
         if s:
             return s[0].lower() + s[1:]
@@ -148,9 +147,9 @@ def gradle_android_app_apks(build_config, build_env):
         else:
             return s
 
-    # Like 'officialPhoton'.
+    # Like 'productFlavor'.
     productFlavor = uncapitalize(''.join(imap(capitalize, build_config.app.variant.productFlavors)))
-    # Like 'official-photon'.
+    # Like 'product-flavor'.
     product_flavor = '-'.join(build_config.app.variant.productFlavors)
 
     substs = {
@@ -250,6 +249,28 @@ set_config('GRADLE_ANDROID_ARCHIVE_COVERAGE_ARTIFACTS_TASKS',
            gradle_android_archive_coverage_artifacts_tasks)
 
 
+@depends(gradle_android_build_config)
+def gradle_android_build_geckoview_example_tasks(build_config):
+    '''Gradle tasks run by |mach android build-geckoview_example|.'''
+    return [
+        'geckoview_example:assemble{geckoview_example.variant.name}'.format(geckoview_example=build_config.geckoview_example),
+        'geckoview_example:assemble{geckoview_example.variant.name}AndroidTest'.format(geckoview_example=build_config.geckoview_example),
+    ]
+
+set_config('GRADLE_ANDROID_BUILD_GECKOVIEW_EXAMPLE_TASKS', gradle_android_build_geckoview_example_tasks)
+
+
+@depends(gradle_android_build_config)
+def gradle_android_install_geckoview_example_tasks(build_config):
+    '''Gradle tasks run by |mach android install-geckoview_example|.'''
+    return [
+        'geckoview_example:install{geckoview_example.variant.name}'.format(geckoview_example=build_config.geckoview_example),
+        'geckoview_example:install{geckoview_example.variant.name}AndroidTest'.format(geckoview_example=build_config.geckoview_example),
+    ]
+
+set_config('GRADLE_ANDROID_INSTALL_GECKOVIEW_EXAMPLE_TASKS', gradle_android_install_geckoview_example_tasks)
+
+
 @depends(
     gradle_android_app_tasks,
     gradle_android_test_tasks,
@@ -294,8 +315,8 @@ set_config('GRADLE_FLAGS', gradle_flags)
 # Local developer default is (jcenter, maven.google.com).
 option(env='GRADLE_MAVEN_REPOSITORIES',
        nargs='+',
-       default=('https://jcenter.bintray.com/',
-                'https://maven.google.com/',
+       default=('https://maven.google.com/',
+                'https://jcenter.bintray.com/',
        ),
        help='Comma-separated URLs of Maven repositories containing Gradle dependencies.')
 

@@ -137,7 +137,7 @@ EnterprisePoliciesManager.prototype = {
   },
 
   _callbacks: {
-    // The earlist that a policy callback can run. This will
+    // The earliest that a policy callback can run. This will
     // happen right after the Policy Engine itself has started,
     // and before the Add-ons Manager has started.
     onBeforeAddons: [],
@@ -442,18 +442,6 @@ class macOSPoliciesProvider {
       return;
     }
     this._policies = macOSPoliciesParser.readPolicies(prefReader);
-    this._removeUnknownPolicies();
-  }
-
-  _removeUnknownPolicies() {
-    let { schema } = ChromeUtils.import("resource:///modules/policies/schema.jsm", {});
-
-    for (let policyName of Object.keys(this._policies)) {
-      if (!schema.properties.hasOwnProperty(policyName)) {
-        log.debug(`Removing unknown policy: ${policyName}`);
-        delete this._policies[policyName];
-      }
-    }
   }
 
   get hasPolicies() {

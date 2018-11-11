@@ -5,62 +5,40 @@ let counter = 0;
 AntiTracking.runTest("Storage Access API called in a sandboxed iframe",
   // blocking callback
   async _ => {
-    let dwu = SpecialPowers.getDOMWindowUtils(window);
-    let helper = dwu.setHandlingUserInput(true);
-
-    let p;
-    let threw = false;
-    try {
-      p = document.requestStorageAccess();
-    } catch (e) {
-      threw = true;
-    } finally {
-      helper.destruct();
-    }
+    /* import-globals-from storageAccessAPIHelpers.js */
+    let [threw, rejected] = await callRequestStorageAccess();
     ok(!threw, "requestStorageAccess should not throw");
-    threw = false;
-    try {
-      await p;
-    } catch (e) {
-      threw = true;
-    }
-    ok(threw, "requestStorageAccess shouldn't be available");
+    ok(rejected, "requestStorageAccess shouldn't be available");
   },
 
   null, // non-blocking callback
-  null, // cleanup function
+  // cleanup function
+  async _ => {
+    // Only clear the user-interaction permissions for the tracker here so that
+    // the next test has a clean slate.
+    await new Promise(resolve => {
+      Services.clearData.deleteDataFromHost(Services.io.newURI(TEST_3RD_PARTY_DOMAIN).host,
+                                            true,
+                                            Ci.nsIClearDataService.CLEAR_PERMISSIONS,
+                                            value => resolve());
+    });
+  },
   [["dom.storage_access.enabled", true]], // extra prefs
   false, // no window open test
   false, // no user-interaction test
-  false, // no blocking notifications
+  0, // no blocking notifications
   false, // run in normal window
-  "allow-scripts allow-same-origin"
+  "allow-scripts allow-same-origin allow-popups"
 );
 
 AntiTracking.runTest("Storage Access API called in a sandboxed iframe with" +
                      " allow-storage-access-by-user-activation",
   // blocking callback
   async _ => {
-    let dwu = SpecialPowers.getDOMWindowUtils(window);
-    let helper = dwu.setHandlingUserInput(true);
-
-    let p;
-    let threw = false;
-    try {
-      p = document.requestStorageAccess();
-    } catch (e) {
-      threw = true;
-    } finally {
-      helper.destruct();
-    }
+    /* import-globals-from storageAccessAPIHelpers.js */
+    let [threw, rejected] = await callRequestStorageAccess();
     ok(!threw, "requestStorageAccess should not throw");
-    threw = false;
-    try {
-      await p;
-    } catch (e) {
-      threw = true;
-    }
-    ok(!threw, "requestStorageAccess should be available");
+    ok(!rejected, "requestStorageAccess should be available");
   },
 
   null, // non-blocking callback
@@ -82,16 +60,16 @@ AntiTracking.runTest("Storage Access API called in a sandboxed iframe with" +
   [["dom.storage_access.enabled", true]], // extra prefs
   false, // no window open test
   false, // no user-interaction test
-  true, // expect blocking notifications
+  Ci.nsIWebProgressListener.STATE_COOKIES_BLOCKED_TRACKER, // expect blocking notifications
   false, // run in normal window
-  "allow-scripts allow-same-origin allow-storage-access-by-user-activation"
+  "allow-scripts allow-same-origin allow-popups allow-storage-access-by-user-activation"
 );
 
 AntiTracking.runTest("Verify that sandboxed contexts don't get the saved permission",
   // blocking callback
   async _ => {
-    let hasAccess = await document.hasStorageAccess();
-    ok(!hasAccess, "Doesn't yet have storage access");
+    /* import-globals-from storageAccessAPIHelpers.js */
+    await noStorageAccessInitially();
 
     try {
       localStorage.foo = 42;
@@ -109,7 +87,7 @@ AntiTracking.runTest("Verify that sandboxed contexts don't get the saved permiss
   false, // no user-interaction test
   false, // no blocking notifications
   false, // run in normal window
-  "allow-scripts allow-same-origin"
+  "allow-scripts allow-same-origin allow-popups"
 );
 
 AntiTracking.runTest("Verify that sandboxed contexts with" +
@@ -117,8 +95,8 @@ AntiTracking.runTest("Verify that sandboxed contexts with" +
                      " saved permission",
   // blocking callback
   async _ => {
-    let hasAccess = await document.hasStorageAccess();
-    ok(hasAccess, "Has storage access");
+    /* import-globals-from storageAccessAPIHelpers.js */
+    await hasStorageAccessInitially();
 
     localStorage.foo = 42;
     ok(true, "LocalStorage can be used!");
@@ -131,14 +109,14 @@ AntiTracking.runTest("Verify that sandboxed contexts with" +
   false, // no user-interaction test
   false, // no blocking notifications
   false, // run in normal window
-  "allow-scripts allow-same-origin allow-storage-access-by-user-activation"
+  "allow-scripts allow-same-origin allow-popups allow-storage-access-by-user-activation"
 );
 
 AntiTracking.runTest("Verify that private browsing contexts don't get the saved permission",
   // blocking callback
   async _ => {
-    let hasAccess = await document.hasStorageAccess();
-    ok(!hasAccess, "Doesn't yet have storage access");
+    /* import-globals-from storageAccessAPIHelpers.js */
+    await noStorageAccessInitially();
 
     try {
       localStorage.foo = 42;
@@ -154,7 +132,7 @@ AntiTracking.runTest("Verify that private browsing contexts don't get the saved 
   [["dom.storage_access.enabled", true]], // extra prefs
   false, // no window open test
   false, // no user-interaction test
-  false, // no blocking notifications
+  0, // no blocking notifications
   true, // run in private window
   null // iframe sandbox
 );
@@ -163,8 +141,8 @@ AntiTracking.runTest("Verify that non-sandboxed contexts get the" +
                      " saved permission",
   // blocking callback
   async _ => {
-    let hasAccess = await document.hasStorageAccess();
-    ok(hasAccess, "Has storage access");
+    /* import-globals-from storageAccessAPIHelpers.js */
+    await hasStorageAccessInitially();
 
     localStorage.foo = 42;
     ok(true, "LocalStorage can be used!");
@@ -183,5 +161,5 @@ AntiTracking.runTest("Verify that non-sandboxed contexts get the" +
   [["dom.storage_access.enabled", true]], // extra prefs
   false, // no window open test
   false, // no user-interaction test
-  false // no blocking notifications
+  0 // no blocking notifications
 );

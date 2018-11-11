@@ -86,6 +86,7 @@ AudioSinkWrapper::GetPosition(TimeStamp* aTimeStamp) const
   TimeStamp t = TimeStamp::Now();
 
   if (!mAudioEnded) {
+    MOZ_ASSERT(mAudioSink);
     // Rely on the audio sink to report playback position when it is not ended.
     pos = mAudioSink->GetPosition();
   } else if (!mPlayStartTime.IsNull()) {
@@ -178,7 +179,7 @@ AudioSinkWrapper::SetPlaying(bool aPlaying)
   }
 }
 
-void
+nsresult
 AudioSinkWrapper::Start(const TimeUnit& aStartTime, const MediaInfo& aInfo)
 {
   AssertOwnerThread();
@@ -187,20 +188,32 @@ AudioSinkWrapper::Start(const TimeUnit& aStartTime, const MediaInfo& aInfo)
   mIsStarted = true;
   mPlayDuration = aStartTime;
   mPlayStartTime = TimeStamp::Now();
+  mAudioEnded = IsAudioSourceEnded(aInfo);
 
-  // no audio is equivalent to audio ended before video starts.
-  mAudioEnded = !aInfo.HasAudio();
-
-  if (aInfo.HasAudio()) {
+  nsresult rv = NS_OK;
+  if (!mAudioEnded) {
     mAudioSink.reset(mCreator->Create());
-    mEndPromise = mAudioSink->Init(mParams);
-
+    rv = mAudioSink->Init(mParams, mEndPromise);
     mEndPromise->Then(
       mOwnerThread.get(), __func__, this,
       &AudioSinkWrapper::OnAudioEnded,
       &AudioSinkWrapper::OnAudioEnded
     )->Track(mAudioSinkPromise);
+  } else {
+    if (aInfo.HasAudio()) {
+      mEndPromise = GenericPromise::CreateAndResolve(true, __func__);
+    }
   }
+  return rv;
+}
+
+bool
+AudioSinkWrapper::IsAudioSourceEnded(const MediaInfo& aInfo) const
+{
+  // no audio or empty audio queue which won't get data anymore is equivalent to
+  // audio ended
+  return !aInfo.HasAudio() ||
+         (mAudioQueue.IsFinished() && mAudioQueue.GetSize() == 0u);
 }
 
 void

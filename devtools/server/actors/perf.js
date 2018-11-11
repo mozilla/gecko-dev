@@ -25,7 +25,7 @@ exports.PerfActor = ActorClassWithSpec(perfSpec, {
     // Only setup the observers on a supported platform.
     if (IS_SUPPORTED_PLATFORM) {
       this._observer = {
-        observe: this._observe.bind(this)
+        observe: this._observe.bind(this),
       };
       Services.obs.addObserver(this._observer, "profiler-started");
       Services.obs.addObserver(this._observer, "profiler-stopped");
@@ -57,7 +57,7 @@ exports.PerfActor = ActorClassWithSpec(perfSpec, {
       interval: options.interval || 1,
       features: options.features ||
         ["js", "stackwalk", "responsiveness", "threads", "leaf"],
-      threads: options.threads || ["GeckoMain", "Compositor"]
+      threads: options.threads || ["GeckoMain", "Compositor"],
     };
 
     try {
@@ -85,10 +85,20 @@ exports.PerfActor = ActorClassWithSpec(perfSpec, {
     Services.profiler.StopProfiler();
   },
 
+  async getSymbolTable(debugPath, breakpadId) {
+    const [addr, index, buffer] =
+      await Services.profiler.getSymbolTable(debugPath, breakpadId);
+    // The protocol does not support the transfer of typed arrays, so we convert
+    // these typed arrays to plain JS arrays of numbers now.
+    // Our return value type is declared as "array:array:number".
+    return [Array.from(addr), Array.from(index), Array.from(buffer)];
+  },
+
   async getProfileAndStopProfiler() {
     if (!IS_SUPPORTED_PLATFORM) {
       return null;
     }
+
     let profile;
     try {
       // Attempt to pull out the data.
@@ -149,5 +159,5 @@ exports.PerfActor = ActorClassWithSpec(perfSpec, {
         this.emit(topic);
         break;
     }
-  }
+  },
 });

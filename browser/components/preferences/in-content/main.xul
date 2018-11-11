@@ -85,7 +85,7 @@
               onsyncfrompreference="return gMainPane.readLinkTarget();"
               onsynctopreference="return gMainPane.writeLinkTarget();"/>
 
-    <checkbox id="warnCloseMultiple" data-l10n-id="warn-on-close-multiple-tabs"
+    <checkbox id="warnCloseMultiple" data-l10n-id="warn-on-quit-close-multiple-tabs"
               preference="browser.tabs.warnOnClose"/>
 
     <checkbox id="warnOpenMany" data-l10n-id="warn-on-open-many-tabs"
@@ -140,144 +140,142 @@
 <groupbox id="fontsGroup" data-category="paneGeneral" hidden="true">
   <caption><label data-l10n-id="fonts-and-colors-header"/></caption>
 
-  <vbox>
-    <hbox id="fontSettings">
-      <hbox align="center" flex="1">
-        <label control="defaultFont" data-l10n-id="default-font"/>
-        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-        <hbox flex="1">
-          <menulist id="defaultFont" flex="1" delayprefsave="true" onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
-        </hbox>
-        <label id="defaultFontSizeLabel" control="defaultFontSize" data-l10n-id="default-font-size"></label>
-        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-        <hbox>
-          <menulist id="defaultFontSize" delayprefsave="true">
-            <menupopup>
-              <menuitem value="9" label="9"/>
-              <menuitem value="10" label="10"/>
-              <menuitem value="11" label="11"/>
-              <menuitem value="12" label="12"/>
-              <menuitem value="13" label="13"/>
-              <menuitem value="14" label="14"/>
-              <menuitem value="15" label="15"/>
-              <menuitem value="16" label="16"/>
-              <menuitem value="17" label="17"/>
-              <menuitem value="18" label="18"/>
-              <menuitem value="20" label="20"/>
-              <menuitem value="22" label="22"/>
-              <menuitem value="24" label="24"/>
-              <menuitem value="26" label="26"/>
-              <menuitem value="28" label="28"/>
-              <menuitem value="30" label="30"/>
-              <menuitem value="32" label="32"/>
-              <menuitem value="34" label="34"/>
-              <menuitem value="36" label="36"/>
-              <menuitem value="40" label="40"/>
-              <menuitem value="44" label="44"/>
-              <menuitem value="48" label="48"/>
-              <menuitem value="56" label="56"/>
-              <menuitem value="64" label="64"/>
-              <menuitem value="72" label="72"/>
-            </menupopup>
-          </menulist>
-        </hbox>
+  <hbox id="fontSettings">
+    <hbox align="center" flex="1">
+      <label control="defaultFont" data-l10n-id="default-font"/>
+      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+      <hbox flex="1">
+        <menulist id="defaultFont" flex="1" delayprefsave="true" onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
       </hbox>
+      <label id="defaultFontSizeLabel" control="defaultFontSize" data-l10n-id="default-font-size"></label>
+      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+      <hbox>
+        <menulist id="defaultFontSize" delayprefsave="true">
+          <menupopup>
+            <menuitem value="9" label="9"/>
+            <menuitem value="10" label="10"/>
+            <menuitem value="11" label="11"/>
+            <menuitem value="12" label="12"/>
+            <menuitem value="13" label="13"/>
+            <menuitem value="14" label="14"/>
+            <menuitem value="15" label="15"/>
+            <menuitem value="16" label="16"/>
+            <menuitem value="17" label="17"/>
+            <menuitem value="18" label="18"/>
+            <menuitem value="20" label="20"/>
+            <menuitem value="22" label="22"/>
+            <menuitem value="24" label="24"/>
+            <menuitem value="26" label="26"/>
+            <menuitem value="28" label="28"/>
+            <menuitem value="30" label="30"/>
+            <menuitem value="32" label="32"/>
+            <menuitem value="34" label="34"/>
+            <menuitem value="36" label="36"/>
+            <menuitem value="40" label="40"/>
+            <menuitem value="44" label="44"/>
+            <menuitem value="48" label="48"/>
+            <menuitem value="56" label="56"/>
+            <menuitem value="64" label="64"/>
+            <menuitem value="72" label="72"/>
+          </menupopup>
+        </menulist>
+      </hbox>
+    </hbox>
 
-      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-      <hbox>
-        <button id="advancedFonts"
-                class="accessory-button"
-                icon="select-font"
-                data-l10n-id="advanced-fonts"
-                search-l10n-ids="
-                  fonts-window.title,
-                  fonts-langgroup-header,
-                  fonts-proportional-size,
-                  fonts-proportional-header,
-                  fonts-serif,
-                  fonts-sans-serif,
-                  fonts-monospace,
-                  fonts-langgroup-arabic.label,
-                  fonts-langgroup-armenian.label,
-                  fonts-langgroup-bengali.label,
-                  fonts-langgroup-simpl-chinese.label,
-                  fonts-langgroup-trad-chinese-hk.label,
-                  fonts-langgroup-trad-chinese.label,
-                  fonts-langgroup-cyrillic.label,
-                  fonts-langgroup-devanagari.label,
-                  fonts-langgroup-ethiopic.label,
-                  fonts-langgroup-georgian.label,
-                  fonts-langgroup-el.label,
-                  fonts-langgroup-gujarati.label,
-                  fonts-langgroup-gurmukhi.label,
-                  fonts-langgroup-japanese.label,
-                  fonts-langgroup-hebrew.label,
-                  fonts-langgroup-kannada.label,
-                  fonts-langgroup-khmer.label,
-                  fonts-langgroup-korean.label,
-                  fonts-langgroup-latin.label,
-                  fonts-langgroup-malayalam.label,
-                  fonts-langgroup-math.label,
-                  fonts-langgroup-odia.label,
-                  fonts-langgroup-sinhala.label,
-                  fonts-langgroup-tamil.label,
-                  fonts-langgroup-telugu.label,
-                  fonts-langgroup-thai.label,
-                  fonts-langgroup-tibetan.label,
-                  fonts-langgroup-canadian.label,
-                  fonts-langgroup-other.label,
-                  fonts-minsize,
-                  fonts-minsize-none.label,
-                  fonts-default-serif.label,
-                  fonts-default-sans-serif.label,
-                  fonts-allow-own.label,
-                  fonts-languages-fallback-header,
-                  fonts-languages-fallback-label,
-                  fonts-languages-fallback-desc,
-                  fonts-languages-fallback-name-auto.label,
-                  fonts-languages-fallback-name-arabic.label,
-                  fonts-languages-fallback-name-baltic.label,
-                  fonts-languages-fallback-name-ceiso.label,
-                  fonts-languages-fallback-name-cewindows.label,
-                  fonts-languages-fallback-name-simplified.label,
-                  fonts-languages-fallback-name-traditional.label,
-                  fonts-languages-fallback-name-cyrillic.label,
-                  fonts-languages-fallback-name-greek.label,
-                  fonts-languages-fallback-name-hebrew.label,
-                  fonts-languages-fallback-name-japanese.label,
-                  fonts-languages-fallback-name-korean.label,
-                  fonts-languages-fallback-name-thai.label,
-                  fonts-languages-fallback-name-turkish.label,
-                  fonts-languages-fallback-name-vietnamese.label,
-                  fonts-languages-fallback-name-other.label,
-                " />
-      </hbox>
+    <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+    <hbox>
+      <button id="advancedFonts"
+              class="accessory-button"
+              icon="select-font"
+              data-l10n-id="advanced-fonts"
+              search-l10n-ids="
+                fonts-window.title,
+                fonts-langgroup-header,
+                fonts-proportional-size,
+                fonts-proportional-header,
+                fonts-serif,
+                fonts-sans-serif,
+                fonts-monospace,
+                fonts-langgroup-arabic.label,
+                fonts-langgroup-armenian.label,
+                fonts-langgroup-bengali.label,
+                fonts-langgroup-simpl-chinese.label,
+                fonts-langgroup-trad-chinese-hk.label,
+                fonts-langgroup-trad-chinese.label,
+                fonts-langgroup-cyrillic.label,
+                fonts-langgroup-devanagari.label,
+                fonts-langgroup-ethiopic.label,
+                fonts-langgroup-georgian.label,
+                fonts-langgroup-el.label,
+                fonts-langgroup-gujarati.label,
+                fonts-langgroup-gurmukhi.label,
+                fonts-langgroup-japanese.label,
+                fonts-langgroup-hebrew.label,
+                fonts-langgroup-kannada.label,
+                fonts-langgroup-khmer.label,
+                fonts-langgroup-korean.label,
+                fonts-langgroup-latin.label,
+                fonts-langgroup-malayalam.label,
+                fonts-langgroup-math.label,
+                fonts-langgroup-odia.label,
+                fonts-langgroup-sinhala.label,
+                fonts-langgroup-tamil.label,
+                fonts-langgroup-telugu.label,
+                fonts-langgroup-thai.label,
+                fonts-langgroup-tibetan.label,
+                fonts-langgroup-canadian.label,
+                fonts-langgroup-other.label,
+                fonts-minsize,
+                fonts-minsize-none.label,
+                fonts-default-serif.label,
+                fonts-default-sans-serif.label,
+                fonts-allow-own.label,
+                fonts-languages-fallback-header,
+                fonts-languages-fallback-label,
+                fonts-languages-fallback-desc,
+                fonts-languages-fallback-name-auto.label,
+                fonts-languages-fallback-name-arabic.label,
+                fonts-languages-fallback-name-baltic.label,
+                fonts-languages-fallback-name-ceiso.label,
+                fonts-languages-fallback-name-cewindows.label,
+                fonts-languages-fallback-name-simplified.label,
+                fonts-languages-fallback-name-traditional.label,
+                fonts-languages-fallback-name-cyrillic.label,
+                fonts-languages-fallback-name-greek.label,
+                fonts-languages-fallback-name-hebrew.label,
+                fonts-languages-fallback-name-japanese.label,
+                fonts-languages-fallback-name-korean.label,
+                fonts-languages-fallback-name-thai.label,
+                fonts-languages-fallback-name-turkish.label,
+                fonts-languages-fallback-name-vietnamese.label,
+                fonts-languages-fallback-name-other.label,
+              " />
     </hbox>
-    <hbox id="colorsSettings">
-      <spacer flex="1" />
-      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-      <hbox>
-        <button id="colors"
-                class="accessory-button"
-                icon="select-color"
-                data-l10n-id="colors-settings"
-                search-l10n-ids="
-                  colors-page-override,
-                  colors-page-override-option-always.label,
-                  colors-page-override-option-auto.label,
-                  colors-page-override-option-never.label,
-                  colors-text-and-background,
-                  colors-text-header,
-                  colors-background,
-                  colors-use-system,
-                  colors-underline-links,
-                  colors-links-header,
-                  colors-unvisited-links,
-                  colors-visited-links
-                "/>
-      </hbox>
+  </hbox>
+  <hbox id="colorsSettings">
+    <spacer flex="1" />
+    <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+    <hbox>
+      <button id="colors"
+              class="accessory-button"
+              icon="select-color"
+              data-l10n-id="colors-settings"
+              search-l10n-ids="
+                colors-page-override,
+                colors-page-override-option-always.label,
+                colors-page-override-option-auto.label,
+                colors-page-override-option-never.label,
+                colors-text-and-background,
+                colors-text-header,
+                colors-background,
+                colors-use-system,
+                colors-underline-links,
+                colors-links-header,
+                colors-unvisited-links,
+                colors-visited-links
+              "/>
     </hbox>
-  </vbox>
+  </hbox>
 </groupbox>
 
 <!-- Languages -->
@@ -293,14 +291,14 @@
       <button id="manageBrowserLanguagesButton"
               class="accessory-button"
               data-l10n-id="manage-browser-languages-button"
-              oncommand="gMainPane.showBrowserLanguages()"/>
+              oncommand="gMainPane.showBrowserLanguages({search: false})"/>
     </hbox>
   </vbox>
   <hbox id="confirmBrowserLanguage" class="message-bar" align="center" hidden="true">
     <image class="message-bar-icon"/>
     <hbox class="message-bar-content" align="center" flex="1">
       <description class="message-bar-description" flex="1"/>
-      <button class="message-bar-button" oncommand="gMainPane.confirmBrowserLanguageChange()"/>
+      <button class="message-bar-button" oncommand="gMainPane.confirmBrowserLanguageChange(event)"/>
     </hbox>
   </hbox>
 
@@ -459,7 +457,10 @@
               class="accessory-button"
               data-l10n-id="update-history"
               preference="app.update.disable_button.showUpdateHistory"
-              searchkeywords="&history.title; &history2.intro;"/>
+              search-l10n-ids="
+                history-title,
+                history-intro
+              "/>
     </vbox>
 #endif
   </hbox>
@@ -469,8 +470,7 @@
       <hbox id="checkForUpdates" align="start">
         <spacer flex="1"/>
         <button id="checkForUpdatesButton"
-                label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+                data-l10n-id="update-checkForUpdatesButton"
                 oncommand="gAppUpdater.checkForUpdates();"/>
       </hbox>
       <hbox id="downloadAndInstall" align="start">
@@ -482,76 +482,72 @@
       <hbox id="apply" align="start">
         <spacer flex="1"/>
         <button id="updateButton"
-                label="&update.updateButton.label3;"
-                accesskey="&update.updateButton.accesskey;"
+                data-l10n-id="update-updateButton"
                 oncommand="gAppUpdater.buttonRestartAfterDownload();"/>
       </hbox>
       <hbox id="checkingForUpdates" align="start">
-        <image class="update-throbber"/><label>&update.checkingForUpdates;</label>
+        <image class="update-throbber"/>
+        <label data-l10n-id="update-checkingForUpdates"></label>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 disabled="true"/>
       </hbox>
-      <hbox id="downloading" align="start">
-        <image class="update-throbber"/><label>&update.downloading.start;</label><label id="downloadStatus"/><label>&update.downloading.end;</label>
+      <hbox id="downloading" align="start" data-l10n-id="update-downloading">
+        <html:img class="update-throbber" src="chrome://global/skin/icons/loading.png" data-l10n-name="icon"/>
+        <label id="downloadStatus" data-l10n-name="download-status"/>
       </hbox>
       <hbox id="applying" align="start">
-        <image class="update-throbber"/><label>&update.applying;</label>
+        <image class="update-throbber"/>
+        <label data-l10n-id="update-applying"></label>
       </hbox>
       <hbox id="downloadFailed" align="start">
-        <label>&update.failed.start;</label><label id="failedLink" class="text-link">&update.failed.linkText;</label><label>&update.failed.end;</label>
+        <label data-l10n-id="update-failed-main">
+          <html:a id="failedLink" target="_blank" class="learnMore text-link" data-l10n-name="failed-link-main"></html:a>
+        </label>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 oncommand="gAppUpdater.checkForUpdates();"/>
       </hbox>
       <hbox id="policyDisabled" align="start">
-        <label>&update.adminDisabled;</label>
+        <label data-l10n-id="update-adminDisabled"></label>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 disabled="true"/>
       </hbox>
       <hbox id="noUpdatesFound" align="start">
         <image class="face-smile"/>
-        <label>&update.noUpdatesFound;</label>
+        <label data-l10n-id="update-noUpdatesFound"></label>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 oncommand="gAppUpdater.checkForUpdates();"/>
       </hbox>
       <hbox id="otherInstanceHandlingUpdates" align="start">
-        <label>&update.otherInstanceHandlingUpdates;</label>
+        <label data-l10n-id="update-otherInstanceHandlingUpdates"></label>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 disabled="true"/>
       </hbox>
       <hbox id="manualUpdate" align="start">
         <image class="face-sad"/>
-        <description flex="1">
-          <label>&update.manual.start;</label><label id="manualLink" class="text-link"/><label>&update.manual.end;</label>
+        <description flex="1" data-l10n-id="update-manual">
+          <label id="manualLink" class="text-link" data-l10n-name="manual-link"/>
         </description>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 disabled="true"/>
       </hbox>
       <hbox id="unsupportedSystem" align="start">
-        <description flex="1">
-          <label>&update.unsupported.start;</label><label id="unsupportedLink" class="learnMore text-link">&update.unsupported.linkText;</label><label>&update.unsupported.end;</label>
+        <description flex="1" data-l10n-id="update-unsupported">
+          <label id="unsupportedLink" class="learnMore text-link" data-l10n-name="unsupported-link"></label>
         </description>
         <spacer flex="1"/>
-        <button label="&update.checkForUpdatesButton.label;"
-                accesskey="&update.checkForUpdatesButton.accesskey;"
+        <button data-l10n-id="update-checkForUpdatesButton"
                 disabled="true"/>
       </hbox>
       <hbox id="restarting" align="start">
-        <image class="update-throbber"/><label>&update.restarting;</label>
+        <image class="update-throbber"/><label data-l10n-id="update-restarting"></label>
         <spacer flex="1"/>
-        <button label="&update.updateButton.label3;"
-                accesskey="&update.updateButton.accesskey;"
+        <button data-l10n-id="update-updateButton"
                 disabled="true"/>
       </hbox>
     </deck>
@@ -560,11 +556,12 @@
 
 #ifdef MOZ_UPDATER
   <description id="updateAllowDescription" data-l10n-id="update-application-allow-description"></description>
-  <radiogroup id="updateRadioGroup" preference="app.update.auto">
+  <radiogroup id="updateRadioGroup">
     <radio id="autoDesktop"
            value="true"
            data-l10n-id="update-application-auto"/>
-    <radio value="false"
+    <radio id="manualDesktop"
+           value="false"
            data-l10n-id="update-application-check-choose"/>
   </radiogroup>
 #ifdef MOZ_MAINTENANCE_SERVICE
@@ -613,6 +610,7 @@
           <menuitem label="5" value="5"/>
           <menuitem label="6" value="6"/>
           <menuitem label="7" value="7"/>
+          <menuitem label="8" value="8"/>
         </menupopup>
       </menulist>
     </hbox>
@@ -653,6 +651,13 @@
   <checkbox id="searchStartTyping"
             data-l10n-id="browsing-search-on-start-typing"
             preference="accessibility.typeaheadfind"/>
+  <hbox align="center" data-subcategory="cfr">
+    <checkbox id="cfrRecommendations"
+            class="tail-with-learn-more"
+            data-l10n-id="browsing-cfr-recommendations"
+            preference="browser.newtabpage.activity-stream.asrouter.userprefs.cfr"/>
+    <label id="cfrLearnMore" class="learnMore text-link" data-l10n-id="browsing-cfr-recommendations-learn-more"/>
+  </hbox>
 </groupbox>
 
 <hbox id="networkProxyCategory"
@@ -682,6 +687,7 @@
               class="accessory-button"
               icon="network"
               data-l10n-id="network-proxy-connection-settings"
+              searchkeywords="doh trr"
               search-l10n-ids="
                 connection-window.title,
                 connection-proxy-option-no.label,
@@ -703,7 +709,8 @@
                 connection-proxy-autologin.label,
                 connection-proxy-socks-remote-dns.label,
                 connection-dns-over-https,
-                connection-dns-over-https-url
+                connection-dns-over-https-url-custom,
+                connection-dns-over-https-url-default,
             " />
     </hbox>
   </hbox>

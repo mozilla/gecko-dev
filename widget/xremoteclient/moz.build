@@ -14,7 +14,7 @@ SOURCES += [
     'XRemoteClient.cpp',
 ]
 
-if CONFIG['MOZ_ENABLE_DBUS'] and CONFIG['MOZ_WAYLAND']:
+if CONFIG['MOZ_ENABLE_DBUS']:
     SOURCES += [
         'DBusRemoteClient.cpp',
     ]

@@ -4,22 +4,26 @@
 
 #![allow(unsafe_code)]
 
+// This is needed for the constants in atom_macro.rs, because we have some
+// atoms whose names differ only by case, e.g. datetime and dateTime.
+#![allow(non_upper_case_globals)]
+
 //! A drop-in replacement for string_cache, but backed by Gecko `nsAtom`s.
 
 use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsDynamicAtom, nsStaticAtom};
+use gecko_bindings::structs::{nsAtom, nsDynamicAtom, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
-use std::{mem, slice, str};
 use std::borrow::{Borrow, Cow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::ops::Deref;
+use std::{mem, slice, str};
 use style_traits::SpecifiedValueInfo;
 
 #[macro_use]
@@ -171,7 +175,7 @@ impl WeakAtom {
     /// Returns whether this atom is static.
     #[inline]
     pub fn is_static(&self) -> bool {
-        unsafe { (*self.as_ptr()).mKind() == nsAtom_AtomKind::Static as u32 }
+        unsafe { (*self.as_ptr()).mIsStatic() != 0 }
     }
 
     /// Returns the length of the atom string.
@@ -280,7 +284,7 @@ impl Atom {
     /// that way, now we have sugar for is_static, creating atoms using
     /// Atom::from_raw should involve almost no overhead.
     #[inline]
-    pub unsafe fn from_static(ptr: *mut nsStaticAtom) -> Self {
+    pub unsafe fn from_static(ptr: *const nsStaticAtom) -> Self {
         let atom = Atom(ptr as *mut WeakAtom);
         debug_assert!(
             atom.is_static(),

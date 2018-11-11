@@ -42,6 +42,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/net/HttpBaseChannel.h"
+#include "mozilla/net/TrackingDummyChannel.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs.h"
@@ -329,6 +330,11 @@ SetIsTrackingResourceHelper(nsIChannel* aChannel, bool aIsThirdParty)
   if (httpChannel) {
     httpChannel->SetIsTrackingResource(aIsThirdParty);
   }
+
+  RefPtr<TrackingDummyChannel> dummyChannel = do_QueryObject(aChannel);
+  if (dummyChannel) {
+    dummyChannel->SetIsTrackingResource();
+  }
 }
 
 static void
@@ -518,6 +524,7 @@ nsChannelClassifier::ShouldEnableTrackingProtectionInternal(
     }
 
     rv = AntiTrackingCommon::IsOnContentBlockingAllowList(topWinURI,
+                                                          NS_UsePrivateBrowsing(aChannel),
                                                           aAnnotationsOnly ?
                                                             AntiTrackingCommon::eTrackingAnnotations :
                                                             AntiTrackingCommon::eTrackingProtection,
@@ -592,39 +599,7 @@ nsChannelClassifier::NotifyTrackingProtectionDisabled(nsIChannel *aChannel)
       return NS_OK;
     }
 
-    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
-      services::GetThirdPartyUtil();
-    if (NS_WARN_IF(!thirdPartyUtil)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    nsresult rv;
-    nsCOMPtr<mozIDOMWindowProxy> win;
-    rv = thirdPartyUtil->GetTopWindowForChannel(aChannel, getter_AddRefs(win));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    auto* pwin = nsPIDOMWindowOuter::From(win);
-    nsCOMPtr<nsIDocShell> docShell = pwin->GetDocShell();
-    if (!docShell) {
-      return NS_OK;
-    }
-    nsCOMPtr<nsIDocument> doc = docShell->GetDocument();
-    NS_ENSURE_TRUE(doc, NS_OK);
-
-    // Notify nsIWebProgressListeners of this security event.
-    // Can be used to change the UI state.
-    nsCOMPtr<nsISecurityEventSink> eventSink = do_QueryInterface(docShell, &rv);
-    NS_ENSURE_SUCCESS(rv, NS_OK);
-    uint32_t state = 0;
-    nsCOMPtr<nsISecureBrowserUI> securityUI;
-    docShell->GetSecurityUI(getter_AddRefs(securityUI));
-    if (!securityUI) {
-      return NS_OK;
-    }
-    doc->SetHasTrackingContentLoaded(true);
-    securityUI->GetState(&state);
-    state |= nsIWebProgressListener::STATE_LOADED_TRACKING_CONTENT;
-    eventSink->OnSecurityChange(nullptr, state);
+    NotifyChannelBlocked(aChannel, nsIWebProgressListener::STATE_LOADED_TRACKING_CONTENT);
 
     return NS_OK;
 }
@@ -921,7 +896,7 @@ nsChannelClassifier::SetBlockedContent(nsIChannel *channel,
   } else {
     state = nsIWebProgressListener::STATE_BLOCKED_UNSAFE_CONTENT;
   }
-  pwin->NotifyContentBlockingState(state, channel);
+  NotifyChannelBlocked(channel, state);
 
   // Log a warning to the web console.
   nsCOMPtr<nsIURI> uri;
@@ -942,6 +917,32 @@ nsChannelClassifier::SetBlockedContent(nsIChannel *channel,
                                   params, ArrayLength(params));
 
   return NS_OK;
+}
+
+// static
+void
+nsChannelClassifier::NotifyChannelBlocked(nsIChannel* aChannel, unsigned aBlockedReason)
+{
+  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+    services::GetThirdPartyUtil();
+  if (NS_WARN_IF(!thirdPartyUtil)) {
+    return;
+  }
+
+  nsCOMPtr<mozIDOMWindowProxy> win;
+  nsresult rv = thirdPartyUtil->GetTopWindowForChannel(aChannel, getter_AddRefs(win));
+  NS_ENSURE_SUCCESS_VOID(rv);
+  auto* pwin = nsPIDOMWindowOuter::From(win);
+  nsCOMPtr<nsIDocShell> docShell = pwin->GetDocShell();
+  if (!docShell) {
+    return;
+  }
+  nsCOMPtr<nsIDocument> doc = docShell->GetDocument();
+  NS_ENSURE_TRUE_VOID(doc);
+
+  nsCOMPtr<nsIURI> uri;
+  aChannel->GetURI(getter_AddRefs(uri));
+  pwin->NotifyContentBlockingState(aBlockedReason, aChannel, true, uri);
 }
 
 namespace {

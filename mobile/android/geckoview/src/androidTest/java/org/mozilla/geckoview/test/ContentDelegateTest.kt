@@ -6,8 +6,10 @@ package org.mozilla.geckoview.test
 
 import android.app.assist.AssistStructure
 import android.os.Build
+import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.IgnoreCrash
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.ReuseSession
@@ -54,8 +56,9 @@ class ContentDelegateTest : BaseSessionTest() {
         sessionRule.waitUntilCalled(object : Callbacks.NavigationDelegate, Callbacks.ContentDelegate {
 
             @AssertCalled(count = 2)
-            override fun onLoadRequest(session: GeckoSession, uri: String,
-                                       where: Int, flags: Int): GeckoResult<Boolean>? {
+            override fun onLoadRequest(session: GeckoSession,
+                                       request: LoadRequest):
+                                       GeckoResult<AllowOrDeny>? {
                 return null
             }
 
@@ -102,6 +105,33 @@ class ContentDelegateTest : BaseSessionTest() {
                 assertThat("Page should load successfully", success, equalTo(true))
             }
         })
+    }
+
+    @IgnoreCrash
+    @ReuseSession(false)
+    @WithDisplay(width = 10, height = 10)
+    @Test fun crashContent_tapAfterCrash() {
+        // This test doesn't make sense without multiprocess
+        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
+        // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
+        // that waits for debugger to attach during a SIGSEGV.
+        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.cpuArch == "x86",
+                   equalTo(false))
+
+        mainSession.delegateUntilTestEnd(object : Callbacks.ContentDelegate {
+            override fun onCrash(session: GeckoSession) {
+                mainSession.open()
+                mainSession.loadTestPath(HELLO_HTML_PATH)
+            }
+        })
+
+        mainSession.synthesizeTap(5, 5)
+        mainSession.loadUri(CONTENT_CRASH_URL)
+        mainSession.waitForPageStop()
+
+        mainSession.synthesizeTap(5, 5)
+        mainSession.reload()
+        mainSession.waitForPageStop()
     }
 
     @IgnoreCrash
@@ -397,10 +427,10 @@ class ContentDelegateTest : BaseSessionTest() {
         })
         assertThat("Should have one focused field",
                    countAutoFillNodes({ it.isFocused }), equalTo(1))
-        // The focused field, its siblings, and its parent should be visible.
-        assertThat("Should have at least six visible fields",
+        // The focused field, its siblings, its parent, and the root node should be visible.
+        assertThat("Should have seven visible nodes",
                    countAutoFillNodes({ node -> node.width > 0 && node.height > 0 }),
-                   greaterThanOrEqualTo(6))
+                   equalTo(7))
 
         mainSession.evaluateJS("$('#pass1').blur()")
         sessionRule.waitUntilCalled(object : Callbacks.TextInputDelegate {
@@ -414,5 +444,39 @@ class ContentDelegateTest : BaseSessionTest() {
         })
         assertThat("Should not have focused field",
                    countAutoFillNodes({ it.isFocused }), equalTo(0))
+    }
+
+    private fun goFullscreen() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("full-screen-api.allow-trusted-requests-only" to false))
+        mainSession.loadTestPath(FULLSCREEN_PATH)
+        mainSession.waitForPageStop()
+        mainSession.evaluateJS("$('#fullscreen').requestFullscreen()")
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            override  fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+                assertThat("Div went fullscreen", fullScreen, equalTo(true))
+            }
+        })
+    }
+
+    private fun waitForFullscreenExit() {
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            override  fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+                assertThat("Div went fullscreen", fullScreen, equalTo(false))
+            }
+        })
+    }
+
+    @WithDevToolsAPI
+    @Test fun fullscreen() {
+        goFullscreen()
+        mainSession.evaluateJS("document.exitFullscreen()")
+        waitForFullscreenExit()
+    }
+
+    @WithDevToolsAPI
+    @Test fun sessionExitFullscreen() {
+        goFullscreen()
+        mainSession.exitFullScreen()
+        waitForFullscreenExit()
     }
 }

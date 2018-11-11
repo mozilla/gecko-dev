@@ -35,7 +35,8 @@ class nsMIMEInputStream : public nsIMIMEInputStream,
                           public nsIInputStreamCallback,
                           public nsIInputStreamLength,
                           public nsIAsyncInputStreamLength,
-                          public nsIInputStreamLengthCallback
+                          public nsIInputStreamLengthCallback,
+                          public nsICloneableInputStream
 {
     virtual ~nsMIMEInputStream() = default;
 
@@ -46,12 +47,14 @@ public:
     NS_DECL_NSIINPUTSTREAM
     NS_DECL_NSIMIMEINPUTSTREAM
     NS_DECL_NSISEEKABLESTREAM
+    NS_DECL_NSITELLABLESTREAM
     NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
     NS_DECL_NSIASYNCINPUTSTREAM
     NS_DECL_NSIINPUTSTREAMCALLBACK
     NS_DECL_NSIINPUTSTREAMLENGTH
     NS_DECL_NSIASYNCINPUTSTREAMLENGTH
     NS_DECL_NSIINPUTSTREAMLENGTHCALLBACK
+    NS_DECL_NSICLONEABLEINPUTSTREAM
 
 private:
 
@@ -70,6 +73,7 @@ private:
     bool IsIPCSerializable() const;
     bool IsInputStreamLength() const;
     bool IsAsyncInputStreamLength() const;
+    bool IsCloneableInputStream() const;
 
     nsTArray<HeaderEntry> mHeaders;
 
@@ -95,6 +99,7 @@ NS_INTERFACE_MAP_BEGIN(nsMIMEInputStream)
   NS_INTERFACE_MAP_ENTRY(nsIMIMEInputStream)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIInputStream, nsIMIMEInputStream)
   NS_INTERFACE_MAP_ENTRY(nsISeekableStream)
+  NS_INTERFACE_MAP_ENTRY(nsITellableStream)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIIPCSerializableInputStream,
                                      IsIPCSerializable())
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAsyncInputStream,
@@ -108,6 +113,8 @@ NS_INTERFACE_MAP_BEGIN(nsMIMEInputStream)
                                      IsAsyncInputStreamLength())
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIInputStreamLengthCallback,
                                      IsAsyncInputStreamLength())
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsICloneableInputStream,
+                                     IsCloneableInputStream())
   NS_IMPL_QUERY_CLASSINFO(nsMIMEInputStream)
 NS_INTERFACE_MAP_END
 
@@ -115,7 +122,8 @@ NS_IMPL_CI_INTERFACE_GETTER(nsMIMEInputStream,
                             nsIMIMEInputStream,
                             nsIAsyncInputStream,
                             nsIInputStream,
-                            nsISeekableStream)
+                            nsISeekableStream,
+                            nsITellableStream)
 
 nsMIMEInputStream::nsMIMEInputStream()
   : mStartedReading(false)
@@ -307,13 +315,15 @@ nsMIMEInputStream::OnInputStreamReady(nsIAsyncInputStream* aStream)
   return callback->OnInputStreamReady(this);
 }
 
-// nsISeekableStream
+// nsITellableStream
 NS_IMETHODIMP nsMIMEInputStream::Tell(int64_t *_retval)
 {
     INITSTREAMS;
-    nsCOMPtr<nsISeekableStream> stream = do_QueryInterface(mStream);
+    nsCOMPtr<nsITellableStream> stream = do_QueryInterface(mStream);
     return stream->Tell(_retval);
 }
+
+// nsISeekableStream
 NS_IMETHODIMP nsMIMEInputStream::SetEOF(void) {
     INITSTREAMS;
     nsCOMPtr<nsISeekableStream> stream = do_QueryInterface(mStream);
@@ -488,4 +498,56 @@ nsMIMEInputStream::IsAsyncInputStreamLength() const
 {
     nsCOMPtr<nsIAsyncInputStreamLength> stream = do_QueryInterface(mStream);
     return !!stream;
+}
+
+bool
+nsMIMEInputStream::IsCloneableInputStream() const
+{
+    nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mStream);
+    return !!stream;
+}
+
+// nsICloneableInputStream interface
+
+NS_IMETHODIMP
+nsMIMEInputStream::GetCloneable(bool* aCloneable)
+{
+    nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mStream);
+    if (!mStream) {
+        return NS_ERROR_FAILURE;
+    }
+
+    return stream->GetCloneable(aCloneable);
+}
+
+NS_IMETHODIMP
+nsMIMEInputStream::Clone(nsIInputStream** aResult)
+{
+    nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mStream);
+    if (!mStream) {
+        return NS_ERROR_FAILURE;
+    }
+
+    nsCOMPtr<nsIInputStream> clonedStream;
+    nsresult rv = stream->Clone(getter_AddRefs(clonedStream));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+    }
+
+    nsCOMPtr<nsIMIMEInputStream> mimeStream = new nsMIMEInputStream();
+
+    rv = mimeStream->SetData(clonedStream);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+    }
+
+    for (const HeaderEntry& entry : mHeaders) {
+        rv = mimeStream->AddHeader(entry.name().get(), entry.value().get());
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
+
+    static_cast<nsMIMEInputStream*>(mimeStream.get())->mStartedReading = mStartedReading;
+
+    mimeStream.forget(aResult);
+    return NS_OK;
 }

@@ -16,8 +16,6 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["URL"]);
 
-ChromeUtils.defineModuleGetter(this, "AutoMigrate",
-                               "resource:///modules/AutoMigrate.jsm");
 ChromeUtils.defineModuleGetter(this, "BookmarkHTMLUtils",
                                "resource://gre/modules/BookmarkHTMLUtils.jsm");
 ChromeUtils.defineModuleGetter(this, "LoginHelper",
@@ -30,8 +28,6 @@ ChromeUtils.defineModuleGetter(this, "ResponsivenessMonitor",
                                "resource://gre/modules/ResponsivenessMonitor.jsm");
 ChromeUtils.defineModuleGetter(this, "Sqlite",
                                "resource://gre/modules/Sqlite.jsm");
-ChromeUtils.defineModuleGetter(this, "TelemetryStopwatch",
-                               "resource://gre/modules/TelemetryStopwatch.jsm");
 ChromeUtils.defineModuleGetter(this, "WindowsRegistry",
                                "resource://gre/modules/WindowsRegistry.jsm");
 ChromeUtils.defineModuleGetter(this, "setTimeout",
@@ -923,15 +919,9 @@ var MigrationUtils = Object.freeze({
    */
   startupMigration:
   function MU_startupMigrator(aProfileStartup, aMigratorKey, aProfileToMigrate) {
-    if (Services.prefs.getBoolPref("browser.migrate.automigrate.enabled", false)) {
-      this.asyncStartupMigration(aProfileStartup,
-                                 aMigratorKey,
-                                 aProfileToMigrate);
-    } else {
-      this.spinResolve(this.asyncStartupMigration(aProfileStartup,
-                                                  aMigratorKey,
-                                                  aProfileToMigrate));
-    }
+    this.spinResolve(this.asyncStartupMigration(aProfileStartup,
+                                                aMigratorKey,
+                                                aProfileToMigrate));
   },
 
   asyncStartupMigration:
@@ -977,16 +967,6 @@ var MigrationUtils = Object.freeze({
 
     let isRefresh = migrator && skipSourcePage &&
                     migratorKey == AppConstants.MOZ_APP_NAME;
-
-    if (!isRefresh && AutoMigrate.enabled) {
-      try {
-        await AutoMigrate.migrate(aProfileStartup, migratorKey, aProfileToMigrate);
-        return;
-      } catch (ex) {
-        // If automigration failed, continue and show the dialog.
-        Cu.reportError(ex);
-      }
-    }
 
     let migrationEntryPoint = this.MIGRATION_ENTRYPOINT_FIRSTRUN;
     if (isRefresh) {

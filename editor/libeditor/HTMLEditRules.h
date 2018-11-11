@@ -100,15 +100,18 @@ public:
                               nsIEditor::EDirection aDirection) override;
   virtual nsresult AfterEdit(EditSubAction aEditSubAction,
                              nsIEditor::EDirection aDirection) override;
-  virtual nsresult WillDoAction(Selection* aSelection,
-                                EditSubActionInfo& aInfo,
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  virtual nsresult WillDoAction(EditSubActionInfo& aInfo,
                                 bool* aCancel,
                                 bool* aHandled) override;
-  virtual nsresult DidDoAction(Selection* aSelection,
-                               EditSubActionInfo& aInfo,
+  virtual nsresult DidDoAction(EditSubActionInfo& aInfo,
                                nsresult aResult) override;
   virtual bool DocumentIsEmpty() override;
-  virtual nsresult DocumentModified() override;
+
+  /**
+   * DocumentModified() is called when editor content is changed.
+   */
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult DocumentModified();
 
   nsresult GetListState(bool* aMixed, bool* aOL, bool* aUL, bool* aDL);
   nsresult GetListItemState(bool* aMixed, bool* aLI, bool* aDT, bool* aDD);
@@ -126,24 +129,27 @@ public:
    */
   MOZ_MUST_USE nsresult MakeSureElemStartsAndEndsOnCR(nsINode& aNode);
 
-  void DidCreateNode(Selection& aSelection, Element& aNewElement);
-  void DidInsertNode(Selection& aSelection, nsIContent& aNode);
-  void WillDeleteNode(Selection& aSelection, nsINode& aChild);
-  void DidSplitNode(Selection& aSelection,
-                    nsINode& aExistingRightNode,
+  void DidCreateNode(Element& aNewElement);
+  void DidInsertNode(nsIContent& aNode);
+  void WillDeleteNode(nsINode& aChild);
+  void DidSplitNode(nsINode& aExistingRightNode,
                     nsINode& aNewLeftNode);
   void WillJoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
-  void DidJoinNodes(Selection& aSelection,
-                    nsINode& aLeftNode, nsINode& aRightNode);
-  void DidInsertText(Selection& aSelection,
-                     nsINode& aTextNode, int32_t aOffset,
+  void DidJoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
+  void DidInsertText(nsINode& aTextNode, int32_t aOffset,
                      const nsAString& aString);
-  void DidDeleteText(Selection& aSelection,
-                     nsINode& aTextNode, int32_t aOffset, int32_t aLength);
-  void WillDeleteSelection(Selection& aSelection);
+  void DidDeleteText(nsINode& aTextNode, int32_t aOffset, int32_t aLength);
+  void WillDeleteSelection();
 
   void StartToListenToEditSubActions() { mListenerEnabled = true; }
   void EndListeningToEditSubActions() { mListenerEnabled = false; }
+
+  /**
+   * OnModifyDocument() is called when DocumentModifiedWorker() calls
+   * HTMLEditor::OnModifyDocument().  The caller guarantees that there
+   * is AutoEditActionDataSetter instance in the editor.
+   */
+  MOZ_CAN_RUN_SCRIPT void OnModifyDocument();
 
 protected:
   virtual ~HTMLEditRules();
@@ -207,14 +213,12 @@ protected:
   MOZ_MUST_USE nsresult WillLoadHTML();
 
   /**
-   * WillInsertBreak() is called when insertParagraph command is executed
-   * or something equivalent.  This method actually tries to insert new
-   * paragraph or <br> element, etc.
-   *
-   * @param aCancel             Returns true if target node is not editable.
-   * @param aHandled            Returns true if actually insert new break.
+   * WillInsertParagraphSeparator() is called when insertParagraph command is
+   * executed or something equivalent.  This method actually tries to insert
+   * new paragraph or <br> element, etc.
    */
-  nsresult WillInsertBreak(bool* aCancel, bool* aHandled);
+  MOZ_CAN_RUN_SCRIPT
+  MOZ_MUST_USE EditActionResult WillInsertParagraphSeparator();
 
   /**
    * If aNode is a text node that contains only collapsed whitespace, delete
@@ -239,11 +243,9 @@ protected:
    * Selection starts from inside a mail-cite element.  Of course, if it's
    * necessary, this inserts <br> node to new left nodes or existing right
    * nodes.
-   *
-   * @param aHandled            Returns true if succeeded to split mail-cite
-   *                            elements.
    */
-  MOZ_MUST_USE nsresult SplitMailCites(bool* aHandled);
+  MOZ_CAN_RUN_SCRIPT
+  MOZ_MUST_USE EditActionResult SplitMailCites();
 
   /**
    * Called before deleting selected contents.  This method actually removes
@@ -1316,7 +1318,11 @@ protected:
    */
   MOZ_MUST_USE nsresult ChangeMarginStart(Element& aElement, bool aIncrease);
 
-  void DocumentModifiedWorker();
+  /**
+   * DocumentModifiedWorker() is called by DocumentModified() either
+   * synchronously or asynchronously.
+   */
+  MOZ_CAN_RUN_SCRIPT void DocumentModifiedWorker();
 
   /**
    * InitStyleCacheArray() initializes aStyleCache for usable with

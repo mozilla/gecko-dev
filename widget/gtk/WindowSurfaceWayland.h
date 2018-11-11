@@ -10,6 +10,8 @@
 #include <prthread.h>
 #include "mozilla/gfx/Types.h"
 
+#define  BACK_BUFFER_NUM 2
+
 namespace mozilla {
 namespace widget {
 
@@ -19,7 +21,7 @@ class nsWaylandDisplay : public nsISupports {
   NS_DECL_THREADSAFE_ISUPPORTS
 
 public:
-  nsWaylandDisplay(wl_display *aDisplay);
+  explicit nsWaylandDisplay(wl_display *aDisplay);
 
   wl_shm*             GetShm();
   void                SetShm(wl_shm* aShm)   { mShm = aShm; };
@@ -105,7 +107,7 @@ private:
 // and related management
 class WindowSurfaceWayland : public WindowSurface {
 public:
-  WindowSurfaceWayland(nsWindow *aWindow);
+  explicit WindowSurfaceWayland(nsWindow *aWindow);
   ~WindowSurfaceWayland();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion) override;
@@ -126,7 +128,7 @@ private:
   nsWaylandDisplay*         mWaylandDisplay;
   WindowBackBuffer*         mWaylandBuffer;
   LayoutDeviceIntRegion     mWaylandBufferDamage;
-  WindowBackBuffer*         mBackupBuffer;
+  WindowBackBuffer*         mBackupBuffer[BACK_BUFFER_NUM];
   RefPtr<gfxImageSurface>   mImageSurface;
   wl_callback*              mFrameCallback;
   wl_surface*               mLastCommittedSurface;

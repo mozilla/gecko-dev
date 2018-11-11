@@ -2026,6 +2026,10 @@ RuntimeService::Cleanup()
 {
   AssertIsOnMainThread();
 
+  if (!mShuttingDown) {
+    Shutdown();
+  }
+
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   NS_WARNING_ASSERTION(obs, "Failed to get observer service?!");
 
@@ -2274,8 +2278,7 @@ RuntimeService::PropagateFirstPartyStorageAccessGranted(nsPIDOMWindowInner* aWin
   AssertIsOnMainThread();
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(StaticPrefs::network_cookie_cookieBehavior() ==
-               nsICookieService::BEHAVIOR_REJECT_TRACKER &&
-             AntiTrackingCommon::ShouldHonorContentBlockingCookieRestrictions());
+               nsICookieService::BEHAVIOR_REJECT_TRACKER);
 
   nsTArray<WorkerPrivate*> workers;
   GetWorkersForWindow(aWindow, workers);
@@ -2673,6 +2676,7 @@ LogViolationDetailsRunnable::MainThreadRun()
     if (mWorkerPrivate->GetReportCSPViolations()) {
       csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
                                nullptr, // triggering element
+                               mWorkerPrivate->CSPEventListener(),
                                mFileName, mScriptSample, mLineNum, mColumnNum,
                                EmptyString(), EmptyString());
     }
@@ -2886,8 +2890,7 @@ PropagateFirstPartyStorageAccessGrantedToWorkers(nsPIDOMWindowInner* aWindow)
 {
   AssertIsOnMainThread();
   MOZ_ASSERT(StaticPrefs::network_cookie_cookieBehavior() ==
-               nsICookieService::BEHAVIOR_REJECT_TRACKER &&
-             AntiTrackingCommon::ShouldHonorContentBlockingCookieRestrictions());
+               nsICookieService::BEHAVIOR_REJECT_TRACKER);
 
   RuntimeService* runtime = RuntimeService::GetService();
   if (runtime) {

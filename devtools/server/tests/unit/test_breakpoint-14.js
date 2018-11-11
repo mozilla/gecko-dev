@@ -28,7 +28,7 @@ function run_test_with_server(server, callback) {
   gClient = new DebuggerClient(server.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-stack",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_simple_breakpoint();
                            });
@@ -66,18 +66,13 @@ function test_simple_breakpoint() {
           Assert.equal(packet.why.frameFinished.return.type, "undefined");
         },
         function(packet) {
-          // The foo function call frame was just popped from the stack.
+          // Check that the debugger statement wasn't the reason for this pause.
           Assert.equal(gDebuggee.a, 1);
           Assert.equal(gDebuggee.b, undefined);
-          Assert.equal(packet.frame.where.line, gDebuggee.line0 + 5);
-          Assert.equal(packet.why.type, "resumeLimit");
-          Assert.equal(packet.poppedFrames.length, 1);
-        },
-        function(packet) {
-          // Check that the debugger statement wasn't the reason for this pause.
           Assert.equal(packet.frame.where.line, gDebuggee.line0 + 6);
           Assert.notEqual(packet.why.type, "debuggerStatement");
           Assert.equal(packet.why.type, "resumeLimit");
+          Assert.equal(packet.poppedFrames.length, 1);
         },
         function(packet) {
           // Check that the debugger statement wasn't the reason for this pause.

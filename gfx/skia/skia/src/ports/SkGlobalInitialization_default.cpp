@@ -5,18 +5,9 @@
  * found in the LICENSE file.
  */
 
+#include "SkFlattenablePriv.h"
 #include "../../src/effects/SkDashImpl.h"
 #include "SkGradientShader.h"
-#include "SkImageSource.h"
-
-// Security note:
-//
-// As new subclasses are added here, they should be reviewed by chrome security before they
-// support deserializing cross-process: chrome-security@google.com. SampleFilterFuzz.cpp should
-// also be amended to exercise the new subclass.
-//
-// See SkReadBuffer::isCrossProcess() and SkPicture::PictureIOSecurityPrecautionsEnabled()
-//
 
 /*
  *  None of these are strictly "required" for Skia to operate.
@@ -32,7 +23,4 @@ void SkFlattenable::PrivateInitializer::InitEffects() {
 
     // PathEffect
     SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkDashImpl)
-
-    // ImageFilter
-    SkImageFilter::InitializeFlattenables();
 }

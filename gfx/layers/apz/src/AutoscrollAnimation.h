@@ -22,6 +22,13 @@ public:
 
   bool DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& aDelta) override;
 
+  bool HandleScrollOffsetUpdate(const Maybe<CSSPoint>& aRelativeDelta) override
+  {
+    // Autoscroll works using screen space coordinates, so there's no work we
+    // need to do to handle either a relative or an absolute scroll update.
+    return true;
+  }
+
   void Cancel(CancelAnimationFlags aFlags) override;
 private:
   AsyncPanZoomController& mApzc;

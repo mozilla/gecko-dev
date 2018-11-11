@@ -16,6 +16,8 @@ const {Hosts} = require("devtools/client/framework/toolbox-hosts");
 const TEST_URI_ROOT = "http://example.com/browser/devtools/client/shared/test/";
 const OPTIONS_VIEW_URL = TEST_URI_ROOT + "doc_options-view.xul";
 
+const EXAMPLE_URL = "chrome://mochitests/content/browser/devtools/client/shared/test/";
+
 function catchFail(func) {
   return function() {
     try {
@@ -130,13 +132,13 @@ async function openAndCloseToolbox(nbOfTimes, usageTime, toolId) {
   for (let i = 0; i < nbOfTimes; i++) {
     info("Opening toolbox " + (i + 1));
     const target = await TargetFactory.forTab(gBrowser.selectedTab);
-    await gDevTools.showToolbox(target, toolId);
+    const toolbox = await gDevTools.showToolbox(target, toolId);
 
     // We use a timeout to check the toolbox's active time
     await new Promise(resolve => setTimeout(resolve, usageTime));
 
     info("Closing toolbox " + (i + 1));
-    await gDevTools.closeToolbox(target);
+    await toolbox.destroy();
   }
 }
 
@@ -148,13 +150,13 @@ function synthesizeProfileForTest(samples) {
 
   samples.unshift({
     time: 0,
-    frames: []
+    frames: [],
   });
 
   const uniqueStacks = new RecordingUtils.UniqueStacks();
   return RecordingUtils.deflateThread({
     samples: samples,
-    markers: []
+    markers: [],
   }, uniqueStacks);
 }
 
@@ -208,7 +210,7 @@ async function(widget, name, value) {
 
   onRender = widget.once("render");
   widget._savePreset({
-    preventDefault: () => {}
+    preventDefault: () => {},
   });
 
   await onRender;

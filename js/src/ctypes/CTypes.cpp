@@ -1083,8 +1083,9 @@ TypeSourceForError(JSContext* cx, JSObject* typeObj)
 {
   AutoString source;
   BuildTypeSource(cx, typeObj, true, source);
-  if (!source)
+  if (!source) {
     return nullptr;
+  }
   return EncodeUTF8(cx, source);
 }
 
@@ -1093,8 +1094,9 @@ FunctionTypeSourceForError(JSContext* cx, HandleObject funObj)
 {
   AutoString funSource;
   BuildFunctionTypeSource(cx, funObj, funSource);
-  if (!funSource)
+  if (!funSource) {
     return nullptr;
+  }
   return EncodeUTF8(cx, funSource);
 }
 
@@ -1104,8 +1106,9 @@ ConversionPositionForError(JSContext* cx, ConversionType convType, HandleObject 
 {
   AutoString posSource;
   BuildConversionPosition(cx, convType, funObj, argIndex, posSource);
-  if (!posSource)
+  if (!posSource) {
     return nullptr;
+  }
   return EncodeUTF8(cx, posSource);
 }
 
@@ -6805,7 +6808,13 @@ GetABI(JSContext* cx, HandleValue abiType, ffi_abi* result)
     return true;
   case ABI_THISCALL:
 #if defined(_WIN64)
+#if defined(_M_X64)
     *result = FFI_WIN64;
+#elif defined(_M_ARM64)
+    *result = FFI_SYSV;
+#else
+#error unknown 64-bit Windows platform
+#endif
     return true;
 #elif defined(_WIN32)
     *result = FFI_THISCALL;
@@ -6821,7 +6830,13 @@ GetABI(JSContext* cx, HandleValue abiType, ffi_abi* result)
 #elif (defined(_WIN64))
     // We'd like the same code to work across Win32 and Win64, so stdcall_api
     // and winapi_abi become aliases to the lone Win64 ABI.
+#if defined(_M_X64)
     *result = FFI_WIN64;
+#elif defined(_M_ARM64)
+    *result = FFI_SYSV;
+#else
+#error unknown 64-bit Windows platform
+#endif
     return true;
 #endif
   case INVALID_ABI:

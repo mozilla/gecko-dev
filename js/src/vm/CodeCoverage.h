@@ -46,7 +46,7 @@ class LCovSource
 
     // Write the Lcov output in a buffer, such as the one associated with
     // the runtime code coverage trace file.
-    void exportInto(GenericPrinter& out) const;
+    void exportInto(GenericPrinter& out);
 
   private:
     // Write the script name in out.
@@ -131,7 +131,13 @@ class LCovRuntime
     void init();
 
     // Check if we should collect code coverage information.
-    bool isEnabled() const { return out_.isInitialized(); }
+    bool isEnabled() const {
+      static bool isEnabled_ = ([](){
+        const char* outDir = getenv("JS_CODE_COVERAGE_OUTPUT_DIR");
+        return outDir && *outDir != 0;
+      })();
+      return isEnabled_;
+    }
 
     // Write the aggregated result of the code coverage of a realm
     // into a file.

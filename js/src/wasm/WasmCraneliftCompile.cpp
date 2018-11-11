@@ -58,21 +58,24 @@ GenerateCraneliftCode(WasmMacroAssembler& masm, const CraneliftCompiledFunc& fun
 
     // Omit the check when framePushed is small and we know there's no
     // recursion.
-    if (func.framePushed < MAX_UNCHECKED_LEAF_FRAME_SIZE && !func.containsCalls)
+    if (func.framePushed < MAX_UNCHECKED_LEAF_FRAME_SIZE && !func.containsCalls) {
         masm.reserveStack(func.framePushed);
-    else
+    } else {
         masm.wasmReserveStackChecked(func.framePushed, BytecodeOffset(lineOrBytecode));
+    }
     MOZ_ASSERT(masm.framePushed() == func.framePushed);
 
     uint32_t funcBase = masm.currentOffset();
-    if (!masm.appendRawCode(func.code, func.codeSize))
+    if (!masm.appendRawCode(func.code, func.codeSize)) {
         return false;
+    }
 
     wasm::GenerateFunctionEpilogue(masm, func.framePushed, offsets);
 
     masm.flush();
-    if (masm.oom())
+    if (masm.oom()) {
         return false;
+    }
     offsets->end = masm.currentOffset();
 
     for (size_t i = 0; i < func.numMetadata; i++) {
@@ -80,8 +83,9 @@ GenerateCraneliftCode(WasmMacroAssembler& masm, const CraneliftCompiledFunc& fun
 
         CheckedInt<size_t> offset = funcBase;
         offset += metadata.offset;
-        if (!offset.isValid())
+        if (!offset.isValid()) {
             return false;
+        }
 
 #ifdef DEBUG
         CheckedInt<uint32_t> checkedBytecodeOffset = lineOrBytecode;
@@ -146,8 +150,9 @@ class AutoCranelift
         return !!compiler_;
     }
     ~AutoCranelift() {
-        if (compiler_)
+        if (compiler_) {
             cranelift_compiler_destroy(compiler_);
+        }
     }
     operator CraneliftCompiler*() { return compiler_; }
 };
@@ -172,6 +177,9 @@ CraneliftStaticEnvironment::CraneliftStaticEnvironment()
     hasSse42(Assembler::HasSSE42()),
     hasPopcnt(Assembler::HasPOPCNT()),
     hasAvx(Assembler::HasAVX()),
+    hasBmi1(Assembler::HasBMI1()),
+    hasBmi2(Assembler::HasBMI2()),
+    hasLzcnt(Assembler::HasLZCNT()),
 #else
     hasSse2(false),
     hasSse3(false),
@@ -179,10 +187,10 @@ CraneliftStaticEnvironment::CraneliftStaticEnvironment()
     hasSse42(false),
     hasPopcnt(false),
     hasAvx(false),
+    hasBmi1(false),
+    hasBmi2(false),
+    hasLzcnt(false),
 #endif
-    hasBmi1(false), // TODO implement feature detection for bmi1
-    hasBmi2(false), // TODO implement feature detection for bmi2
-    hasLzcnt(false), // TODO implement feature detection for lzcnt
     staticMemoryBound(
 #ifdef WASM_HUGE_MEMORY
         // In the huge memory configuration, we always reserve the full 4 GB index
@@ -277,8 +285,9 @@ wasm::CraneliftCompileFunctions(const ModuleEnvironment& env,
     MOZ_ASSERT(env.optimizedBackend() == OptimizedBackend::Cranelift);
 
     AutoCranelift compiler(env);
-    if (!compiler.init())
+    if (!compiler.init()) {
         return false;
+    }
 
     TempAllocator alloc(&lifo);
     JitContext jitContext(&alloc);
@@ -287,8 +296,9 @@ wasm::CraneliftCompileFunctions(const ModuleEnvironment& env,
 
     // Swap in already-allocated empty vectors to avoid malloc/free.
     MOZ_ASSERT(code->empty());
-    if (!code->swap(masm))
+    if (!code->swap(masm)) {
         return false;
+    }
 
     for (const FuncCompileInput& func : inputs) {
         CraneliftFuncCompileInput clifInput(func);
@@ -303,16 +313,19 @@ wasm::CraneliftCompileFunctions(const ModuleEnvironment& env,
         const FuncTypeIdDesc& funcTypeId = env.funcTypes[clifInput.index]->id;
 
         FuncOffsets offsets;
-        if (!GenerateCraneliftCode(masm, clifFunc, funcTypeId, lineOrBytecode, &offsets))
+        if (!GenerateCraneliftCode(masm, clifFunc, funcTypeId, lineOrBytecode, &offsets)) {
             return false;
+        }
 
-        if (!code->codeRanges.emplaceBack(func.index, func.lineOrBytecode, offsets))
+        if (!code->codeRanges.emplaceBack(func.index, func.lineOrBytecode, offsets)) {
             return false;
+        }
     }
 
     masm.finish();
-    if (masm.oom())
+    if (masm.oom()) {
         return false;
+    }
 
     return code->swap(masm);
 }
@@ -423,8 +436,9 @@ const BD_ValType*
 funcType_args(const FuncTypeWithId* funcType)
 {
 #ifdef DEBUG
-    for (ValType valType : funcType->args())
+    for (ValType valType : funcType->args()) {
         MOZ_ASSERT(IsCraneliftCompatible(TypeCode(valType.code())));
+    }
 #endif
     static_assert(sizeof(BD_ValType) == sizeof(ValType), "update BD_ValType");
     return (const BD_ValType*)&funcType->args()[0];

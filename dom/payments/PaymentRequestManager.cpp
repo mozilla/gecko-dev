@@ -4,15 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "PaymentRequestManager.h"
-#include "PaymentRequestUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/ContentChild.h"
-#include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/PaymentRequestChild.h"
+#include "mozilla/dom/TabChild.h"
 #include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsIPrincipal.h"
+#include "PaymentRequestManager.h"
+#include "PaymentRequestUtils.h"
+#include "PaymentResponse.h"
 
 namespace mozilla {
 namespace dom {
@@ -51,18 +52,9 @@ ConvertCurrencyAmount(const PaymentCurrencyAmount& aAmount,
 void
 ConvertItem(const PaymentItem& aItem, IPCPaymentItem& aIPCItem)
 {
-  uint8_t typeIndex = UINT8_MAX;
-  if (aItem.mType.WasPassed()) {
-    typeIndex = static_cast<uint8_t>(aItem.mType.Value());
-  }
-  nsString type;
-  if (typeIndex < ArrayLength(PaymentItemTypeValues::strings)) {
-    type.AssignASCII(
-      PaymentItemTypeValues::strings[typeIndex].value);
-  }
   IPCPaymentCurrencyAmount amount;
   ConvertCurrencyAmount(aItem.mAmount, amount);
-  aIPCItem = IPCPaymentItem(aItem.mLabel, amount, aItem.mPending, type);
+  aIPCItem = IPCPaymentItem(aItem.mLabel, amount, aItem.mPending);
 }
 
 nsresult
@@ -258,6 +250,47 @@ ConvertOptions(const PaymentOptions& aOptions,
                                  aOptions.mRequestShipping,
                                  shippingType);
 }
+
+void
+ConvertResponseData(const IPCPaymentResponseData& aIPCData,
+                    ResponseData& aData)
+{
+  switch (aIPCData.type()) {
+    case IPCPaymentResponseData::TIPCGeneralResponse : {
+      const IPCGeneralResponse& data = aIPCData;
+      GeneralData gData;
+      gData.data = data.data();
+      aData = gData;
+      break;
+    }
+    case IPCPaymentResponseData::TIPCBasicCardResponse: {
+      const IPCBasicCardResponse& data = aIPCData;
+      BasicCardData bData;
+      bData.cardholderName = data.cardholderName();
+      bData.cardNumber = data.cardNumber();
+      bData.expiryMonth = data.expiryMonth();
+      bData.expiryYear = data.expiryYear();
+      bData.cardSecurityCode = data.cardSecurityCode();
+      bData.billingAddress.country = data.billingAddress().country();
+      bData.billingAddress.addressLine = data.billingAddress().addressLine();
+      bData.billingAddress.region = data.billingAddress().region();
+      bData.billingAddress.regionCode = data.billingAddress().regionCode();
+      bData.billingAddress.city = data.billingAddress().city();
+      bData.billingAddress.dependentLocality =
+        data.billingAddress().dependentLocality();
+      bData.billingAddress.postalCode = data.billingAddress().postalCode();
+      bData.billingAddress.sortingCode = data.billingAddress().sortingCode();
+      bData.billingAddress.organization = data.billingAddress().organization();
+      bData.billingAddress.recipient = data.billingAddress().recipient();
+      bData.billingAddress.phone = data.billingAddress().phone();
+      aData = bData;
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
 } // end of namespace
 
 /* PaymentRequestManager */
@@ -430,7 +463,15 @@ PaymentRequestManager::CreatePayment(JSContext* aCx,
   IPCPaymentOptions options;
   ConvertOptions(aOptions, options);
 
-  IPCPaymentCreateActionRequest action(internalId,
+  nsCOMPtr<nsPIDOMWindowOuter> outerWindow = aWindow->GetOuterWindow();
+  MOZ_ASSERT(outerWindow);
+  if (nsCOMPtr<nsPIDOMWindowOuter> topOuterWindow = outerWindow->GetTop()) {
+    outerWindow = topOuterWindow;
+  }
+  uint64_t topOuterWindowId = outerWindow->WindowID();
+
+  IPCPaymentCreateActionRequest action(topOuterWindowId,
+                                       internalId,
                                        IPC::Principal(aTopLevelPrincipal),
                                        methodData,
                                        details,
@@ -598,6 +639,8 @@ PaymentRequestManager::RespondPayment(PaymentRequest* aRequest,
     case IPCPaymentActionResponse::TIPCPaymentShowActionResponse: {
       const IPCPaymentShowActionResponse& response = aResponse;
       nsresult rejectedReason = NS_ERROR_DOM_ABORT_ERR;
+      ResponseData responseData;
+      ConvertResponseData(response.data(), responseData);
       switch (response.status()) {
         case nsIPaymentActionResponse::PAYMENT_ACCEPTED: {
           rejectedReason = NS_OK;
@@ -617,7 +660,7 @@ PaymentRequestManager::RespondPayment(PaymentRequest* aRequest,
         }
       }
       aRequest->RespondShowPayment(response.methodName(),
-                                   response.data(),
+                                   responseData,
                                    response.payerName(),
                                    response.payerEmail(),
                                    response.payerPhone(),
@@ -652,6 +695,7 @@ PaymentRequestManager::ChangeShippingAddress(PaymentRequest* aRequest,
   return aRequest->UpdateShippingAddress(aAddress.country(),
                                          aAddress.addressLine(),
                                          aAddress.region(),
+                                         aAddress.regionCode(),
                                          aAddress.city(),
                                          aAddress.dependentLocality(),
                                          aAddress.postalCode(),

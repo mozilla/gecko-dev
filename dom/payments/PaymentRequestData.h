@@ -65,15 +65,13 @@ public:
 private:
   PaymentItem(const nsAString& aLabel,
               nsIPaymentCurrencyAmount* aAmount,
-              const bool aPending,
-              const nsAString& aType);
+              const bool aPending);
 
   ~PaymentItem() = default;
 
   nsString mLabel;
   nsCOMPtr<nsIPaymentCurrencyAmount> mAmount;
   bool mPending;
-  nsString mType;
 };
 
 class PaymentDetailsModifier final : public nsIPaymentDetailsModifier
@@ -194,7 +192,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPAYMENTREQUEST
 
-  PaymentRequest(const uint64_t aTabId,
+  PaymentRequest(const uint64_t aTopOuterWindowId,
                  const nsAString& aRequestId,
                  nsIPrincipal* aPrincipal,
                  nsIArray* aPaymentMethods,
@@ -258,7 +256,7 @@ public:
 private:
   ~PaymentRequest() = default;
 
-  uint64_t mTabId;
+  uint64_t mTopOuterWindowId;
   nsString mRequestId;
   nsString mCompleteStatus;
   nsCOMPtr<nsIPrincipal> mTopLevelPrincipal;
@@ -287,6 +285,7 @@ private:
   nsString mCountry;
   nsCOMPtr<nsIArray> mAddressLine;
   nsString mRegion;
+  nsString mRegionCode;
   nsString mCity;
   nsString mDependentLocality;
   nsString mPostalCode;

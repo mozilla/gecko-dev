@@ -12,12 +12,17 @@
 const paymentSrv = Cc["@mozilla.org/dom/payments/payment-request-service;1"]
                      .getService(Ci.nsIPaymentRequestService);
 
+const paymentUISrv = Cc["@mozilla.org/dom/payments/payment-ui-service;1"]
+                     .getService(Ci.nsIPaymentUIService);
+
 ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-ChromeUtils.defineModuleGetter(this, "MasterPassword",
-                               "resource://formautofill/MasterPassword.jsm");
+ChromeUtils.defineModuleGetter(this, "BrowserWindowTracker",
+                               "resource:///modules/BrowserWindowTracker.jsm");
+ChromeUtils.defineModuleGetter(this, "OSKeyStore",
+                               "resource://formautofill/OSKeyStore.jsm");
 ChromeUtils.defineModuleGetter(this, "PrivateBrowsingUtils",
                                "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
@@ -71,7 +76,8 @@ class TempCollection {
 
   async add(record) {
     let guid = "temp-" + Math.abs(Math.random() * 0xffffffff|0);
-    let recordToSave = Object.assign({guid}, record);
+    let timeLastModified = Date.now();
+    let recordToSave = Object.assign({guid, timeLastModified}, record);
     await this._formAutofillCollection.computeFields(recordToSave);
     this._data[guid] = recordToSave;
     return guid;
@@ -149,7 +155,7 @@ var paymentDialogWrapper = {
   /**
    * @param {string} guid The GUID of the basic card record from storage.
    * @param {string} cardSecurityCode The associated card security code (CVV/CCV/etc.)
-   * @throws if the user cancels entering their master password or an error decrypting
+   * @throws If there is an error decrypting
    * @returns {nsIBasicCardResponseData?} returns response data or null (if the
    *                                      master password dialog was cancelled);
    */
@@ -162,7 +168,7 @@ var paymentDialogWrapper = {
 
     let cardNumber;
     try {
-      cardNumber = await MasterPassword.decrypt(cardData["cc-number-encrypted"], true);
+      cardNumber = await OSKeyStore.decrypt(cardData["cc-number-encrypted"], true);
     } catch (ex) {
       if (ex.result != Cr.NS_ERROR_ABORT) {
         throw ex;
@@ -216,7 +222,7 @@ var paymentDialogWrapper = {
     if (AppConstants.platform == "win") {
       this.frame.setAttribute("selectmenulist", "ContentSelectDropdown-windows");
     }
-    this.frame.loadURI("resource://payments/paymentRequest.xhtml");
+    this.frame.setAttribute("src", "resource://payments/paymentRequest.xhtml");
 
     this.temporaryStore = {
       addresses: new TempCollection("addresses"),
@@ -267,6 +273,7 @@ var paymentDialogWrapper = {
     country = "",
     addressLines = [],
     region = "",
+    regionCode = "",
     city = "",
     dependentLocality = "",
     postalCode = "",
@@ -286,6 +293,7 @@ var paymentDialogWrapper = {
     paymentAddress.init(country,
                         addressLine,
                         region,
+                        regionCode,
                         city,
                         dependentLocality,
                         postalCode,
@@ -450,7 +458,7 @@ var paymentDialogWrapper = {
     Services.obs.addObserver(this, "formautofill-storage-changed", true);
 
     let requestSerialized = this._serializeRequest(this.request);
-    let chromeWindow = Services.wm.getMostRecentWindow("navigator:browser");
+    let chromeWindow = window.frameElement.ownerGlobal;
     let isPrivate = PrivateBrowsingUtils.isWindowPrivate(chromeWindow);
 
     let [savedAddresses, savedBasicCards] =
@@ -472,37 +480,43 @@ var paymentDialogWrapper = {
       Cu.reportError("devtools.chrome.enabled must be enabled to debug the frame");
       return;
     }
-    let chromeWindow = Services.wm.getMostRecentWindow(null);
     let {
       gDevToolsBrowser,
     } = ChromeUtils.import("resource://devtools/client/framework/gDevTools.jsm", {});
     gDevToolsBrowser.openContentProcessToolbox({
-      selectedBrowser: chromeWindow.document.getElementById("paymentRequestFrame").frameLoader,
+      selectedBrowser: document.getElementById("paymentRequestFrame").frameLoader,
     });
   },
 
   onOpenPreferences() {
-    let prefsURL = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-    prefsURL.data = "about:preferences#privacy-form-autofill";
-    Services.ww.openWindow(null, AppConstants.BROWSER_CHROME_URL, "_blank", "chrome,all,dialog=no",
-                           prefsURL);
+    BrowserWindowTracker.getTopWindow().openPreferences("privacy-form-autofill");
   },
 
   onPaymentCancel() {
     const showResponse = this.createShowResponse({
       acceptStatus: Ci.nsIPaymentActionResponse.PAYMENT_REJECTED,
     });
+
     paymentSrv.respondPayment(showResponse);
-    window.close();
+    paymentUISrv.closePayment(this.request.requestId);
   },
 
   async onPay({
     selectedPayerAddressGUID: payerGUID,
     selectedPaymentCardGUID: paymentCardGUID,
     selectedPaymentCardSecurityCode: cardSecurityCode,
+    selectedShippingAddressGUID: shippingGUID,
   }) {
-    let methodData = await this._convertProfileBasicCardToPaymentMethodData(paymentCardGUID,
-                                                                            cardSecurityCode);
+    let methodData;
+    try {
+      methodData = await this._convertProfileBasicCardToPaymentMethodData(paymentCardGUID,
+                                                                          cardSecurityCode);
+    } catch (ex) {
+      // TODO (Bug 1498403): Some kind of "credit card storage error" here, perhaps asking user
+      // to re-enter credit card # from management UI.
+      Cu.reportError(ex);
+      return;
+    }
 
     if (!methodData) {
       // TODO (Bug 1429265/Bug 1429205): Handle when a user hits cancel on the
@@ -511,11 +525,27 @@ var paymentDialogWrapper = {
       return;
     }
 
-    let {
-      payerName,
-      payerEmail,
-      payerPhone,
-    } = await this._convertProfileAddressToPayerData(payerGUID);
+    let payerName = "";
+    let payerEmail = "";
+    let payerPhone = "";
+    if (payerGUID) {
+      let payerData = await this._convertProfileAddressToPayerData(payerGUID);
+      payerName = payerData.payerName;
+      payerEmail = payerData.payerEmail;
+      payerPhone = payerData.payerPhone;
+    }
+
+    // Update the lastUsedTime for the payerAddress and paymentCard. Check if
+    // the record exists in formAutofillStorage because it may be temporary.
+    if (shippingGUID && await formAutofillStorage.addresses.get(shippingGUID)) {
+      formAutofillStorage.addresses.notifyUsed(shippingGUID);
+    }
+    if (payerGUID && await formAutofillStorage.addresses.get(payerGUID)) {
+      formAutofillStorage.addresses.notifyUsed(payerGUID);
+    }
+    if (await formAutofillStorage.creditCards.get(paymentCardGUID)) {
+      formAutofillStorage.creditCards.notifyUsed(paymentCardGUID);
+    }
 
     this.pay({
       methodName: "basic-card",
@@ -565,7 +595,7 @@ var paymentDialogWrapper = {
 
   onCloseDialogMessage() {
     // The PR is complete(), just close the dialog
-    window.close();
+    paymentUISrv.closePayment(this.request.requestId);
   },
 
   async onUpdateAutofillRecord(collectionName, record, guid, messageID) {
@@ -580,7 +610,10 @@ var paymentDialogWrapper = {
                                      formAutofillStorage[collectionName];
 
       if (guid) {
-        let preserveOldProperties = true;
+        // We only care to preserve old properties for credit cards,
+        // because credit cards don't get their full record sent to the
+        // unprivileged frame (the cc-number is excluded).
+        let preserveOldProperties = collectionName == "creditCards";
         await collection.update(guid, record, preserveOldProperties);
       } else {
         responseMessage.guid = await collection.add(record);
@@ -675,6 +708,12 @@ var paymentDialogWrapper = {
         this.onPaymentCancel();
         break;
       }
+      case "paymentDialogReady": {
+        window.dispatchEvent(new Event("tabmodaldialogready", {
+          bubbles: true,
+        }));
+        break;
+      }
       case "pay": {
         this.onPay(data);
         break;
@@ -682,6 +721,9 @@ var paymentDialogWrapper = {
       case "updateAutofillRecord": {
         this.onUpdateAutofillRecord(data.collectionName, data.record, data.guid, data.messageID);
         break;
+      }
+      default: {
+        throw new Error(`paymentDialogWrapper: Unexpected messageType: ${messageType}`);
       }
     }
   },

@@ -133,6 +133,9 @@ public:
   AutoInitializeImageLib();
 };
 
+/// Spins on the main thread to process any pending events.
+void SpinPendingEvents();
+
 /// Loads a file from the current directory. @return an nsIInputStream for it.
 already_AddRefed<nsIInputStream> LoadFile(const char* aRelativePath);
 
@@ -336,6 +339,23 @@ void CheckGeneratedImage(Decoder* aDecoder,
                          uint8_t aFuzz = 0);
 
 /**
+ * Checks a generated surface for correctness. Reports any unexpected deviation
+ * from the expected image as GTest failures.
+ *
+ * @param aSurface The surface to check.
+ * @param aRect The region in the space of the output surface that the filter
+ *              pipeline will actually write to.
+ * @param aInnerColor Check that pixels inside of aRect are this color.
+ * @param aOuterColor Check that pixels outside of aRect are this color.
+ * @param aFuzz The amount of fuzz to use in pixel comparisons.
+ */
+void CheckGeneratedSurface(gfx::SourceSurface* aSurface,
+                           const gfx::IntRect& aRect,
+                           const BGRAColor& aInnerColor,
+                           const BGRAColor& aOuterColor,
+                           uint8_t aFuzz = 0);
+
+/**
  * Checks a generated paletted image for correctness. Reports any unexpected
  * deviation from the expected image as GTest failures.
  *
@@ -433,9 +453,18 @@ ImageTestCase GreenJPGTestCase();
 ImageTestCase GreenBMPTestCase();
 ImageTestCase GreenICOTestCase();
 ImageTestCase GreenIconTestCase();
+ImageTestCase GreenWebPTestCase();
+
+ImageTestCase LargeWebPTestCase();
+ImageTestCase GreenWebPIccSrgbTestCase();
 
 ImageTestCase GreenFirstFrameAnimatedGIFTestCase();
 ImageTestCase GreenFirstFrameAnimatedPNGTestCase();
+ImageTestCase GreenFirstFrameAnimatedWebPTestCase();
+
+ImageTestCase BlendAnimatedGIFTestCase();
+ImageTestCase BlendAnimatedPNGTestCase();
+ImageTestCase BlendAnimatedWebPTestCase();
 
 ImageTestCase CorruptTestCase();
 ImageTestCase CorruptBMPWithTruncatedHeader();
@@ -460,6 +489,7 @@ ImageTestCase DownscaledJPGTestCase();
 ImageTestCase DownscaledBMPTestCase();
 ImageTestCase DownscaledICOTestCase();
 ImageTestCase DownscaledIconTestCase();
+ImageTestCase DownscaledWebPTestCase();
 ImageTestCase DownscaledTransparentICOWithANDMaskTestCase();
 
 ImageTestCase TruncatedSmallGIFTestCase();

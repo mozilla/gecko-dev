@@ -196,8 +196,10 @@ function Intl_PluralRules_select(value) {
     let pluralRules = this;
 
     // Steps 2-3.
-    if (!IsObject(pluralRules) || (pluralRules = GuardToPluralRules(pluralRules)) === null)
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "PluralRules", "select", "PluralRules");
+    if (!IsObject(pluralRules) || (pluralRules = GuardToPluralRules(pluralRules)) === null) {
+        return callFunction(CallPluralRulesMethodIfWrapped, this, value,
+                            "Intl_PluralRules_select");
+    }
 
     // Ensure the PluralRules internals are resolved.
     getPluralRulesInternals(pluralRules);
@@ -220,30 +222,16 @@ function Intl_PluralRules_resolvedOptions() {
 
     // Steps 2-3.
     if (!IsObject(pluralRules) || (pluralRules = GuardToPluralRules(pluralRules)) === null) {
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "PluralRules", "resolvedOptions",
-                       "PluralRules");
+        return callFunction(CallPluralRulesMethodIfWrapped, this,
+                            "Intl_PluralRules_resolvedOptions");
     }
 
     var internals = getPluralRulesInternals(pluralRules);
-
-    var internalsPluralCategories = internals.pluralCategories;
-    if (internalsPluralCategories === null) {
-        internalsPluralCategories = intl_GetPluralCategories(pluralRules);
-        internals.pluralCategories = internalsPluralCategories;
-    }
-
-    // TODO: The current spec actually requires to return the internal array
-    // object and not a copy of it.
-    // <https://github.com/tc39/proposal-intl-plural-rules/issues/28#issuecomment-341557030>
-    var pluralCategories = [];
-    for (var i = 0; i < internalsPluralCategories.length; i++)
-        _DefineDataProperty(pluralCategories, i, internalsPluralCategories[i]);
 
     // Steps 4-5.
     var result = {
         locale: internals.locale,
         type: internals.type,
-        pluralCategories,
         minimumIntegerDigits: internals.minimumIntegerDigits,
         minimumFractionDigits: internals.minimumFractionDigits,
         maximumFractionDigits: internals.maximumFractionDigits,
@@ -262,5 +250,19 @@ function Intl_PluralRules_resolvedOptions() {
     }
 
     // Step 6.
+    var internalsPluralCategories = internals.pluralCategories;
+    if (internalsPluralCategories === null) {
+        internalsPluralCategories = intl_GetPluralCategories(pluralRules);
+        internals.pluralCategories = internalsPluralCategories;
+    }
+
+    var pluralCategories = [];
+    for (var i = 0; i < internalsPluralCategories.length; i++)
+        _DefineDataProperty(pluralCategories, i, internalsPluralCategories[i]);
+
+    // Step 7.
+    _DefineDataProperty(result, "pluralCategories", pluralCategories);
+
+    // Step 8.
     return result;
 }

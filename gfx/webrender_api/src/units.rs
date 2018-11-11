@@ -93,8 +93,8 @@ pub type WorldVector3D = TypedVector3D<f32, WorldPixel>;
 /// Offset in number of tiles.
 #[derive(Hash, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Tiles;
-pub type TileOffset = TypedPoint2D<u16, Tiles>;
-pub type TileRange = TypedRect<u16, Tiles>;
+pub type TileOffset = TypedPoint2D<u32, Tiles>;
+pub type TileRange = TypedRect<u32, Tiles>;
 
 /// Scaling ratio from world pixels to device pixels.
 pub type DevicePixelScale = TypedScale<f32, WorldPixel, DevicePixel>;
@@ -122,12 +122,6 @@ pub type LayoutPointAu = TypedPoint2D<Au, LayoutPixel>;
 pub type LayoutRectAu = TypedRect<Au, LayoutPixel>;
 pub type LayoutSizeAu = TypedSize2D<Au, LayoutPixel>;
 pub type LayoutVector2DAu = TypedVector2D<Au, LayoutPixel>;
-
-/// Coordinates in normalized space (between zero and one).
-#[derive(Hash, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct NormalizedCoordinates;
-
-pub type NormalizedRect = TypedRect<f32, NormalizedCoordinates>;
 
 /// Stores two coordinates in texel space. The coordinates
 /// are stored in texel coordinates because the texture atlas

@@ -43,11 +43,11 @@
 #include "mozilla/Telemetry.h"
 
 #include <stdlib.h>
-#include "city.h"
 
 #ifdef XP_WIN
 #include <windows.h>
 #include <shlobj.h>
+#include "commonupdatedir.h"
 #endif
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
@@ -62,7 +62,7 @@
 #include "UIKitDirProvider.h"
 #endif
 
-#if defined(MOZ_CONTENT_SANDBOX)
+#if defined(MOZ_SANDBOX)
 #include "mozilla/SandboxSettings.h"
 #include "nsIUUIDGenerator.h"
 #include "mozilla/Unused.h"
@@ -81,12 +81,12 @@
 
 #define PREF_OVERRIDE_DIRNAME "preferences"
 
-#if defined(MOZ_CONTENT_SANDBOX)
-static already_AddRefed<nsIFile> GetContentProcessSandboxTempDir();
+#if defined(MOZ_SANDBOX)
+static already_AddRefed<nsIFile> GetProcessSandboxTempDir(GeckoProcessType type);
 static nsresult DeleteDirIfExists(nsIFile *dir);
 static bool IsContentSandboxDisabled();
-static const char* GetContentProcessTempBaseDirKey();
-static already_AddRefed<nsIFile> CreateContentProcessSandboxTempDir();
+static const char* GetProcessTempBaseDirKey();
+static already_AddRefed<nsIFile> CreateProcessSandboxTempDir(GeckoProcessType procType);
 #endif
 
 nsXREDirProvider* gDirServiceProvider = nullptr;
@@ -172,7 +172,7 @@ nsXREDirProvider::Initialize(nsIFile *aXULAppDir,
 #endif
 
   if (!mProfileDir) {
-    nsCOMPtr<nsIDirectoryServiceProvider> app(do_QueryInterface(mAppProvider));
+    nsCOMPtr<nsIDirectoryServiceProvider> app(mAppProvider);
     if (app) {
       bool per = false;
       app->GetFile(NS_APP_USER_PROFILE_50_DIR, &per, getter_AddRefs(mProfileDir));
@@ -435,6 +435,9 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
   else if (!strcmp(aProperty, XRE_UPDATE_ROOT_DIR)) {
     rv = GetUpdateRootDir(getter_AddRefs(file));
   }
+  else if (!strcmp(aProperty, XRE_OLD_UPDATE_ROOT_DIR)) {
+    rv = GetUpdateRootDir(getter_AddRefs(file), true);
+  }
   else if (!strcmp(aProperty, NS_APP_APPLICATION_REGISTRY_FILE)) {
     rv = GetUserAppDataDirectory(getter_AddRefs(file));
     if (NS_SUCCEEDED(rv))
@@ -526,7 +529,15 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
     }
     rv = mContentTempDir->Clone(getter_AddRefs(file));
   }
-#endif // defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+#endif // defined(MOZ_CONTENT_SANDBOX)
+#if defined(MOZ_SANDBOX)
+  else if (0 == strcmp(aProperty, NS_APP_PLUGIN_PROCESS_TEMP_DIR)) {
+    if (!mPluginTempDir && NS_FAILED((rv = LoadPluginProcessTempDir()))) {
+      return rv;
+    }
+    rv = mPluginTempDir->Clone(getter_AddRefs(file));
+  }
+#endif // defined(MOZ_SANDBOX)
   else if (NS_SUCCEEDED(GetProfileStartupDir(getter_AddRefs(file)))) {
     // We need to allow component, xpt, and chrome registration to
     // occur prior to the profile-after-change notification.
@@ -666,10 +677,10 @@ nsXREDirProvider::GetFiles(const char* aProperty, nsISimpleEnumerator** aResult)
   return NS_SUCCESS_AGGREGATE_RESULT;
 }
 
-#if defined(MOZ_CONTENT_SANDBOX)
+#if defined(MOZ_SANDBOX)
 
 static const char*
-GetContentProcessTempBaseDirKey()
+GetProcessTempBaseDirKey()
 {
 #if defined(XP_WIN)
   return NS_WIN_LOW_INTEGRITY_TEMP_BASE;
@@ -678,6 +689,7 @@ GetContentProcessTempBaseDirKey()
 #endif
 }
 
+#if defined(MOZ_CONTENT_SANDBOX)
 //
 // Sets mContentTempDir so that it refers to the appropriate temp dir.
 // If the sandbox is enabled, NS_APP_CONTENT_PROCESS_TEMP_DIR, otherwise
@@ -688,10 +700,14 @@ nsXREDirProvider::LoadContentProcessTempDir()
 {
   // The parent is responsible for creating the sandbox temp dir.
   if (XRE_IsParentProcess()) {
-    mContentProcessSandboxTempDir = CreateContentProcessSandboxTempDir();
+    mContentProcessSandboxTempDir =
+      CreateProcessSandboxTempDir(GeckoProcessType_Content);
     mContentTempDir = mContentProcessSandboxTempDir;
   } else {
-    mContentTempDir = GetContentProcessSandboxTempDir();
+    mContentTempDir =
+      !IsContentSandboxDisabled() ?
+        GetProcessSandboxTempDir(GeckoProcessType_Content) :
+        nullptr;
   }
 
   if (!mContentTempDir) {
@@ -713,36 +729,78 @@ nsXREDirProvider::LoadContentProcessTempDir()
 
   return NS_OK;
 }
+#endif
+
+//
+// Sets mPluginTempDir so that it refers to the appropriate temp dir.
+// If NS_APP_PLUGIN_PROCESS_TEMP_DIR fails for any reason, NS_OS_TEMP_DIR
+// is used.
+//
+nsresult
+nsXREDirProvider::LoadPluginProcessTempDir()
+{
+  // The parent is responsible for creating the sandbox temp dir.
+  if (XRE_IsParentProcess()) {
+    mPluginProcessSandboxTempDir =
+      CreateProcessSandboxTempDir(GeckoProcessType_Plugin);
+    mPluginTempDir = mPluginProcessSandboxTempDir;
+  } else {
+    MOZ_ASSERT(XRE_IsPluginProcess());
+    mPluginTempDir = GetProcessSandboxTempDir(GeckoProcessType_Plugin);
+  }
+
+  if (!mPluginTempDir) {
+    nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR,
+                                         getter_AddRefs(mPluginTempDir));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
+
+#if defined(XP_WIN)
+  // The temp dir is used in sandbox rules, so we need to make sure
+  // it doesn't contain any junction points or symlinks or the sandbox will
+  // reject those rules.
+  if (!mozilla::widget::WinUtils::ResolveJunctionPointsAndSymLinks(mPluginTempDir)) {
+    NS_WARNING("Failed to resolve plugin temp dir.");
+  }
+#endif
+
+  return NS_OK;
+}
 
 static bool
 IsContentSandboxDisabled()
 {
-  return !BrowserTabsRemoteAutostart() || (!IsContentSandboxEnabled());
+  return !mozilla::BrowserTabsRemoteAutostart() ||
+      (!mozilla::IsContentSandboxEnabled());
 }
 
 //
-// If a content process sandbox temp dir is to be used, returns an nsIFile
-// for the directory. Returns null if the content sandbox is disabled or
-// an error occurs.
+// If a process sandbox temp dir is to be used, returns an nsIFile
+// for the directory. Returns null if an error occurs.
 //
 static already_AddRefed<nsIFile>
-GetContentProcessSandboxTempDir()
+GetProcessSandboxTempDir(GeckoProcessType type)
 {
-  if (IsContentSandboxDisabled()) {
-    return nullptr;
-  }
-
   nsCOMPtr<nsIFile> localFile;
 
-  nsresult rv = NS_GetSpecialDirectory(GetContentProcessTempBaseDirKey(),
+  nsresult rv = NS_GetSpecialDirectory(GetProcessTempBaseDirKey(),
                                        getter_AddRefs(localFile));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }
 
+  MOZ_ASSERT((type == GeckoProcessType_Content) ||
+             (type == GeckoProcessType_Plugin));
+
+  const char* prefKey =
+    (type == GeckoProcessType_Content) ?
+      "security.sandbox.content.tempDirSuffix" :
+      "security.sandbox.plugin.tempDirSuffix";
+
   nsAutoString tempDirSuffix;
-  rv = Preferences::GetString("security.sandbox.content.tempDirSuffix",
-                              tempDirSuffix);
+  rv = mozilla::Preferences::GetString(prefKey, tempDirSuffix);
   if (NS_WARN_IF(NS_FAILED(rv)) || tempDirSuffix.IsEmpty()) {
     return nullptr;
   }
@@ -756,23 +814,33 @@ GetContentProcessSandboxTempDir()
 }
 
 //
-// Create a temporary directory for use from sandboxed content processes.
+// Create a temporary directory for use from sandboxed processes.
 // Only called in the parent. The path is derived from a UUID stored in a
-// pref which is available to content processes. Returns null if the
-// content sandbox is disabled or if an error occurs.
+// pref which is available to content and plugin processes. Returns null
+// if the content sandbox is disabled or if an error occurs.
 //
 static already_AddRefed<nsIFile>
-CreateContentProcessSandboxTempDir()
+CreateProcessSandboxTempDir(GeckoProcessType procType)
 {
-  if (IsContentSandboxDisabled()) {
+#if defined(MOZ_CONTENT_SANDBOX)
+  if ((procType == GeckoProcessType_Content) &&
+      IsContentSandboxDisabled()) {
     return nullptr;
   }
+#endif
+
+  MOZ_ASSERT((procType == GeckoProcessType_Content) ||
+             (procType == GeckoProcessType_Plugin));
 
   // Get (and create if blank) temp directory suffix pref.
+  const char* pref =
+    (procType == GeckoProcessType_Content) ?
+      "security.sandbox.content.tempDirSuffix" :
+      "security.sandbox.plugin.tempDirSuffix";
+
   nsresult rv;
   nsAutoString tempDirSuffix;
-  Preferences::GetString("security.sandbox.content.tempDirSuffix",
-                         tempDirSuffix);
+  mozilla::Preferences::GetString(pref, tempDirSuffix);
   if (tempDirSuffix.IsEmpty()) {
     nsCOMPtr<nsIUUIDGenerator> uuidgen =
       do_GetService("@mozilla.org/uuid-generator;1", &rv);
@@ -796,15 +864,14 @@ CreateContentProcessSandboxTempDir()
 #endif
 
     // Save the pref
-    rv = Preferences::SetString("security.sandbox.content.tempDirSuffix",
-                                tempDirSuffix);
+    rv = mozilla::Preferences::SetString(pref, tempDirSuffix);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       // If we fail to save the pref we don't want to create the temp dir,
       // because we won't be able to clean it up later.
       return nullptr;
     }
 
-    nsCOMPtr<nsIPrefService> prefsvc = Preferences::GetService();
+    nsCOMPtr<nsIPrefService> prefsvc = mozilla::Preferences::GetService();
     if (!prefsvc || NS_FAILED((rv = prefsvc->SavePrefFile(nullptr)))) {
       // Again, if we fail to save the pref file we might not be able to clean
       // up the temp directory, so don't create one.  Note that in the case
@@ -816,7 +883,7 @@ CreateContentProcessSandboxTempDir()
     }
   }
 
-  nsCOMPtr<nsIFile> sandboxTempDir = GetContentProcessSandboxTempDir();
+  nsCOMPtr<nsIFile> sandboxTempDir = GetProcessSandboxTempDir(procType);
   if (!sandboxTempDir) {
     NS_WARNING("Failed to determine sandbox temp dir path.");
     return nullptr;
@@ -854,7 +921,7 @@ DeleteDirIfExists(nsIFile* dir)
   return NS_OK;
 }
 
-#endif // defined(MOZ_CONTENT_SANDBOX)
+#endif // defined(MOZ_SANDBOX)
 
 static const char *const kAppendPrefDir[] = { "defaults", "preferences", nullptr };
 
@@ -969,7 +1036,7 @@ nsXREDirProvider::InitializeUserPrefs()
     // can access the profile directory during initialization. Afterwards, clear
     // it so that no other code can inadvertently access it until we get to
     // profile-do-change.
-    AutoRestore<bool> ar(mProfileNotified);
+    mozilla::AutoRestore<bool> ar(mProfileNotified);
     mProfileNotified = true;
 
     mozilla::Preferences::InitializeUserPrefs();
@@ -1075,6 +1142,11 @@ nsXREDirProvider::DoStartup()
       mozilla::Unused << NS_WARN_IF(NS_FAILED(LoadContentProcessTempDir()));
     }
 #endif
+#if defined(MOZ_SANDBOX)
+    if (!mPluginTempDir) {
+      mozilla::Unused << NS_WARN_IF(NS_FAILED(LoadPluginProcessTempDir()));
+    }
+#endif
   }
   return NS_OK;
 }
@@ -1095,7 +1167,7 @@ nsXREDirProvider::DoShutdown()
 
 #ifdef DEBUG
       // Not having this causes large intermittent leaks. See bug 1340425.
-      if (JSContext* cx = dom::danger::GetJSContext()) {
+      if (JSContext* cx = mozilla::dom::danger::GetJSContext()) {
         JS_GC(cx);
       }
 #endif
@@ -1107,11 +1179,14 @@ nsXREDirProvider::DoShutdown()
     mProfileNotified = false;
   }
 
-#if defined(MOZ_CONTENT_SANDBOX)
   if (XRE_IsParentProcess()) {
-    Unused << DeleteDirIfExists(mContentProcessSandboxTempDir);
-  }
+#if defined(MOZ_CONTENT_SANDBOX)
+    mozilla::Unused << DeleteDirIfExists(mContentProcessSandboxTempDir);
 #endif
+#if defined(MOZ_SANDBOX)
+    mozilla::Unused << DeleteDirIfExists(mPluginProcessSandboxTempDir);
+#endif
+  }
 }
 
 #ifdef XP_WIN
@@ -1185,100 +1260,52 @@ GetRegWindowsAppDataFolder(bool aLocal, nsAString& _retval)
 
   return NS_OK;
 }
-
-static bool
-GetCachedHash(HKEY rootKey, const nsAString &regPath, const nsAString &path,
-              nsAString &cachedHash)
-{
-  HKEY baseKey;
-  if (RegOpenKeyExW(rootKey, reinterpret_cast<const wchar_t*>(regPath.BeginReading()), 0, KEY_READ, &baseKey) !=
-      ERROR_SUCCESS) {
-    return false;
-  }
-
-  wchar_t cachedHashRaw[512];
-  DWORD bufferSize = sizeof(cachedHashRaw);
-  LONG result = RegQueryValueExW(baseKey, reinterpret_cast<const wchar_t*>(path.BeginReading()), 0, nullptr,
-                                 (LPBYTE)cachedHashRaw, &bufferSize);
-  RegCloseKey(baseKey);
-  if (result == ERROR_SUCCESS) {
-    cachedHash.Assign(cachedHashRaw);
-  }
-  return ERROR_SUCCESS == result;
-}
-
 #endif
 
-// Temporary for nsIXREDirProvider until compatibility mode goes away.
 nsresult
 nsXREDirProvider::GetInstallHash(nsAString & aPathHash)
 {
-  return GetInstallHash(aPathHash, false);
-}
-
-// Compatibility Mode (aUseCompatibilityMode) outputs hashes that are what this
-// function has historically returned. The new default is to output hashes that
-// are consistent with those generated by the installer.
-nsresult
-nsXREDirProvider::GetInstallHash(nsAString & aPathHash, bool aUseCompatibilityMode)
-{
-  nsCOMPtr<nsIFile> updRoot;
+  nsCOMPtr<nsIFile> installDir;
   nsCOMPtr<nsIFile> appFile;
   bool per = false;
   nsresult rv = GetFile(XRE_EXECUTABLE_FILE, &per, getter_AddRefs(appFile));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = appFile->GetParent(getter_AddRefs(updRoot));
+  rv = appFile->GetParent(getter_AddRefs(installDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoString appDirPath;
-  rv = updRoot->GetPath(appDirPath);
+  nsAutoString installPath;
+  rv = installDir->GetPath(installPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aPathHash.Truncate();
+  const char* vendor = GetAppVendor();
+  if (vendor && vendor[0] == '\0') {
+    vendor = nullptr;
+  }
 
+  mozilla::UniquePtr<NS_tchar[]> hash;
+  rv = ::GetInstallHash(PromiseFlatString(installPath).get(), vendor, hash);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // The hash string is a NS_tchar*, which is wchar* in Windows and char*
+  // elsewhere.
 #ifdef XP_WIN
-  // Figure out where we should check for a cached hash value. If the
-  // application doesn't have the nsXREAppData vendor value defined check
-  // under SOFTWARE\Mozilla.
-  bool hasVendor = GetAppVendor() && strlen(GetAppVendor()) != 0;
-  wchar_t regPath[1024] = { L'\0' };
-  swprintf_s(regPath, mozilla::ArrayLength(regPath), L"SOFTWARE\\%S\\%S\\TaskBarIDs",
-              (hasVendor ? GetAppVendor() : "Mozilla"), MOZ_APP_BASENAME);
-
-  // If we pre-computed the hash, grab it from the registry.
-  if (GetCachedHash(HKEY_LOCAL_MACHINE, nsDependentString(regPath), appDirPath,
-                    aPathHash)) {
-    return NS_OK;
-  }
-
-  if (GetCachedHash(HKEY_CURRENT_USER, nsDependentString(regPath), appDirPath,
-                    aPathHash)) {
-    return NS_OK;
-  }
+  aPathHash.Assign(hash.get());
+#else
+  aPathHash.AssignASCII(hash.get());
 #endif
-
-  // This should only happen when the installer isn't used (e.g. zip builds).
-  void* buffer = appDirPath.BeginWriting();
-  uint32_t length = appDirPath.Length() * sizeof(nsAutoString::char_type);
-  uint64_t hash = CityHash64(static_cast<const char*>(buffer), length);
-  if (aUseCompatibilityMode) {
-    aPathHash.AppendInt((int)(hash >> 32), 16);
-    aPathHash.AppendInt((int)hash, 16);
-    // The installer implementation writes the registry values that were checked
-    // in the previous block for this value in uppercase and since it is an
-    // option to have a case sensitive file system on Windows this value must
-    // also be in uppercase.
-    ToUpperCase(aPathHash);
-  } else {
-    aPathHash.AppendPrintf("%" PRIX64, hash);
-  }
-
   return NS_OK;
 }
 
 nsresult
-nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
+nsXREDirProvider::GetUpdateRootDir(nsIFile** aResult, bool aGetOldLocation)
 {
+#ifndef XP_WIN
+  // There is no old update location on platforms other than Windows. Windows is
+  // the only platform for which we migrated the update directory.
+  if (aGetOldLocation) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+#endif
   nsCOMPtr<nsIFile> updRoot;
   nsCOMPtr<nsIFile> appFile;
   bool per = false;
@@ -1323,74 +1350,34 @@ nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
   return NS_OK;
 
 #elif XP_WIN
-  nsAutoString pathHash;
-  rv = GetInstallHash(pathHash, true);
+  nsAutoString installPath;
+  rv = updRoot->GetPath(installPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // As a last ditch effort, get the local app data directory and if a vendor
-  // name exists append it. If only a product name exists, append it. If neither
-  // exist fallback to old handling. We don't use the product name on purpose
-  // because we want a shared update directory for different apps run from the
-  // same path.
-  nsCOMPtr<nsIFile> localDir;
-  bool hasVendor = GetAppVendor() && strlen(GetAppVendor()) != 0;
-  if ((hasVendor || GetAppName()) &&
-      NS_SUCCEEDED(GetUserDataDirectoryHome(getter_AddRefs(localDir), true)) &&
-      NS_SUCCEEDED(localDir->AppendNative(nsDependentCString(hasVendor ?
-                                          GetAppVendor() : GetAppName()))) &&
-      NS_SUCCEEDED(localDir->Append(NS_LITERAL_STRING("updates"))) &&
-      NS_SUCCEEDED(localDir->Append(pathHash))) {
-    localDir.forget(aResult);
-    return NS_OK;
-  }
-
-  nsAutoString appPath;
-  rv = updRoot->GetPath(appPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // AppDir may be a short path. Convert to long path to make sure
-  // the consistency of the update folder location
-  nsString longPath;
-  wchar_t* buf;
-
-  uint32_t bufLength = longPath.GetMutableData(&buf, MAXPATHLEN);
-  NS_ENSURE_TRUE(bufLength >= MAXPATHLEN, NS_ERROR_OUT_OF_MEMORY);
-
-  DWORD len = GetLongPathNameW(appPath.get(), buf, bufLength);
-
-  // Failing GetLongPathName() is not fatal.
-  if (len <= 0 || len >= bufLength)
-    longPath.Assign(appPath);
-  else
-    longPath.SetLength(len);
-
-  // Use <UserLocalDataDir>\updates\<relative path to app dir from
-  // Program Files> if app dir is under Program Files to avoid the
-  // folder virtualization mess on Windows Vista
-  nsAutoString programFiles;
-  rv = GetShellFolderPath(FOLDERID_ProgramFiles, programFiles);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  programFiles.Append('\\');
-  uint32_t programFilesLen = programFiles.Length();
-
-  nsAutoString programName;
-  if (_wcsnicmp(programFiles.get(), longPath.get(), programFilesLen) == 0) {
-    programName = Substring(longPath, programFilesLen);
+  mozilla::UniquePtr<wchar_t[]> updatePath;
+  HRESULT hrv;
+  if (aGetOldLocation) {
+    const char* vendor = GetAppVendor();
+    if (vendor && vendor[0] == '\0') {
+      vendor = nullptr;
+    }
+    const char* appName = GetAppName();
+    if (appName && appName[0] == '\0') {
+      appName = nullptr;
+    }
+    hrv = GetUserUpdateDirectory(PromiseFlatString(installPath).get(), vendor,
+                                 appName, updatePath);
   } else {
-    // We need the update root directory to live outside of the installation
-    // directory, because otherwise the updater writing the log file can cause
-    // the directory to be locked, which prevents it from being replaced after
-    // background updates.
-    programName.AssignASCII(MOZ_APP_NAME);
+    hrv = GetCommonUpdateDirectory(PromiseFlatString(installPath).get(),
+                                   SetPermissionsOf::BaseDirIfNotExists,
+                                   updatePath);
   }
-
-  rv = GetUserLocalDataDirectory(getter_AddRefs(updRoot));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = updRoot->AppendRelativePath(programName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  if (FAILED(hrv)) {
+    return NS_ERROR_FAILURE;
+  }
+  nsAutoString updatePathStr;
+  updatePathStr.Assign(updatePath.get());
+  updRoot->InitWithPath(updatePathStr);
 #endif // XP_WIN
   updRoot.forget(aResult);
   return NS_OK;
@@ -1490,7 +1477,7 @@ nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile, bool aLocal)
   rv = dirFileMac->InitWithFSRef(&fsRef);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  localDir = do_QueryInterface(dirFileMac, &rv);
+  localDir = dirFileMac;
 #elif defined(XP_IOS)
   nsAutoCString userDir;
   if (GetUIKitDirectory(aLocal, userDir)) {

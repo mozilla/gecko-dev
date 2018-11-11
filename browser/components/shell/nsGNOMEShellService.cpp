@@ -57,15 +57,19 @@ struct MimeTypeAssociation
 };
 
 static const ProtocolAssociation appProtocols[] = {
+  // clang-format off
   { "http",   true     },
   { "https",  true     },
   { "ftp",    false },
   { "chrome", false }
+  // clang-format on
 };
 
 static const MimeTypeAssociation appTypes[] = {
+  // clang-format off
   { "text/html",             "htm html shtml" },
   { "application/xhtml+xml", "xhtml xht"      }
+  // clang-format on
 };
 
 // GConf registry key constants
@@ -679,10 +683,4 @@ nsGNOMEShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACStr
   const nsCString spec(aURI);
   const char* specStr = spec.get();
   return process->Run(false, &specStr, 1);
-}
-
-NS_IMETHODIMP
-nsGNOMEShellService::GetDefaultFeedReader(nsIFile** _retval)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
 }

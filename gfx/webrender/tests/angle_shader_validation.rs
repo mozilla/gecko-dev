@@ -19,7 +19,7 @@ struct Shader {
 const SHADER_PREFIX: &str = "#define WR_MAX_VERTEX_TEXTURE_WIDTH 1024U\n";
 
 const BRUSH_FEATURES: &[&str] = &["", "ALPHA_PASS"];
-const CLIP_FEATURES: &[&str] = &["TRANSFORM"];
+const CLIP_FEATURES: &[&str] = &[""];
 const CACHE_FEATURES: &[&str] = &[""];
 const GRADIENT_FEATURES: &[&str] = &[ "", "DITHERING", "ALPHA_PASS", "DITHERING,ALPHA_PASS" ];
 const PRIM_FEATURES: &[&str] = &[""];
@@ -38,10 +38,6 @@ const SHADERS: &[Shader] = &[
         name: "cs_clip_box_shadow",
         features: CLIP_FEATURES,
     },
-    Shader {
-        name: "cs_clip_line",
-        features: CLIP_FEATURES,
-    },
     // Cache shaders
     Shader {
         name: "cs_blur",
@@ -49,6 +45,10 @@ const SHADERS: &[Shader] = &[
     },
     Shader {
         name: "cs_border_segment",
+        features: CACHE_FEATURES,
+    },
+    Shader {
+        name: "cs_line_decoration",
         features: CACHE_FEATURES,
     },
     Shader {

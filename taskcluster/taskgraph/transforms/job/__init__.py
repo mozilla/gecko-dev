@@ -25,7 +25,6 @@ from taskgraph.util.taskcluster import get_artifact_prefix
 from taskgraph.util.workertypes import worker_type_implementation
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import (
-    Any,
     Extra,
     Optional,
     Required,
@@ -73,12 +72,12 @@ job_description_schema = Schema({
     # this task should be included in the task graph.  This will be converted
     # into an optimization, so it cannot be specified in a job description that
     # also gives 'optimization'.
-    Exclusive('when', 'optimization'): Any({
+    Exclusive('when', 'optimization'): {
         # This task only needs to be run if a file matching one of the given
         # patterns has changed in the push.  The patterns use the mozpack
         # match function (python/mozbuild/mozpack/path.py).
         Optional('files-changed'): [basestring],
-    }),
+    },
 
     # A list of artifacts to install from 'fetch' tasks.
     Optional('fetches'): {
@@ -222,7 +221,7 @@ def use_fetches(config, jobs):
         env['MOZ_FETCHES'] = {'task-reference': json.dumps(job_fetches, sort_keys=True)}
 
         impl, os = worker_type_implementation(job['worker-type'])
-        if os == 'windows':
+        if os in ('windows', 'macosx'):
             env.setdefault('MOZ_FETCHES_DIR', 'fetches')
         else:
             workdir = job['run'].get('workdir', '/builds/worker')

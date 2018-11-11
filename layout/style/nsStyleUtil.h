@@ -76,18 +76,6 @@ public:
     aResult.AppendFloat(aNumber);
   }
 
-  static void AppendStepsTimingFunction(nsTimingFunction::Type aType,
-                                        uint32_t aSteps,
-                                        nsAString& aResult);
-  static void AppendFramesTimingFunction(uint32_t aFrames,
-                                         nsAString& aResult);
-  static void AppendCubicBezierTimingFunction(float aX1, float aY1,
-                                              float aX2, float aY2,
-                                              nsAString& aResult);
-  static void AppendCubicBezierKeywordTimingFunction(
-      nsTimingFunction::Type aType,
-      nsAString& aResult);
-
   /*
    * Convert an author-provided floating point number to an integer (0
    * ... 255) appropriate for use in the alpha component of a color.

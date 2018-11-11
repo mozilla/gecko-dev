@@ -34,8 +34,8 @@ use cranelift_wasm::{
 };
 use std::fmt;
 use std::mem;
-use wasm2clif::{init_sig, native_pointer_size, TransEnv};
 use utils::DashResult;
+use wasm2clif::{init_sig, native_pointer_size, TransEnv};
 
 /// The result of a function's compilation: code + metadata.
 pub struct CompiledFunc {
@@ -75,7 +75,7 @@ pub struct BatchCompiler<'a, 'b> {
     pub current_func: CompiledFunc,
 }
 
-impl <'a, 'b> BatchCompiler<'a, 'b> {
+impl<'a, 'b> BatchCompiler<'a, 'b> {
     pub fn new(
         static_environ: &'a bd::StaticEnvironment,
         environ: bd::ModuleEnvironment<'b>,
@@ -92,9 +92,8 @@ impl <'a, 'b> BatchCompiler<'a, 'b> {
     }
 
     pub fn compile(&mut self) -> CodegenResult<()> {
-        let orig_size = self.context.compile(&*self.isa)?;
-        let size = self.remove_return_inst(orig_size) as usize;
-        self.binemit(size)
+        let size = self.context.compile(&*self.isa)?;
+        self.binemit(size as usize)
     }
 
     /// Translate the WebAssembly code to Cranelift IR.
@@ -117,37 +116,6 @@ impl <'a, 'b> BatchCompiler<'a, 'b> {
         info!("Translated wasm function {}.", func.index);
         debug!("Content: {}", self.context.func.display(&*self.isa));
         Ok(wsig)
-    }
-
-    /// Remove the trailing return instruction from the current function to make room for a custom
-    /// epilogue.
-    ///
-    /// Return the new function size in bytes, adjusted from size.
-    fn remove_return_inst(&mut self, size: CodeOffset) -> CodeOffset {
-        // Get the last instruction in the function.
-        let mut pos = FuncCursor::new(&mut self.context.func);
-
-        // Move to the bottom of the last EBB in the function.
-        pos.prev_ebb().expect("empty function");
-
-        // Move to the last instruction in the last EBB.
-        let inst = pos.prev_inst().expect("last EBB has not terminator");
-
-        // TODO There might be an issue here, if there can be more than one
-        // IR returns per IR function.
-
-        if pos.func.dfg[inst].opcode().is_return() {
-            let enc = pos.func.encodings[inst];
-            let ret_size = self.isa.encoding_info().bytes(enc);
-            // Remove the return instruction. This leaves the IR in an invalid state where the last
-            // EBB has no terminator. The code emitter shouldn't mind this. If it does want to
-            // verify the IR in the future, we could use a zero-sized return encoding instead.
-            pos.remove_inst();
-            return size - ret_size;
-        }
-
-        // Function doesn't have a return instruction.
-        size
     }
 
     /// Emit binary machine code to `emitter`.
@@ -355,7 +323,12 @@ impl <'a, 'b> BatchCompiler<'a, 'b> {
         metadata.push(bd::MetadataEntry::indirect_call(ret_addr, srcloc));
     }
 
-    fn trap_metadata(&self, metadata: &mut Vec<bd::MetadataEntry>, inst: ir::Inst, offset: CodeOffset) {
+    fn trap_metadata(
+        &self,
+        metadata: &mut Vec<bd::MetadataEntry>,
+        inst: ir::Inst,
+        offset: CodeOffset,
+    ) {
         let func = &self.context.func;
         let (code, trap_offset) = match func.dfg[inst] {
             ir::InstructionData::Trap { code, .. } => (code, 0),
@@ -391,7 +364,11 @@ impl <'a, 'b> BatchCompiler<'a, 'b> {
             func.dfg.display_inst(inst, Some(self.isa.as_ref()))
         );
 
-        metadata.push(bd::MetadataEntry::trap(offset + trap_offset, srcloc, bd_trap));
+        metadata.push(bd::MetadataEntry::trap(
+            offset + trap_offset,
+            srcloc,
+            bd_trap,
+        ));
     }
 
     fn memory_metadata(
@@ -427,7 +404,7 @@ impl <'a, 'b> BatchCompiler<'a, 'b> {
     }
 }
 
-impl <'a, 'b> fmt::Display for BatchCompiler<'a, 'b> {
+impl<'a, 'b> fmt::Display for BatchCompiler<'a, 'b> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.context.func.display(self.isa.as_ref()))
     }

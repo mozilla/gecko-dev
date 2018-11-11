@@ -5,7 +5,6 @@ const defaultMethods = [{
     supportedNetworks: ['unionpay', 'visa', 'mastercard', 'amex', 'discover',
                         'diners', 'jcb', 'mir',
     ],
-    supportedTypes: ['prepaid', 'debit', 'credit'],
   },
 }, {
   supportedMethods: "testing-payment-method",
@@ -44,7 +43,7 @@ const defaultDetails = {
 const defaultOptions = {
   requestPayerName: true,
   requestPayerEmail: false,
-  reqeustPayerPhone: false,
+  requestPayerPhone: false,
   requestShipping: true,
   shippingType: "shipping"
 };

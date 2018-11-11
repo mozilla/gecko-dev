@@ -151,6 +151,7 @@ BrowserToolboxProcess.prototype = {
     this.loader = new DevToolsLoader();
     this.loader.invisibleToDebugger = true;
     const { DebuggerServer } = this.loader.require("devtools/server/main");
+    const { SocketListener } = this.loader.require("devtools/shared/security/socket");
     this.debuggerServer = DebuggerServer;
     dumpn("Created a separate loader instance for the DebuggerServer.");
 
@@ -167,10 +168,13 @@ BrowserToolboxProcess.prototype = {
 
     const chromeDebuggingWebSocket =
       Services.prefs.getBoolPref("devtools.debugger.chrome-debugging-websocket");
-    const listener = this.debuggerServer.createListener();
-    listener.portOrPath = -1;
-    listener.webSocket = chromeDebuggingWebSocket;
+    const socketOptions = {
+      portOrPath: -1,
+      webSocket: chromeDebuggingWebSocket,
+    };
+    const listener = new SocketListener(this.debuggerServer, socketOptions);
     listener.open();
+    this.listener = listener;
     this.port = listener.port;
 
     if (!this.port) {
@@ -270,7 +274,7 @@ BrowserToolboxProcess.prototype = {
       "-no-remote",
       "-foreground",
       "-profile", this._dbgProfilePath,
-      "-chrome", DBG_XUL
+      "-chrome", DBG_XUL,
     ];
     const environment = {
       // Disable safe mode for the new process in case this was opened via the
@@ -361,6 +365,10 @@ BrowserToolboxProcess.prototype = {
     // toolbox session id.
     this._telemetry.toolClosed("jsbrowserdebugger", -1, this);
 
+    if (this.listener) {
+      this.listener.close();
+    }
+
     if (this.debuggerServer) {
       this.debuggerServer.off("connectionchange", this._onConnectionChange);
       this.debuggerServer.destroy();
@@ -378,7 +386,7 @@ BrowserToolboxProcess.prototype = {
     }
     this.loader = null;
     this._telemetry = null;
-  }
+  },
 };
 
 /**
@@ -396,12 +404,12 @@ var wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.addObserver("devtools.debugger.log", {
   observe: (...args) => {
     wantLogging = Services.prefs.getBoolPref(args.pop());
-  }
+  },
 });
 
 Services.prefs.addObserver("toolbox-update-addon-options", {
   observe: (subject) => {
     const {id, options} = subject.wrappedJSObject;
     BrowserToolboxProcess.setAddonOptions(id, options);
-  }
+  },
 });

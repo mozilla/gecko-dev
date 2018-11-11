@@ -75,7 +75,7 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "Pynciau Poblogaidd:",
   "pocket_read_even_more": "Gweld Rhagor o Straeon",
   "pocket_more_reccommendations": "Rhagor o Argymhellion",
-  "pocket_learn_more": "Dysgu Rhagor",
+  "pocket_how_it_works": "Sut mae'n gweithio",
   "pocket_cta_button": "Defnyddio Pocket",
   "pocket_cta_text": "Cadw'r straeon rydych yn eu hoffi i Pocket a bwydo'ch meddwl á deunydd diddorol.",
   "highlights_empty_state": "Cychwynnwch bori ac fe ddangoswn rhai erthyglau, fideos a thudalennau eraill difyr rydych wedi ymweld â nhw'n ddiweddar neu wedi gosod nod tudalen arnyn nhw yma.",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "Amodau Gwasanaeth",
   "firstrun_privacy_notice": "Hysbysiad Preifatrwydd",
   "firstrun_continue_to_login": "Parhau",
-  "firstrun_skip_login": "Hepgor y cam hwn"
+  "firstrun_skip_login": "Hepgor y cam hwn",
+  "context_menu_title": "Agor y ddewislen",
+  "pocket_learn_more": "Dysgu Rhagor"
 };

@@ -4,18 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsITelemetry.h"
-#include "nsIVariant.h"
-#include "nsVariant.h"
-#include "nsHashKeys.h"
-#include "nsBaseHashtable.h"
-#include "nsClassHashtable.h"
-#include "nsDataHashtable.h"
-#include "nsIXPConnect.h"
-#include "nsContentUtils.h"
-#include "nsThreadUtils.h"
-#include "nsJSUtils.h"
-#include "nsPrintfCString.h"
+#include "TelemetryScalar.h"
+
+#include "ipc/TelemetryComms.h"
+#include "ipc/TelemetryIPCAccumulator.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/PContent.h"
 #include "mozilla/JSONWriter.h"
@@ -23,12 +15,20 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
-
+#include "nsBaseHashtable.h"
+#include "nsClassHashtable.h"
+#include "nsContentUtils.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
+#include "nsITelemetry.h"
+#include "nsIVariant.h"
+#include "nsIXPConnect.h"
+#include "nsJSUtils.h"
+#include "nsPrintfCString.h"
+#include "nsThreadUtils.h"
+#include "nsVariant.h"
 #include "TelemetryCommon.h"
-#include "TelemetryScalar.h"
 #include "TelemetryScalarData.h"
-#include "ipc/TelemetryComms.h"
-#include "ipc/TelemetryIPCAccumulator.h"
 
 using mozilla::Preferences;
 using mozilla::StaticAutoPtr;
@@ -114,6 +114,8 @@ const uint32_t kScalarCount =
 // to finish, we immediately apply pending operations if the array reaches
 // a certain high water mark of elements.
 const size_t kScalarActionsArrayHighWaterMark = 10000;
+
+const char* TEST_SCALAR_PREFIX = "telemetry.test.";
 
 enum class ScalarResult : uint8_t {
   // Nothing went wrong.
@@ -532,7 +534,6 @@ ScalarString::SetValue(nsIVariant* aValue)
   aValue->GetDataType(&type);
   if (type != nsIDataType::VTYPE_CHAR &&
       type != nsIDataType::VTYPE_WCHAR &&
-      type != nsIDataType::VTYPE_DOMSTRING &&
       type != nsIDataType::VTYPE_CHAR_STR &&
       type != nsIDataType::VTYPE_WCHAR_STR &&
       type != nsIDataType::VTYPE_STRING_SIZE_IS &&
@@ -688,23 +689,23 @@ class KeyedScalar
 public:
   typedef mozilla::Pair<nsCString, nsCOMPtr<nsIVariant>> KeyValuePair;
 
-  explicit KeyedScalar(uint32_t aScalarKind)
-    : mScalarKind(aScalarKind)
+  explicit KeyedScalar(const BaseScalarInfo& info)
+    : mScalarInfo(info)
     , mMaximumNumberOfKeys(kMaximumNumberOfKeys)
   { };
   ~KeyedScalar() = default;
 
   // Set, Add and SetMaximum functions as described in the Telemetry IDL.
   // These methods implicitly instantiate a Scalar[*] for each key.
-  ScalarResult SetValue(const nsAString& aKey, nsIVariant* aValue);
-  ScalarResult AddValue(const nsAString& aKey, nsIVariant* aValue);
-  ScalarResult SetMaximum(const nsAString& aKey, nsIVariant* aValue);
+  ScalarResult SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue);
+  ScalarResult AddValue(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue);
+  ScalarResult SetMaximum(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue);
 
   // Convenience methods used by the C++ API.
-  void SetValue(const nsAString& aKey, uint32_t aValue);
-  void SetValue(const nsAString& aKey, bool aValue);
-  void AddValue(const nsAString& aKey, uint32_t aValue);
-  void SetMaximum(const nsAString& aKey, uint32_t aValue);
+  void SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue);
+  void SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, bool aValue);
+  void AddValue(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue);
+  void SetMaximum(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue);
 
   // GetValue is used to get the key-value pairs stored in the keyed scalar
   // when persisting it to JS.
@@ -723,17 +724,17 @@ private:
   typedef nsClassHashtable<nsCStringHashKey, ScalarBase> ScalarKeysMapType;
 
   ScalarKeysMapType mScalarKeys;
-  const uint32_t mScalarKind;
+  const BaseScalarInfo& mScalarInfo;
   uint32_t mMaximumNumberOfKeys;
 
-  ScalarResult GetScalarForKey(const nsAString& aKey, ScalarBase** aRet);
+  ScalarResult GetScalarForKey(const StaticMutexAutoLock& locker, const nsAString& aKey, ScalarBase** aRet);
 };
 
 ScalarResult
-KeyedScalar::SetValue(const nsAString& aKey, nsIVariant* aValue)
+KeyedScalar::SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
   if (sr != ScalarResult::Ok) {
     return sr;
   }
@@ -742,10 +743,10 @@ KeyedScalar::SetValue(const nsAString& aKey, nsIVariant* aValue)
 }
 
 ScalarResult
-KeyedScalar::AddValue(const nsAString& aKey, nsIVariant* aValue)
+KeyedScalar::AddValue(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
   if (sr != ScalarResult::Ok) {
     return sr;
   }
@@ -754,10 +755,10 @@ KeyedScalar::AddValue(const nsAString& aKey, nsIVariant* aValue)
 }
 
 ScalarResult
-KeyedScalar::SetMaximum(const nsAString& aKey, nsIVariant* aValue)
+KeyedScalar::SetMaximum(const StaticMutexAutoLock& locker, const nsAString& aKey, nsIVariant* aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
   if (sr != ScalarResult::Ok) {
     return sr;
   }
@@ -766,12 +767,16 @@ KeyedScalar::SetMaximum(const nsAString& aKey, nsIVariant* aValue)
 }
 
 void
-KeyedScalar::SetValue(const nsAString& aKey, uint32_t aValue)
+KeyedScalar::SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
+
   if (sr != ScalarResult::Ok) {
-    MOZ_ASSERT(false, "Key too long or too many keys are recorded in the scalar.");
+    // Bug 1451813 - We now report which scalars exceed the key limit in telemetry.keyed_scalars_exceed_limit.
+    if(sr != ScalarResult::TooManyKeys) {
+      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
+    }
     return;
   }
 
@@ -779,12 +784,16 @@ KeyedScalar::SetValue(const nsAString& aKey, uint32_t aValue)
 }
 
 void
-KeyedScalar::SetValue(const nsAString& aKey, bool aValue)
+KeyedScalar::SetValue(const StaticMutexAutoLock& locker, const nsAString& aKey, bool aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
+
   if (sr != ScalarResult::Ok) {
-    MOZ_ASSERT(false, "Key too long or too many keys are recorded in the scalar.");
+    // Bug 1451813 - We now report which scalars exceed the key limit in telemetry.keyed_scalars_exceed_limit.
+    if (sr != ScalarResult::TooManyKeys) {
+      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
+    }
     return;
   }
 
@@ -792,12 +801,16 @@ KeyedScalar::SetValue(const nsAString& aKey, bool aValue)
 }
 
 void
-KeyedScalar::AddValue(const nsAString& aKey, uint32_t aValue)
+KeyedScalar::AddValue(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
+
   if (sr != ScalarResult::Ok) {
-    MOZ_ASSERT(false, "Key too long or too many keys are recorded in the scalar.");
+    // Bug 1451813 - We now report which scalars exceed the key limit in telemetry.keyed_scalars_exceed_limit.
+    if (sr != ScalarResult::TooManyKeys) {
+      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
+    }
     return;
   }
 
@@ -805,12 +818,16 @@ KeyedScalar::AddValue(const nsAString& aKey, uint32_t aValue)
 }
 
 void
-KeyedScalar::SetMaximum(const nsAString& aKey, uint32_t aValue)
+KeyedScalar::SetMaximum(const StaticMutexAutoLock& locker, const nsAString& aKey, uint32_t aValue)
 {
   ScalarBase* scalar = nullptr;
-  ScalarResult sr = GetScalarForKey(aKey, &scalar);
+  ScalarResult sr = GetScalarForKey(locker, aKey, &scalar);
+
   if (sr != ScalarResult::Ok) {
-    MOZ_ASSERT(false, "Key too long or too many keys are recorded in the scalar.");
+    // Bug 1451813 - We now report which scalars exceed the key limit in telemetry.keyed_scalars_exceed_limit.
+    if(sr != ScalarResult::TooManyKeys) {
+      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
+    }
     return;
   }
 
@@ -844,13 +861,20 @@ KeyedScalar::GetValue(nsTArray<KeyValuePair>& aValues) const
   return NS_OK;
 }
 
+// Forward declaration
+nsresult
+internal_GetKeyedScalarByEnum(const StaticMutexAutoLock& lock,
+                              const ScalarKey& aId,
+                              ProcessID aProcessStorage,
+                              KeyedScalar** aRet);
+
 /**
  * Get the scalar for the referenced key.
  * If there's no such key, instantiate a new Scalar object with the
  * same type of the Keyed scalar and create the key.
  */
 ScalarResult
-KeyedScalar::GetScalarForKey(const nsAString& aKey, ScalarBase** aRet)
+KeyedScalar::GetScalarForKey(const StaticMutexAutoLock& locker, const nsAString& aKey, ScalarBase** aRet)
 {
   if (aKey.IsEmpty()) {
     return ScalarResult::KeyIsEmpty;
@@ -869,10 +893,27 @@ KeyedScalar::GetScalarForKey(const nsAString& aKey, ScalarBase** aRet)
   }
 
   if (mScalarKeys.Count() >= mMaximumNumberOfKeys) {
+    if(aKey.EqualsLiteral("telemetry.keyed_scalars_exceed_limit")) {
+      return ScalarResult::TooManyKeys;
+    }
+
+    KeyedScalar* scalarExceed = nullptr;
+
+    ScalarKey uniqueId{static_cast<uint32_t>(mozilla::Telemetry::ScalarID::TELEMETRY_KEYED_SCALARS_EXCEED_LIMIT), false};
+
+    ProcessID process = ProcessID::Parent;
+    nsresult rv = internal_GetKeyedScalarByEnum(locker, uniqueId, process, &scalarExceed);
+
+    if (NS_FAILED(rv)) {
+      return ScalarResult::TooManyKeys;
+    }
+
+    scalarExceed->AddValue(locker, NS_ConvertUTF8toUTF16(mScalarInfo.name()), 1);
+
     return ScalarResult::TooManyKeys;
   }
 
-  scalar = internal_ScalarAllocate(mScalarKind);
+  scalar = internal_ScalarAllocate(mScalarInfo.kind);
   if (!scalar) {
     return ScalarResult::InvalidType;
   }
@@ -1571,7 +1612,7 @@ internal_GetKeyedScalarByEnum(const StaticMutexAutoLock& lock,
     return NS_ERROR_INVALID_ARG;
   }
 
-  scalar = new KeyedScalar(info.kind);
+  scalar = new KeyedScalar(info);
   if (!scalar) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -1658,13 +1699,13 @@ internal_UpdateKeyedScalar(const StaticMutexAutoLock& lock,
   }
 
   if (aType == ScalarActionType::eAdd) {
-    return scalar->AddValue(aKey, aValue);
+    return scalar->AddValue(lock, aKey, aValue);
   }
   if (aType == ScalarActionType::eSet) {
-    return scalar->SetValue(aKey, aValue);
+    return scalar->SetValue(lock, aKey, aValue);
   }
 
-  return scalar->SetMaximum(aKey, aValue);
+  return scalar->SetMaximum(lock, aKey, aValue);
 }
 
 /**
@@ -2110,14 +2151,14 @@ internal_ApplyKeyedScalarActions(const StaticMutexAutoLock& lock,
                 NS_WARNING("Attempting to set a count scalar to a non-integer.");
                 continue;
               }
-              scalar->SetValue(NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
+              scalar->SetValue(lock, NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
               break;
             case nsITelemetry::SCALAR_TYPE_BOOLEAN:
               if (!upd.mData->is<bool>()) {
                 NS_WARNING("Attempting to set a boolean scalar to a non-boolean.");
                 continue;
               }
-              scalar->SetValue(NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<bool>());
+              scalar->SetValue(lock, NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<bool>());
               break;
             default:
               NS_WARNING("Unsupported type coming from scalar child updates.");
@@ -2135,7 +2176,7 @@ internal_ApplyKeyedScalarActions(const StaticMutexAutoLock& lock,
             NS_WARNING("Attempting to add to a count scalar with a non-integer.");
             continue;
           }
-          scalar->AddValue(NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
+          scalar->AddValue(lock, NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
           break;
         }
       case ScalarActionType::eSetMaximum:
@@ -2149,7 +2190,7 @@ internal_ApplyKeyedScalarActions(const StaticMutexAutoLock& lock,
             NS_WARNING("Attempting to setMaximum a count scalar to a non-integer.");
             continue;
           }
-          scalar->SetMaximum(NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
+          scalar->SetMaximum(lock, NS_ConvertUTF8toUTF16(upd.mKey), upd.mData->as<uint32_t>());
           break;
         }
       default:
@@ -2439,7 +2480,7 @@ TelemetryScalar::Add(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
     return;
   }
 
-  scalar->AddValue(aKey, aValue);
+  scalar->AddValue(locker, aKey, aValue);
 }
 
 /**
@@ -2705,7 +2746,7 @@ TelemetryScalar::Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
     return;
   }
 
-  scalar->SetValue(aKey, aValue);
+  scalar->SetValue(locker, aKey, aValue);
 }
 
 /**
@@ -2755,7 +2796,7 @@ TelemetryScalar::Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
     return;
   }
 
-  scalar->SetValue(aKey, aValue);
+  scalar->SetValue(locker, aKey, aValue);
 }
 
 /**
@@ -2926,7 +2967,7 @@ TelemetryScalar::SetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& a
     return;
   }
 
-  scalar->SetMaximum(aKey, aValue);
+  scalar->SetMaximum(locker, aKey, aValue);
 }
 
 /**
@@ -2939,7 +2980,7 @@ TelemetryScalar::SetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& a
  */
 nsresult
 TelemetryScalar::CreateSnapshots(unsigned int aDataset, bool aClearScalars, JSContext* aCx,
-                                 uint8_t optional_argc, JS::MutableHandle<JS::Value> aResult)
+                                 uint8_t optional_argc, JS::MutableHandle<JS::Value> aResult, bool aFilterTest)
 {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Snapshotting scalars should only happen in the parent processes.");
@@ -2987,6 +3028,11 @@ TelemetryScalar::CreateSnapshots(unsigned int aDataset, bool aClearScalars, JSCo
     for (ScalarTupleArray::size_type i = 0; i < processScalars.Length(); i++) {
       const ScalarDataTuple& scalar = processScalars[i];
 
+      const char* scalarName = mozilla::Get<0>(scalar);
+      if (aFilterTest && strncmp(TEST_SCALAR_PREFIX, scalarName, strlen(TEST_SCALAR_PREFIX)) == 0) {
+          continue;
+      }
+
       // Convert it to a JS Val.
       JS::Rooted<JS::Value> scalarJsValue(aCx);
       nsresult rv =
@@ -2996,7 +3042,7 @@ TelemetryScalar::CreateSnapshots(unsigned int aDataset, bool aClearScalars, JSCo
       }
 
       // Add it to the scalar object.
-      if (!JS_DefineProperty(aCx, processObj, mozilla::Get<0>(scalar), scalarJsValue, JSPROP_ENUMERATE)) {
+      if (!JS_DefineProperty(aCx, processObj, scalarName, scalarJsValue, JSPROP_ENUMERATE)) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -3015,7 +3061,8 @@ TelemetryScalar::CreateSnapshots(unsigned int aDataset, bool aClearScalars, JSCo
  */
 nsresult
 TelemetryScalar::CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars, JSContext* aCx,
-                                      uint8_t optional_argc, JS::MutableHandle<JS::Value> aResult)
+                                      uint8_t optional_argc, JS::MutableHandle<JS::Value> aResult,
+                                      bool aFilterTest)
 {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Snapshotting scalars should only happen in the parent processes.");
@@ -3063,6 +3110,11 @@ TelemetryScalar::CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars,
     for (KeyedScalarTupleArray::size_type i = 0; i < processScalars.Length(); i++) {
       const KeyedScalarDataTuple& keyedScalarData = processScalars[i];
 
+      const char* scalarName = mozilla::Get<0>(keyedScalarData);
+      if (aFilterTest && strncmp(TEST_SCALAR_PREFIX, scalarName, strlen(TEST_SCALAR_PREFIX)) == 0) {
+          continue;
+      }
+
       // Go through each keyed scalar and create a keyed scalar object.
       // This object will hold the values for all the keyed scalar keys.
       JS::RootedObject keyedScalarObj(aCx, JS_NewPlainObject(aCx));
@@ -3089,7 +3141,7 @@ TelemetryScalar::CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars,
       }
 
       // Add the scalar to the root object.
-      if (!JS_DefineProperty(aCx, processObj, mozilla::Get<0>(keyedScalarData), keyedScalarObj, JSPROP_ENUMERATE)) {
+      if (!JS_DefineProperty(aCx, processObj, scalarName, keyedScalarObj, JSPROP_ENUMERATE)) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -3263,7 +3315,7 @@ TelemetryScalar::SummarizeEvent(const nsCString& aUniqueEventName,
   // Set this each time as it may have been cleared and recreated between calls
   scalar->SetMaximumNumberOfKeys(sMaxEventSummaryKeys);
 
-  scalar->AddValue(NS_ConvertASCIItoUTF16(aUniqueEventName), 1);
+  scalar->AddValue(lock, NS_ConvertASCIItoUTF16(aUniqueEventName), 1);
 }
 
 /**

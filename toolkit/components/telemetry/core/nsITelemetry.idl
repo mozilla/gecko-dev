@@ -52,18 +52,81 @@ interface nsITelemetry : nsISupports
 
 
   /**
-   * Serializes the histograms from the given dataset to a JSON-style object.
+   * Serializes the histograms from the given store to a JSON-style object.
    * The returned structure looks like:
-   *   { process1: {name1: {histogramData1}, name2:{histogramData2}...}}
+   *   { "process": { "name1": histogramData1, "name2": histogramData2 }, ... }
    *
-   * Where histogramDataN has the following properties:
-   *   min - minimum bucket size
-   *   max - maximum bucket size
+   * Each histogram is represented in a packed format and has the following properties:
+   *   bucket_count - Number of buckets of this histogram
    *   histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, HISTOGRAM_BOOLEAN,
    *                    HISTOGRAM_FLAG, HISTOGRAM_COUNT, or HISTOGRAM_CATEGORICAL
-   *   counts - array representing contents of the buckets in the histogram
-   *   ranges - array with calculated bucket sizes
    *   sum - sum of the bucket contents
+   *   range - A 2-item array of minimum and maximum bucket size
+   *   values - Map from bucket to the bucket's count
+   *
+   * @param aStoreName The name of the store to snapshot. Ignored at the moment.
+   * @param aClearStore Whether to clear out the histograms in the named store after snapshotting.
+   * @param aFilterTest If true, `TELEMETRY_TEST_` histograms will be filtered out.
+                        Filtered histograms are still cleared if `aClearStore` is true.
+   *                    Defaults to false.
+   */
+  [implicit_jscontext]
+  jsval getSnapshotForHistograms(in ACString aStoreName, in boolean aClearStore, [optional] in boolean aFilterTest);
+
+  /**
+   * Serializes the keyed histograms from the given store to a JSON-style object.
+   * The returned structure looks like:
+   *   { "process": { "name1": { "key_1": histogramData1, "key_2": histogramData2 }, ...}, ... }
+   *
+   * @param aStoreName The name of the store to snapshot. Ignored at the moment.
+   * @param aClearStore Whether to clear out the keyed histograms in the named store after snapshotting.
+   * @param aFilterTest If true, `TELEMETRY_TEST_` histograms will be filtered out.
+                        Filtered histograms are still cleared if `aClearStore` is true.
+   *                    Defaults to false.
+   */
+  [implicit_jscontext]
+  jsval getSnapshotForKeyedHistograms(in ACString aStoreName, in boolean aClearStore, [optional] in boolean aFilterTest);
+
+  /**
+   * Serializes the scalars from the given store to a JSON-style object.
+   * The returned structure looks like:
+   *   { "process": { "category1.probe": 1,"category1.other_probe": false, ... }, ... }.
+   *
+   * @param aStoreName The name of the store to snapshot. Ignored at the moment.
+   * @param aClearStore Whether to clear out the scalars in the named store after snapshotting.
+   * @param aFilterTest If true, `telemetry.test` scalars will be filtered out.
+                        Filtered scalars are still cleared if `aClearStore` is true.
+   *                    Defaults to false.
+   */
+  [implicit_jscontext]
+  jsval getSnapshotForScalars(in ACString aStoreName, in boolean aClearStore, [optional] in boolean aFilterTest);
+
+  /**
+   * Serializes the keyed scalars from the given store to a JSON-style object.
+   * The returned structure looks like:
+   *   { "process": { "category1.probe": { "key_1": 2, "key_2": 1, ... }, ... }, ... }
+   *
+   * @param aStoreName The name of the store to snapshot. Ignored at the moment.
+   * @param aClearStore Whether to clear out the keyed scalars in the named store after snapshotting.
+   * @param aFilterTest If true, `telemetry.test` scalars will be filtered out.
+                        Filtered scalars are still cleared if `aClearStore` is true.
+   *                    Defaults to false.
+   */
+  [implicit_jscontext]
+  jsval getSnapshotForKeyedScalars(in ACString aStoreName, in boolean aClearStore, [optional] in boolean aFilterTest);
+
+  /**
+   * Serializes the histograms from the given dataset to a JSON-style object.
+   * The returned structure looks like:
+   *   { "process": { "name1": histogramData1, "name2": histogramData2 }, ... }
+   *
+   * Each histogram is represented in a packed format and has the following properties:
+   *   bucket_count - Number of buckets of this histogram
+   *   histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, HISTOGRAM_BOOLEAN,
+   *                    HISTOGRAM_FLAG, HISTOGRAM_COUNT, or HISTOGRAM_CATEGORICAL
+   *   sum - sum of the bucket contents
+   *   range - A 2-item array of minimum and maximum bucket size
+   *   values - Map from bucket to the bucket's count
    *
    * @param aDataset DATASET_RELEASE_CHANNEL_OPTOUT or DATASET_RELEASE_CHANNEL_OPTIN.
    * @param aClear Whether to clear out the histograms after snapshotting
@@ -78,7 +141,7 @@ interface nsITelemetry : nsISupports
   readonly attribute uint32_t lastShutdownDuration;
 
   /**
-   * The number of failed profile lock attempts that have occurred prior to 
+   * The number of failed profile lock attempts that have occurred prior to
    * successfully locking the profile
    */
   readonly attribute uint32_t failedProfileLockCount;
@@ -127,6 +190,15 @@ interface nsITelemetry : nsISupports
    * reached during this session.
    */
   readonly attribute uint32_t maximalNumberOfConcurrentThreads;
+
+  /*
+   * An array of untrusted module load events. Each element describes one or
+   * more modules that were loaded, contextual information at the time of the
+   * event (including stack trace), and flags describing the module's
+   * trustworthiness.
+   */
+  [implicit_jscontext]
+  Promise getUntrustedModuleLoadEvents();
 
   /*
    * Record the current thread's call stack on demand. Note that, the stack is
@@ -212,8 +284,6 @@ interface nsITelemetry : nsISupports
    *   add(int) - Adds an int value to the appropriate bucket
    *   snapshot() - Returns a snapshot of the histogram with the same data fields as in histogramSnapshots()
    *   clear() - Zeros out the histogram's buckets and sum. This is intended to be only used in tests.
-   *   dataset() - identifies what dataset this is in: DATASET_RELEASE_CHANNEL_OPTOUT or ...OPTIN.
-   *               This is intended to be only used in tests.
    */
   [implicit_jscontext]
   jsval getHistogramById(in ACString id);
@@ -239,8 +309,6 @@ interface nsITelemetry : nsISupports
    *   keys() - Returns an array with the string keys of the currently registered histograms
    *   clear() - Clears the registered histograms from this.
    *             This is intended to be only used in tests.
-   *   dataset() - identifies what dataset this is in: DATASET_RELEASE_CHANNEL_OPTOUT or ...OPTIN.
-   *               This is intended to be only used in tests.
    */
   [implicit_jscontext]
   jsval getKeyedHistogramById(in ACString id);

@@ -7,24 +7,11 @@
 #ifndef jit_BaselineCompiler_h
 #define jit_BaselineCompiler_h
 
+#include "jit/BaselineFrameInfo.h"
+#include "jit/BaselineIC.h"
+#include "jit/BytecodeAnalysis.h"
 #include "jit/FixedList.h"
-#if defined(JS_CODEGEN_X86)
-# include "jit/x86/BaselineCompiler-x86.h"
-#elif defined(JS_CODEGEN_X64)
-# include "jit/x64/BaselineCompiler-x64.h"
-#elif defined(JS_CODEGEN_ARM)
-# include "jit/arm/BaselineCompiler-arm.h"
-#elif defined(JS_CODEGEN_ARM64)
-# include "jit/arm64/BaselineCompiler-arm64.h"
-#elif defined(JS_CODEGEN_MIPS32)
-# include "jit/mips32/BaselineCompiler-mips32.h"
-#elif defined(JS_CODEGEN_MIPS64)
-# include "jit/mips64/BaselineCompiler-mips64.h"
-#elif defined(JS_CODEGEN_NONE)
-# include "jit/none/BaselineCompiler-none.h"
-#else
-# error "Unknown architecture!"
-#endif
+#include "jit/MacroAssembler.h"
 
 namespace js {
 namespace jit {
@@ -65,6 +52,7 @@ namespace jit {
     _(JSOP_INT32)              \
     _(JSOP_UINT16)             \
     _(JSOP_UINT24)             \
+    _(JSOP_RESUMEINDEX)        \
     _(JSOP_DOUBLE)             \
     _(JSOP_STRING)             \
     _(JSOP_SYMBOL)             \
@@ -258,28 +246,77 @@ namespace jit {
     _(JSOP_FUNWITHPROTO)       \
     _(JSOP_CLASSCONSTRUCTOR)   \
     _(JSOP_DERIVEDCONSTRUCTOR) \
-    _(JSOP_IMPORTMETA)
+    _(JSOP_IMPORTMETA)         \
+    _(JSOP_DYNAMIC_IMPORT)
 
-class BaselineCompiler : public BaselineCompilerSpecific
+class BaselineCompiler final
 {
-    FixedList<Label>            labels_;
-    NonAssertingLabel           return_;
-    NonAssertingLabel           postBarrierSlot_;
+    JSContext* cx;
+    JSScript* script;
+    jsbytecode* pc;
+    StackMacroAssembler masm;
+    bool ionCompileable_;
+    bool compileDebugInstrumentation_;
 
-    // Native code offset right before the scope chain is initialized.
-    CodeOffset prologueOffset_;
+    TempAllocator& alloc_;
+    BytecodeAnalysis analysis_;
+    FrameInfo frame;
 
-    // Native code offset right before the frame is popped and the method
-    // returned from.
-    CodeOffset epilogueOffset_;
+    FallbackICStubSpace stubSpace_;
+    js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
+    js::Vector<RetAddrEntry, 16, SystemAllocPolicy> retAddrEntries_;
 
-    // Native code offset right after debug prologue and epilogue, or
-    // equivalent positions when debug mode is off.
-    CodeOffset postDebugPrologueOffset_;
+    // Stores the native code offset for a bytecode pc.
+    struct PCMappingEntry
+    {
+        uint32_t pcOffset;
+        uint32_t nativeOffset;
+        PCMappingSlotInfo slotInfo;
 
-    // For each INITIALYIELD or YIELD or AWAIT op, this Vector maps the yield
-    // index to the bytecode offset of the next op.
-    Vector<uint32_t>            yieldAndAwaitOffsets_;
+        // If set, insert a PCMappingIndexEntry before encoding the
+        // current entry.
+        bool addIndexEntry;
+    };
+
+    js::Vector<PCMappingEntry, 16, SystemAllocPolicy> pcMappingEntries_;
+
+    // Labels for the 'movWithPatch' for loading IC entry pointers in
+    // the generated IC-calling code in the main jitcode.  These need
+    // to be patched with the actual icEntry offsets after the BaselineScript
+    // has been allocated.
+    struct ICLoadLabel {
+        size_t icEntry;
+        CodeOffset label;
+    };
+    js::Vector<ICLoadLabel, 16, SystemAllocPolicy> icLoadLabels_;
+
+    uint32_t pushedBeforeCall_;
+#ifdef DEBUG
+    bool inCall_;
+#endif
+
+    CodeOffset profilerPushToggleOffset_;
+    CodeOffset profilerEnterFrameToggleOffset_;
+    CodeOffset profilerExitFrameToggleOffset_;
+
+    Vector<CodeOffset> traceLoggerToggleOffsets_;
+    CodeOffset traceLoggerScriptTextIdOffset_;
+
+    FixedList<Label> labels_;
+    NonAssertingLabel return_;
+    NonAssertingLabel postBarrierSlot_;
+
+    // Early Ion bailouts will enter at this address. This is after frame
+    // construction and before environment chain is initialized.
+    CodeOffset bailoutPrologueOffset_;
+
+    // Baseline Debug OSR during prologue will enter at this address. This is
+    // right after where a debug prologue VM call would have returned.
+    CodeOffset debugOsrPrologueOffset_;
+
+    // Baseline Debug OSR during epilogue will enter at this address. This is
+    // right after where a debug epilogue VM call would have returned.
+    CodeOffset debugOsrEpilogueOffset_;
 
     // Whether any on stack arguments are modified.
     bool modifiesArguments_;
@@ -301,7 +338,79 @@ class BaselineCompiler : public BaselineCompilerSpecific
 
     MethodStatus compile();
 
+    void setCompileDebugInstrumentation() {
+        compileDebugInstrumentation_ = true;
+    }
+
   private:
+    MOZ_MUST_USE bool appendRetAddrEntry(RetAddrEntry::Kind kind, uint32_t retOffset) {
+        if (!retAddrEntries_.emplaceBack(script->pcToOffset(pc), kind, CodeOffset(retOffset))) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
+    }
+
+    bool addICLoadLabel(CodeOffset label) {
+        MOZ_ASSERT(!icEntries_.empty());
+        ICLoadLabel loadLabel;
+        loadLabel.label = label;
+        loadLabel.icEntry = icEntries_.length() - 1;
+        if (!icLoadLabels_.append(loadLabel)) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
+    }
+
+    JSFunction* function() const {
+        // Not delazifying here is ok as the function is guaranteed to have
+        // been delazified before compilation started.
+        return script->functionNonDelazifying();
+    }
+
+    ModuleObject* module() const {
+        return script->module();
+    }
+
+    PCMappingSlotInfo getStackTopSlotInfo() {
+        MOZ_ASSERT(frame.numUnsyncedSlots() <= 2);
+        switch (frame.numUnsyncedSlots()) {
+          case 0:
+            return PCMappingSlotInfo::MakeSlotInfo();
+          case 1:
+            return PCMappingSlotInfo::MakeSlotInfo(PCMappingSlotInfo::ToSlotLocation(frame.peek(-1)));
+          case 2:
+          default:
+            return PCMappingSlotInfo::MakeSlotInfo(PCMappingSlotInfo::ToSlotLocation(frame.peek(-1)),
+                                                   PCMappingSlotInfo::ToSlotLocation(frame.peek(-2)));
+        }
+    }
+
+    template <typename T>
+    void pushArg(const T& t) {
+        masm.Push(t);
+    }
+    void prepareVMCall();
+
+    enum CallVMPhase {
+        POST_INITIALIZE,
+        CHECK_OVER_RECURSED
+    };
+    bool callVM(const VMFunction& fun, CallVMPhase phase=POST_INITIALIZE);
+
+    bool callVMNonOp(const VMFunction& fun, CallVMPhase phase=POST_INITIALIZE) {
+        if (!callVM(fun, phase)) {
+            return false;
+        }
+        retAddrEntries_.back().setKind(RetAddrEntry::Kind::NonOpCallVM);
+        return true;
+    }
+
+    BytecodeAnalysis& analysis() {
+        return analysis_;
+    }
+
     MethodStatus emitBody();
 
     MOZ_MUST_USE bool emitCheckThis(ValueOperand val, bool reinit=false);
@@ -311,15 +420,15 @@ class BaselineCompiler : public BaselineCompilerSpecific
     MOZ_MUST_USE bool emitPrologue();
     MOZ_MUST_USE bool emitEpilogue();
     MOZ_MUST_USE bool emitOutOfLinePostBarrierSlot();
-    MOZ_MUST_USE bool emitIC(ICStub* stub, ICEntry::Kind kind);
+    MOZ_MUST_USE bool emitIC(ICStub* stub, bool isForOp);
     MOZ_MUST_USE bool emitOpIC(ICStub* stub) {
-        return emitIC(stub, ICEntry::Kind_Op);
+        return emitIC(stub, true);
     }
     MOZ_MUST_USE bool emitNonOpIC(ICStub* stub) {
-        return emitIC(stub, ICEntry::Kind_NonOp);
+        return emitIC(stub, false);
     }
 
-    MOZ_MUST_USE bool emitStackCheck(bool earlyCheck=false);
+    MOZ_MUST_USE bool emitStackCheck();
     MOZ_MUST_USE bool emitInterruptCheck();
     MOZ_MUST_USE bool emitWarmUpCounterIncrement(bool allowOsr=true);
     MOZ_MUST_USE bool emitArgumentTypeChecks();
@@ -370,8 +479,6 @@ class BaselineCompiler : public BaselineCompilerSpecific
     MOZ_MUST_USE bool emitIsMagicValue();
 
     MOZ_MUST_USE bool addPCMappingEntry(bool addIndexEntry);
-
-    MOZ_MUST_USE bool addYieldAndAwaitOffset();
 
     void getEnvironmentCoordinateObject(Register reg);
     Address getEnvironmentCoordinateAddressFromObject(Register objReg, Register reg);

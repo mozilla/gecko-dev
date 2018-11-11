@@ -17,7 +17,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/ChaosMode.h"
 #include "mozilla/LoadInfo.h"
-#include "mozilla/Telemetry.h"
 
 #include "nsImageModule.h"
 #include "imgRequestProxy.h"
@@ -1414,9 +1413,6 @@ void imgLoader::GlobalInit()
   RegisterStrongAsyncMemoryReporter(sMemReporter);
   RegisterImagesContentUsedUncompressedDistinguishedAmount(
     imgMemoryReporter::ImagesContentUsedUncompressedDistinguishedAmount);
-
-  Telemetry::ScalarSet(Telemetry::ScalarID::IMAGES_WEBP_PROBE_OBSERVED, false);
-  Telemetry::ScalarSet(Telemetry::ScalarID::IMAGES_WEBP_CONTENT_OBSERVED, false);
 }
 
 void imgLoader::ShutdownMemoryReporter()
@@ -2041,9 +2037,13 @@ imgLoader::ValidateEntry(imgCacheEntry* aEntry,
   //
   // XXX: nullptr seems to be a 'special' key value that indicates that NO
   //      validation is required.
-  //
+  // XXX: we also check the window ID because the loadID() can return a reused
+  //      pointer of a document. This can still happen for non-document image
+  //      cache entries.
   void *key = (void*) aCX;
-  if (request->LoadId() != key) {
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aCX);
+  uint64_t innerWindowID = doc ? doc->InnerWindowID() : 0;
+  if (request->LoadId() != key || request->InnerWindowID() != innerWindowID) {
     // If we would need to revalidate this entry, but we're being told to
     // bypass the cache, we don't allow this entry to be used.
     if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
@@ -2317,6 +2317,11 @@ imgLoader::LoadImage(nsIURI* aURI,
   if (!aURI) {
     return NS_ERROR_NULL_POINTER;
   }
+
+#ifdef MOZ_GECKO_PROFILER
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
+    "imgLoader::LoadImage", NETWORK, aURI->GetSpecOrDefault());
+#endif
 
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgLoader::LoadImage", "aURI", aURI);
 

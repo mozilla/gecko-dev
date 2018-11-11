@@ -28,9 +28,9 @@
 #include "nsThreadUtils.h"
 #include "nss.h"
 #include "pk11pub.h"
-#include "pkix/Result.h"
-#include "pkix/pkix.h"
-#include "pkix/pkixnss.h"
+#include "mozpkix/Result.h"
+#include "mozpkix/pkix.h"
+#include "mozpkix/pkixnss.h"
 #include "prerror.h"
 #include "secerr.h"
 
@@ -582,7 +582,6 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     Result tempRV = DoOCSPRequest(aiaLocation, mOriginAttributes,
                                   std::move(ocspRequest), GetOCSPTimeout(),
                                   ocspResponse);
-    MOZ_ASSERT((tempRV != Success) || ocspResponse.length() > 0);
     if (tempRV != Success) {
       rv = tempRV;
     } else if (response.Init(ocspResponse.begin(), ocspResponse.length())

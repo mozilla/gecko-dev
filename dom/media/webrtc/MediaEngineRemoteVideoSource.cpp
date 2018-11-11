@@ -592,7 +592,7 @@ MediaEngineRemoteVideoSource::DeliverFrame(uint8_t* aBuffer,
   }
 
   rtc::Callback0<void> callback_unused;
-  rtc::scoped_refptr<webrtc::VideoFrameBuffer> buffer =
+  rtc::scoped_refptr<webrtc::I420BufferInterface> buffer =
     new rtc::RefCountedObject<webrtc::WrappedI420Buffer>(
       aProps.width(),
       aProps.height(),
@@ -797,59 +797,10 @@ MediaEngineRemoteVideoSource::GetBestFitnessDistance(
 }
 
 static void
-LogConstraints(const NormalizedConstraintSet& aConstraints)
-{
-  auto& c = aConstraints;
-  if (c.mWidth.mIdeal.isSome()) {
-    LOG(("Constraints: width: { min: %d, max: %d, ideal: %d }",
-         c.mWidth.mMin, c.mWidth.mMax,
-         c.mWidth.mIdeal.valueOr(0)));
-  } else {
-    LOG(("Constraints: width: { min: %d, max: %d }",
-         c.mWidth.mMin, c.mWidth.mMax));
-  }
-  if (c.mHeight.mIdeal.isSome()) {
-    LOG(("             height: { min: %d, max: %d, ideal: %d }",
-         c.mHeight.mMin, c.mHeight.mMax,
-         c.mHeight.mIdeal.valueOr(0)));
-  } else {
-    LOG(("             height: { min: %d, max: %d }",
-         c.mHeight.mMin, c.mHeight.mMax));
-  }
-  if (c.mFrameRate.mIdeal.isSome()) {
-    LOG(("             frameRate: { min: %f, max: %f, ideal: %f }",
-         c.mFrameRate.mMin, c.mFrameRate.mMax,
-         c.mFrameRate.mIdeal.valueOr(0)));
-  } else {
-    LOG(("             frameRate: { min: %f, max: %f }",
-         c.mFrameRate.mMin, c.mFrameRate.mMax));
-  }
-}
-
-static void
 LogCapability(const char* aHeader,
               const webrtc::CaptureCapability &aCapability,
               uint32_t aDistance)
 {
-  // RawVideoType and VideoCodecType media/webrtc/trunk/webrtc/common_types.h
-  static const char* const types[] = {
-    "I420",
-    "YV12",
-    "YUY2",
-    "UYVY",
-    "IYUV",
-    "ARGB",
-    "RGB24",
-    "RGB565",
-    "ARGB4444",
-    "ARGB1555",
-    "MJPEG",
-    "NV12",
-    "NV21",
-    "BGRA",
-    "Unknown type"
-  };
-
   static const char* const codec[] = {
     "VP8",
     "VP9",
@@ -861,11 +812,9 @@ LogCapability(const char* aHeader,
     "Unknown codec"
   };
 
-  LOG(("%s: %4u x %4u x %2u maxFps, %s, %s. Distance = %" PRIu32,
+  LOG(("%s: %4u x %4u x %2u maxFps, %s. Distance = %" PRIu32,
        aHeader, aCapability.width, aCapability.height, aCapability.maxFPS,
-       types[std::min(std::max(uint32_t(0), uint32_t(aCapability.rawType)),
-                      uint32_t(sizeof(types) / sizeof(*types) - 1))],
-       codec[std::min(std::max(uint32_t(0), uint32_t(aCapability.codecType)),
+       codec[std::min(std::max(uint32_t(0), uint32_t(aCapability.videoType)),
                       uint32_t(sizeof(codec) / sizeof(*codec) - 1))],
        aDistance));
 }
@@ -885,11 +834,11 @@ MediaEngineRemoteVideoSource::ChooseCapability(
     LOG(("ChooseCapability: prefs: %dx%d @%dfps",
          aPrefs.GetWidth(), aPrefs.GetHeight(),
          aPrefs.mFPS));
-    LogConstraints(aConstraints);
+    MediaConstraintsHelper::LogConstraints(aConstraints);
     if (!aConstraints.mAdvanced.empty()) {
       LOG(("Advanced array[%zu]:", aConstraints.mAdvanced.size()));
       for (auto& advanced : aConstraints.mAdvanced) {
-        LogConstraints(advanced);
+        MediaConstraintsHelper::LogConstraints(advanced);
       }
     }
   }
@@ -1021,9 +970,9 @@ MediaEngineRemoteVideoSource::ChooseCapability(
   uint32_t sameDistance = candidateSet[0].mDistance;
   {
     MediaTrackConstraintSet prefs;
-    prefs.mWidth.SetAsLong() = aPrefs.GetWidth();
-    prefs.mHeight.SetAsLong() = aPrefs.GetHeight();
-    prefs.mFrameRate.SetAsDouble() = aPrefs.mFPS;
+    prefs.mWidth.Construct().SetAsLong() = aPrefs.GetWidth();
+    prefs.mHeight.Construct().SetAsLong() = aPrefs.GetHeight();
+    prefs.mFrameRate.Construct().SetAsDouble() = aPrefs.mFPS;
     NormalizedConstraintSet normPrefs(prefs, false);
 
     for (auto& candidate : candidateSet) {
@@ -1033,24 +982,7 @@ MediaEngineRemoteVideoSource::ChooseCapability(
     TrimLessFitCandidates(candidateSet);
   }
 
-  // Any remaining multiples all have the same distance, but may vary on
-  // format. Some formats are more desirable for certain use like WebRTC.
-  // E.g. I420 over RGB24 can remove a needless format conversion.
-
-  bool found = false;
-  for (auto& candidate : candidateSet) {
-    const webrtc::CaptureCapability& cap = candidate.mCapability;
-    if (cap.rawType == webrtc::RawVideoType::kVideoI420 ||
-        cap.rawType == webrtc::RawVideoType::kVideoYUY2 ||
-        cap.rawType == webrtc::RawVideoType::kVideoYV12) {
-      aCapability = cap;
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    aCapability = candidateSet[0].mCapability;
-  }
+  aCapability = candidateSet[0].mCapability;
 
   LogCapability("Chosen capability", aCapability, sameDistance);
   return true;

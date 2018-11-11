@@ -4,12 +4,11 @@
 
 "use strict";
 
-const { throttle } = require("devtools/client/inspector/shared/utils");
 const flags = require("devtools/shared/flags");
+const { throttle } = require("devtools/shared/throttle");
 
 const {
   clearFlexbox,
-  toggleFlexItemShown,
   updateFlexbox,
   updateFlexboxColor,
   updateFlexboxHighlighted,
@@ -35,7 +34,6 @@ class FlexboxInspector {
     this.onSetFlexboxOverlayColor = this.onSetFlexboxOverlayColor.bind(this);
     this.onSidebarSelect = this.onSidebarSelect.bind(this);
     this.onToggleFlexboxHighlighter = this.onToggleFlexboxHighlighter.bind(this);
-    this.onToggleFlexItemShown = this.onToggleFlexItemShown.bind(this);
     this.onUpdatePanel = this.onUpdatePanel.bind(this);
 
     this.init();
@@ -105,11 +103,55 @@ class FlexboxInspector {
     this.walker = null;
   }
 
+  /**
+   * If the current selected node is a flex container, check if it is also a flex item of
+   * a parent flex container and get its parent flex container if any and returns an
+   * object that consists of the parent flex container's items and properties.
+   *
+   * @param  {NodeFront} containerNodeFront
+   *         The current flex container of the selected node.
+   * @return {Object} consiting of the parent flex container's flex items and properties.
+   */
+  async getAsFlexItem(containerNodeFront) {
+    // If the current selected node is not a flex container, we know it is a flex item.
+    // No need to look for the parent flex container.
+    if (containerNodeFront !== this.selection.nodeFront) {
+      return null;
+    }
+
+    const flexboxFront = await this.layoutInspector.getCurrentFlexbox(
+      this.selection.nodeFront, true);
+
+    if (!flexboxFront) {
+      return null;
+    }
+
+    containerNodeFront = flexboxFront.containerNodeFront;
+    if (!containerNodeFront) {
+      containerNodeFront = await this.walker.getNodeFromActor(flexboxFront.actorID,
+        ["containerEl"]);
+    }
+
+    let flexItemContainer = null;
+    if (flexboxFront) {
+      const flexItems = await this.getFlexItems(flexboxFront);
+      flexItemContainer = {
+        actorID: flexboxFront.actorID,
+        flexItems,
+        flexItemShown: this.selection.nodeFront.actorID,
+        isFlexItemContainer: true,
+        nodeFront: containerNodeFront,
+        properties: flexboxFront.properties,
+      };
+    }
+
+    return flexItemContainer;
+  }
+
   getComponentProps() {
     return {
       onSetFlexboxOverlayColor: this.onSetFlexboxOverlayColor,
       onToggleFlexboxHighlighter: this.onToggleFlexboxHighlighter,
-      onToggleFlexItemShown: this.onToggleFlexItemShown,
     };
   }
 
@@ -150,6 +192,7 @@ class FlexboxInspector {
 
       flexItems.push({
         actorID: flexItemFront.actorID,
+        computedStyle: flexItemFront.computedStyle,
         flexItemSizing: flexItemFront.flexItemSizing,
         nodeFront: itemNodeFront,
         properties: flexItemFront.properties,
@@ -230,7 +273,8 @@ class FlexboxInspector {
   onHighlighterChange(highlighted, nodeFront) {
     const { flexbox } = this.store.getState();
 
-    if (flexbox.nodeFront === nodeFront && flexbox.highlighted !== highlighted) {
+    if (flexbox.flexContainer.nodeFront === nodeFront &&
+        flexbox.highlighted !== highlighted) {
       this.store.dispatch(updateFlexboxHighlighted(highlighted));
     }
   }
@@ -295,15 +339,15 @@ class FlexboxInspector {
     const { flexbox } = this.store.getState();
 
     if (flexbox.highlighted) {
-      this.highlighters.showFlexboxHighlighter(flexbox.nodeFront);
+      this.highlighters.showFlexboxHighlighter(flexbox.flexContainer.nodeFront);
     }
 
     const currentUrl = this.inspector.target.url;
     // Get the hostname, if there is no hostname, fall back on protocol
     // ex: `data:` uri, and `about:` pages
-    const hostName = parseURL(currentUrl).hostName || parseURL(currentUrl).protocol;
+    const hostname = parseURL(currentUrl).hostname || parseURL(currentUrl).protocol;
     const customColors = await this.getCustomHostColors();
-    customColors[hostName] = color;
+    customColors[hostname] = color;
     this._customHostColors = customColors;
     await asyncStorage.setItem("flexboxInspectorHostColors", customColors);
   }
@@ -339,24 +383,6 @@ class FlexboxInspector {
     this.highlighters.toggleFlexboxHighlighter(node);
     this.store.dispatch(updateFlexboxHighlighted(node !==
       this.highlighters.flexboxHighlighterShow));
-  }
-
-  /**
-   * Handler for a change in the input checkbox in the FlexItem and Header component.
-   * Toggles on/off the flex item highlighter for the provided flex item element and
-   * changes the selection to the given node.
-   *
-   * @param  {NodeFront|null} node
-   *         The NodeFront of the flex item element for which the flex item is toggled
-   *         on/off for.
-   */
-  onToggleFlexItemShown(node) {
-    this.highlighters.toggleFlexItemHighlighter(node);
-    this.store.dispatch(toggleFlexItemShown(node));
-
-    if (node) {
-      this.selection.setNodeFront(node);
-    }
   }
 
   /**
@@ -412,6 +438,7 @@ class FlexboxInspector {
           ["containerEl"]);
       }
 
+      const flexItemContainer = await this.getAsFlexItem(containerNodeFront);
       const flexItems = await this.getFlexItems(flexboxFront);
       // If the current selected node is a flex item, display its flex item sizing
       // properties.
@@ -422,13 +449,17 @@ class FlexboxInspector {
       const color = await this.getOverlayColor();
 
       this.store.dispatch(updateFlexbox({
-        actorID: flexboxFront.actorID,
         color,
-        flexItems,
-        flexItemShown: flexItemShown ? flexItemShown.nodeFront.actorID : null,
+        flexContainer: {
+          actorID: flexboxFront.actorID,
+          flexItems,
+          flexItemShown: flexItemShown ? flexItemShown.nodeFront.actorID : null,
+          isFlexItemContainer: false,
+          nodeFront: containerNodeFront,
+          properties: flexboxFront.properties,
+        },
+        flexItemContainer,
         highlighted,
-        nodeFront: containerNodeFront,
-        properties: flexboxFront.properties,
       }));
     } catch (e) {
       // This call might fail if called asynchrously after the toolbox is finished

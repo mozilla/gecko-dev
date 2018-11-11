@@ -9,19 +9,9 @@
 "use strict";
 
 let fakeController;
-let sandbox;
 let generalListener;
 let input;
 let inputOptions;
-
-ChromeUtils.import("resource:///modules/UrlbarController.jsm", this);
-
-/* global sinon */
-Services.scriptloader.loadSubScript("resource://testing-common/sinon-2.3.2.js");
-
-registerCleanupFunction(function() {
-  delete window.sinon;
-});
 
 /**
  * Asserts that the query context has the expected values.
@@ -40,7 +30,7 @@ function assertContextMatches(context, expectedValues) {
 }
 
 /**
- * Checks the result of a handleQuery call on the controller.
+ * Checks the result of a startQuery call on the controller.
  *
  * @param {object} stub The sinon stub that should have been called with the
  *                      QueryContext.
@@ -48,13 +38,13 @@ function assertContextMatches(context, expectedValues) {
  *                   An object consisting of name/value pairs to check against the
  *                   QueryContext properties.
  */
-function checkHandleQueryCall(stub, expectedQueryContextProps) {
+function checkStartQueryCall(stub, expectedQueryContextProps) {
   Assert.equal(stub.callCount, 1,
-    "Should have called handleQuery on the controller");
+    "Should have called startQuery on the controller");
 
   let args = stub.args[0];
   Assert.equal(args.length, 1,
-    "Should have called handleQuery with one argument");
+    "Should have called startQuery with one argument");
 
   let queryContext = args[0];
   Assert.ok(queryContext instanceof QueryContext,
@@ -69,9 +59,11 @@ function checkHandleQueryCall(stub, expectedQueryContextProps) {
 add_task(async function setup() {
   sandbox = sinon.sandbox.create();
 
-  fakeController = new UrlbarController();
+  fakeController = new UrlbarController({
+    browserWindow: window,
+  });
 
-  sandbox.stub(fakeController, "handleQuery");
+  sandbox.stub(fakeController, "startQuery");
   sandbox.stub(PrivateBrowsingUtils, "isWindowPrivate").returns(false);
 
   // Open a new window, so we don't affect other tests by adding extra
@@ -81,6 +73,8 @@ add_task(async function setup() {
   let win = window.openDialog(gTestRoot + "empty.xul",
                     "", "chrome");
   await BrowserTestUtils.waitForEvent(win, "load");
+
+  win.gBrowser = {};
 
   registerCleanupFunction(async () => {
     await BrowserTestUtils.closeWindow(win);
@@ -112,9 +106,10 @@ add_task(function test_input_starts_query() {
     type: "input",
   });
 
-  checkHandleQueryCall(fakeController.handleQuery, {
+  checkStartQueryCall(fakeController.startQuery, {
     searchString: "search",
     isPrivate: false,
+    maxResults: UrlbarPrefs.get("maxRichResults"),
   });
 
   sandbox.resetHistory();
@@ -134,7 +129,7 @@ add_task(function test_input_with_private_browsing() {
     type: "input",
   });
 
-  checkHandleQueryCall(fakeController.handleQuery, {
+  checkStartQueryCall(fakeController.startQuery, {
     searchString: "search",
     isPrivate: true,
   });

@@ -84,7 +84,8 @@ pub extern crate servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate servo_atoms;
-#[cfg(feature = "servo")] extern crate servo_channel;
+#[cfg(feature = "servo")]
+extern crate servo_channel;
 #[cfg(feature = "servo")]
 extern crate servo_config;
 #[cfg(feature = "servo")]
@@ -142,6 +143,7 @@ pub mod media_queries;
 pub mod parallel;
 pub mod parser;
 pub mod rule_cache;
+pub mod rule_collector;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_map;
@@ -168,20 +170,20 @@ pub use gecko_string_cache as string_cache;
 #[cfg(feature = "gecko")]
 pub use gecko_string_cache::Atom;
 #[cfg(feature = "gecko")]
-pub use gecko_string_cache::Namespace;
-#[cfg(feature = "gecko")]
 pub use gecko_string_cache::Atom as Prefix;
 #[cfg(feature = "gecko")]
 pub use gecko_string_cache::Atom as LocalName;
+#[cfg(feature = "gecko")]
+pub use gecko_string_cache::Namespace;
 
-#[cfg(feature = "servo")]
-pub use servo_atoms::Atom;
-#[cfg(feature = "servo")]
-pub use html5ever::Prefix;
 #[cfg(feature = "servo")]
 pub use html5ever::LocalName;
 #[cfg(feature = "servo")]
 pub use html5ever::Namespace;
+#[cfg(feature = "servo")]
+pub use html5ever::Prefix;
+#[cfg(feature = "servo")]
+pub use servo_atoms::Atom;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs

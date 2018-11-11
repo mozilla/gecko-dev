@@ -62,7 +62,21 @@ ReplayDebugger.prototype = {
   replayResumeBackward() { RecordReplayControl.resume(/* forward = */ false); },
   replayResumeForward() { RecordReplayControl.resume(/* forward = */ true); },
   replayTimeWarp: RecordReplayControl.timeWarp,
-  replayPause: RecordReplayControl.pause,
+
+  replayPause() {
+    RecordReplayControl.pause();
+    this._repaint();
+  },
+
+  replayCurrentExecutionPoint() {
+    return this._sendRequest({ type: "currentExecutionPoint" });
+  },
+
+  replayRecordingEndpoint() {
+    return this._sendRequest({ type: "recordingEndpoint" });
+  },
+
+  replayIsRecording: RecordReplayControl.childIsRecording,
 
   addDebuggee() {},
   removeAllDebuggees() {},
@@ -88,6 +102,18 @@ ReplayDebugger.prototype = {
   _sendRequestAllowDiverge(request) {
     RecordReplayControl.maybeSwitchToReplayingChild();
     return this._sendRequest(request);
+  },
+
+  // Update graphics according to the current state of the child process. This
+  // should be done anytime we pause and allow the user to interact with the
+  // debugger.
+  _repaint() {
+    const rv = this._sendRequestAllowDiverge({ type: "repaint" });
+    if ("width" in rv && "height" in rv) {
+      RecordReplayControl.hadRepaint(rv.width, rv.height);
+    } else {
+      RecordReplayControl.hadRepaintFailure();
+    }
   },
 
   _setBreakpoint(handler, position, data) {
@@ -163,10 +189,24 @@ ReplayDebugger.prototype = {
     return this._scripts[data.id];
   },
 
-  findScripts() {
-    // Note: Debugger's findScripts() method takes a query argument, which
-    // we ignore here.
-    const data = this._sendRequest({ type: "findScripts" });
+  _convertScriptQuery(query) {
+    // Make a copy of the query, converting properties referring to debugger
+    // things into their associated ids.
+    const rv = Object.assign({}, query);
+    if ("global" in query) {
+      rv.global = query.global._data.id;
+    }
+    if ("source" in query) {
+      rv.source = query.source._data.id;
+    }
+    return rv;
+  },
+
+  findScripts(query) {
+    const data = this._sendRequest({
+      type: "findScripts",
+      query: this._convertScriptQuery(query),
+    });
     return data.map(script => this._addScript(script));
   },
 
@@ -315,7 +355,8 @@ ReplayDebugger.prototype = {
   get onEnterFrame() { return this._breakpointKindGetter("EnterFrame"); },
   set onEnterFrame(handler) {
     this._breakpointKindSetter("EnterFrame", handler,
-                               () => handler.call(this, this.getNewestFrame()));
+                               () => { this._repaint();
+                                       handler.call(this, this.getNewestFrame()); });
   },
 
   get replayingOnPopFrame() {
@@ -326,7 +367,8 @@ ReplayDebugger.prototype = {
 
   set replayingOnPopFrame(handler) {
     if (handler) {
-      this._setBreakpoint(() => handler.call(this, this.getNewestFrame()),
+      this._setBreakpoint(() => { this._repaint();
+                                  handler.call(this, this.getNewestFrame()); },
                           { kind: "OnPop" }, handler);
     } else {
       this._clearMatchingBreakpoints(({position}) => {
@@ -340,10 +382,19 @@ ReplayDebugger.prototype = {
   },
   set replayingOnForcedPause(handler) {
     this._breakpointKindSetter("ForcedPause", handler,
-                               () => handler.call(this, this.getNewestFrame()));
+                               () => { this._repaint();
+                                       handler.call(this, this.getNewestFrame()); });
   },
 
-  _getNewConsoleMessage() {
+  get replayingOnPositionChange() {
+    return this._breakpointKindGetter("PositionChange");
+  },
+  set replayingOnPositionChange(handler) {
+    this._breakpointKindSetter("PositionChange", handler,
+                               () => { handler.call(this); });
+  },
+
+  getNewConsoleMessage() {
     const message = this._sendRequest({ type: "getNewConsoleMessage" });
     return this._convertConsoleMessage(message);
   },
@@ -353,7 +404,7 @@ ReplayDebugger.prototype = {
   },
   set onConsoleMessage(handler) {
     this._breakpointKindSetter("ConsoleMessage", handler,
-                               () => handler.call(this, this._getNewConsoleMessage()));
+                               () => handler.call(this, this.getNewConsoleMessage()));
   },
 
   clearAllBreakpoints: NYI,
@@ -388,7 +439,8 @@ ReplayDebuggerScript.prototype = {
   getPredecessorOffsets(pc) { return this._forward("getPredecessorOffsets", pc); },
 
   setBreakpoint(offset, handler) {
-    this._dbg._setBreakpoint(() => { handler.hit(this._dbg.getNewestFrame()); },
+    this._dbg._setBreakpoint(() => { this._dbg._repaint();
+                                     handler.hit(this._dbg.getNewestFrame()); },
                              { kind: "Break", script: this._data.id, offset },
                              handler);
   },
@@ -470,7 +522,7 @@ ReplayDebuggerFrame.prototype = {
       type: "frameEvaluate",
       index: this._data.index,
       text,
-      options
+      options,
     });
     return this._dbg._convertCompletionValue(rv);
   },
@@ -505,7 +557,8 @@ ReplayDebuggerFrame.prototype = {
     this._clearOnStepBreakpoints();
     offsets.forEach(offset => {
       this._dbg._setBreakpoint(
-        () => handler.call(this._dbg.getNewestFrame()),
+        () => { this._dbg._repaint();
+                handler.call(this._dbg.getNewestFrame()); },
         { kind: "OnStep",
           script: this._data.script,
           offset,
@@ -523,6 +576,7 @@ ReplayDebuggerFrame.prototype = {
   set onPop(handler) {
     if (handler) {
       this._dbg._setBreakpoint(() => {
+          this._dbg._repaint();
           const result = this._dbg._sendRequest({ type: "popFrameResult" });
           handler.call(this._dbg.getNewestFrame(),
                        this._dbg._convertCompletionValue(result));
@@ -604,29 +658,33 @@ ReplayDebuggerObject.prototype = {
 
   getOwnPropertyDescriptor(name) {
     this._ensureProperties();
-    return this._properties[name];
+    const desc = this._properties[name];
+    return desc ? this._convertPropertyDescriptor(desc) : null;
   },
 
   _ensureProperties() {
     if (!this._properties) {
       const properties = this._dbg._sendRequestAllowDiverge({
         type: "getObjectProperties",
-        id: this._data.id
+        id: this._data.id,
       });
       this._properties = {};
-      properties.forEach(({name, desc}) => {
-        if ("value" in desc) {
-          desc.value = this._dbg._convertValue(desc.value);
-        }
-        if ("get" in desc) {
-          desc.get = this._dbg._getObject(desc.get);
-        }
-        if ("set" in desc) {
-          desc.set = this._dbg._getObject(desc.set);
-        }
-        this._properties[name] = desc;
-      });
+      properties.forEach(({name, desc}) => { this._properties[name] = desc; });
     }
+  },
+
+  _convertPropertyDescriptor(desc) {
+    const rv = Object.assign({}, desc);
+    if ("value" in desc) {
+      rv.value = this._dbg._convertValue(desc.value);
+    }
+    if ("get" in desc) {
+      rv.get = this._dbg._getObject(desc.get);
+    }
+    if ("set" in desc) {
+      rv.set = this._dbg._getObject(desc.set);
+    }
+    return rv;
   },
 
   get allocationSite() { NYI(); },
@@ -679,7 +737,7 @@ ReplayDebuggerEnvironment.prototype = {
     if (!this._names) {
       const names = this._dbg._sendRequestAllowDiverge({
         type: "getEnvironmentNames",
-        id: this._data.id
+        id: this._data.id,
       });
       this._names = {};
       names.forEach(({ name, value }) => {

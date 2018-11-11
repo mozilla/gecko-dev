@@ -13,8 +13,8 @@ sys.path.append(TELEMETRY_ROOT_PATH)
 # The parsers live in a subdirectory of "build_scripts", account for that.
 # NOTE: if the parsers are moved, this logic will need to be updated.
 sys.path.append(path.join(TELEMETRY_ROOT_PATH, "build_scripts"))
-from python_mozparsers.shared_telemetry_utils import ParserError
-from python_mozparsers import parse_scalars
+from mozparsers.shared_telemetry_utils import ParserError
+from mozparsers import parse_scalars
 
 
 def load_scalar(scalar):
@@ -45,6 +45,7 @@ bug_numbers:
                                         "PROVE",
                                         scalar,
                                         strict_type_checks=True)
+        ParserError.exit_func()
 
         self.assertEqual(sclr.notification_emails, ["test01@mozilla.com", "test02@mozilla.com"])
 
@@ -52,6 +53,7 @@ bug_numbers:
         SAMPLE_SCALAR_INVALID_ADDRESSES = """
 description: A nice one-line description.
 expires: never
+record_in_processes:
   - 'main'
 kind: uint
 notification_emails:
@@ -65,6 +67,71 @@ bug_numbers:
                                  scalar,
                                  strict_type_checks=True)
 
+        self.assertRaises(SystemExit, ParserError.exit_func)
+
+    def test_multistore_default(self):
+        SAMPLE_SCALAR = """
+description: A nice one-line description.
+expires: never
+record_in_processes:
+  - 'main'
+kind: uint
+notification_emails:
+  - test01@mozilla.com
+bug_numbers:
+  - 12345
+"""
+        scalar = load_scalar(SAMPLE_SCALAR)
+        sclr = parse_scalars.ScalarType("CATEGORY",
+                                        "PROVE",
+                                        scalar,
+                                        strict_type_checks=True)
+        ParserError.exit_func()
+
+        self.assertEqual(sclr.record_into_store, ["main"])
+
+    def test_multistore_extended(self):
+        SAMPLE_SCALAR = """
+description: A nice one-line description.
+expires: never
+record_in_processes:
+  - 'main'
+kind: uint
+notification_emails:
+  - test01@mozilla.com
+bug_numbers:
+  - 12345
+record_into_store:
+    - main
+    - sync
+"""
+        scalar = load_scalar(SAMPLE_SCALAR)
+        sclr = parse_scalars.ScalarType("CATEGORY",
+                                        "PROVE",
+                                        scalar,
+                                        strict_type_checks=True)
+        ParserError.exit_func()
+
+        self.assertEqual(sclr.record_into_store, ["main", "sync"])
+
+    def test_multistore_empty(self):
+        SAMPLE_SCALAR = """
+description: A nice one-line description.
+expires: never
+record_in_processes:
+  - 'main'
+kind: uint
+notification_emails:
+  - test01@mozilla.com
+bug_numbers:
+  - 12345
+record_into_store: []
+"""
+        scalar = load_scalar(SAMPLE_SCALAR)
+        parse_scalars.ScalarType("CATEGORY",
+                                 "PROVE",
+                                 scalar,
+                                 strict_type_checks=True)
         self.assertRaises(SystemExit, ParserError.exit_func)
 
 

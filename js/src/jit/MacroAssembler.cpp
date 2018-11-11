@@ -2074,7 +2074,7 @@ MacroAssembler::handleFailure()
     jump(excTail);
 }
 
-#ifdef DEBUG
+#ifdef JS_MASM_VERBOSE
 static void
 AssumeUnreachable_(const char* output) {
     MOZ_ReportAssertionFailure(output, __FILE__, __LINE__);
@@ -2084,7 +2084,7 @@ AssumeUnreachable_(const char* output) {
 void
 MacroAssembler::assumeUnreachable(const char* output)
 {
-#ifdef DEBUG
+#ifdef JS_MASM_VERBOSE
     if (!IsCompilingWasm()) {
         AllocatableRegisterSet regs(RegisterSet::Volatile());
         LiveRegisterSet save(regs.asLiveSet());
@@ -2119,6 +2119,7 @@ MacroAssembler::assertTestInt32(Condition cond, const T& value, const char* outp
 
 template void MacroAssembler::assertTestInt32(Condition, const Address&, const char*);
 
+#ifdef JS_MASM_VERBOSE
 static void
 Printf0_(const char* output)
 {
@@ -2129,10 +2130,12 @@ Printf0_(const char* output)
     // output, and it's always unbuffered.
     fprintf(stderr, "%s", output);
 }
+#endif
 
 void
 MacroAssembler::printf(const char* output)
 {
+#ifdef JS_MASM_VERBOSE
     AllocatableRegisterSet regs(RegisterSet::Volatile());
     LiveRegisterSet save(regs.asLiveSet());
     PushRegsInMask(save);
@@ -2145,8 +2148,10 @@ MacroAssembler::printf(const char* output)
     callWithABI(JS_FUNC_TO_DATA_PTR(void*, Printf0_));
 
     PopRegsInMask(save);
+#endif
 }
 
+#ifdef JS_MASM_VERBOSE
 static void
 Printf1_(const char* output, uintptr_t value)
 {
@@ -2158,10 +2163,12 @@ Printf1_(const char* output, uintptr_t value)
     }
     fprintf(stderr, "%s", line.get());
 }
+#endif
 
 void
 MacroAssembler::printf(const char* output, Register value)
 {
+#ifdef JS_MASM_VERBOSE
     AllocatableRegisterSet regs(RegisterSet::Volatile());
     LiveRegisterSet save(regs.asLiveSet());
     PushRegsInMask(save);
@@ -2177,6 +2184,7 @@ MacroAssembler::printf(const char* output, Register value)
     callWithABI(JS_FUNC_TO_DATA_PTR(void*, Printf1_));
 
     PopRegsInMask(save);
+#endif
 }
 
 #ifdef JS_TRACE_LOGGING
@@ -2827,8 +2835,9 @@ MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
     // aligned if |nargs| is odd.
 
     // if (nargs % 2 == 0) {
-    //     if (sp % JitStackAlignment == 0)
+    //     if (sp % JitStackAlignment == 0) {
     //         sp -= sizeof(Value);
+    //     }
     //     MOZ_ASSERT(sp % JitStackAlignment == JitStackAlignment - sizeof(Value));
     // } else {
     //     sp = sp & ~(JitStackAlignment - 1);
@@ -2972,6 +2981,7 @@ MacroAssembler::subFromStackPtr(Register reg)
 }
 #endif // JS_CODEGEN_ARM64
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // Stack manipulation functions.
@@ -3411,8 +3421,15 @@ MacroAssembler::branchIfPretenuredGroup(const ObjectGroup* group, Register scrat
 void
 MacroAssembler::branchIfPretenuredGroup(Register group, Label* label)
 {
+    // To check for the pretenured flag we need OBJECT_FLAG_PRETENURED set, and
+    // OBJECT_FLAG_UNKNOWN_PROPERTIES unset, so check the latter first, and don't
+    // branch if it set.
+    Label unknownProperties;
+    branchTest32(Assembler::NonZero, Address(group, ObjectGroup::offsetOfFlags()),
+                Imm32(OBJECT_FLAG_UNKNOWN_PROPERTIES), &unknownProperties);
     branchTest32(Assembler::NonZero, Address(group, ObjectGroup::offsetOfFlags()),
                  Imm32(OBJECT_FLAG_PRE_TENURE), label);
+    bind(&unknownProperties);
 }
 
 
@@ -3815,6 +3832,7 @@ MacroAssembler::boundsCheck32PowerOfTwo(Register index, uint32_t length, Label* 
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 
 void
 MacroAssembler::memoryBarrierBefore(const Synchronization& sync) {
@@ -3944,6 +3962,35 @@ MacroAssembler::performPendingReadBarriers()
     }
     for (ObjectGroup* group : pendingObjectGroupReadBarriers_) {
         ObjectGroup::readBarrier(group);
+    }
+}
+
+// Can't push large frames blindly on windows, so we must touch frame memory
+// incrementally, with no more than 4096 - 1 bytes between touches.
+//
+// This is used across all platforms for simplicity.
+void
+MacroAssembler::touchFrameValues(Register numStackValues, Register scratch1, Register scratch2)
+{
+    const size_t FRAME_TOUCH_INCREMENT = 2048;
+    static_assert(FRAME_TOUCH_INCREMENT < 4096 -1, "Frame increment is too large");
+
+    moveStackPtrTo(scratch2);
+    mov(numStackValues, scratch1);
+    lshiftPtr(Imm32(3), scratch1);
+    subPtr(scratch1, scratch2);
+    {
+        moveStackPtrTo(scratch1);
+        subPtr(Imm32(FRAME_TOUCH_INCREMENT), scratch1);
+
+        Label touchFrameLoop;
+        Label touchFrameLoopEnd;
+        bind(&touchFrameLoop);
+        branchPtr(Assembler::Below, scratch1, scratch2, &touchFrameLoopEnd);
+        store32(Imm32(0), Address(scratch1, 0));
+        subPtr(Imm32(FRAME_TOUCH_INCREMENT), scratch1);
+        jump(&touchFrameLoop);
+        bind(&touchFrameLoopEnd);
     }
 }
 

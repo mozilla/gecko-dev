@@ -29,7 +29,7 @@ add_task(async function() {
 
   checkResults();
 
-  await gDevTools.closeToolbox(target);
+  await toolbox.destroy();
   gBrowser.removeCurrentTab();
 });
 
@@ -97,5 +97,5 @@ function delayedClicks(node, clicks) {
 function checkResults() {
   // For help generating these tests use generateTelemetryTests("DEVTOOLS_SCRATCHPAD_")
   // here.
-  checkTelemetry("DEVTOOLS_SCRATCHPAD_WINDOW_OPENED_COUNT", "", [4, 0, 0], "array");
+  checkTelemetry("DEVTOOLS_SCRATCHPAD_WINDOW_OPENED_COUNT", "", {0: 4, 1: 0}, "array");
 }

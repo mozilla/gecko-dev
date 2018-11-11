@@ -1604,7 +1604,16 @@ function extractSymbol(path, symbols) {
   if (t.isCallExpression(path)) {
     const callee = path.node.callee;
     const args = path.node.arguments;
-    if (!t.isMemberExpression(callee)) {
+    if (t.isMemberExpression(callee)) {
+      const {
+        property: { name, loc }
+      } = callee;
+      symbols.callExpressions.push({
+        name: name,
+        values: args.filter(arg => arg.value).map(arg => arg.value),
+        location: loc
+      });
+    } else {
       const { start, end, identifierName } = callee.loc;
       symbols.callExpressions.push({
         name: identifierName,
@@ -2595,16 +2604,8 @@ function extendsReactComponent(classes) {
 // Angular
 
 const isAngularComponent = sourceSymbols => {
-  const { memberExpressions, identifiers } = sourceSymbols;
-  return identifiesAngular(identifiers) && hasAngularExpressions(memberExpressions);
-};
-
-const identifiesAngular = identifiers => {
-  return identifiers.some(item => item.name == "angular");
-};
-
-const hasAngularExpressions = memberExpressions => {
-  return memberExpressions.some(item => item.name == "controller" || item.name == "module");
+  const { memberExpressions } = sourceSymbols;
+  return memberExpressions.some(item => item.expression == "angular.controller" || item.expression == "angular.module");
 };
 
 // Vue
@@ -25544,6 +25545,7 @@ const {
 
 const dispatcher = new WorkerDispatcher();
 
+const setAssetRootURL = dispatcher.task("setAssetRootURL");
 const getOriginalURLs = dispatcher.task("getOriginalURLs");
 const getOriginalRanges = dispatcher.task("getOriginalRanges");
 const getGeneratedRanges = dispatcher.task("getGeneratedRanges", {
@@ -25580,7 +25582,10 @@ module.exports = {
   applySourceMap,
   clearSourceMaps,
   getOriginalStackFrames,
-  startSourceMapWorker: dispatcher.start.bind(dispatcher),
+  startSourceMapWorker(url, assetRoot) {
+    dispatcher.start(url);
+    setAssetRootURL(assetRoot);
+  },
   stopSourceMapWorker: dispatcher.stop.bind(dispatcher)
 };
 
@@ -25803,6 +25808,10 @@ WorkerDispatcher.prototype = {
     };
 
     return (...args) => push(args);
+  },
+
+  invoke(method, ...args) {
+    return this.task(method)(...args);
   }
 };
 

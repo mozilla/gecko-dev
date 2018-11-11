@@ -76,6 +76,8 @@ from mozlog import commandline
 import mozcrash
 import mozfile
 import mozinfo
+from mozprofile import Profile
+from mozprofile.cli import parse_preferences
 from mozrunner.utils import get_stack_fixer_function
 
 # --------------------------------------------------------------
@@ -156,6 +158,7 @@ class XPCShellTestThread(Thread):
         self.log = kwargs.get('log')
         self.app_dir_key = kwargs.get('app_dir_key')
         self.interactive = kwargs.get('interactive')
+        self.prefsFile = kwargs.get('prefsFile')
 
         # only one of these will be set to 1. adding them to the totals in
         # the harness
@@ -168,7 +171,7 @@ class XPCShellTestThread(Thread):
         self.has_failure_output = False
         self.saw_proc_start = False
         self.saw_proc_end = False
-        self.complete_command = None
+        self.command = None
         self.harness_timeout = kwargs.get('harness_timeout')
         self.timedout = False
 
@@ -225,7 +228,9 @@ class XPCShellTestThread(Thread):
           Simple wrapper to get the return code for a given process.
           On a remote system we overload this to work with the remote process management.
         """
-        return proc.returncode
+        if proc is not None and hasattr(proc, "returncode"):
+            return proc.returncode
+        return -1
 
     def communicate(self, proc):
         """
@@ -282,7 +287,10 @@ class XPCShellTestThread(Thread):
         self.log.info("%s | environment: %s" % (name, list(changedEnv)))
 
     def killTimeout(self, proc):
-        mozcrash.kill_and_get_minidump(proc.pid, self.tempDir, utility_path=self.utility_path)
+        if proc is not None and hasattr(proc, "pid"):
+            mozcrash.kill_and_get_minidump(proc.pid, self.tempDir, utility_path=self.utility_path)
+        else:
+            self.log.info("not killing -- proc or pid unknown")
 
     def postCheck(self, proc):
         """Checks for a still-running test process, kills it and fails the test if found.
@@ -387,7 +395,7 @@ class XPCShellTestThread(Thread):
         mozinfo.output_to_file(mozInfoJSPath)
         return mozInfoJSPath
 
-    def buildCmdHead(self, headfiles, xpcscmd):
+    def buildCmdHead(self):
         """
           Build the command line arguments for the head files,
           along with the address of the webserver which some tests require.
@@ -395,13 +403,13 @@ class XPCShellTestThread(Thread):
           On a remote system, this is overloaded to resolve quoting issues over a
           secondary command line.
         """
+        headfiles = self.getHeadFiles(self.test_object)
         cmdH = ", ".join(['"' + f.replace('\\', '/') + '"'
                          for f in headfiles])
 
         dbgport = 0 if self.jsDebuggerInfo is None else self.jsDebuggerInfo.port
 
-        return xpcscmd + [
-            '-e', 'const _SERVER_ADDR = "localhost"',
+        return [
             '-e', 'const _HEAD_FILES = [%s];' % cmdH,
             '-e', 'const _JSDEBUGGER_PORT = %d;' % dbgport,
         ]
@@ -438,7 +446,7 @@ class XPCShellTestThread(Thread):
         if not self.appPath:
             self.appPath = self.xrePath
 
-        self.xpcsCmd = [
+        xpcsCmd = [
             self.xpcshell,
             '-g', self.xrePath,
             '-a', self.appPath,
@@ -447,20 +455,21 @@ class XPCShellTestThread(Thread):
             '-s',
             '-e', 'const _HEAD_JS_PATH = "%s";' % self.headJSPath,
             '-e', 'const _MOZINFO_JS_PATH = "%s";' % self.mozInfoJSPath,
+            '-e', 'const _PREFS_FILE = "%s";' % self.prefsFile.replace('\\', '\\\\'),
         ]
 
         if self.testingModulesDir:
             # Escape backslashes in string literal.
             sanitized = self.testingModulesDir.replace('\\', '\\\\')
-            self.xpcsCmd.extend([
+            xpcsCmd.extend([
                 '-e',
                 'const _TESTING_MODULES_DIR = "%s";' % sanitized
             ])
 
-        self.xpcsCmd.extend(['-f', os.path.join(self.testharnessdir, 'head.js')])
+        xpcsCmd.extend(['-f', os.path.join(self.testharnessdir, 'head.js')])
 
         if self.debuggerInfo:
-            self.xpcsCmd = [self.debuggerInfo.path] + self.debuggerInfo.args + self.xpcsCmd
+            xpcsCmd = [self.debuggerInfo.path] + self.debuggerInfo.args + xpcsCmd
 
         # Automation doesn't specify a pluginsPath and xpcshell defaults to
         # $APPDIR/plugins. We do the same here so we can carry on with
@@ -470,7 +479,9 @@ class XPCShellTestThread(Thread):
 
         self.pluginsDir = self.setupPluginsDir()
         if self.pluginsDir:
-            self.xpcsCmd.extend(['-p', self.pluginsDir])
+            xpcsCmd.extend(['-p', self.pluginsDir])
+
+        return xpcsCmd
 
     def cleanupDir(self, directory, name):
         if not os.path.exists(directory):
@@ -529,7 +540,7 @@ class XPCShellTestThread(Thread):
             line = self.fix_text_output(line).rstrip('\r\n')
             self.log.process_output(self.proc_ident,
                                     line,
-                                    command=self.complete_command)
+                                    command=self.command)
         else:
             if 'message' in line:
                 line['message'] = self.fix_text_output(line['message'])
@@ -630,27 +641,27 @@ class XPCShellTestThread(Thread):
         self.tempDir = self.setupTempDir()
         self.mozInfoJSPath = self.setupMozinfoJS()
 
-        self.buildXpcsCmd()
-        head_files = self.getHeadFiles(self.test_object)
-        cmdH = self.buildCmdHead(head_files, self.xpcsCmd)
+        # The order of the command line is important:
+        # 1) Arguments for xpcshell itself
+        self.command = self.buildXpcsCmd()
 
-        # The test file will have to be loaded after the head files.
-        cmdT = self.buildCmdTestFile(path)
+        # 2) Arguments for the head files
+        self.command.extend(self.buildCmdHead())
 
-        args = self.xpcsRunArgs[:]
-        if 'debug' in self.test_object:
-            args.insert(0, '-d')
+        # 3) Arguments for the test file
+        self.command.extend(self.buildCmdTestFile(path))
+        self.command.extend(['-e', 'const _TEST_NAME = "%s";' % name])
 
-        # The test name to log
-        cmdI = ['-e', 'const _TEST_NAME = "%s"' % name]
-
-        # Directory for javascript code coverage output, null by default.
-        cmdC = ['-e', 'const _JSCOV_DIR = null']
+        # 4) Arguments for code coverage
         if self.jscovdir:
-            cmdC = ['-e', 'const _JSCOV_DIR = "%s"' % self.jscovdir.replace('\\', '/')]
-            self.complete_command = cmdH + cmdT + cmdI + cmdC + args
-        else:
-            self.complete_command = cmdH + cmdT + cmdI + args
+            self.command.extend(
+                ['-e', 'const _JSCOV_DIR = "%s";' % self.jscovdir.replace('\\', '/')])
+
+        # 5) Runtime arguments
+        if 'debug' in self.test_object:
+            self.command.append('-d')
+
+        self.command.extend(self.xpcsRunArgs)
 
         if self.test_object.get('dmd') == 'true':
             self.env['PYTHON'] = sys.executable
@@ -679,9 +690,9 @@ class XPCShellTestThread(Thread):
         try:
             self.log.test_start(name)
             if self.verbose:
-                self.logCommand(name, self.complete_command, test_dir)
+                self.logCommand(name, self.command, test_dir)
 
-            proc = self.launchProcess(self.complete_command,
+            proc = self.launchProcess(self.command,
                                       stdout=self.pStdout, stderr=self.pStderr,
                                       env=self.env, cwd=test_dir,
                                       timeout=testTimeoutInterval)
@@ -847,13 +858,23 @@ class XPCShellTests(object):
         return test_object
 
     def buildTestList(self, test_tags=None, test_paths=None, verify=False):
-        """
-          read the xpcshell.ini manifest and set self.alltests to be
-          an array of test objects.
+        """Reads the xpcshell.ini manifest and set self.alltests to an array.
 
-          if we are chunking tests, it will be done here as well
-        """
+        Given the parameters, this method compiles a list of tests to be run
+        that matches the criteria set by parameters.
 
+        If any chunking of tests are to occur, it is also done in this method.
+
+        If no tests are added to the list of tests to be run, an error
+        is logged. A sys.exit() signal is sent to the caller.
+
+        Args:
+            test_tags (list, optional): list of strings.
+            test_paths (list, optional): list of strings derived from the command
+                                         line argument provided by user, specifying
+                                         tests to be run.
+            verify (bool, optional): boolean value.
+        """
         if test_paths is None:
             test_paths = []
 
@@ -888,6 +909,7 @@ class XPCShellTests(object):
             self.log.error("no tests to run using specified "
                            "combination of filters: {}".format(
                                 mp.fmt_filters()))
+            sys.exit(1)
 
         if self.dump_tests:
             self.dump_tests = os.path.expanduser(self.dump_tests)
@@ -929,6 +951,38 @@ class XPCShellTests(object):
 
         if self.mozInfo is None:
             self.mozInfo = os.path.join(self.testharnessdir, "mozinfo.json")
+
+    def buildPrefsFile(self, extraPrefs):
+        # Create the prefs.js file
+        profile_data_dir = os.path.join(SCRIPT_DIR, 'profile_data')
+
+        # If possible, read profile data from topsrcdir. This prevents us from
+        # requiring a re-build to pick up newly added extensions in the
+        # <profile>/extensions directory.
+        if build:
+            path = os.path.join(build.topsrcdir, 'testing', 'profiles')
+            if os.path.isdir(path):
+                profile_data_dir = path
+
+        with open(os.path.join(profile_data_dir, 'profiles.json'), 'r') as fh:
+            base_profiles = json.load(fh)['xpcshell']
+
+        # values to use when interpolating preferences
+        interpolation = {
+            "server": "dummyserver",
+        }
+
+        profile = Profile(profile=self.tempDir, restore=False)
+        for name in base_profiles:
+            path = os.path.join(profile_data_dir, name)
+            profile.merge(path, interpolation=interpolation)
+
+        # add command line prefs
+        prefs = parse_preferences(extraPrefs)
+        profile.set_preferences(prefs)
+
+        self.prefsFile = os.path.join(profile.profile, 'user.js')
+        return prefs
 
     def buildCoreEnvironment(self):
         """
@@ -1120,7 +1174,7 @@ class XPCShellTests(object):
         self.failCount += test.failCount
         self.todoCount += test.todoCount
 
-    def updateMozinfo(self):
+    def updateMozinfo(self, prefs):
         # Handle filenames in mozInfo
         if not isinstance(self.mozInfo, dict):
             mozInfoFile = self.mozInfo
@@ -1140,11 +1194,10 @@ class XPCShellTests(object):
             fixedInfo[k] = v
         self.mozInfo = fixedInfo
 
-        mozinfo.update(self.mozInfo)
+        self.mozInfo['serviceworker_e10s'] = prefs.get(
+            'dom.serviceWorkers.parent_intercept', False)
 
-        # Add a flag to mozinfo to indicate that code coverage is enabled.
-        if self.jscovdir:
-            mozinfo.update({"coverage": True})
+        mozinfo.update(self.mozInfo)
 
         return True
 
@@ -1236,11 +1289,12 @@ class XPCShellTests(object):
         self.todoCount = 0
 
         self.setAbsPath()
+        prefs = self.buildPrefsFile(options.get('extraPrefs') or [])
         self.buildXpcsRunArgs()
 
         self.event = Event()
 
-        if not self.updateMozinfo():
+        if not self.updateMozinfo(prefs):
             return False
 
         self.stack_fixer_function = None
@@ -1306,7 +1360,8 @@ class XPCShellTests(object):
             'keep_going': self.keepGoing,
             'log': self.log,
             'interactive': self.interactive,
-            'app_dir_key': appDirKey
+            'app_dir_key': appDirKey,
+            'prefsFile': self.prefsFile,
         }
 
         if self.sequential:

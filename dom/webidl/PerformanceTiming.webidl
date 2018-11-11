@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://www.w3.org/TR/hr-time/
+ * https://w3c.github.io/navigation-timing/#the-performancetiming-interface
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
@@ -44,6 +44,12 @@ interface PerformanceTiming {
   // completion of the first presentation flush after DOMContentLoaded.
   [Pref="dom.performance.time_to_dom_content_flushed.enabled"]
   readonly attribute unsigned long long timeToDOMContentFlushed;
+
+  // This is a Chrome proprietary extension and not part of the
+  // performance/navigation timing specification.
+  // Returns 0 if a time-to-interactive measurement has not happened.
+  [Pref="dom.performance.time_to_first_interactive.enabled"]
+  readonly attribute unsigned long long timeToFirstInteractive;
 
   [Default] object toJSON();
 };

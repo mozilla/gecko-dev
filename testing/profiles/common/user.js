@@ -1,9 +1,10 @@
-// Base preferences file used by both unittest and perf harnesses.
+// Common preferences file used by both unittest and perf harnesses.
 /* globals user_pref */
 user_pref("app.update.disabledForTesting", true);
 user_pref("browser.chrome.guess_favicon", false);
 user_pref("browser.dom.window.dump.enabled", true);
-// Use an empty list of sites to avoid fetching
+// Use a python-eval-able empty JSON array even though asrouter expects plain object
+user_pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "[]");
 user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
 user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
 user_pref("browser.newtabpage.activity-stream.tippyTop.service.endpoint", "");
@@ -34,6 +35,8 @@ user_pref("extensions.legacy.enabled", true);
 user_pref("extensions.update.enabled", false);
 // Disable useragent updates.
 user_pref("general.useragent.updates.enabled", false);
+// Ensure WR doesn't get enabled in tests unless we do it explicitly with the MOZ_WEBRENDER envvar.
+user_pref("gfx.webrender.all.qualified", false);
 user_pref("hangmonitor.timeout", 0); // no hang monitor
 user_pref("media.gmp-manager.updateEnabled", false);
 // Make enablePrivilege continue to work for test code. :-(
@@ -47,3 +50,4 @@ user_pref("media.autoplay.enabled.user-gestures-needed", true);
 user_pref("media.autoplay.ask-permission", false);
 user_pref("media.autoplay.block-webaudio", false);
 user_pref("media.allowed-to-play.enabled", true);
+user_pref("toolkit.telemetry.coverage.endpoint.base", "http://localhost");

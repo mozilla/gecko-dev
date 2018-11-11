@@ -7,6 +7,7 @@
 const {
   EXTENSION_SIDEBAR_OBJECT_TREEVIEW_UPDATE,
   EXTENSION_SIDEBAR_OBJECT_GRIP_VIEW_UPDATE,
+  EXTENSION_SIDEBAR_PAGE_UPDATE,
   EXTENSION_SIDEBAR_REMOVE,
 } = require("../actions/index");
 
@@ -21,7 +22,7 @@ const reducers = {
       [sidebarId]: {
         viewMode: "object-treeview",
         object,
-      }
+      },
     });
   },
 
@@ -35,7 +36,18 @@ const reducers = {
         viewMode: "object-value-grip-view",
         objectValueGrip,
         rootTitle,
-      }
+      },
+    });
+  },
+
+  [EXTENSION_SIDEBAR_PAGE_UPDATE](sidebar, {sidebarId, iframeURL}) {
+    // Update the sidebar to a "object-treeview" which shows
+    // the passed object.
+    return Object.assign({}, sidebar, {
+      [sidebarId]: {
+        viewMode: "extension-page",
+        iframeURL,
+      },
     });
   },
 

@@ -9,16 +9,20 @@ XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   UITour: "resource:///modules/UITour.jsm",
+  FxAccounts: "resource://gre/modules/FxAccounts.jsm",
 });
 const {ASRouterActions: ra, actionTypes: at, actionCreators: ac} = ChromeUtils.import("resource://activity-stream/common/Actions.jsm", {});
 const {CFRMessageProvider} = ChromeUtils.import("resource://activity-stream/lib/CFRMessageProvider.jsm", {});
 const {OnboardingMessageProvider} = ChromeUtils.import("resource://activity-stream/lib/OnboardingMessageProvider.jsm", {});
+const {SnippetsTestMessageProvider} = ChromeUtils.import("resource://activity-stream/lib/SnippetsTestMessageProvider.jsm", {});
 const {RemoteSettings} = ChromeUtils.import("resource://services-settings/remote-settings.js", {});
 const {CFRPageActions} = ChromeUtils.import("resource://activity-stream/lib/CFRPageActions.jsm", {});
 
 ChromeUtils.defineModuleGetter(this, "ASRouterPreferences",
   "resource://activity-stream/lib/ASRouterPreferences.jsm");
 ChromeUtils.defineModuleGetter(this, "ASRouterTargeting",
+  "resource://activity-stream/lib/ASRouterTargeting.jsm");
+ChromeUtils.defineModuleGetter(this, "QueryCache",
   "resource://activity-stream/lib/ASRouterTargeting.jsm");
 ChromeUtils.defineModuleGetter(this, "ASRouterTriggerListeners",
   "resource://activity-stream/lib/ASRouterTriggerListeners.jsm");
@@ -32,12 +36,11 @@ const DEFAULT_WHITELIST_HOSTS = {
   "activity-stream-icons.services.mozilla.com": "production",
   "snippets-admin.mozilla.org": "preview",
 };
-const ONBOARDING_FINISHED_PREF = "browser.onboarding.notification.finished";
 const SNIPPETS_ENDPOINT_WHITELIST = "browser.newtab.activity-stream.asrouter.whitelistHosts";
 // Max possible impressions cap for any message
 const MAX_MESSAGE_LIFETIME_CAP = 100;
 
-const LOCAL_MESSAGE_PROVIDERS = {OnboardingMessageProvider, CFRMessageProvider};
+const LOCAL_MESSAGE_PROVIDERS = {OnboardingMessageProvider, CFRMessageProvider, SnippetsTestMessageProvider};
 const STARTPAGE_VERSION = "6";
 
 const MessageLoaderUtils = {
@@ -213,7 +216,12 @@ const MessageLoaderUtils = {
     try {
       const aUri = Services.io.newURI(url);
       const systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-      const install = await AddonManager.getInstallForURL(aUri.spec, "application/x-xpinstall");
+
+      // AddonManager installation source associated to the addons installed from activitystream
+      // (See Bug 1496167 for a rationale).
+      const amTelemetryInfo = {source: "activitystream"};
+      const install = await AddonManager.getInstallForURL(aUri.spec, "application/x-xpinstall", null,
+                                                          null, null, null, null, amTelemetryInfo);
       await AddonManager.installAddonFromWebpage("application/x-xpinstall", browser,
         systemPrincipal, install);
     } catch (e) {}
@@ -273,30 +281,9 @@ class _ASRouter {
     this.onPrefChange = this.onPrefChange.bind(this);
   }
 
-  /**
-   * Turns legacy onboarding off or on using the ONBOARDING_FINISHED_PREF.
-   * This is required since ASRouter also shows snippets and onboarding, which
-   * interferes with legacy onboarding.
-   *
-   * Note that when this pref is true, legacy onboarding does NOT show up;
-   * when it is false, iegacy onboarding may show up if the profile age etc.
-   * is appropriate for the user to see it.
-   */
-  overrideOrEnableLegacyOnboarding() {
-    const {allowLegacyOnboarding} = ASRouterPreferences.specialConditions;
-    const onboardingFinished = Services.prefs.getBoolPref(ONBOARDING_FINISHED_PREF, true);
-
-    if (!allowLegacyOnboarding && onboardingFinished === false) {
-      Services.prefs.setBoolPref(ONBOARDING_FINISHED_PREF, true);
-    } else if (allowLegacyOnboarding && onboardingFinished === true) {
-      Services.prefs.setBoolPref(ONBOARDING_FINISHED_PREF, false);
-    }
-  }
-
   // Update message providers and fetch new messages on pref change
   async onPrefChange() {
     this._updateMessageProviders();
-    this.overrideOrEnableLegacyOnboarding();
     await this.loadMessagesFromAllProviders();
     this.dispatchToAS(ac.BroadcastToContent({type: at.AS_ROUTER_PREF_CHANGED, data: ASRouterPreferences.specialConditions}));
   }
@@ -315,10 +302,15 @@ class _ASRouter {
 
   // Fetch and decode the message provider pref JSON, and update the message providers
   _updateMessageProviders() {
+    const previousProviders =  this.state.providers;
     const providers = [
       // If we have added a `preview` provider, hold onto it
-      ...this.state.providers.filter(p => p.id === "preview"),
-      ...ASRouterPreferences.providers.filter(p => p.enabled),
+      ...previousProviders.filter(p => p.id === "preview"),
+      // The provider should be enabled and not have a user preference set to false
+      ...ASRouterPreferences.providers.filter(p => (
+        p.enabled &&
+        ASRouterPreferences.getUserPreference(p.id) !== false)
+      ),
     ].map(_provider => {
       // make a copy so we don't modify the source of the pref
       const provider = {..._provider};
@@ -339,6 +331,14 @@ class _ASRouter {
     });
 
     const providerIDs = providers.map(p => p.id);
+
+    // Clear old messages for providers that are no longer enabled
+    for (const prevProvider of previousProviders) {
+      if (!providerIDs.includes(prevProvider.id)) {
+        this.messageChannel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "CLEAR_PROVIDER", data: {id: prevProvider.id}});
+      }
+    }
+
     this.setState(prevState => ({
       providers,
       // Clear any messages from removed providers
@@ -446,7 +446,6 @@ class _ASRouter {
     const previousSessionEnd = await this._storage.get("previousSessionEnd") || 0;
     await this.setState({messageBlockList, providerBlockList, messageImpressions, providerImpressions, previousSessionEnd});
     this._updateMessageProviders();
-    this.overrideOrEnableLegacyOnboarding();
     await this.loadMessagesFromAllProviders();
     await MessageLoaderUtils.cleanupCache(this.state.providers, storage);
 
@@ -464,8 +463,6 @@ class _ASRouter {
     this.messageChannel.removeMessageListener(INCOMING_MESSAGE_NAME, this.onMessage);
     this.messageChannel = null;
     this.dispatchToAS = null;
-
-    this.overrideOrEnableLegacyOnboarding();
 
     ASRouterPreferences.removeListener(this.onPrefChange);
     ASRouterPreferences.uninit();
@@ -494,8 +491,37 @@ class _ASRouter {
 
   _onStateChanged(state) {
     if (ASRouterPreferences.devtoolsEnabled) {
-      this.messageChannel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "ADMIN_SET_STATE", data: this.state});
+      this._updateAdminState();
     }
+  }
+
+  /**
+   * Used by ASRouter Admin returns all ASRouterTargeting.Environment
+   * and ASRouter._getMessagesContext parameters and values
+   */
+  async getTargetingParameters(environment, localContext) {
+    const targetingParameters = {};
+    for (const param of Object.keys(environment)) {
+      targetingParameters[param] = await environment[param];
+    }
+    for (const param of Object.keys(localContext)) {
+      targetingParameters[param] = await localContext[param];
+    }
+
+    return targetingParameters;
+  }
+
+  async _updateAdminState(target) {
+    const channel = target || this.messageChannel;
+    channel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {
+      type: "ADMIN_SET_STATE",
+      data: {
+        ...this.state,
+        providerPrefs: ASRouterPreferences.providers,
+        userPrefs: ASRouterPreferences.getAllUserPreferences(),
+        targetingParameters: await this.getTargetingParameters(ASRouterTargeting.Environment, this._getMessagesContext()),
+      },
+    });
   }
 
   _handleTargetingError(type, error, message) {
@@ -527,6 +553,18 @@ class _ASRouter {
      // Find a message that matches the targeting context as well as the trigger context (if one is provided)
      // If no trigger is provided, we should find a message WITHOUT a trigger property defined.
     return ASRouterTargeting.findMatchingMessage({messages, trigger, context, onError: this._handleTargetingError});
+  }
+
+  async evaluateExpression(target, {expression, context}) {
+    const channel = target || this.messageChannel;
+    let evaluationStatus;
+    try {
+      evaluationStatus = {result: await ASRouterTargeting.isMatch(expression, context), success: true};
+    } catch (e) {
+      evaluationStatus = {result: e.message, success: false};
+    }
+
+    channel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "ADMIN_SET_STATE", data: {...this.state, evaluationStatus}});
   }
 
   _orderBundle(bundle) {
@@ -879,19 +917,30 @@ class _ASRouter {
         target.browser.ownerGlobal.OpenBrowserWindow({private: true});
         break;
       case ra.OPEN_URL:
-        target.browser.ownerGlobal.openLinkIn(action.data.url, "tabshifted", {
+        target.browser.ownerGlobal.openLinkIn(action.data.args, "tabshifted", {
           private: false,
           triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
         });
         break;
       case ra.OPEN_ABOUT_PAGE:
-        target.browser.ownerGlobal.openTrustedLinkIn(`about:${action.data.page}`, "tab");
+        target.browser.ownerGlobal.openTrustedLinkIn(`about:${action.data.args}`, "tab");
+        break;
+      case ra.OPEN_PREFERENCES_PAGE:
+        target.browser.ownerGlobal.openPreferences(action.data.category, {origin: action.data.origin});
         break;
       case ra.OPEN_APPLICATIONS_MENU:
-        UITour.showMenu(target.browser.ownerGlobal, action.data.target);
+        UITour.showMenu(target.browser.ownerGlobal, action.data.args);
         break;
       case ra.INSTALL_ADDON_FROM_URL:
         await MessageLoaderUtils.installAddonFromURL(target.browser, action.data.url);
+        break;
+      case ra.SHOW_FIREFOX_ACCOUNTS:
+        const url = await FxAccounts.config.promiseSignUpURI("snippets");
+        // We want to replace the current tab.
+        target.browser.ownerGlobal.openLinkIn(url, "tabshifted", {
+          private: false,
+          triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
+        });
         break;
     }
   }
@@ -907,8 +956,7 @@ class _ASRouter {
           await this.handleUserAction({data: action.data, target});
         }
         break;
-      case "CONNECT_UI_REQUEST":
-      case "GET_NEXT_MESSAGE":
+      case "SNIPPETS_REQUEST":
       case "TRIGGER":
         // Wait for our initial message loading to be done before responding to any UI requests
         await this.waitForInitialized;
@@ -921,6 +969,14 @@ class _ASRouter {
         break;
       case "BLOCK_MESSAGE_BY_ID":
         await this.blockMessageById(action.data.id);
+        // Block the message but don't dismiss it in case the action taken has
+        // another state that needs to be visible
+        if (action.data.preventDismiss) {
+          break;
+        }
+        this.messageChannel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "CLEAR_MESSAGE", data: {id: action.data.id}});
+        break;
+      case "DISMISS_MESSAGE_BY_ID":
         this.messageChannel.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "CLEAR_MESSAGE", data: {id: action.data.id}});
         break;
       case "BLOCK_PROVIDER_BY_ID":
@@ -965,7 +1021,7 @@ class _ASRouter {
           this._addPreviewEndpoint(action.data.endpoint.url, target.portID);
           await this.loadMessagesFromAllProviders();
         } else {
-          target.sendAsyncMessage(OUTGOING_MESSAGE_NAME, {type: "ADMIN_SET_STATE", data: this.state});
+          await this._updateAdminState(target);
         }
         break;
       case "IMPRESSION":
@@ -976,6 +1032,23 @@ class _ASRouter {
           this.dispatchToAS(ac.ASRouterUserEvent(action.data));
         }
         break;
+      case "EXPIRE_QUERY_CACHE":
+        QueryCache.expireAll();
+        break;
+      case "ENABLE_PROVIDER":
+        ASRouterPreferences.enableOrDisableProvider(action.data, true);
+        break;
+      case "DISABLE_PROVIDER":
+        ASRouterPreferences.enableOrDisableProvider(action.data, false);
+        break;
+      case "RESET_PROVIDER_PREF":
+        ASRouterPreferences.resetProviderPref();
+        break;
+      case "SET_PROVIDER_USER_PREF":
+        ASRouterPreferences.setUserPreference(action.data.id, action.data.value);
+        break;
+      case "EVALUATE_JEXL_EXPRESSION":
+        this.evaluateExpression(target, action.data);
     }
   }
 }

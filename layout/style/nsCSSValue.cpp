@@ -32,19 +32,6 @@
 using namespace mozilla;
 using namespace mozilla::css;
 
-template<class T>
-static bool MightHaveRef(const T& aString)
-{
-  const typename T::char_type* current = aString.BeginReading();
-  for (; current != aString.EndReading(); current++) {
-    if (*current == '#') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 nsCSSValue::nsCSSValue(int32_t aValue, nsCSSUnit aUnit)
   : mUnit(aUnit)
 {
@@ -94,45 +81,6 @@ nsCSSValue::nsCSSValue(nsCSSValue::Array* aValue, nsCSSUnit aUnit)
   mValue.mArray->AddRef();
 }
 
-nsCSSValue::nsCSSValue(mozilla::css::URLValue* aValue)
-  : mUnit(eCSSUnit_URL)
-{
-  mValue.mURL = aValue;
-  mValue.mURL->AddRef();
-}
-
-nsCSSValue::nsCSSValue(mozilla::css::GridTemplateAreasValue* aValue)
-  : mUnit(eCSSUnit_GridTemplateAreas)
-{
-  mValue.mGridTemplateAreas = aValue;
-  mValue.mGridTemplateAreas->AddRef();
-}
-
-nsCSSValue::nsCSSValue(SharedFontList* aValue)
-  : mUnit(eCSSUnit_FontFamilyList)
-{
-  mValue.mFontFamilyList = aValue;
-  mValue.mFontFamilyList->AddRef();
-}
-
-nsCSSValue::nsCSSValue(FontStretch aStretch)
-  : mUnit(eCSSUnit_FontStretch)
-{
-  mValue.mFontStretch = aStretch;
-}
-
-nsCSSValue::nsCSSValue(FontSlantStyle aStyle)
-  : mUnit(eCSSUnit_FontSlantStyle)
-{
-  mValue.mFontSlantStyle = aStyle;
-}
-
-nsCSSValue::nsCSSValue(FontWeight aWeight)
-  : mUnit(eCSSUnit_FontWeight)
-{
-  mValue.mFontWeight = aWeight;
-}
-
 nsCSSValue::nsCSSValue(const nsCSSValue& aCopy)
   : mUnit(aCopy.mUnit)
 {
@@ -154,10 +102,6 @@ nsCSSValue::nsCSSValue(const nsCSSValue& aCopy)
     mValue.mArray = aCopy.mValue.mArray;
     mValue.mArray->AddRef();
   }
-  else if (eCSSUnit_URL == mUnit) {
-    mValue.mURL = aCopy.mValue.mURL;
-    mValue.mURL->AddRef();
-  }
   else if (eCSSUnit_Pair == mUnit) {
     mValue.mPair = aCopy.mValue.mPair;
     mValue.mPair->AddRef();
@@ -166,9 +110,6 @@ nsCSSValue::nsCSSValue(const nsCSSValue& aCopy)
     mValue.mList = aCopy.mValue.mList;
     mValue.mList->AddRef();
   }
-  else if (eCSSUnit_ListDep == mUnit) {
-    mValue.mListDependent = aCopy.mValue.mListDependent;
-  }
   else if (eCSSUnit_SharedList == mUnit) {
     mValue.mSharedList = aCopy.mValue.mSharedList;
     mValue.mSharedList->AddRef();
@@ -176,26 +117,6 @@ nsCSSValue::nsCSSValue(const nsCSSValue& aCopy)
   else if (eCSSUnit_PairList == mUnit) {
     mValue.mPairList = aCopy.mValue.mPairList;
     mValue.mPairList->AddRef();
-  }
-  else if (eCSSUnit_PairListDep == mUnit) {
-    mValue.mPairListDependent = aCopy.mValue.mPairListDependent;
-  }
-  else if (eCSSUnit_GridTemplateAreas == mUnit) {
-    mValue.mGridTemplateAreas = aCopy.mValue.mGridTemplateAreas;
-    mValue.mGridTemplateAreas->AddRef();
-  }
-  else if (eCSSUnit_FontFamilyList == mUnit) {
-    mValue.mFontFamilyList = aCopy.mValue.mFontFamilyList;
-    mValue.mFontFamilyList->AddRef();
-  }
-  else if (eCSSUnit_FontStretch == mUnit) {
-    mValue.mFontStretch = aCopy.mValue.mFontStretch;
-  }
-  else if (eCSSUnit_FontSlantStyle == mUnit) {
-    mValue.mFontSlantStyle = aCopy.mValue.mFontSlantStyle;
-  }
-  else if (eCSSUnit_FontWeight == mUnit) {
-    mValue.mFontWeight = aCopy.mValue.mFontWeight;
   }
   else if (eCSSUnit_AtomIdent == mUnit) {
     mValue.mAtom = aCopy.mValue.mAtom;
@@ -230,12 +151,6 @@ nsCSSValue::operator=(nsCSSValue&& aOther)
 
 bool nsCSSValue::operator==(const nsCSSValue& aOther) const
 {
-  MOZ_ASSERT(mUnit != eCSSUnit_ListDep &&
-             aOther.mUnit != eCSSUnit_ListDep &&
-             mUnit != eCSSUnit_PairListDep &&
-             aOther.mUnit != eCSSUnit_PairListDep,
-             "don't use operator== with dependent lists");
-
   if (mUnit == aOther.mUnit) {
     if (mUnit <= eCSSUnit_DummyInherit) {
       return true;
@@ -250,9 +165,6 @@ bool nsCSSValue::operator==(const nsCSSValue& aOther) const
     else if (UnitHasArrayValue()) {
       return *mValue.mArray == *aOther.mValue.mArray;
     }
-    else if (eCSSUnit_URL == mUnit) {
-      return mValue.mURL->Equals(*aOther.mValue.mURL);
-    }
     else if (eCSSUnit_Pair == mUnit) {
       return *mValue.mPair == *aOther.mValue.mPair;
     }
@@ -266,22 +178,6 @@ bool nsCSSValue::operator==(const nsCSSValue& aOther) const
       return nsCSSValuePairList::Equal(mValue.mPairList,
                                        aOther.mValue.mPairList);
     }
-    else if (eCSSUnit_GridTemplateAreas == mUnit) {
-      return *mValue.mGridTemplateAreas == *aOther.mValue.mGridTemplateAreas;
-    }
-    else if (eCSSUnit_FontFamilyList == mUnit) {
-      return mValue.mFontFamilyList->mNames ==
-             aOther.mValue.mFontFamilyList->mNames;
-    }
-    else if (eCSSUnit_FontStretch == mUnit) {
-      return mValue.mFontStretch == aOther.mValue.mFontStretch;
-    }
-    else if (eCSSUnit_FontSlantStyle == mUnit) {
-      return mValue.mFontSlantStyle == aOther.mValue.mFontSlantStyle;
-    }
-    else if (eCSSUnit_FontWeight == mUnit) {
-      return mValue.mFontWeight == aOther.mValue.mFontWeight;
-    }
     else if (eCSSUnit_AtomIdent == mUnit) {
       return mValue.mAtom == aOther.mValue.mAtom;
     }
@@ -293,37 +189,16 @@ bool nsCSSValue::operator==(const nsCSSValue& aOther) const
 }
 
 double
-nsCSSValue::GetAngleValueInRadians() const
+nsCSSValue::GetAngleValueInDegrees() const
 {
-  double angle = GetFloatValue();
-
-  switch (GetUnit()) {
-    case eCSSUnit_Radian: return angle;
-    case eCSSUnit_Turn:   return angle * 2 * M_PI;
-    case eCSSUnit_Degree: return angle * M_PI / 180.0;
-    case eCSSUnit_Grad:   return angle * M_PI / 200.0;
-
-    default:
-      MOZ_ASSERT(false, "unrecognized angular unit");
-      return 0.0;
-  }
+  // Note that this extends the value from float to double.
+  return GetAngleValue();
 }
 
 double
-nsCSSValue::GetAngleValueInDegrees() const
+nsCSSValue::GetAngleValueInRadians() const
 {
-  double angle = GetFloatValue();
-
-  switch (GetUnit()) {
-    case eCSSUnit_Degree: return angle;
-    case eCSSUnit_Grad:   return angle * 0.9; // grad / 400 * 360
-    case eCSSUnit_Radian: return angle * 180.0 / M_PI;  // rad / 2pi * 360
-    case eCSSUnit_Turn:   return angle * 360.0;
-
-    default:
-      MOZ_ASSERT(false, "unrecognized angular unit");
-      return 0.0;
-  }
+  return GetAngleValueInDegrees() * M_PI / 180.0;
 }
 
 nscoord nsCSSValue::GetPixelLength() const
@@ -363,8 +238,6 @@ void nsCSSValue::DoReset()
     mValue.mString->Release();
   } else if (UnitHasArrayValue()) {
     DO_RELEASE(mArray);
-  } else if (eCSSUnit_URL == mUnit) {
-    DO_RELEASE(mURL);
   } else if (eCSSUnit_Pair == mUnit) {
     DO_RELEASE(mPair);
   } else if (eCSSUnit_List == mUnit) {
@@ -373,10 +246,6 @@ void nsCSSValue::DoReset()
     DO_RELEASE(mSharedList);
   } else if (eCSSUnit_PairList == mUnit) {
     DO_RELEASE(mPairList);
-  } else if (eCSSUnit_GridTemplateAreas == mUnit) {
-    DO_RELEASE(mGridTemplateAreas);
-  } else if (eCSSUnit_FontFamilyList == mUnit) {
-    DO_RELEASE(mFontFamilyList);
   } else if (eCSSUnit_AtomIdent == mUnit) {
     DO_RELEASE(mAtom);
   }
@@ -450,50 +319,6 @@ void nsCSSValue::SetArrayValue(nsCSSValue::Array* aValue, nsCSSUnit aUnit)
   mValue.mArray->AddRef();
 }
 
-void nsCSSValue::SetURLValue(mozilla::css::URLValue* aValue)
-{
-  Reset();
-  mUnit = eCSSUnit_URL;
-  mValue.mURL = aValue;
-  mValue.mURL->AddRef();
-}
-
-void nsCSSValue::SetGridTemplateAreas(mozilla::css::GridTemplateAreasValue* aValue)
-{
-  Reset();
-  mUnit = eCSSUnit_GridTemplateAreas;
-  mValue.mGridTemplateAreas = aValue;
-  mValue.mGridTemplateAreas->AddRef();
-}
-
-void nsCSSValue::SetFontFamilyListValue(already_AddRefed<SharedFontList> aValue)
-{
-  Reset();
-  mUnit = eCSSUnit_FontFamilyList;
-  mValue.mFontFamilyList = aValue.take();
-}
-
-void nsCSSValue::SetFontStretch(FontStretch aStretch)
-{
-  Reset();
-  mUnit = eCSSUnit_FontStretch;
-  mValue.mFontStretch = aStretch;
-}
-
-void nsCSSValue::SetFontSlantStyle(FontSlantStyle aStyle)
-{
-  Reset();
-  mUnit = eCSSUnit_FontSlantStyle;
-  mValue.mFontSlantStyle = aStyle;
-}
-
-void nsCSSValue::SetFontWeight(FontWeight aWeight)
-{
-  Reset();
-  mUnit = eCSSUnit_FontWeight;
-  mValue.mFontWeight = aWeight;
-}
-
 void nsCSSValue::SetPairValue(const nsCSSValuePair* aValue)
 {
   // pairs should not be used for null/inherit/initial values
@@ -548,27 +373,6 @@ void nsCSSValue::SetSharedListValue(nsCSSValueSharedList* aList)
   mValue.mSharedList->AddRef();
 }
 
-void nsCSSValue::SetDependentListValue(nsCSSValueList* aList)
-{
-  Reset();
-  if (aList) {
-    mUnit = eCSSUnit_ListDep;
-    mValue.mListDependent = aList;
-  }
-}
-
-void
-nsCSSValue::AdoptListValue(UniquePtr<nsCSSValueList> aValue)
-{
-  // We have to copy the first element since for owned lists the first
-  // element should be an nsCSSValueList_heap object.
-  SetListValue();
-  mValue.mList->mValue = std::move(aValue->mValue);
-  mValue.mList->mNext  = aValue->mNext;
-  aValue->mNext = nullptr;
-  aValue.reset();
-}
-
 nsCSSValuePairList* nsCSSValue::SetPairListValue()
 {
   Reset();
@@ -578,98 +382,22 @@ nsCSSValuePairList* nsCSSValue::SetPairListValue()
   return mValue.mPairList;
 }
 
-void nsCSSValue::SetDependentPairListValue(nsCSSValuePairList* aList)
-{
-  Reset();
-  if (aList) {
-    mUnit = eCSSUnit_PairListDep;
-    mValue.mPairListDependent = aList;
-  }
-}
-
-void
-nsCSSValue::AdoptPairListValue(UniquePtr<nsCSSValuePairList> aValue)
-{
-  // We have to copy the first element, since for owned pair lists, the first
-  // element should be an nsCSSValuePairList_heap object.
-  SetPairListValue();
-  mValue.mPairList->mXValue = std::move(aValue->mXValue);
-  mValue.mPairList->mYValue = std::move(aValue->mYValue);
-  mValue.mPairList->mNext   = aValue->mNext;
-  aValue->mNext = nullptr;
-  aValue.reset();
-}
-
-void nsCSSValue::SetAutoValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Auto;
-}
-
-void nsCSSValue::SetInheritValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Inherit;
-}
-
-void nsCSSValue::SetInitialValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Initial;
-}
-
-void nsCSSValue::SetUnsetValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Unset;
-}
-
 void nsCSSValue::SetNoneValue()
 {
   Reset();
   mUnit = eCSSUnit_None;
 }
 
-void nsCSSValue::SetAllValue()
-{
-  Reset();
-  mUnit = eCSSUnit_All;
-}
-
-void nsCSSValue::SetNormalValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Normal;
-}
-
-void nsCSSValue::SetSystemFontValue()
-{
-  Reset();
-  mUnit = eCSSUnit_System_Font;
-}
-
-void nsCSSValue::SetDummyValue()
-{
-  Reset();
-  mUnit = eCSSUnit_Dummy;
-}
-
-void nsCSSValue::SetDummyInheritValue()
-{
-  Reset();
-  mUnit = eCSSUnit_DummyInherit;
-}
-
-void nsCSSValue::SetCalcValue(const nsStyleCoord::CalcValue* aCalc)
+void nsCSSValue::SetCalcValue(const nsStyleCoord::CalcValue& aCalc)
 {
   RefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(1);
-  if (!aCalc->mHasPercent) {
-    arr->Item(0).SetIntegerCoordValue(aCalc->mLength);
+  if (!aCalc.mHasPercent) {
+    arr->Item(0).SetIntegerCoordValue(aCalc.mLength);
   } else {
-    nsCSSValue::Array *arr2 = nsCSSValue::Array::Create(2);
+    nsCSSValue::Array* arr2 = nsCSSValue::Array::Create(2);
     arr->Item(0).SetArrayValue(arr2, eCSSUnit_Calc_Plus);
-    arr2->Item(0).SetIntegerCoordValue(aCalc->mLength);
-    arr2->Item(1).SetPercentValue(aCalc->mPercent);
+    arr2->Item(0).SetIntegerCoordValue(aCalc.mLength);
+    arr2->Item(1).SetPercentValue(aCalc.mPercent);
   }
 
   SetArrayValue(arr, eCSSUnit_Calc);
@@ -678,8 +406,7 @@ void nsCSSValue::SetCalcValue(const nsStyleCoord::CalcValue* aCalc)
 nsStyleCoord::CalcValue
 nsCSSValue::GetCalcValue() const
 {
-  MOZ_ASSERT(mUnit == eCSSUnit_Calc,
-             "The unit should be eCSSUnit_Calc");
+  MOZ_ASSERT(mUnit == eCSSUnit_Calc, "The unit should be eCSSUnit_Calc");
 
   const nsCSSValue::Array* array = GetArrayValue();
   MOZ_ASSERT(array->Count() == 1,
@@ -715,31 +442,6 @@ nsCSSValue::GetCalcValue() const
   return result;
 }
 
-nsCSSValue::Array*
-nsCSSValue::InitFunction(nsCSSKeyword aFunctionId, uint32_t aNumArgs)
-{
-  RefPtr<nsCSSValue::Array> func = Array::Create(aNumArgs + 1);
-  func->Item(0).SetIntValue(aFunctionId, eCSSUnit_Enumerated);
-  SetArrayValue(func, eCSSUnit_Function);
-  return func;
-}
-
-bool
-nsCSSValue::EqualsFunction(nsCSSKeyword aFunctionId) const
-{
-  if (mUnit != eCSSUnit_Function) {
-    return false;
-  }
-
-  nsCSSValue::Array* func = mValue.mArray;
-  MOZ_ASSERT(func && func->Count() >= 1 &&
-             func->Item(0).GetUnit() == eCSSUnit_Enumerated,
-             "illegally structured function value");
-
-  nsCSSKeyword thisFunctionId = func->Item(0).GetKeywordValue();
-  return thisFunctionId == aFunctionId;
-}
-
 // static
 already_AddRefed<nsStringBuffer>
 nsCSSValue::BufferFromString(const nsString& aValue)
@@ -764,16 +466,6 @@ nsCSSValue::BufferFromString(const nsString& aValue)
   // Null-terminate.
   data[length] = 0;
   return buffer.forget();
-}
-
-void
-nsCSSValue::AtomizeIdentValue()
-{
-  MOZ_ASSERT(mUnit == eCSSUnit_Ident);
-  RefPtr<nsAtom> atom = NS_Atomize(GetStringBufferValue());
-  Reset();
-  mUnit = eCSSUnit_AtomIdent;
-  mValue.mAtom = atom.forget().take();
 }
 
 /* static */ void
@@ -836,8 +528,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     case eCSSUnit_String:
     case eCSSUnit_Ident:
     case eCSSUnit_Attr:
-    case eCSSUnit_Local_Font:
-    case eCSSUnit_Font_Format:
     case eCSSUnit_Element:
       n += mValue.mString->SizeOfIncludingThisIfUnshared(aMallocSizeOf);
       break;
@@ -852,15 +542,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     case eCSSUnit_Function:
     case eCSSUnit_Calc:
     case eCSSUnit_Calc_Plus:
-    case eCSSUnit_Calc_Minus:
-    case eCSSUnit_Calc_Times_L:
-    case eCSSUnit_Calc_Times_R:
-    case eCSSUnit_Calc_Divided:
-      break;
-
-    // URL
-    case eCSSUnit_URL:
-      n += mValue.mURL->SizeOfIncludingThis(aMallocSizeOf);
       break;
 
     // Pair
@@ -871,10 +552,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     // List
     case eCSSUnit_List:
       n += mValue.mList->SizeOfIncludingThis(aMallocSizeOf);
-      break;
-
-    // ListDep: not measured because it's non-owning.
-    case eCSSUnit_ListDep:
       break;
 
     // SharedList
@@ -888,22 +565,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
       n += mValue.mPairList->SizeOfIncludingThis(aMallocSizeOf);
       break;
 
-    // PairListDep: not measured because it's non-owning.
-    case eCSSUnit_PairListDep:
-      break;
-
-    // GridTemplateAreas
-    case eCSSUnit_GridTemplateAreas:
-      n += mValue.mGridTemplateAreas->SizeOfIncludingThis(aMallocSizeOf);
-      break;
-
-    case eCSSUnit_FontFamilyList:
-      // The SharedFontList is a refcounted object, but is unique per
-      // declaration. We don't measure the references from computed
-      // values.
-      n += mValue.mFontFamilyList->SizeOfIncludingThis(aMallocSizeOf);
-      break;
-
     // Atom is always shared, and thus should not be counted.
     case eCSSUnit_AtomIdent:
       break;
@@ -911,9 +572,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     // Int: nothing extra to measure.
     case eCSSUnit_Integer:
     case eCSSUnit_Enumerated:
-    case eCSSUnit_FontStretch:
-    case eCSSUnit_FontSlantStyle:
-    case eCSSUnit_FontWeight:
       break;
 
     // Float: nothing extra to measure.
@@ -935,9 +593,6 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     case eCSSUnit_Pixel:
     case eCSSUnit_Quarter:
     case eCSSUnit_Degree:
-    case eCSSUnit_Grad:
-    case eCSSUnit_Turn:
-    case eCSSUnit_Radian:
     case eCSSUnit_Hertz:
     case eCSSUnit_Kilohertz:
     case eCSSUnit_Seconds:
@@ -1158,45 +813,21 @@ nsCSSValue::Array::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) cons
   return n;
 }
 
-css::URLValueData::URLValueData(already_AddRefed<nsIURI> aURI,
-                                ServoRawOffsetArc<RustString> aString,
-                                already_AddRefed<URLExtraData> aExtraData,
-                                CORSMode aCORSMode)
-  : mURI(std::move(aURI))
-  , mExtraData(std::move(aExtraData))
-  , mURIResolved(true)
-  , mString(aString)
-  , mCORSMode(aCORSMode)
+css::URLValue::~URLValue()
 {
-  MOZ_ASSERT(mExtraData);
-  MOZ_ASSERT(mExtraData->GetPrincipal());
-}
-
-css::URLValueData::URLValueData(ServoRawOffsetArc<RustString> aString,
-                                already_AddRefed<URLExtraData> aExtraData,
-                                CORSMode aCORSMode)
-  : mExtraData(std::move(aExtraData))
-  , mURIResolved(false)
-  , mString(aString)
-  , mCORSMode(aCORSMode)
-{
-  MOZ_ASSERT(mExtraData);
-  MOZ_ASSERT(mExtraData->GetPrincipal());
-}
-
-css::URLValueData::~URLValueData()
-{
-  Servo_ReleaseArcStringData(&mString);
+  if (mLoadID != 0) {
+    ImageLoader::DeregisterCSSImageFromAllLoaders(this);
+  }
 }
 
 bool
-css::URLValueData::Equals(const URLValueData& aOther) const
+css::URLValue::Equals(const URLValue& aOther) const
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   bool eq;
-  const URLExtraData* self = mExtraData;
-  const URLExtraData* other = aOther.mExtraData;
+  const URLExtraData* self = ExtraData();
+  const URLExtraData* other = aOther.ExtraData();
   return GetString() == aOther.GetString() &&
           (GetURI() == aOther.GetURI() || // handles null == null
            (mURI && aOther.mURI &&
@@ -1205,39 +836,38 @@ css::URLValueData::Equals(const URLValueData& aOther) const
           (self->BaseURI() == other->BaseURI() ||
            (NS_SUCCEEDED(self->BaseURI()->Equals(other->BaseURI(), &eq)) &&
             eq)) &&
-          (self->GetPrincipal() == other->GetPrincipal() ||
-           self->GetPrincipal()->Equals(other->GetPrincipal())) &&
+          self->Principal()->Equals(other->Principal()) &&
           IsLocalRef() == aOther.IsLocalRef();
 }
 
 bool
-css::URLValueData::DefinitelyEqualURIs(const URLValueData& aOther) const
+css::URLValue::DefinitelyEqualURIs(const URLValue& aOther) const
 {
-  if (mExtraData->BaseURI() != aOther.mExtraData->BaseURI()) {
+  if (ExtraData()->BaseURI() != aOther.ExtraData()->BaseURI()) {
     return false;
   }
   return GetString() == aOther.GetString();
 }
 
 bool
-css::URLValueData::DefinitelyEqualURIsAndPrincipal(
-    const URLValueData& aOther) const
+css::URLValue::DefinitelyEqualURIsAndPrincipal(
+    const URLValue& aOther) const
 {
-  return mExtraData->GetPrincipal() == aOther.mExtraData->GetPrincipal() &&
+  return ExtraData()->Principal() == aOther.ExtraData()->Principal() &&
          DefinitelyEqualURIs(aOther);
 }
 
 nsDependentCSubstring
-css::URLValueData::GetString() const
+css::URLValue::GetString() const
 {
   const uint8_t* chars;
   uint32_t len;
-  Servo_GetArcStringData(mString.mPtr, &chars, &len);
+  Servo_CssUrlData_GetSerialization(mCssUrl, &chars, &len);
   return nsDependentCSubstring(reinterpret_cast<const char*>(chars), len);
 }
 
 nsIURI*
-css::URLValueData::GetURI() const
+css::URLValue::GetURI() const
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1246,7 +876,7 @@ css::URLValueData::GetURI() const
     nsCOMPtr<nsIURI> newURI;
     NS_NewURI(getter_AddRefs(newURI),
               GetString(),
-              nullptr, mExtraData->BaseURI());
+              nullptr, ExtraData()->BaseURI());
     mURI = newURI.forget();
     mURIResolved = true;
   }
@@ -1255,54 +885,23 @@ css::URLValueData::GetURI() const
 }
 
 bool
-css::URLValueData::IsLocalRef() const
+css::URLValue::HasRef() const
 {
-  if (mIsLocalRef.isNothing()) {
-    // IsLocalRefURL is O(N), use it only when IsLocalRef is called.
-    mIsLocalRef.emplace(nsContentUtils::IsLocalRefURL(GetString()));
-  }
-  return mIsLocalRef.value();
-}
-
-bool
-css::URLValueData::HasRef() const
-{
-  bool result = false;
-
   if (IsLocalRef()) {
-    result = true;
-  } else {
-    if (nsIURI* uri = GetURI()) {
-      nsAutoCString ref;
-      nsresult rv = uri->GetRef(ref);
-      if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
-        result = true;
-      }
-    }
+    return true;
   }
 
-  mMightHaveRef = Some(result);
-
-  return result;
-}
-
-bool
-css::URLValueData::MightHaveRef() const
-{
-  if (mMightHaveRef.isNothing()) {
-    bool result = ::MightHaveRef(GetString());
-    if (!ServoStyleSet::IsInServoTraversal()) {
-      // Can only cache the result if we're not on a style worker thread.
-      mMightHaveRef.emplace(result);
-    }
-    return result;
+  if (nsIURI* uri = GetURI()) {
+    nsAutoCString ref;
+    nsresult rv = uri->GetRef(ref);
+    return NS_SUCCEEDED(rv) && !ref.IsEmpty();
   }
 
-  return mMightHaveRef.value();
+  return false;
 }
 
 already_AddRefed<nsIURI>
-css::URLValueData::ResolveLocalRef(nsIURI* aURI) const
+css::URLValue::ResolveLocalRef(nsIURI* aURI) const
 {
   nsCOMPtr<nsIURI> result = GetURI();
 
@@ -1324,14 +923,14 @@ css::URLValueData::ResolveLocalRef(nsIURI* aURI) const
 }
 
 already_AddRefed<nsIURI>
-css::URLValueData::ResolveLocalRef(nsIContent* aContent) const
+css::URLValue::ResolveLocalRef(nsIContent* aContent) const
 {
   nsCOMPtr<nsIURI> url = aContent->GetBaseURI();
   return ResolveLocalRef(url);
 }
 
 void
-css::URLValueData::GetSourceString(nsString& aRef) const
+css::URLValue::GetSourceString(nsString& aRef) const
 {
   nsIURI* uri = GetURI();
   if (!uri) {
@@ -1342,7 +941,7 @@ css::URLValueData::GetSourceString(nsString& aRef) const
   nsCString cref;
   if (IsLocalRef()) {
     // XXXheycam It's possible we can just return mString in this case, since
-    // it should be the "#fragment" string the URLValueData was created with.
+    // it should be the "#fragment" string the URLValue was created with.
     uri->GetRef(cref);
     cref.Insert('#', 0);
   } else {
@@ -1357,76 +956,32 @@ css::URLValueData::GetSourceString(nsString& aRef) const
   aRef = NS_ConvertUTF8toUTF16(cref);
 }
 
-bool
-css::URLValueData::EqualsExceptRef(nsIURI* aURI) const
-{
-  nsIURI* uri = GetURI();
-  if (!uri) {
-    return false;
-  }
-
-  bool ret = false;
-  uri->EqualsExceptRef(aURI, &ret);
-  return ret;
-}
-
 size_t
-css::URLValueData::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+css::URLValue::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   // Measurement of the following members may be added later if DMD finds it
   // is worthwhile:
   // - mURI
   // - mString
-  // - mExtraData
-  return 0;
-}
 
-size_t
-css::URLValue::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
   // Only measure it if it's unshared, to avoid double-counting.
   size_t n = 0;
   if (mRefCnt <= 1) {
     n += aMallocSizeOf(this);
-    n += URLValueData::SizeOfExcludingThis(aMallocSizeOf);
   }
   return n;
 }
 
-css::ImageValue::ImageValue(nsIURI* aURI,
-                            ServoRawOffsetArc<RustString> aString,
-                            already_AddRefed<URLExtraData> aExtraData,
-                            nsIDocument* aDocument,
-                            CORSMode aCORSMode)
-  : URLValueData(do_AddRef(aURI), aString, std::move(aExtraData), aCORSMode)
-{
-  Initialize(aDocument);
-}
-
-css::ImageValue::ImageValue(ServoRawOffsetArc<RustString> aString,
-                            already_AddRefed<URLExtraData> aExtraData,
-                            CORSMode aCORSMode)
-  : URLValueData(aString, std::move(aExtraData), aCORSMode)
-{
-}
-
-/*static*/ already_AddRefed<css::ImageValue>
-css::ImageValue::CreateFromURLValue(URLValue* aUrl,
-                                    nsIDocument* aDocument,
-                                    CORSMode aCORSMode)
-{
-  return do_AddRef(
-    new css::ImageValue(aUrl->GetURI(),
-                        Servo_CloneArcStringData(&aUrl->mString),
-                        do_AddRef(aUrl->mExtraData),
-                        aDocument,
-                        aCORSMode));
-}
-
-void
-css::ImageValue::Initialize(nsIDocument* aDocument)
+imgRequestProxy*
+css::URLValue::LoadImage(nsIDocument* aDocument)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  static uint64_t sNextLoadID = 1;
+
+  if (mLoadID == 0) {
+    mLoadID = sNextLoadID++;
+  }
 
   // NB: If aDocument is not the original document, we may not be able to load
   // images from aDocument.  Instead we do the image load from the original doc
@@ -1436,49 +991,11 @@ css::ImageValue::Initialize(nsIDocument* aDocument)
     loadingDoc = aDocument;
   }
 
-  if (!mLoadedImage) {
-    loadingDoc->StyleImageLoader()->LoadImage(GetURI(),
-                                              mExtraData->GetPrincipal(),
-                                              mExtraData->GetReferrer(),
-                                              mExtraData->GetReferrerPolicy(),
-                                              this,
-                                              mCORSMode);
+  // Kick off the load in the loading document.
+  ImageLoader::LoadImage(this, loadingDoc);
 
-    mLoadedImage = true;
-  }
-
-  aDocument->StyleImageLoader()->MaybeRegisterCSSImage(this);
-}
-
-css::ImageValue::~ImageValue()
-{
-  MOZ_ASSERT(NS_IsMainThread() || mRequests.Count() == 0,
-             "Destructor should run on main thread, or on non-main thread "
-             "when mRequest is empty!");
-
-  for (auto iter = mRequests.Iter(); !iter.Done(); iter.Next()) {
-    nsIDocument* doc = iter.Key();
-    RefPtr<imgRequestProxy>& proxy = iter.Data();
-
-    if (doc) {
-      doc->StyleImageLoader()->DeregisterCSSImage(this);
-    }
-
-    if (proxy) {
-      proxy->CancelAndForgetObserver(NS_BINDING_ABORTED);
-    }
-
-    iter.Remove();
-  }
-}
-
-size_t
-css::ImageValue::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
-  size_t n = aMallocSizeOf(this);
-  n += css::URLValueData::SizeOfExcludingThis(aMallocSizeOf);
-  n += mRequests.ShallowSizeOfExcludingThis(aMallocSizeOf);
-  return n;
+  // Register the image in the document that's using it.
+  return aDocument->StyleImageLoader()->RegisterCSSImage(this);
 }
 
 size_t

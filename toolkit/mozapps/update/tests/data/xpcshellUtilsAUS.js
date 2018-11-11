@@ -840,6 +840,8 @@ function setupTestCommon() {
   // adjustGeneralPaths registers a cleanup function that calls end_test when
   // it is defined as a function.
   adjustGeneralPaths();
+  createWorldWritableAppUpdateDir();
+
   // Logged once here instead of in the mock directory provider to lessen test
   // log spam.
   debugDump("Updates Directory (UpdRootD) Path: " + getMockUpdRootD().path);
@@ -1583,6 +1585,8 @@ XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash", function test_gIDPH() {
     logTestInfo("failed to create registry key. Registry Path: " + REG_PATH +
                 ", Key Name: " + appDir.path + ", Key Value: " + gTestID +
                 ", Exception " + e);
+    do_throw("Unable to write HKLM or HKCU TaskBarIDs registry key, key path: "
+             + REG_PATH);
   }
   return null;
 });
@@ -1594,6 +1598,15 @@ XPCOMUtils.defineLazyGetter(this, "gLocalAppDataDir", function test_gLADD() {
 
   const CSIDL_LOCAL_APPDATA = 0x1c;
   return getSpecialFolderDir(CSIDL_LOCAL_APPDATA);
+});
+
+XPCOMUtils.defineLazyGetter(this, "gCommonAppDataDir", function test_gCDD() {
+  if (!IS_WIN) {
+    do_throw("Windows only function called by a different platform!");
+  }
+
+  const CSIDL_COMMON_APPDATA = 0x0023;
+  return getSpecialFolderDir(CSIDL_COMMON_APPDATA);
 });
 
 XPCOMUtils.defineLazyGetter(this, "gProgFilesDir", function test_gPFD() {
@@ -1610,10 +1623,14 @@ XPCOMUtils.defineLazyGetter(this, "gProgFilesDir", function test_gPFD() {
  * returns the same directory as returned by nsXREDirProvider::GetUpdateRootDir
  * in nsXREDirProvider.cpp so an application will be able to find the update
  * when running a test that launches the application.
+ *
+ * The aGetOldLocation argument performs the same function that the argument
+ * with the same name in nsXREDirProvider::GetUpdateRootDir performs. If true,
+ * the old (pre-migration) update directory is returned.
  */
-function getMockUpdRootD() {
+function getMockUpdRootD(aGetOldLocation = false) {
   if (IS_WIN) {
-    return getMockUpdRootDWin();
+    return getMockUpdRootDWin(aGetOldLocation);
   }
 
   if (IS_MACOSX) {
@@ -1629,48 +1646,39 @@ function getMockUpdRootD() {
  * in nsXREDirProvider.cpp so an application will be able to find the update
  * when running a test that launches the application.
  */
-function getMockUpdRootDWin() {
+function getMockUpdRootDWin(aGetOldLocation) {
   if (!IS_WIN) {
     do_throw("Windows only function called by a different platform!");
   }
 
-  let localAppDataDir = gLocalAppDataDir.clone();
-  let progFilesDir = gProgFilesDir.clone();
-  let appDir = Services.dirsvc.get(XRE_EXECUTABLE_FILE, Ci.nsIFile).parent;
-
-  let appDirPath = appDir.path;
   let relPathUpdates = "";
-  if (gInstallDirPathHash && (MOZ_APP_VENDOR || MOZ_APP_BASENAME)) {
-    relPathUpdates += (MOZ_APP_VENDOR ? MOZ_APP_VENDOR : MOZ_APP_BASENAME) +
-                      "\\" + DIR_UPDATES + "\\" + gInstallDirPathHash;
-  }
-
-  if (!relPathUpdates && progFilesDir) {
-    if (appDirPath.length > progFilesDir.path.length) {
-      if (appDirPath.substr(0, progFilesDir.path.length) == progFilesDir.path) {
-        if (MOZ_APP_VENDOR && MOZ_APP_BASENAME) {
-          relPathUpdates += MOZ_APP_VENDOR + "\\" + MOZ_APP_BASENAME;
-        } else {
-          relPathUpdates += MOZ_APP_BASENAME;
-        }
-        relPathUpdates += appDirPath.substr(progFilesDir.path.length);
-      }
-    }
-  }
-
-  if (!relPathUpdates) {
-    if (MOZ_APP_VENDOR && MOZ_APP_BASENAME) {
-      relPathUpdates += MOZ_APP_VENDOR + "\\" + MOZ_APP_BASENAME;
+  let dataDirectory;
+  if (aGetOldLocation) {
+    dataDirectory = gLocalAppDataDir.clone();
+    if (MOZ_APP_VENDOR || MOZ_APP_BASENAME) {
+      relPathUpdates += (MOZ_APP_VENDOR ? MOZ_APP_VENDOR : MOZ_APP_BASENAME);
     } else {
-      relPathUpdates += MOZ_APP_BASENAME;
+      relPathUpdates += "Mozilla";
     }
-    relPathUpdates += "\\" + MOZ_APP_NAME;
+  } else {
+    dataDirectory = gCommonAppDataDir.clone();
+    relPathUpdates += "Mozilla";
   }
 
+  relPathUpdates += "\\" + DIR_UPDATES + "\\" + gInstallDirPathHash;
   let updatesDir = Cc["@mozilla.org/file/local;1"].
                    createInstance(Ci.nsIFile);
-  updatesDir.initWithPath(localAppDataDir.path + "\\" + relPathUpdates);
+  updatesDir.initWithPath(dataDirectory.path + "\\" + relPathUpdates);
   return updatesDir;
+}
+
+function createWorldWritableAppUpdateDir() {
+  // This function is only necessary in Windows
+  if (IS_WIN) {
+    let installDir = Services.dirsvc.get(XRE_EXECUTABLE_FILE, Ci.nsIFile).parent;
+    let exitValue = runTestHelperSync(["create-update-dir", installDir.path]);
+    Assert.equal(exitValue, 0, "The helper process exit value should be 0");
+  }
 }
 
 XPCOMUtils.defineLazyGetter(this, "gUpdatesRootDir", function test_gURD() {
@@ -1995,6 +2003,9 @@ function runUpdate(aExpectedStatus, aSwitchApp, aExpectedExitValue, aCheckSvcLog
   }
   Assert.equal(status, aExpectedStatus,
                "the update status" + MSG_SHOULD_EQUAL);
+
+  Assert.ok(!updateHasBinaryTransparencyErrorResult(),
+            "binary transparency is not being processed for now");
 
   if (IS_SERVICE_TEST && aCheckSvcLog) {
     let contents = readServiceLogFile();
@@ -3083,9 +3094,9 @@ function replaceLogPaths(aLogContents) {
  */
 function checkUpdateLogContents(aCompareLogFile, aStaged = false,
                                 aReplace = false, aExcludeDistDir = false) {
-  if (IS_UNIX && !IS_MACOSX) {
+  if (IS_UNIX) {
     // The order that files are returned when enumerating the file system on
-    // Linux is not deterministic so skip checking the logs.
+    // Linux and Mac is not deterministic so skip checking the logs.
     return;
   }
 
@@ -3114,6 +3125,8 @@ function checkUpdateLogContents(aCompareLogFile, aStaged = false,
   updateLogContents = updateLogContents.replace(/WORKING DIRECTORY.*/g, "");
   // Skip lines that log failed attempts to open the callback executable.
   updateLogContents = updateLogContents.replace(/NS_main: callback app file .*/g, "");
+  // Remove carriage returns.
+  updateLogContents = updateLogContents.replace(/\r/g, "");
 
   if (IS_WIN) {
     // The FindFile results when enumerating the filesystem on Windows is not
@@ -3130,10 +3143,16 @@ function checkUpdateLogContents(aCompareLogFile, aStaged = false,
     updateLogContents = updateLogContents.replace(/^ensure_remove_recursive: unable to remove directory: .*$/mg, "");
     updateLogContents = updateLogContents.replace(/^Removing tmpDir failed, err: -1$/mg, "");
     updateLogContents = updateLogContents.replace(/^remove_recursive_on_reboot: .*$/mg, "");
+    // Replace requests will retry renaming the installation directory 10 times
+    // when there are files still in use. The following will remove the
+    // additional entries from the log file when this happens so the log check
+    // passes.
+    let re = new RegExp("\n" + ERR_RENAME_FILE + "[^\n]*\n" +
+                        "PerformReplaceRequest: destDir rename[^\n]*\n" +
+                        "rename_file: proceeding to rename the directory\n", "g");
+    updateLogContents = updateLogContents.replace(re, "\n");
   }
 
-  // Remove carriage returns.
-  updateLogContents = updateLogContents.replace(/\r/g, "");
   // Replace error codes since they are different on each platform.
   updateLogContents = updateLogContents.replace(/, err:.*\n/g, "\n");
   // Replace to make the log parsing happy.
@@ -3194,8 +3213,8 @@ function checkUpdateLogContents(aCompareLogFile, aStaged = false,
     // incorrect line.
     for (let i = 0; i < aryLog.length; ++i) {
       if (aryLog[i] != aryCompare[i]) {
-        logTestInfo("the first incorrect line in the update log is: " +
-                    aryLog[i]);
+        logTestInfo("the first incorrect line is line #" + i + " and the " +
+                    "value is: " + aryLog[i]);
         Assert.equal(aryLog[i], aryCompare[i],
                      "the update log contents" + MSG_SHOULD_EQUAL);
       }
@@ -3926,8 +3945,8 @@ function getProcessArgs(aExtraArgs) {
               scriptContents);
     args = [launchScript.path];
   } else {
-    args = ["/D", "/Q", "/C", appBinPath, "-no-remote", "-test-process-updates"].
-           concat(aExtraArgs).concat([PIPE_TO_NULL]);
+    args = ["/D", "/Q", "/C", appBinPath, "-no-remote", "-test-process-updates",
+            "-wait-for-browser"].concat(aExtraArgs).concat([PIPE_TO_NULL]);
   }
   return args;
 }
@@ -3981,6 +4000,8 @@ function adjustGeneralPaths() {
           return getApplyDirFile(DIR_MACOS + FILE_APP_BIN, true);
         case XRE_UPDATE_ROOT_DIR:
           return getMockUpdRootD();
+        case XRE_OLD_UPDATE_ROOT_DIR:
+          return getMockUpdRootD(true);
       }
       return null;
     },

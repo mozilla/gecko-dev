@@ -10,7 +10,7 @@
 #include "mozilla/LinkedList.h"
 #include "nsWrapperCache.h"
 
-#include "CacheMap.h"
+#include "CacheInvalidator.h"
 #include "WebGLObjectModel.h"
 #include "WebGLStrongTypes.h"
 #include "WebGLVertexAttribData.h"
@@ -26,20 +26,12 @@ class WebGLVertexArray
     : public nsWrapperCache
     , public WebGLRefCountedObject<WebGLVertexArray>
     , public LinkedListElement<WebGLVertexArray>
-    , public CacheMapInvalidator
+    , public CacheInvalidator
 {
 public:
     static WebGLVertexArray* Create(WebGLContext* webgl);
 
-    void BindVertexArray() {
-        // Bind to dummy value to signal that this vertex array has ever been
-        // bound.
-        BindVertexArrayImpl();
-    };
-
-    // Implement parent classes:
     void Delete();
-    bool IsVertexArray() const;
 
     WebGLContext* GetParentObject() const {
         return mContext;
@@ -50,20 +42,19 @@ public:
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLVertexArray)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLVertexArray)
 
-    GLuint GLName() const { return mGLName; }
-
     void AddBufferBindCounts(int8_t addVal) const;
 
 protected:
-    explicit WebGLVertexArray(WebGLContext* webgl);
+    WebGLVertexArray(WebGLContext* webgl, GLuint name);
     virtual ~WebGLVertexArray();
 
-    virtual void GenVertexArray() = 0;
-    virtual void BindVertexArrayImpl() = 0;
+    virtual void BindVertexArray() = 0;
     virtual void DeleteImpl() = 0;
-    virtual bool IsVertexArrayImpl() const = 0;
 
-    GLuint mGLName;
+public:
+    const GLuint mGLName;
+    bool mHasBeenBound = false;
+protected:
     nsTArray<WebGLVertexAttribData> mAttribs;
     WebGLRefPtr<WebGLBuffer> mElementArrayBuffer;
 

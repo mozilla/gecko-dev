@@ -9,6 +9,12 @@ try {
   // We might be running without privileges, in which case it's up to the
   // harness to give us the 'ctypes' object.
   ChromeUtils.import("resource://gre/modules/ctypes.jsm");
+  ChromeUtils.import("resource://gre/modules/Services.jsm");
+
+  Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+  });
 } catch (e) {
 }
 
@@ -214,8 +220,13 @@ function run_test() {
   library = ctypes.open(unicodefile.path);
   run_void_tests(library);
   library.close();
-  if (copy)
-    unicodefile.remove(false);
+  if (copy) {
+    // Tolerate remove() failure because Firefox may have the DLL open
+    // for examination.
+    try {
+      unicodefile.remove(false);
+    } catch (e) {}
+  }
 }
 
 function run_abstract_class_tests() {

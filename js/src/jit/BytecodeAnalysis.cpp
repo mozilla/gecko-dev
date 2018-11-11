@@ -105,22 +105,22 @@ BytecodeAnalysis::init(TempAllocator& alloc, GSNCache& gsn)
             infos_[defaultOffset].init(stackDepth);
             infos_[defaultOffset].jumpTarget = true;
 
-            for (int32_t i = low; i <= high; i++) {
-                unsigned targetOffset = offset + GET_JUMP_OFFSET(pc2);
-                if (targetOffset != offset) {
+            uint32_t ncases = high - low + 1;
+
+            for (uint32_t i = 0; i < ncases; i++) {
+                unsigned targetOffset = script_->tableSwitchCaseOffset(pc, i);
+                if (targetOffset != defaultOffset) {
                     infos_[targetOffset].init(stackDepth);
                     infos_[targetOffset].jumpTarget = true;
                 }
-                pc2 += JUMP_OFFSET_LEN;
             }
             break;
           }
 
           case JSOP_TRY: {
             for (const JSTryNote& tn : script_->trynotes()) {
-                unsigned startOffset = script_->mainOffset() + tn.start;
-                if (startOffset == offset + 1) {
-                    unsigned catchOffset = startOffset + tn.length;
+                if (tn.start == offset + 1) {
+                    unsigned catchOffset = tn.start + tn.length;
 
                     if (tn.kind != JSTRY_FOR_IN) {
                         infos_[catchOffset].init(stackDepth);

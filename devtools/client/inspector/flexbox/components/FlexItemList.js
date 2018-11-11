@@ -16,14 +16,18 @@ class FlexItemList extends PureComponent {
   static get propTypes() {
     return {
       flexItems: PropTypes.arrayOf(PropTypes.shape(Types.flexItem)).isRequired,
-      onToggleFlexItemShown: PropTypes.func.isRequired,
+      onHideBoxModelHighlighter: PropTypes.func.isRequired,
+      onShowBoxModelHighlighterForNode: PropTypes.func.isRequired,
+      setSelectedNode: PropTypes.func.isRequired,
     };
   }
 
   render() {
     const {
       flexItems,
-      onToggleFlexItemShown,
+      onHideBoxModelHighlighter,
+      onShowBoxModelHighlighterForNode,
+      setSelectedNode,
     } = this.props;
 
     return (
@@ -32,7 +36,9 @@ class FlexItemList extends PureComponent {
         flexItems.map(flexItem => FlexItem({
           key: flexItem.actorID,
           flexItem,
-          onToggleFlexItemShown,
+          onHideBoxModelHighlighter,
+          onShowBoxModelHighlighterForNode,
+          setSelectedNode,
         }))
       )
     );

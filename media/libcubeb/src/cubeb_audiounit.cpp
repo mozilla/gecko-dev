@@ -132,11 +132,13 @@ struct cubeb {
   owned_critical_section mutex;
   int active_streams = 0;
   uint32_t global_latency_frames = 0;
-  cubeb_device_collection_changed_callback collection_changed_callback = nullptr;
-  void * collection_changed_user_ptr = nullptr;
-  /* Differentiate input from output devices. */
-  cubeb_device_type collection_changed_devtype = CUBEB_DEVICE_TYPE_UNKNOWN;
-  vector<AudioObjectID> devtype_device_array;
+  cubeb_device_collection_changed_callback input_collection_changed_callback = nullptr;
+  void * input_collection_changed_user_ptr = nullptr;
+  cubeb_device_collection_changed_callback output_collection_changed_callback = nullptr;
+  void * output_collection_changed_user_ptr = nullptr;
+  // Store list of devices to detect changes
+  vector<AudioObjectID> input_device_array;
+  vector<AudioObjectID> output_device_array;
   // The queue is asynchronously deallocated once all references to it are released
   dispatch_queue_t serial_queue = dispatch_queue_create(DISPATCH_QUEUE_LABEL, DISPATCH_QUEUE_SERIAL);
   // Current used channel layout
@@ -587,7 +589,7 @@ audiounit_output_callback(void * user_ptr,
         (unsigned int) outBufferList->mBuffers[0].mDataByteSize,
         (unsigned int) outBufferList->mBuffers[0].mNumberChannels,
         (unsigned int) output_frames,
-        stm->input_linear_buffer->length() / stm->input_desc.mChannelsPerFrame);
+        has_input(stm) ? stm->input_linear_buffer->length() / stm->input_desc.mChannelsPerFrame : 0);
 
   long input_frames = 0;
   void * output_buffer = NULL, * input_buffer = NULL;
@@ -837,6 +839,7 @@ audiounit_reinit_stream(cubeb_stream * stm, device_flags_value flags)
       if (flags & DEV_INPUT && input_device != 0) {
         // Attempt to re-use the same device-id failed, so attempt again with
         // default input device.
+        audiounit_close_stream(stm);
         if (audiounit_set_device_info(stm, 0, io_side::INPUT) != CUBEB_OK ||
             audiounit_setup_stream(stm) != CUBEB_OK) {
           LOG("(%p) Second stream reinit failed.", stm);
@@ -1406,7 +1409,7 @@ audiounit_get_current_channel_layout(AudioUnit output_unit)
 
 static int audiounit_create_unit(AudioUnit * unit, device_info * device);
 
-static OSStatus audiounit_remove_device_listener(cubeb * context);
+static OSStatus audiounit_remove_device_listener(cubeb * context, cubeb_device_type devtype);
 
 static void
 audiounit_destroy(cubeb * ctx)
@@ -1421,8 +1424,11 @@ audiounit_destroy(cubeb * ctx)
     }
 
     /* Unregister the callback if necessary. */
-    if (ctx->collection_changed_callback) {
-      audiounit_remove_device_listener(ctx);
+    if (ctx->input_collection_changed_callback) {
+      audiounit_remove_device_listener(ctx, CUBEB_DEVICE_TYPE_INPUT);
+    }
+    if (ctx->output_collection_changed_callback) {
+      audiounit_remove_device_listener(ctx, CUBEB_DEVICE_TYPE_OUTPUT);
     }
   }
 
@@ -1841,8 +1847,8 @@ audiounit_workaround_for_airpod(cubeb_stream * stm)
   std::string input_name_str(input_device_info.friendly_name);
   std::string output_name_str(output_device_info.friendly_name);
 
-  if( input_name_str.find("AirPods") != std::string::npos
-    && output_name_str.find("AirPods") != std::string::npos ) {
+  if(input_name_str.find("AirPods") != std::string::npos &&
+     output_name_str.find("AirPods") != std::string::npos) {
     uint32_t input_min_rate = 0;
     uint32_t input_max_rate = 0;
     uint32_t input_nominal_rate = 0;
@@ -1980,8 +1986,8 @@ audiounit_new_unit_instance(AudioUnit * unit, device_info * device)
   // so we retain automatic output device switching when the default
   // changes.  Once we have complete support for device notifications
   // and switching, we can use the AUHAL for everything.
-  if ((device->flags & DEV_SYSTEM_DEFAULT)
-      && (device->flags & DEV_OUTPUT)) {
+  if ((device->flags & DEV_SYSTEM_DEFAULT) &&
+      (device->flags & DEV_OUTPUT)) {
     desc.componentSubType = kAudioUnitSubType_DefaultOutput;
   } else {
     desc.componentSubType = kAudioUnitSubType_HALOutput;
@@ -2041,8 +2047,8 @@ audiounit_create_unit(AudioUnit * unit, device_info * device)
   }
   assert(*unit);
 
-  if ((device->flags & DEV_SYSTEM_DEFAULT)
-      && (device->flags & DEV_OUTPUT)) {
+  if ((device->flags & DEV_SYSTEM_DEFAULT) &&
+      (device->flags & DEV_OUTPUT)) {
     return CUBEB_OK;
   }
 
@@ -3396,16 +3402,25 @@ audiounit_get_devices_of_type(cubeb_device_type devtype)
   if (ret != noErr) {
     return vector<AudioObjectID>();
   }
-  /* Total number of input and output devices. */
-  uint32_t count = (uint32_t)(size / sizeof(AudioObjectID));
-
-  vector<AudioObjectID> devices(count);
+  vector<AudioObjectID> devices(size / sizeof(AudioObjectID));
   ret = AudioObjectGetPropertyData(kAudioObjectSystemObject,
                                    &DEVICES_PROPERTY_ADDRESS, 0, NULL, &size,
                                    devices.data());
   if (ret != noErr) {
     return vector<AudioObjectID>();
   }
+
+  // Remove the aggregate device from the list of devices (if any).
+  for (auto it = devices.begin(); it != devices.end();) {
+    CFStringRef name = get_device_name(*it);
+    if (name && CFStringFind(name, CFSTR("CubebAggregateDevice"), 0).location !=
+        kCFNotFound) {
+      it = devices.erase(it);
+    } else {
+      it++;
+    }
+  }
+
   /* Expected sorted but did not find anything in the docs. */
   sort(devices.begin(), devices.end(), [](AudioObjectID a, AudioObjectID b) {
       return a < b;
@@ -3420,7 +3435,7 @@ audiounit_get_devices_of_type(cubeb_device_type devtype)
                                          kAudioDevicePropertyScopeOutput;
 
   vector<AudioObjectID> devices_in_scope;
-  for (uint32_t i = 0; i < count; ++i) {
+  for (uint32_t i = 0; i < devices.size(); ++i) {
     /* For device in the given scope channel must be > 0. */
     if (audiounit_get_channel_count(devices[i], scope) > 0) {
       devices_in_scope.push_back(devices[i]);
@@ -3441,53 +3456,27 @@ audiounit_collection_changed_callback(AudioObjectID /* inObjectID */,
   // This can be called from inside an AudioUnit function, dispatch to another queue.
   dispatch_async(context->serial_queue, ^() {
     auto_lock lock(context->mutex);
-    if (context->collection_changed_callback == NULL) {
+    if (!context->input_collection_changed_callback &&
+      !context->output_collection_changed_callback) {
       /* Listener removed while waiting in mutex, abort. */
       return;
     }
-
-    /* Differentiate input from output changes. */
-    if (context->collection_changed_devtype == CUBEB_DEVICE_TYPE_INPUT ||
-        context->collection_changed_devtype == CUBEB_DEVICE_TYPE_OUTPUT) {
-      vector<AudioObjectID> devices = audiounit_get_devices_of_type(context->collection_changed_devtype);
-      /* When count is the same examine the devid for the case of coalescing. */
-      if (context->devtype_device_array == devices) {
-        /* Device changed for the other scope, ignore. */
-        return;
-      } else {
-        /* Also don't trigger the user callback if the new added device is private
-         * aggregate device: compute the set of new devices, and remove those
-         * with the name of our private aggregate devices. */
-        set<AudioObjectID> current_devices(devices.begin(), devices.end());
-        set<AudioObjectID> previous_devices(context->devtype_device_array.begin(),
-                                            context->devtype_device_array.end());
-        set<AudioObjectID> new_devices;
-        set_difference(current_devices.begin(), current_devices.end(),
-                       previous_devices.begin(), previous_devices.end(),
-                       inserter(new_devices, new_devices.begin()));
-
-        for (auto it = new_devices.begin(); it != new_devices.end();) {
-          CFStringRef name = get_device_name(*it);
-          if (CFStringFind(name, CFSTR("CubebAggregateDevice"), 0).location !=
-              kCFNotFound) {
-            it = new_devices.erase(it);
-          } else {
-            it++;
-          }
-        }
-
-        // If this set of new devices is empty, it means this was triggerd
-        // solely by creating an aggregate device, no need to trigger the user
-        // callback.
-        if (new_devices.empty()) {
-          return;
-        }
+    if (context->input_collection_changed_callback) {
+      vector<AudioObjectID> devices = audiounit_get_devices_of_type(CUBEB_DEVICE_TYPE_INPUT);
+      /* Elements in the vector expected sorted. */
+      if (context->input_device_array != devices) {
+        context->input_device_array = devices;
+        context->input_collection_changed_callback(context, context->input_collection_changed_user_ptr);
       }
-      /* Device on desired scope changed. */
-      context->devtype_device_array = devices;
     }
-
-    context->collection_changed_callback(context, context->collection_changed_user_ptr);
+    if (context->output_collection_changed_callback) {
+      vector<AudioObjectID> devices = audiounit_get_devices_of_type(CUBEB_DEVICE_TYPE_OUTPUT);
+      /* Elements in the vector expected sorted. */
+      if (context->output_device_array != devices) {
+        context->output_device_array = devices;
+        context->output_collection_changed_callback(context, context->output_collection_changed_user_ptr);
+      }
+    }
   });
   return noErr;
 }
@@ -3498,47 +3487,65 @@ audiounit_add_device_listener(cubeb * context,
                               cubeb_device_collection_changed_callback collection_changed_callback,
                               void * user_ptr)
 {
+  context->mutex.assert_current_thread_owns();
+  assert(devtype & (CUBEB_DEVICE_TYPE_INPUT | CUBEB_DEVICE_TYPE_OUTPUT));
   /* Note: second register without unregister first causes 'nope' error.
    * Current implementation requires unregister before register a new cb. */
-  assert(context->collection_changed_callback == NULL);
+  assert((devtype & CUBEB_DEVICE_TYPE_INPUT) && !context->input_collection_changed_callback ||
+         (devtype & CUBEB_DEVICE_TYPE_OUTPUT) && !context->output_collection_changed_callback);
 
-  OSStatus ret = AudioObjectAddPropertyListener(kAudioObjectSystemObject,
-                                                &DEVICES_PROPERTY_ADDRESS,
-                                                audiounit_collection_changed_callback,
-                                                context);
-  if (ret == noErr) {
-    /* Expected empty after unregister. */
-    assert(context->devtype_device_array.empty());
-    /* Listener works for input and output.
-     * When requested one of them we need to differentiate. */
-    if (devtype == CUBEB_DEVICE_TYPE_INPUT ||
-        devtype == CUBEB_DEVICE_TYPE_OUTPUT) {
-      /* Used to differentiate input from output device changes. */
-      context->devtype_device_array = audiounit_get_devices_of_type(devtype);
+  if (!context->input_collection_changed_callback &&
+      !context->output_collection_changed_callback) {
+    OSStatus ret = AudioObjectAddPropertyListener(kAudioObjectSystemObject,
+                                                  &DEVICES_PROPERTY_ADDRESS,
+                                                  audiounit_collection_changed_callback,
+                                                  context);
+    if (ret != noErr) {
+      return ret;
     }
-    context->collection_changed_devtype = devtype;
-    context->collection_changed_callback = collection_changed_callback;
-    context->collection_changed_user_ptr = user_ptr;
   }
-  return ret;
+  if (devtype & CUBEB_DEVICE_TYPE_INPUT) {
+    /* Expected empty after unregister. */
+    assert(context->input_device_array.empty());
+    context->input_device_array = audiounit_get_devices_of_type(CUBEB_DEVICE_TYPE_INPUT);
+    context->input_collection_changed_callback = collection_changed_callback;
+    context->input_collection_changed_user_ptr = user_ptr;
+  }
+  if (devtype & CUBEB_DEVICE_TYPE_OUTPUT) {
+    /* Expected empty after unregister. */
+    assert(context->output_device_array.empty());
+    context->output_device_array = audiounit_get_devices_of_type(CUBEB_DEVICE_TYPE_OUTPUT);
+    context->output_collection_changed_callback = collection_changed_callback;
+    context->output_collection_changed_user_ptr = user_ptr;
+  }
+  return noErr;
 }
 
 static OSStatus
-audiounit_remove_device_listener(cubeb * context)
+audiounit_remove_device_listener(cubeb * context, cubeb_device_type devtype)
 {
-  /* Note: unregister a non registered cb is not a problem, not checking. */
-  OSStatus ret = AudioObjectRemovePropertyListener(kAudioObjectSystemObject,
-                                                   &DEVICES_PROPERTY_ADDRESS,
-                                                   audiounit_collection_changed_callback,
-                                                   context);
-  if (ret == noErr) {
-    /* Reset all values. */
-    context->collection_changed_devtype = CUBEB_DEVICE_TYPE_UNKNOWN;
-    context->collection_changed_callback = NULL;
-    context->collection_changed_user_ptr = NULL;
-    context->devtype_device_array.clear();
+  context->mutex.assert_current_thread_owns();
+
+  if (devtype & CUBEB_DEVICE_TYPE_INPUT) {
+    context->input_collection_changed_callback = nullptr;
+    context->input_collection_changed_user_ptr = nullptr;
+    context->input_device_array.clear();
   }
-  return ret;
+  if (devtype & CUBEB_DEVICE_TYPE_OUTPUT) {
+    context->output_collection_changed_callback = nullptr;
+    context->output_collection_changed_user_ptr = nullptr;
+    context->output_device_array.clear();
+  }
+
+  if (context->input_collection_changed_callback ||
+      context->output_collection_changed_callback) {
+    return noErr;
+  }
+  /* Note: unregister a non registered cb is not a problem, not checking. */
+  return AudioObjectRemovePropertyListener(kAudioObjectSystemObject,
+                                           &DEVICES_PROPERTY_ADDRESS,
+                                           audiounit_collection_changed_callback,
+                                           context);
 }
 
 int audiounit_register_device_collection_changed(cubeb * context,
@@ -3546,14 +3553,18 @@ int audiounit_register_device_collection_changed(cubeb * context,
                                                  cubeb_device_collection_changed_callback collection_changed_callback,
                                                  void * user_ptr)
 {
+  if (devtype == CUBEB_DEVICE_TYPE_UNKNOWN) {
+    return CUBEB_ERROR_INVALID_PARAMETER;
+  }
   OSStatus ret;
   auto_lock lock(context->mutex);
   if (collection_changed_callback) {
-    ret = audiounit_add_device_listener(context, devtype,
+    ret = audiounit_add_device_listener(context,
+                                        devtype,
                                         collection_changed_callback,
                                         user_ptr);
   } else {
-    ret = audiounit_remove_device_listener(context);
+    ret = audiounit_remove_device_listener(context, devtype);
   }
   return (ret == noErr) ? CUBEB_OK : CUBEB_ERROR;
 }

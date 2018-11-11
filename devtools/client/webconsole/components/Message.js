@@ -44,6 +44,7 @@ class Message extends Component {
       attachment: PropTypes.any,
       stacktrace: PropTypes.any,
       messageId: PropTypes.string,
+      executionPoint: PropTypes.string,
       scrollToMessage: PropTypes.bool,
       exceptionDocURL: PropTypes.string,
       request: PropTypes.object,
@@ -63,12 +64,13 @@ class Message extends Component {
         messageBody: PropTypes.string.isRequired,
         frame: PropTypes.any,
       })),
+      isPaused: PropTypes.bool,
     };
   }
 
   static get defaultProps() {
     return {
-      indent: 0
+      indent: 0,
     };
   }
 
@@ -77,6 +79,7 @@ class Message extends Component {
     this.onLearnMoreClick = this.onLearnMoreClick.bind(this);
     this.toggleMessage = this.toggleMessage.bind(this);
     this.onContextMenu = this.onContextMenu.bind(this);
+    this.renderIcon = this.renderIcon.bind(this);
   }
 
   componentDidMount() {
@@ -119,6 +122,17 @@ class Message extends Component {
     e.preventDefault();
   }
 
+  renderIcon() {
+    const { level, messageId, executionPoint, serviceContainer } = this.props;
+
+    return MessageIcon({
+      level,
+      onRewindClick: serviceContainer.canRewind()
+        ? () => serviceContainer.jumpToExecutionPoint(executionPoint, messageId)
+        : null,
+    });
+  }
+
   render() {
     const {
       open,
@@ -126,6 +140,7 @@ class Message extends Component {
       collapseTitle,
       source,
       type,
+      isPaused,
       level,
       indent,
       topLevelClasses,
@@ -139,7 +154,7 @@ class Message extends Component {
       notes,
     } = this.props;
 
-    topLevelClasses.push("message", source, type, level);
+    topLevelClasses.push("message", source, type, level, isPaused ? "paused" : "");
     if (open) {
       topLevelClasses.push("open");
     }
@@ -147,11 +162,11 @@ class Message extends Component {
     let timestampEl;
     if (timestampsVisible === true) {
       timestampEl = dom.span({
-        className: "timestamp devtools-monospace"
+        className: "timestamp devtools-monospace",
       }, l10n.timestampString(timeStamp));
     }
 
-    const icon = MessageIcon({level});
+    const icon = this.renderIcon();
 
     // Figure out if there is an expandable part to the message.
     let attachment = null;
@@ -160,7 +175,7 @@ class Message extends Component {
     } else if (stacktrace && open) {
       attachment = dom.div(
         {
-          className: "stacktrace devtools-monospace"
+          className: "stacktrace devtools-monospace",
         },
         StackTrace({
           stacktrace: stacktrace,
@@ -179,7 +194,7 @@ class Message extends Component {
       collapse = CollapseButton({
         open,
         title: collapseTitle,
-        onClick: this.toggleMessage
+        onClick: this.toggleMessage,
       });
     }
 
@@ -199,7 +214,7 @@ class Message extends Component {
             showEmptyPathAsHost: true,
             sourceMapService: serviceContainer
               ? serviceContainer.sourceMapService
-              : undefined
+              : undefined,
           }) : null
         )));
     } else {
@@ -231,7 +246,8 @@ class Message extends Component {
         frame,
         onClick: onFrameClick,
         showEmptyPathAsHost: true,
-        sourceMapService: serviceContainer ? serviceContainer.sourceMapService : undefined
+        sourceMapService:
+          serviceContainer ? serviceContainer.sourceMapService : undefined,
       }) : null
     );
 
@@ -252,7 +268,7 @@ class Message extends Component {
       ref: node => {
         this.messageNode = node;
       },
-      "aria-live": type === MESSAGE_TYPE.COMMAND ? "off" : "polite"
+      "aria-live": type === MESSAGE_TYPE.COMMAND ? "off" : "polite",
     },
       timestampEl,
       MessageIndent({indent}),

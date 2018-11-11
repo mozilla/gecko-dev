@@ -425,6 +425,15 @@ PuppetWidget::DispatchInputEvent(WidgetInputEvent* aEvent)
     return nsEventStatus_eIgnore;
   }
 
+  if (nsCOMPtr<nsIPresShell> presShell = mTabChild->GetPresShell()) {
+    // Because the root resolution is conceptually at the parent/child process
+    // boundary, we need to apply that resolution here because we're sending
+    // the event from the child to the parent process.
+    LayoutDevicePoint pt(aEvent->mRefPoint);
+    pt = pt * presShell->GetResolution();
+    aEvent->mRefPoint = LayoutDeviceIntPoint::Round(pt);
+  }
+
   switch (aEvent->mClass) {
     case eWheelEventClass:
       Unused <<
@@ -571,7 +580,7 @@ PuppetWidget::SetConfirmedTargetAPZC(
 
 void
 PuppetWidget::UpdateZoomConstraints(const uint32_t& aPresShellId,
-                                    const FrameMetrics::ViewID& aViewId,
+                                    const ScrollableLayerGuid::ViewID& aViewId,
                                     const Maybe<ZoomConstraints>& aConstraints)
 {
   if (mTabChild) {
@@ -718,15 +727,35 @@ PuppetWidget::RequestIMEToCommitComposition(bool aCancel)
 }
 
 nsresult
-PuppetWidget::StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
+PuppetWidget::StartPluginIME(const WidgetKeyboardEvent& aKeyboardEvent,
                              int32_t aPanelX, int32_t aPanelY,
                              nsString& aCommitted)
 {
+  DebugOnly<bool> propagationAlreadyStopped =
+    aKeyboardEvent.mFlags.mPropagationStopped;
+  DebugOnly<bool> immediatePropagationAlreadyStopped =
+    aKeyboardEvent.mFlags.mImmediatePropagationStopped;
   if (!mTabChild ||
       !mTabChild->SendStartPluginIME(aKeyboardEvent, aPanelX,
                                      aPanelY, &aCommitted)) {
     return NS_ERROR_FAILURE;
   }
+  // TabChild::SendStartPluginIME() sends back the keyboard event to the main
+  // process synchronously.  At this time, ParamTraits<WidgetEvent>::Write()
+  // marks the event as "posted to remote process".  However, this is not
+  // correct here since the event has been handled synchronously in the main
+  // process.  So, we adjust the cross process dispatching state here.
+  const_cast<WidgetKeyboardEvent&>(aKeyboardEvent).
+    ResetCrossProcessDispatchingState();
+  // Although it shouldn't occur in content process,
+  // ResetCrossProcessDispatchingState() may reset propagation state too
+  // if the event was posted to a remote process and we're waiting its
+  // result.  So, if you saw hitting the following assertions, you'd
+  // need to restore the propagation state too.
+  MOZ_ASSERT(propagationAlreadyStopped ==
+               aKeyboardEvent.mFlags.mPropagationStopped);
+  MOZ_ASSERT(immediatePropagationAlreadyStopped ==
+               aKeyboardEvent.mFlags.mImmediatePropagationStopped);
   return NS_OK;
 }
 
@@ -1397,7 +1426,7 @@ PuppetWidget::EnableIMEForPlugin(bool aEnable)
 
 void
 PuppetWidget::ZoomToRect(const uint32_t& aPresShellId,
-                         const FrameMetrics::ViewID& aViewId,
+                         const ScrollableLayerGuid::ViewID& aViewId,
                          const CSSRect& aRect,
                          const uint32_t& aFlags)
 {

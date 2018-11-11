@@ -2094,7 +2094,7 @@ class ConstraintDataFreezeObjectForTypedArrayData
   public:
     explicit ConstraintDataFreezeObjectForTypedArrayData(TypedArrayObject& tarray)
       : obj(&tarray),
-        viewData(tarray.viewDataEither().unwrapValue()),
+        viewData(tarray.dataPointerEither().unwrapValue()),
         length(tarray.length())
     {
         MOZ_ASSERT(tarray.isSingleton());
@@ -2107,7 +2107,7 @@ class ConstraintDataFreezeObjectForTypedArrayData
     bool invalidateOnNewObjectState(const AutoSweepObjectGroup& sweep, ObjectGroup* group) {
         MOZ_ASSERT(obj->group() == group);
         TypedArrayObject& tarr = obj->as<TypedArrayObject>();
-        return tarr.viewDataEither().unwrapValue() != viewData || tarr.length() != length;
+        return tarr.dataPointerEither().unwrapValue() != viewData || tarr.length() != length;
     }
 
     bool constraintHolds(const AutoSweepObjectGroup& sweep, JSContext* cx,
@@ -4546,47 +4546,13 @@ ConstraintTypeSet::trace(Zone* zone, JSTracer* trc)
     MOZ_ASSERT(JS::RuntimeHeapIsMinorCollecting());
 
     unsigned objectCount = baseObjectCount();
-    if (objectCount >= 2) {
-        unsigned oldCapacity = TypeHashSet::Capacity(objectCount);
-        ObjectKey** oldArray = objectSet;
-
-        MOZ_RELEASE_ASSERT(uintptr_t(oldArray[-1]) == oldCapacity);
-
-        unsigned oldObjectCount = objectCount;
-        unsigned oldObjectsFound = 0;
-
-        clearObjects();
-        objectCount = 0;
-        for (unsigned i = 0; i < oldCapacity; i++) {
-            ObjectKey* key = oldArray[i];
-            if (!key) {
-                continue;
-            }
+    TypeHashSet::MapEntries<ObjectKey*, ObjectKey, ObjectKey>(
+        objectSet,
+        objectCount,
+        [&](ObjectKey* key) -> ObjectKey* {
             TraceObjectKey(trc, &key);
-            oldObjectsFound++;
-
-            AutoEnterOOMUnsafeRegion oomUnsafe;
-            ObjectKey** pentry =
-                TypeHashSet::Insert<ObjectKey*, ObjectKey, ObjectKey>
-                    (zone->types.typeLifoAlloc(), objectSet, objectCount, key);
-            if (!pentry) {
-                oomUnsafe.crash("ConstraintTypeSet::trace");
-            }
-
-            *pentry = key;
-        }
-        MOZ_RELEASE_ASSERT(oldObjectCount == oldObjectsFound);
-        setBaseObjectCount(objectCount);
-        // Note: -1/+1 to also poison the capacity field.
-        JS_POISON(oldArray - 1, JS_SWEPT_TI_PATTERN, (oldCapacity + 1) * sizeof(oldArray[0]),
-                  MemCheckKind::MakeUndefined);
-    } else if (objectCount == 1) {
-        ObjectKey* key = (ObjectKey*) objectSet;
-        TraceObjectKey(trc, &key);
-        objectSet = reinterpret_cast<ObjectKey**>(key);
-    } else {
-        MOZ_RELEASE_ASSERT(!objectSet);
-    }
+            return key;
+        });
 
 #ifdef DEBUG
     MOZ_ASSERT(objectCount == baseObjectCount());
@@ -4759,8 +4725,9 @@ ObjectGroup::sweep(const AutoSweepObjectGroup& sweep)
     AssertGCStateForSweep(zone());
 
     Maybe<AutoClearTypeInferenceStateOnOOM> clearStateOnOOM;
-    if (!zone()->types.isSweepingTypes())
+    if (!zone()->types.isSweepingTypes()) {
         clearStateOnOOM.emplace(zone());
+    }
 
     AutoTouchingGrayThings tgt;
 
@@ -4886,8 +4853,9 @@ JSScript::sweepTypes(const js::AutoSweepTypeScript& sweep)
     AssertGCStateForSweep(zone());
 
     Maybe<AutoClearTypeInferenceStateOnOOM> clearStateOnOOM;
-    if (!zone()->types.isSweepingTypes())
+    if (!zone()->types.isSweepingTypes()) {
         clearStateOnOOM.emplace(zone());
+    }
 
     TypeZone& types = zone()->types;
 
@@ -4918,7 +4886,7 @@ JSScript::sweepTypes(const js::AutoSweepTypeScript& sweep)
 
         // Freeze constraints on stack type sets need to be regenerated the
         // next time the script is analyzed.
-        bitFields_.hasFreezeConstraints_ = false;
+        clearFlag(MutableFlags::HasFreezeConstraints);
 
         return;
     }
@@ -4934,7 +4902,7 @@ JSScript::sweepTypes(const js::AutoSweepTypeScript& sweep)
     if (zone()->types.hadOOMSweepingTypes()) {
         // It's possible we OOM'd while copying freeze constraints, so they
         // need to be regenerated.
-        bitFields_.hasFreezeConstraints_ = false;
+        clearFlag(MutableFlags::HasFreezeConstraints);
     }
 }
 

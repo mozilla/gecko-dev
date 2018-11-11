@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import functools
+import os.path
 import json
 import time
 import yaml
@@ -15,7 +15,7 @@ from datetime import datetime
 from mozbuild.util import ReadOnlyDict, memoize
 from mozversioncontrol import get_repository_object
 
-from . import APP_VERSION_PATH, GECKO, VERSION_PATH
+from . import GECKO
 from .util.attributes import RELEASE_PROJECTS
 
 
@@ -34,8 +34,16 @@ def get_contents(path):
     return contents
 
 
-get_version = functools.partial(get_contents, VERSION_PATH)
-get_app_version = functools.partial(get_contents, APP_VERSION_PATH)
+def get_version(product_dir='browser'):
+    version_path = os.path.join(GECKO, product_dir, 'config',
+                                'version_display.txt')
+    return get_contents(version_path)
+
+
+def get_app_version(product_dir='browser'):
+    app_version_path = os.path.join(GECKO, product_dir, 'config',
+                                    'version.txt')
+    return get_contents(app_version_path)
 
 
 # Please keep this list sorted and in sync with taskcluster/docs/parameters.rst
@@ -47,11 +55,11 @@ PARAMETERS = {
     'build_number': 1,
     'do_not_optimize': [],
     'existing_tasks': {},
-    'filters': ['check_servo', 'target_tasks_method'],
+    'filters': ['target_tasks_method'],
     'head_ref': get_head_ref,
     'head_repository': 'https://hg.mozilla.org/mozilla-central',
     'head_rev': get_head_ref,
-    'include_nightly': False,
+    'hg_branch': 'default',
     'level': '3',
     'message': '',
     'moz_build_date': lambda: datetime.now().strftime("%Y%m%d%H%M%S"),

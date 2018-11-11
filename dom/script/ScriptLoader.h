@@ -520,9 +520,10 @@ private:
   RefPtr<mozilla::GenericPromise> WaitForModuleFetch(nsIURI* aURL);
   ModuleScript* GetFetchedModule(nsIURI* aURL) const;
 
-  friend JSScript*
-  HostResolveImportedModule(JSContext* aCx, JS::Handle<JSScript*> aScript,
-                          JS::Handle<JSString*> aSpecifier);
+  friend JSObject*
+  HostResolveImportedModule(JSContext* aCx,
+                            JS::Handle<JS::Value> aReferencingPrivate,
+                            JS::Handle<JSString*> aSpecifier);
 
   // Returns wether we should save the bytecode of this script after the
   // execution of the script.

@@ -1,10 +1,12 @@
-import {ASRouterUISurface, ASRouterUtils, convertLinks} from "content-src/asrouter/asrouter-content";
+import {ASRouterUISurface, ASRouterUtils} from "content-src/asrouter/asrouter-content";
 import {OUTGOING_MESSAGE_NAME as AS_GENERAL_OUTGOING_MESSAGE_NAME} from "content-src/lib/init-store";
 import {FAKE_LOCAL_MESSAGES} from "./constants";
 import {GlobalOverrider} from "test/unit/utils";
 import {mount} from "enzyme";
 import React from "react";
 let [FAKE_MESSAGE] = FAKE_LOCAL_MESSAGES;
+const FAKE_NEWSLETTER_SNIPPET = FAKE_LOCAL_MESSAGES.find(msg => msg.id === "newsletter");
+const FAKE_FXA_SNIPPET = FAKE_LOCAL_MESSAGES.find(msg => msg.id === "fxa");
 
 FAKE_MESSAGE = Object.assign({}, FAKE_MESSAGE, {provider: "fakeprovider"});
 const FAKE_BUNDLED_MESSAGE = {bundle: [{id: "foo", template: "onboarding", content: {title: "Foo", body: "Foo123"}}], extraTemplateStrings: {}, template: "onboarding"};
@@ -85,6 +87,20 @@ describe("ASRouterUISurface", () => {
     assert.isTrue(wrapper.exists());
   });
 
+  it("should pass in the correct form_method for newsletter snippets", () => {
+    wrapper.setState({message: FAKE_NEWSLETTER_SNIPPET});
+
+    assert.isTrue(wrapper.find("SubmitFormSnippet").exists());
+    assert.propertyVal(wrapper.find("SubmitFormSnippet").props(), "form_method", "POST");
+  });
+
+  it("should pass in the correct form_method for fxa snippets", () => {
+    wrapper.setState({message: FAKE_FXA_SNIPPET});
+
+    assert.isTrue(wrapper.find("SubmitFormSnippet").exists());
+    assert.propertyVal(wrapper.find("SubmitFormSnippet").props(), "form_method", "GET");
+  });
+
   it("should render the component if a bundle of messages is defined", () => {
     wrapper.setState({bundle: FAKE_BUNDLED_MESSAGE});
     assert.isTrue(wrapper.exists());
@@ -117,23 +133,6 @@ describe("ASRouterUISurface", () => {
     });
   });
 
-  describe("convertLinks", () => {
-    it("should return an object with anchor elements", () => {
-      const cta = {
-        url: "https://foo.com",
-        metric: "foo",
-      };
-      const stub = sandbox.stub();
-      const result = convertLinks({cta}, stub);
-
-      assert.property(result, "cta");
-      assert.propertyVal(result.cta, "type", "a");
-      assert.propertyVal(result.cta.props, "href", cta.url);
-      assert.propertyVal(result.cta.props, "data-metric", cta.metric);
-      assert.propertyVal(result.cta.props, "onClick", stub);
-    });
-  });
-
   describe("impressions", () => {
     function simulateVisibilityChange(value) {
       fakeDocument.visibilityState = value;
@@ -146,6 +145,15 @@ describe("ASRouterUISurface", () => {
 
       assert.calledOnce(ASRouterUtils.blockById);
       assert.calledWithExactly(ASRouterUtils.blockById, FAKE_MESSAGE.id);
+    });
+
+    it("should executeAction if defined on the anchor", () => {
+      wrapper.setState({message: FAKE_MESSAGE});
+      sandbox.spy(ASRouterUtils, "executeAction");
+      wrapper.instance().sendClick({target: {dataset: {action: "OPEN_MENU", args: "appMenu"}}});
+
+      assert.calledOnce(ASRouterUtils.executeAction);
+      assert.calledWithExactly(ASRouterUtils.executeAction, {type: "OPEN_MENU", data: {args: "appMenu"}});
     });
 
     it("should not call blockById if do_not_autoblock is true", () => {

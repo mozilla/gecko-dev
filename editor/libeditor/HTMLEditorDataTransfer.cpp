@@ -92,26 +92,25 @@ static nsresult FindTargetNode(nsINode* aStart,
 nsresult
 HTMLEditor::LoadHTML(const nsAString& aInputString)
 {
-  NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (NS_WARN_IF(!mRules)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   // force IME commit; set up rules sniffing and batching
   CommitComposition();
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
   AutoTopLevelEditSubActionNotifier maybeTopLevelEditSubAction(
                                       *this,
                                       EditSubAction::eInsertHTMLSource,
                                       nsIEditor::eNext);
 
-  // Get selection
-  RefPtr<Selection> selection = GetSelection();
-  NS_ENSURE_STATE(selection);
-
   EditSubActionInfo subActionInfo(EditSubAction::eInsertHTMLSource);
   bool cancel, handled;
   // Protect the edit rules object from dying
   RefPtr<TextEditRules> rules(mRules);
-  nsresult rv =
-    rules->WillDoAction(selection, subActionInfo, &cancel, &handled);
+  nsresult rv = rules->WillDoAction(subActionInfo, &cancel, &handled);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -121,7 +120,7 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
 
   if (!handled) {
     // Delete Selection, but only if it isn't collapsed, see bug #106269
-    if (!selection->IsCollapsed()) {
+    if (!SelectionRefPtr()->IsCollapsed()) {
       rv = DeleteSelectionAsSubAction(eNone, eStrip);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
@@ -129,8 +128,10 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
     }
 
     // Get the first range in the selection, for context:
-    RefPtr<nsRange> range = selection->GetRangeAt(0);
-    NS_ENSURE_TRUE(range, NS_ERROR_NULL_POINTER);
+    RefPtr<nsRange> range = SelectionRefPtr()->GetRangeAt(0);
+    if (NS_WARN_IF(!range)) {
+      return NS_ERROR_FAILURE;
+    }
 
     // Create fragment for pasted HTML.
     ErrorResult error;
@@ -169,16 +170,24 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
     }
   }
 
-  return rules->DidDoAction(selection, subActionInfo, rv);
+  rv = rules->DidDoAction(subActionInfo, rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 HTMLEditor::InsertHTML(const nsAString& aInString)
 {
-  const nsString& empty = EmptyString();
+  AutoEditActionDataSetter editActionData(*this, EditAction::eInsertHTML);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
-  return DoInsertHTMLWithContext(aInString, empty, empty, empty,
-                                 nullptr,  nullptr, 0, true, true, false);
+  return DoInsertHTMLWithContext(aInString, EmptyString(), EmptyString(),
+                                 EmptyString(), nullptr,  nullptr, 0,
+                                 true, true, false);
 }
 
 nsresult
@@ -193,23 +202,21 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
                                     bool aTrustedInput,
                                     bool aClearStyle)
 {
-  NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (NS_WARN_IF(!mRules)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   // Prevent the edit rules object from dying
   RefPtr<TextEditRules> rules(mRules);
 
   // force IME commit; set up rules sniffing and batching
   CommitComposition();
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
   AutoTopLevelEditSubActionNotifier maybeTopLevelEditSubAction(
                                       *this, EditSubAction::ePasteHTMLContent,
                                       nsIEditor::eNext);
-
-  // Get selection
-  RefPtr<Selection> selection = GetSelection();
-  if (NS_WARN_IF(!selection)) {
-    return NS_ERROR_FAILURE;
-  }
 
   // create a dom document fragment that represents the structure to paste
   nsCOMPtr<nsINode> fragmentAsNode, streamStartParent, streamEndParent;
@@ -228,7 +235,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
   if (!aDestNode) {
     // if caller didn't provide the destination/target node,
     // fetch the paste insertion point from our selection
-    targetPoint = EditorBase::GetStartPoint(selection);
+    targetPoint = EditorBase::GetStartPoint(*SelectionRefPtr());
     if (NS_WARN_IF(!targetPoint.IsSet()) ||
         !IsEditable(targetPoint.GetContainer())) {
       return NS_ERROR_FAILURE;
@@ -255,7 +262,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     }
 
     ErrorResult error;
-    selection->Collapse(targetPoint, error);
+    SelectionRefPtr()->Collapse(targetPoint, error);
     if (NS_WARN_IF(error.Failed())) {
       return error.StealNSResult();
     }
@@ -289,8 +296,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
   // check for table cell selection mode
   bool cellSelectionMode = false;
   IgnoredErrorResult ignoredError;
-  RefPtr<Element> cellElement =
-    GetFirstSelectedTableCellElement(*selection, ignoredError);
+  RefPtr<Element> cellElement = GetFirstSelectedTableCellElement(ignoredError);
   if (cellElement) {
     cellSelectionMode = true;
   }
@@ -312,8 +318,9 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
 
     if (aClearStyle) {
       // pasting does not inherit local inline styles
-      nsCOMPtr<nsINode> tmpNode = selection->GetAnchorNode();
-      int32_t tmpOffset = static_cast<int32_t>(selection->AnchorOffset());
+      nsCOMPtr<nsINode> tmpNode = SelectionRefPtr()->GetAnchorNode();
+      int32_t tmpOffset =
+        static_cast<int32_t>(SelectionRefPtr()->AnchorOffset());
       rv = ClearStyle(address_of(tmpNode), &tmpOffset, nullptr, nullptr);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -324,21 +331,26 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     // Save current selection since DeleteTableCellWithTransaction() perturbs
     // it.
     {
-      AutoSelectionRestorer selectionRestorer(selection, this);
+      AutoSelectionRestorer restoreSelectionLater(*this);
       rv = DeleteTableCellWithTransaction(1);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
     }
     // collapse selection to beginning of deleted table content
-    selection->CollapseToStart(IgnoreErrors());
+    IgnoredErrorResult ignoredError;
+    SelectionRefPtr()->CollapseToStart(ignoredError);
+    NS_WARNING_ASSERTION(!ignoredError.Failed(),
+      "Failed to collapse Selection to start");
   }
 
   // give rules a chance to handle or cancel
   EditSubActionInfo subActionInfo(EditSubAction::eInsertElement);
   bool cancel, handled;
-  rv = rules->WillDoAction(selection, subActionInfo, &cancel, &handled);
-  NS_ENSURE_SUCCESS(rv, rv);
+  rv = rules->WillDoAction(subActionInfo, &cancel, &handled);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
   if (cancel) {
     return NS_OK; // rules canceled the operation
   }
@@ -347,7 +359,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     // Adjust position based on the first node we are going to insert.
     // FYI: WillDoAction() above might have changed the selection.
     EditorDOMPoint pointToInsert =
-      GetBetterInsertionPointFor(nodeList[0], GetStartPoint(selection));
+      GetBetterInsertionPointFor(nodeList[0],
+                                 EditorBase::GetStartPoint(*SelectionRefPtr()));
     if (NS_WARN_IF(!pointToInsert.IsSet())) {
       return NS_ERROR_FAILURE;
     }
@@ -663,7 +676,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
           }
         }
       }
-      selection->Collapse(selNode, selOffset);
+      DebugOnly<nsresult> rv = SelectionRefPtr()->Collapse(selNode, selOffset);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to collapse Selection");
 
       // if we just pasted a link, discontinue link style
       nsCOMPtr<nsIContent> linkContent;
@@ -682,14 +696,20 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         if (splitLinkResult.GetPreviousNode()) {
           EditorRawDOMPoint afterLeftLink(splitLinkResult.GetPreviousNode());
           if (afterLeftLink.AdvanceOffset()) {
-            selection->Collapse(afterLeftLink);
+            DebugOnly<nsresult> rv = SelectionRefPtr()->Collapse(afterLeftLink);
+            NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+              "Failed to collapse Selection after the left link");
           }
         }
       }
     }
   }
 
-  return rules->DidDoAction(selection, subActionInfo, rv);
+  rv = rules->DidDoAction(subActionInfo, rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  return NS_OK;
 }
 
 // static
@@ -987,20 +1007,27 @@ HTMLEditor::BlobReader::BlobReader(BlobImpl* aBlob,
                                    bool aDoDeleteSelection)
   : mBlob(aBlob)
   , mHTMLEditor(aHTMLEditor)
-  , mIsSafe(aIsSafe)
   , mSourceDoc(aSourceDoc)
   , mDestinationNode(aDestinationNode)
   , mDestOffset(aDestOffset)
+  , mEditAction(aHTMLEditor->GetEditAction())
+  , mIsSafe(aIsSafe)
   , mDoDeleteSelection(aDoDeleteSelection)
 {
   MOZ_ASSERT(mBlob);
   MOZ_ASSERT(mHTMLEditor);
+  MOZ_ASSERT(mHTMLEditor->IsEditActionDataAvailable());
   MOZ_ASSERT(mDestinationNode);
 }
 
 nsresult
 HTMLEditor::BlobReader::OnResult(const nsACString& aResult)
 {
+  AutoEditActionDataSetter editActionData(*mHTMLEditor, mEditAction);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   nsString blobType;
   mBlob->GetType(blobType);
 
@@ -1009,7 +1036,7 @@ HTMLEditor::BlobReader::OnResult(const nsACString& aResult)
   nsresult rv = ImgFromData(type, aResult, stuffToPaste);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  AutoPlaceholderBatch beginBatching(mHTMLEditor);
+  AutoPlaceholderBatch treatAsOneTransaction(*mHTMLEditor);
   rv = mHTMLEditor->DoInsertHTMLWithContext(stuffToPaste, EmptyString(),
                                             EmptyString(),
                                             NS_LITERAL_STRING(kFileMime),
@@ -1138,6 +1165,8 @@ HTMLEditor::InsertObject(const nsACString& aType,
                          int32_t aDestOffset,
                          bool aDoDeleteSelection)
 {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
   nsresult rv;
 
   if (nsCOMPtr<BlobImpl> blob = do_QueryInterface(aObject)) {
@@ -1195,7 +1224,7 @@ HTMLEditor::InsertObject(const nsACString& aType,
     rv = ImgFromData(type, imageData, stuffToPaste);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    AutoPlaceholderBatch beginBatching(this);
+    AutoPlaceholderBatch treatAsOneTransaction(*this);
     rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(),
                                  NS_LITERAL_STRING(kFileMime),
                                  aSourceDoc,
@@ -1205,6 +1234,28 @@ HTMLEditor::InsertObject(const nsACString& aType,
   }
 
   return NS_OK;
+}
+
+static bool
+GetString(nsISupports* aData, nsAString& aText)
+{
+  if (nsCOMPtr<nsISupportsString> str = do_QueryInterface(aData)) {
+    str->GetData(aText);
+    return !aText.IsEmpty();
+  }
+
+  return false;
+}
+
+static bool
+GetCString(nsISupports* aData, nsACString& aText)
+{
+  if (nsCOMPtr<nsISupportsCString> str = do_QueryInterface(aData)) {
+    str->GetData(aText);
+    return !aText.IsEmpty();
+  }
+
+  return false;
 }
 
 nsresult
@@ -1218,15 +1269,12 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
   nsresult rv = NS_OK;
   nsAutoCString bestFlavor;
   nsCOMPtr<nsISupports> genericDataObj;
-  uint32_t len = 0;
   if (NS_SUCCEEDED(
         transferable->GetAnyTransferData(bestFlavor,
-                                         getter_AddRefs(genericDataObj),
-                                         &len))) {
+                                         getter_AddRefs(genericDataObj)))) {
     AutoTransactionsConserveSelection dontChangeMySelection(*this);
     nsAutoString flavor;
     CopyASCIItoUTF16(bestFlavor, flavor);
-    nsAutoString stuffToPaste;
     bool isSafe = IsSafeToInsertData(aSourceDoc);
 
     if (bestFlavor.EqualsLiteral(kFileMime) ||
@@ -1237,17 +1285,14 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
       rv = InsertObject(bestFlavor, genericDataObj, isSafe,
                         aSourceDoc, nullptr, 0, aDoDeleteSelection);
     } else if (bestFlavor.EqualsLiteral(kNativeHTMLMime)) {
-      // note cf_html uses utf8, hence use length = len, not len/2 as in flavors below
-      nsCOMPtr<nsISupportsCString> textDataObj = do_QueryInterface(genericDataObj);
-      if (textDataObj && len > 0) {
-        nsAutoCString cfhtml;
-        textDataObj->GetData(cfhtml);
-        NS_ASSERTION(cfhtml.Length() <= (len), "Invalid length!");
+      // note cf_html uses utf8
+      nsAutoCString cfhtml;
+      if (GetCString(genericDataObj, cfhtml)) {
         nsString cfcontext, cffragment, cfselection; // cfselection left emtpy for now
 
         rv = ParseCFHTML(cfhtml, getter_Copies(cffragment), getter_Copies(cfcontext));
         if (NS_SUCCEEDED(rv) && !cffragment.IsEmpty()) {
-          AutoPlaceholderBatch beginBatching(this);
+          AutoPlaceholderBatch treatAsOneTransaction(*this);
           // If we have our private HTML flavor, we will only use the fragment
           // from the CF_HTML. The rest comes from the clipboard.
           if (havePrivateHTMLFlavor) {
@@ -1280,24 +1325,16 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
     if (bestFlavor.EqualsLiteral(kHTMLMime) ||
         bestFlavor.EqualsLiteral(kUnicodeMime) ||
         bestFlavor.EqualsLiteral(kMozTextInternal)) {
-      nsCOMPtr<nsISupportsString> textDataObj = do_QueryInterface(genericDataObj);
-      if (textDataObj && len > 0) {
-        nsAutoString text;
-        textDataObj->GetData(text);
-        NS_ASSERTION(text.Length() <= (len/2), "Invalid length!");
-        stuffToPaste.Assign(text.get(), len / 2);
-      } else {
-        nsCOMPtr<nsISupportsCString> textDataObj(do_QueryInterface(genericDataObj));
-        if (textDataObj && len > 0) {
-          nsAutoCString text;
-          textDataObj->GetData(text);
-          NS_ASSERTION(text.Length() <= len, "Invalid length!");
-          stuffToPaste.Assign(NS_ConvertUTF8toUTF16(Substring(text, 0, len)));
+      nsAutoString stuffToPaste;
+      if (!GetString(genericDataObj, stuffToPaste)) {
+        nsAutoCString text;
+        if (GetCString(genericDataObj, text)) {
+          CopyUTF8toUTF16(text, stuffToPaste);
         }
       }
 
       if (!stuffToPaste.IsEmpty()) {
-        AutoPlaceholderBatch beginBatching(this);
+        AutoPlaceholderBatch treatAsOneTransaction(*this);
         if (bestFlavor.EqualsLiteral(kHTMLMime)) {
           rv = DoInsertHTMLWithContext(stuffToPaste,
                                        aContextStr, aInfoStr, flavor,
@@ -1382,7 +1419,7 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
 
         nsresult rv = ParseCFHTML(cfhtml, getter_Copies(cffragment), getter_Copies(cfcontext));
         if (NS_SUCCEEDED(rv) && !cffragment.IsEmpty()) {
-          AutoPlaceholderBatch beginBatching(this);
+          AutoPlaceholderBatch treatAsOneTransaction(*this);
 
           if (hasPrivateHTMLFlavor) {
             // If we have our private HTML flavor, we will only use the fragment
@@ -1411,7 +1448,7 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
         GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLContext), aIndex, contextString);
         GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLInfo), aIndex, infoString);
 
-        AutoPlaceholderBatch beginBatching(this);
+        AutoPlaceholderBatch treatAsOneTransaction(*this);
         if (type.EqualsLiteral(kHTMLMime)) {
           return DoInsertHTMLWithContext(text,
                                          contextString, infoString, type,
@@ -1428,7 +1465,7 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
       nsAutoString text;
       GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
 
-      AutoPlaceholderBatch beginBatching(this);
+      AutoPlaceholderBatch treatAsOneTransaction(*this);
       return InsertTextAt(text, aDestinationNode, aDestOffset, aDoDeleteSelection);
     }
   }
@@ -1459,9 +1496,12 @@ HTMLEditor::HavePrivateHTMLFlavor(nsIClipboard* aClipboard)
 }
 
 nsresult
-HTMLEditor::PasteInternal(int32_t aClipboardType)
+HTMLEditor::PasteInternal(int32_t aClipboardType,
+                          bool aDispatchPasteEvent)
 {
-  if (!FireClipboardEvent(ePaste, aClipboardType)) {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (aDispatchPasteEvent && !FireClipboardEvent(ePaste, aClipboardType)) {
     return NS_OK;
   }
 
@@ -1556,6 +1596,11 @@ HTMLEditor::PasteInternal(int32_t aClipboardType)
 nsresult
 HTMLEditor::PasteTransferable(nsITransferable* aTransferable)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::ePaste);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Use an invalid value for the clipboard type as data comes from aTransferable
   // and we don't currently implement a way to put that in the data transfer yet.
   if (!FireClipboardEvent(ePaste, nsIClipboard::kGlobalClipboard)) {
@@ -1573,6 +1618,11 @@ HTMLEditor::PasteTransferable(nsITransferable* aTransferable)
 NS_IMETHODIMP
 HTMLEditor::PasteNoFormatting(int32_t aSelectionType)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::ePaste);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   if (!FireClipboardEvent(ePasteNoFormatting, aSelectionType)) {
     return NS_OK;
   }
@@ -1690,34 +1740,35 @@ HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable)
 }
 
 nsresult
-HTMLEditor::PasteAsQuotationAsAction(int32_t aClipboardType)
+HTMLEditor::PasteAsQuotationAsAction(int32_t aClipboardType,
+                                     bool aDispatchPasteEvent)
 {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
 
+  AutoEditActionDataSetter editActionData(*this, EditAction::ePaste);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   if (IsPlaintextEditor()) {
+    // XXX In this case, we don't dispatch ePaste event.  Why?
     return PasteAsPlaintextQuotation(aClipboardType);
   }
 
   // If it's not in plain text edit mode, paste text into new
   // <blockquote type="cite"> element after removing selection.
 
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
   AutoTopLevelEditSubActionNotifier maybeTopLevelEditSubAction(
                                       *this, EditSubAction::eInsertQuotation,
                                       nsIEditor::eNext);
-
-  RefPtr<Selection> selection = GetSelection();
-  if (NS_WARN_IF(!selection)) {
-    return NS_ERROR_FAILURE;
-  }
 
   // Adjust Selection and clear cached style before inserting <blockquote>.
   EditSubActionInfo subActionInfo(EditSubAction::eInsertElement);
   bool cancel, handled;
   RefPtr<TextEditRules> rules(mRules);
-  nsresult rv =
-    rules->WillDoAction(selection, subActionInfo, &cancel, &handled);
+  nsresult rv = rules->WillDoAction(subActionInfo, &cancel, &handled);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1737,13 +1788,17 @@ HTMLEditor::PasteAsQuotationAsAction(int32_t aClipboardType)
                    NS_LITERAL_STRING("cite"), true);
 
   // Collapse Selection in the new <blockquote> element.
-  rv = selection->Collapse(newNode, 0);
+  rv = SelectionRefPtr()->Collapse(newNode, 0);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
   // XXX Why don't we call HTMLEditRules::DidDoAction() after Paste()?
-  rv = PasteInternal(aClipboardType);
+  // XXX If ePaste event has not been dispatched yet but selected content
+  //     has already been removed and created a <blockquote> element.
+  //     So, web apps cannot prevent the default of ePaste event which
+  //     will be dispatched by PasteInternal().
+  rv = PasteInternal(aClipboardType, aDispatchPasteEvent);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1781,18 +1836,14 @@ HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType)
   // it still owns the data, we just have a pointer to it.
   // If it can't support a "text" output of the data the call will fail
   nsCOMPtr<nsISupports> genericDataObj;
-  uint32_t len = 0;
   nsAutoCString flav;
-  rv = trans->GetAnyTransferData(flav, getter_AddRefs(genericDataObj), &len);
+  rv = trans->GetAnyTransferData(flav, getter_AddRefs(genericDataObj));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (flav.EqualsLiteral(kUnicodeMime)) {
-    nsCOMPtr<nsISupportsString> textDataObj = do_QueryInterface(genericDataObj);
-    if (textDataObj && len > 0) {
-      nsAutoString stuffToPaste;
-      textDataObj->GetData(stuffToPaste);
-      NS_ASSERTION(stuffToPaste.Length() <= (len/2), "Invalid length!");
-      AutoPlaceholderBatch beginBatching(this);
+    nsAutoString stuffToPaste;
+    if (GetString(genericDataObj, stuffToPaste)) {
+      AutoPlaceholderBatch treatAsOneTransaction(*this);
       rv = InsertAsPlaintextQuotation(stuffToPaste, true, 0);
     }
   }
@@ -1803,10 +1854,15 @@ HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType)
 nsresult
 HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::eInsertText);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // The whole operation should be undoable in one transaction:
   // XXX Why isn't enough to use only AutoPlaceholderBatch here?
   AutoTransactionBatch bundleAllTransactions(*this);
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
 
   nsresult rv = InsertTextWithQuotationsInternal(aStringToInsert);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1909,14 +1965,33 @@ nsresult
 HTMLEditor::InsertAsQuotation(const nsAString& aQuotedText,
                               nsINode** aNodeInserted)
 {
-  AutoPlaceholderBatch beginBatching(this);
   if (IsPlaintextEditor()) {
-    return InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
+    AutoEditActionDataSetter editActionData(*this, EditAction::eInsertText);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+    AutoPlaceholderBatch treatAsOneTransaction(*this);
+    nsresult rv = InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    return NS_OK;
   }
 
+  AutoEditActionDataSetter editActionData(*this,
+                                          EditAction::eInsertBlockquoteElement);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
   nsAutoString citation;
-  return InsertAsCitedQuotation(aQuotedText, citation, false,
-                                aNodeInserted);
+  nsresult rv =
+    InsertAsCitedQuotationInternal(aQuotedText, citation, false, aNodeInserted);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  return NS_OK;
 }
 
 // Insert plaintext as a quotation, with cite marks (e.g. "> ").
@@ -1928,13 +2003,10 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
                                        bool aAddCites,
                                        nsINode** aNodeInserted)
 {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
   if (aNodeInserted) {
     *aNodeInserted = nullptr;
-  }
-
-  RefPtr<Selection> selection = GetSelection();
-  if (NS_WARN_IF(!selection)) {
-    return NS_ERROR_FAILURE;
   }
 
   AutoTopLevelEditSubActionNotifier maybeTopLevelEditSubAction(
@@ -1946,8 +2018,7 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
   bool cancel, handled;
   // Protect the edit rules object from dying
   RefPtr<TextEditRules> rules(mRules);
-  nsresult rv =
-    rules->WillDoAction(selection, subActionInfo, &cancel, &handled);
+  nsresult rv = rules->WillDoAction(subActionInfo, &cancel, &handled);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1984,45 +2055,57 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
     }
 
     // and set the selection inside it:
-    DebugOnly<nsresult> rv = selection->Collapse(newNode, 0);
+    DebugOnly<nsresult> rv = SelectionRefPtr()->Collapse(newNode, 0);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
       "Failed to collapse selection into the new node");
   }
 
   if (aAddCites) {
     rv = InsertWithQuotationsAsSubAction(aQuotedText);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-      "Failed to insert the text with quotations");
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   } else {
     rv = InsertTextAsSubAction(aQuotedText);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-      "Failed to insert the quoted text as plain text");
-  }
-  // Note that if !aAddCites, aNodeInserted isn't set.
-  // That's okay because the routines that use aAddCites
-  // don't need to know the inserted node.
-
-  if (aNodeInserted && NS_SUCCEEDED(rv)) {
-    newNode.forget(aNodeInserted);
-  }
-
-  // Set the selection to just after the inserted node:
-  if (NS_SUCCEEDED(rv) && newNode) {
-    EditorRawDOMPoint afterNewNode(newNode);
-    if (afterNewNode.AdvanceOffset()) {
-      DebugOnly<nsresult> rv = selection->Collapse(afterNewNode);
-      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-        "Failed to collapse after the new node");
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
   }
 
+  if (!newNode) {
+    return NS_OK;
+  }
+
+  // Set the selection to just after the inserted node:
+  EditorRawDOMPoint afterNewNode(newNode);
+  bool advanced = afterNewNode.AdvanceOffset();
+  NS_WARNING_ASSERTION(advanced,
+    "Failed to advance offset to after the new <span> element");
+  if (advanced) {
+    DebugOnly<nsresult> rvIgnored = SelectionRefPtr()->Collapse(afterNewNode);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+      "Failed to collapse after the new node");
+  }
+
+  // Note that if !aAddCites, aNodeInserted isn't set.
+  // That's okay because the routines that use aAddCites
+  // don't need to know the inserted node.
+  if (aNodeInserted) {
+    newNode.forget(aNodeInserted);
+  }
+
   // XXX Why don't we call HTMLEditRules::DidDoAction() here?
-  return rv;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 HTMLEditor::Rewrap(bool aRespectNewlines)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::eRewrap);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Rewrap makes no sense if there's no wrap column; default to 72.
   int32_t wrapWidth = WrapWidth();
   if (wrapWidth <= 0) {
@@ -2056,7 +2139,7 @@ HTMLEditor::Rewrap(bool aRespectNewlines)
   // undoable in one transaction.
   // XXX Why isn't enough to use only AutoPlaceholderBatch here?
   AutoTransactionBatch bundleAllTransactions(*this);
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
   rv = InsertTextWithQuotationsInternal(wrapped);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -2070,19 +2153,47 @@ HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
                                    bool aInsertHTML,
                                    nsINode** aNodeInserted)
 {
-  AutoPlaceholderBatch beginBatching(this);
-
   // Don't let anyone insert HTML when we're in plaintext mode.
   if (IsPlaintextEditor()) {
     NS_ASSERTION(!aInsertHTML,
       "InsertAsCitedQuotation: trying to insert html into plaintext editor");
-    return InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
+
+    AutoEditActionDataSetter editActionData(*this, EditAction::eInsertText);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
+    AutoPlaceholderBatch treatAsOneTransaction(*this);
+    nsresult rv = InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    return NS_OK;
   }
 
-  RefPtr<Selection> selection = GetSelection();
-  if (NS_WARN_IF(!selection)) {
-    return NS_ERROR_FAILURE;
+  AutoEditActionDataSetter editActionData(*this,
+                                          EditAction::eInsertBlockquoteElement);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
+
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
+  nsresult rv = InsertAsCitedQuotationInternal(aQuotedText, aCitation,
+                                               aInsertHTML, aNodeInserted);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  return NS_OK;
+}
+
+nsresult
+HTMLEditor::InsertAsCitedQuotationInternal(const nsAString& aQuotedText,
+                                           const nsAString& aCitation,
+                                           bool aInsertHTML,
+                                           nsINode** aNodeInserted)
+{
+  MOZ_ASSERT(IsEditActionDataAvailable());
+  MOZ_ASSERT(!IsPlaintextEditor());
 
   AutoTopLevelEditSubActionNotifier maybeTopLevelEditSubAction(
                                       *this, EditSubAction::eInsertQuotation,
@@ -2093,8 +2204,7 @@ HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
   bool cancel, handled;
   // Protect the edit rules object from dying
   RefPtr<TextEditRules> rules(mRules);
-  nsresult rv =
-    rules->WillDoAction(selection, subActionInfo, &cancel, &handled);
+  nsresult rv = rules->WillDoAction(subActionInfo, &cancel, &handled);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -2117,28 +2227,42 @@ HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
   }
 
   // Set the selection inside the blockquote so aQuotedText will go there:
-  selection->Collapse(newNode, 0);
+  DebugOnly<nsresult> rvIgnored = SelectionRefPtr()->Collapse(newNode, 0);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+    "Failed to collapse Selection in the new <blockquote> element");
 
   if (aInsertHTML) {
     rv = LoadHTML(aQuotedText);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   } else {
     rv = InsertTextAsSubAction(aQuotedText);  // XXX ignore charset
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to insert the quoted text");
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   }
 
-  if (aNodeInserted && NS_SUCCEEDED(rv)) {
-    *aNodeInserted = newNode;
-    NS_IF_ADDREF(*aNodeInserted);
+  if (!newNode) {
+    return NS_OK;
   }
 
   // Set the selection to just after the inserted node:
-  if (NS_SUCCEEDED(rv) && newNode) {
-    EditorRawDOMPoint afterNewNode(newNode);
-    if (afterNewNode.AdvanceOffset()) {
-      selection->Collapse(afterNewNode);
-    }
+  EditorRawDOMPoint afterNewNode(newNode);
+  bool advanced = afterNewNode.AdvanceOffset();
+  NS_WARNING_ASSERTION(advanced,
+    "Failed advance offset to after the new <blockquote> element");
+  if (advanced) {
+    DebugOnly<nsresult> rvIgnored = SelectionRefPtr()->Collapse(afterNewNode);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+      "Failed to collapse after the new node");
   }
-  return rv;
+
+  if (aNodeInserted) {
+    newNode.forget(aNodeInserted);
+  }
+
+  return NS_OK;
 }
 
 

@@ -141,7 +141,7 @@ private:
 
   bool mAsapScheduling;
   bool mIsObservingVsync;
-  uint32_t mNeedsComposite;
+  TimeStamp mCompositeRequestedAt;
   int32_t mVsyncNotificationsSkipped;
   widget::CompositorWidget* mWidget;
   RefPtr<CompositorVsyncScheduler::Observer> mVsyncObserver;
@@ -149,8 +149,8 @@ private:
   mozilla::Monitor mCurrentCompositeTaskMonitor;
   RefPtr<CancelableRunnable> mCurrentCompositeTask;
 
-  mozilla::Monitor mCurrentVRListenerTaskMonitor;
-  RefPtr<Runnable> mCurrentVRListenerTask;
+  mozilla::Monitor mCurrentVRTaskMonitor;
+  RefPtr<Runnable> mCurrentVRTask;
 };
 
 } // namespace layers

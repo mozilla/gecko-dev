@@ -13,7 +13,7 @@
 #include "mozilla/CORSMode.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ServoTypes.h"
+#include "mozilla/ServoBindingTypes.h"
 #include "mozilla/SheetType.h"
 #include "mozilla/URLExtraData.h"
 #include "mozilla/UniquePtr.h"
@@ -41,7 +41,7 @@ class nsIURI;
 class nsPresContext;
 template <class T>
 class nsPtrHashKey;
-struct RustString;
+struct RawServoCssUrlData;
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -90,178 +90,111 @@ class CSSStyleSheet;
     }                                                                          \
   }
 
+// Forward declaration copied here since ServoBindings.h #includes nsCSSValue.h.
+extern "C" {
+  RawGeckoURLExtraDataBorrowedMut Servo_CssUrlData_GetExtraData(
+    RawServoCssUrlDataBorrowed url);
+
+  bool Servo_CssUrlData_IsLocalRef(RawServoCssUrlDataBorrowed url);
+}
+
 namespace mozilla {
 namespace css {
 
-struct URLValueData
+struct URLValue final
 {
-protected:
-  // Methods are not inline because using an nsIPrincipal means requiring
-  // caps, which leads to REQUIRES hell, since this header is included all
-  // over.
-
-  // aString must not be null.
-  // principal of aExtraData must not be null.
-  // Construct with a base URI; this will create the actual URI lazily from
-  // aString and aExtraData.
-  URLValueData(ServoRawOffsetArc<RustString> aString,
-               already_AddRefed<URLExtraData> aExtraData,
-               CORSMode aCORSMode);
-  // Construct with the actual URI.
-  URLValueData(already_AddRefed<nsIURI> aURI,
-               ServoRawOffsetArc<RustString> aString,
-               already_AddRefed<URLExtraData> aExtraData,
-               CORSMode aCORSMode);
-
 public:
-  // Returns true iff all fields of the two URLValueData objects are equal.
+  // aCssUrl must not be null.
+  URLValue(already_AddRefed<RawServoCssUrlData> aCssUrl,
+           CORSMode aCORSMode)
+    : mURIResolved(false)
+    , mCssUrl(aCssUrl)
+    , mCORSMode(aCORSMode)
+  {
+    MOZ_ASSERT(mCssUrl);
+  }
+
+  // Returns true iff all fields of the two URLValue objects are equal.
   //
   // Only safe to call on the main thread, since this will call Equals on the
-  // nsIURI and nsIPrincipal objects stored on the URLValueData objects.
-  bool Equals(const URLValueData& aOther) const;
+  // nsIURI and nsIPrincipal objects stored on the URLValue objects.
+  bool Equals(const URLValue& aOther) const;
 
   // Returns true iff we know for sure, by comparing the mBaseURI pointer,
-  // the specified url() value mString, and the mIsLocalRef, that these
-  // two URLValueData objects represent the same computed url() value.
+  // the specified url() value mString, and IsLocalRef(), that these
+  // two URLValue objects represent the same computed url() value.
   //
   // Doesn't look at mReferrer or mOriginPrincipal.
   //
   // Safe to call from any thread.
-  bool DefinitelyEqualURIs(const URLValueData& aOther) const;
+  bool DefinitelyEqualURIs(const URLValue& aOther) const;
 
   // Smae as DefinitelyEqualURIs but additionally compares the nsIPrincipal
-  // pointers of the two URLValueData objects.
-  bool DefinitelyEqualURIsAndPrincipal(const URLValueData& aOther) const;
+  // pointers of the two URLValue objects.
+  bool DefinitelyEqualURIsAndPrincipal(const URLValue& aOther) const;
 
   nsIURI* GetURI() const;
 
-  bool IsLocalRef() const;
+  bool IsLocalRef() const
+  {
+    return Servo_CssUrlData_IsLocalRef(mCssUrl);
+  }
 
   bool HasRef() const;
 
-  // This function takes a guess whether the URL has a fragment, by searching
-  // for a hash character. It definitely returns false if we know it can't
-  // have a fragment because it has no hash character.
-  //
-  // MightHaveRef can be used in any thread, whereas HasRef can only be used
-  // in the main thread.
-  bool MightHaveRef() const;
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(URLValue)
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(URLValueData)
-
-  // When matching a url with mIsLocalRef set, resolve it against aURI;
-  // Otherwise, ignore aURL and return mURL directly.
+  // When matching a local ref URL, resolve it against aURI;
+  // Otherwise, ignore aURL and return mURI directly.
   already_AddRefed<nsIURI> ResolveLocalRef(nsIURI* aURI) const;
   already_AddRefed<nsIURI> ResolveLocalRef(nsIContent* aContent) const;
 
-  // Serializes mURI as a computed URI value, taking into account mIsLocalRef
+  // Serializes mURI as a computed URI value, taking into account IsLocalRef()
   // and serializing just the fragment if true.
   void GetSourceString(nsString& aRef) const;
 
-  bool EqualsExceptRef(nsIURI* aURI) const;
-
-  bool IsStringEmpty() const
-  {
-    return GetString().IsEmpty();
-  }
-
   nsDependentCSubstring GetString() const;
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+  imgRequestProxy* LoadImage(nsIDocument* aDocument);
+
+  uint64_t LoadID() const { return mLoadID; }
+
+  CORSMode CorsMode() const { return mCORSMode; }
+
+  URLExtraData* ExtraData() const
+  {
+    return Servo_CssUrlData_GetExtraData(mCssUrl);
+  }
 
 private:
   // mURI stores the lazily resolved URI.  This may be null if the URI is
   // invalid, even once resolved.
   mutable nsCOMPtr<nsIURI> mURI;
 
-public:
-  RefPtr<URLExtraData> mExtraData;
-
-private:
   mutable bool mURIResolved;
 
-  // mIsLocalRef is set when url starts with a U+0023 number sign(#) character.
-  mutable Maybe<bool> mIsLocalRef;
-  mutable Maybe<bool> mMightHaveRef;
+  RefPtr<RawServoCssUrlData> mCssUrl;
 
-  mozilla::ServoRawOffsetArc<RustString> mString;
-
-protected:
-  // Only used by ImageValue.  Declared up here because otherwise bindgen gets
-  // confused by the non-standard-layout packing of the variable up into
-  // URLValueData.
-  bool mLoadedImage = false;
   const CORSMode mCORSMode;
 
-  virtual ~URLValueData();
+  // A unique, non-reused ID value for this URLValue over the life of the
+  // process.  This value is only valid after LoadImage has been called.
+  //
+  // We use this as a key in some tables in ImageLoader.  This is better than
+  // using the pointer value of the ImageValue object, since we can sometimes
+  // delete ImageValues OMT but cannot update the ImageLoader tables until
+  // we're back on the main thread.  So to avoid dangling pointers that might
+  // get re-used by the time we want to update the ImageLoader tables, we use
+  // these IDs.
+  uint64_t mLoadID = 0;
 
-  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  ~URLValue();
 
 private:
-  URLValueData(const URLValueData& aOther) = delete;
-  URLValueData& operator=(const URLValueData& aOther) = delete;
-
-  friend struct ImageValue;
-};
-
-struct URLValue final : public URLValueData
-{
-  URLValue(ServoRawOffsetArc<RustString> aString,
-           already_AddRefed<URLExtraData> aExtraData)
-    : URLValueData(aString, std::move(aExtraData), CORSMode::CORS_NONE)
-  { }
-
-  URLValue(const URLValue&) = delete;
-  URLValue& operator=(const URLValue&) = delete;
-
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-};
-
-struct ImageValue final : public URLValueData
-{
-  static already_AddRefed<ImageValue>
-    CreateFromURLValue(URLValue*, nsIDocument*, CORSMode);
-
-  // Not making the constructor and destructor inline because that would
-  // force us to include imgIRequest.h, which leads to REQUIRES hell, since
-  // this header is included all over.
-  //
-  // This constructor is only safe to call from the main thread.
-  ImageValue(nsIURI* aURI, const nsAString& aString,
-             already_AddRefed<URLExtraData> aExtraData,
-             nsIDocument* aDocument,
-             CORSMode aCORSMode);
-
-  // This constructor is only safe to call from the main thread.
-  ImageValue(nsIURI* aURI, ServoRawOffsetArc<RustString> aString,
-             already_AddRefed<URLExtraData> aExtraData,
-             nsIDocument* aDocument,
-             CORSMode aCORSMode);
-
-  // This constructor is safe to call from any thread, but Initialize
-  // must be called later for the object to be useful.
-  ImageValue(const nsAString& aString,
-             already_AddRefed<URLExtraData> aExtraData,
-             CORSMode aCORSMode);
-
-  // This constructor is safe to call from any thread, but Initialize
-  // must be called later for the object to be useful.
-  ImageValue(ServoRawOffsetArc<RustString> aURIString,
-             already_AddRefed<URLExtraData> aExtraData,
-             CORSMode aCORSMode);
-
-  ImageValue(const ImageValue&) = delete;
-  ImageValue& operator=(const ImageValue&) = delete;
-
-  void Initialize(nsIDocument* aDocument);
-
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-
-protected:
-  ~ImageValue();
-
-public:
-  // Inherit Equals from URLValueData
-
-  nsRefPtrHashtable<nsPtrHashKey<nsIDocument>, imgRequestProxy> mRequests;
+  URLValue(const URLValue& aOther) = delete;
+  URLValue& operator=(const URLValue& aOther) = delete;
 };
 
 struct GridNamedArea {
@@ -343,9 +276,7 @@ enum nsCSSUnit {
   eCSSUnit_String       = 11,     // (char16_t*) a string value
   eCSSUnit_Ident        = 12,     // (char16_t*) a string value
   eCSSUnit_Attr         = 14,     // (char16_t*) a attr(string) value
-  eCSSUnit_Local_Font   = 15,     // (char16_t*) a local font name
-  eCSSUnit_Font_Format  = 16,     // (char16_t*) a font format name
-  eCSSUnit_Element      = 17,     // (char16_t*) an element id
+  eCSSUnit_Element      = 15,     // (char16_t*) an element id
 
   eCSSUnit_Array        = 20,     // (nsCSSValue::Array*) a list of values
   eCSSUnit_Counter      = 21,     // (nsCSSValue::Array*) a counter(string,[string]) value
@@ -370,26 +301,12 @@ enum nsCSSUnit {
   // Plus, Minus, Times_* and Divided have arrays with exactly 2
   // elements.  a + b + c + d is grouped as ((a + b) + c) + d
   eCSSUnit_Calc_Plus    = 31,     // (nsCSSValue::Array*) + node within calc()
-  eCSSUnit_Calc_Minus   = 32,     // (nsCSSValue::Array*) - within calc
-  eCSSUnit_Calc_Times_L = 33,     // (nsCSSValue::Array*) num * val within calc
-  eCSSUnit_Calc_Times_R = 34,     // (nsCSSValue::Array*) val * num within calc
-  eCSSUnit_Calc_Divided = 35,     // (nsCSSValue::Array*) / within calc
-
-  eCSSUnit_URL          = 40,     // (nsCSSValue::URL*) value
-  eCSSUnit_GridTemplateAreas   = 44,   // (GridTemplateAreasValue*)
-                                       // for grid-template-areas
 
   eCSSUnit_Pair         = 50,     // (nsCSSValuePair*) pair of values
   eCSSUnit_List         = 53,     // (nsCSSValueList*) list of values
-  eCSSUnit_ListDep      = 54,     // (nsCSSValueList*) same as List
-                                  //   but does not own the list
   eCSSUnit_SharedList   = 55,     // (nsCSSValueSharedList*) same as list
                                   //   but reference counted and shared
   eCSSUnit_PairList     = 56,     // (nsCSSValuePairList*) list of value pairs
-  eCSSUnit_PairListDep  = 57,     // (nsCSSValuePairList*) same as PairList
-                                  //   but does not own the list
-
-  eCSSUnit_FontFamilyList = 58,   // (SharedFontList*) value
 
   // Atom units
   eCSSUnit_AtomIdent    = 60,     // (nsAtom*) for its string as an identifier
@@ -424,9 +341,6 @@ enum nsCSSUnit {
 
   // Angular units
   eCSSUnit_Degree       = 1000,    // (float) 360 per circle
-  eCSSUnit_Grad         = 1001,    // (float) 400 per circle
-  eCSSUnit_Radian       = 1002,    // (float) 2*pi per circle
-  eCSSUnit_Turn         = 1003,    // (float) 1 per circle
 
   // Frequency units
   eCSSUnit_Hertz        = 2000,    // (float) 1/seconds
@@ -438,11 +352,6 @@ enum nsCSSUnit {
 
   // Flexible fraction (CSS Grid)
   eCSSUnit_FlexFraction = 4000,    // (float) Fraction of free space
-
-  // Font property types
-  eCSSUnit_FontWeight   = 5000,    // An encoded font-weight
-  eCSSUnit_FontStretch  = 5001,    // An encoded font-stretch
-  eCSSUnit_FontSlantStyle    = 5002,    // An encoded font-style
 };
 
 struct nsCSSValuePair;
@@ -458,10 +367,6 @@ public:
   struct Array;
   friend struct Array;
 
-  friend struct mozilla::css::URLValueData;
-
-  friend struct mozilla::css::ImageValue;
-
   // for valueless units only (null, auto, inherit, none, all, normal)
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
@@ -473,13 +378,6 @@ public:
   nsCSSValue(float aValue, nsCSSUnit aUnit);
   nsCSSValue(const nsString& aValue, nsCSSUnit aUnit);
   nsCSSValue(Array* aArray, nsCSSUnit aUnit);
-  explicit nsCSSValue(mozilla::css::URLValue* aValue);
-  explicit nsCSSValue(mozilla::css::ImageValue* aValue);
-  explicit nsCSSValue(mozilla::css::GridTemplateAreasValue* aValue);
-  explicit nsCSSValue(mozilla::SharedFontList* aValue);
-  explicit nsCSSValue(mozilla::FontStretch aStretch);
-  explicit nsCSSValue(mozilla::FontSlantStyle aStyle);
-  explicit nsCSSValue(mozilla::FontWeight aWeight);
   nsCSSValue(const nsCSSValue& aCopy);
   nsCSSValue(nsCSSValue&& aOther)
     : mUnit(aOther.mUnit)
@@ -538,18 +436,18 @@ public:
   static bool IsFloatUnit(nsCSSUnit aUnit)
     { return eCSSUnit_Number <= aUnit; }
   bool      IsAngularUnit() const
-    { return eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Turn; }
+    { return eCSSUnit_Degree == mUnit; }
   bool      IsFrequencyUnit() const
     { return eCSSUnit_Hertz <= mUnit && mUnit <= eCSSUnit_Kilohertz; }
   bool      IsTimeUnit() const
     { return eCSSUnit_Seconds <= mUnit && mUnit <= eCSSUnit_Milliseconds; }
   bool      IsCalcUnit() const
-    { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
+    { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Plus; }
 
   bool      UnitHasStringValue() const
     { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
   bool      UnitHasArrayValue() const
-    { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
+    { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Plus; }
 
   int32_t GetIntValue() const
   {
@@ -580,8 +478,7 @@ public:
 
   float GetAngleValue() const
   {
-    MOZ_ASSERT(eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Turn,
-               "not an angle value");
+    MOZ_ASSERT(eCSSUnit_Degree == mUnit, "not an angle value");
     return mValue.mFloat;
   }
 
@@ -612,43 +509,10 @@ public:
     return mValue.mArray;
   }
 
-  nsIURI* GetURLValue() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_URL, "not a URL value");
-    return mValue.mURL->GetURI();
-  }
-
   nsCSSValueSharedList* GetSharedListValue() const
   {
     MOZ_ASSERT(mUnit == eCSSUnit_SharedList, "not a shared list value");
     return mValue.mSharedList;
-  }
-
-  mozilla::NotNull<mozilla::SharedFontList*> GetFontFamilyListValue() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_FontFamilyList,
-               "not a font family list value");
-    NS_ASSERTION(mValue.mFontFamilyList != nullptr,
-                 "font family list value should never be null");
-    return mozilla::WrapNotNull(mValue.mFontFamilyList);
-  }
-
-  mozilla::FontStretch GetFontStretch() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_FontStretch, "not a font stretch value");
-    return mValue.mFontStretch;
-  }
-
-  mozilla::FontSlantStyle GetFontSlantStyle() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_FontSlantStyle, "not a font style value");
-    return mValue.mFontSlantStyle;
-  }
-
-  mozilla::FontWeight GetFontWeight() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_FontWeight, "not a font weight value");
-    return mValue.mFontWeight;
   }
 
   // bodies of these are below
@@ -660,21 +524,6 @@ public:
 
   inline nsCSSValuePairList* GetPairListValue();
   inline const nsCSSValuePairList* GetPairListValue() const;
-
-  mozilla::css::URLValue* GetURLStructValue() const
-  {
-    // Not allowing this for Image values, because if the caller takes
-    // a ref to them they won't be able to delete them properly.
-    MOZ_ASSERT(mUnit == eCSSUnit_URL, "not a URL value");
-    return mValue.mURL;
-  }
-
-  mozilla::css::GridTemplateAreasValue* GetGridTemplateAreas() const
-  {
-    MOZ_ASSERT(mUnit == eCSSUnit_GridTemplateAreas,
-               "not a grid-template-areas value");
-    return mValue.mGridTemplateAreas;
-  }
 
   // Not making this inline because that would force us to include
   // imgIRequest.h, which leads to REQUIRES hell, since this header is included
@@ -718,57 +567,23 @@ public:
   // converts the nscoord to pixels
   void SetIntegerCoordValue(nscoord aCoord);
   void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
-  void SetURLValue(mozilla::css::URLValue* aURI);
-  void SetGridTemplateAreas(mozilla::css::GridTemplateAreasValue* aValue);
-  void SetFontFamilyListValue(already_AddRefed<mozilla::SharedFontList> aFontListValue);
-  void SetFontStretch(mozilla::FontStretch aStretch);
-  void SetFontSlantStyle(mozilla::FontSlantStyle aStyle);
-  void SetFontWeight(mozilla::FontWeight aWeight);
   void SetPairValue(const nsCSSValuePair* aPair);
   void SetPairValue(const nsCSSValue& xValue, const nsCSSValue& yValue);
   void SetSharedListValue(nsCSSValueSharedList* aList);
-  void SetDependentListValue(nsCSSValueList* aList);
-  void SetDependentPairListValue(nsCSSValuePairList* aList);
-  void SetAutoValue();
-  void SetInheritValue();
-  void SetInitialValue();
-  void SetUnsetValue();
   void SetNoneValue();
-  void SetAllValue();
-  void SetNormalValue();
-  void SetSystemFontValue();
-  void SetDummyValue();
-  void SetDummyInheritValue();
-
-  // Converts an nsStyleCoord::CalcValue back into a CSSValue
-  void SetCalcValue(const nsStyleCoord::CalcValue* aCalc);
 
   nsStyleCoord::CalcValue GetCalcValue() const;
+  void SetCalcValue(const nsStyleCoord::CalcValue&);
 
   // These are a little different - they allocate storage for you and
   // return a handle.
   nsCSSValueList* SetListValue();
   nsCSSValuePairList* SetPairListValue();
 
-  // These take ownership of the passed-in resource.
-  void AdoptListValue(mozilla::UniquePtr<nsCSSValueList> aValue);
-  void AdoptPairListValue(mozilla::UniquePtr<nsCSSValuePairList> aValue);
-
-  void StartImageLoad(nsIDocument* aDocument,
-                      mozilla::CORSMode aCORSMode) const;  // Only pretend const
-
-  // Initializes as a function value with the specified function id.
-  Array* InitFunction(nsCSSKeyword aFunctionId, uint32_t aNumArgs);
-  // Checks if this is a function value with the specified function id.
-  bool EqualsFunction(nsCSSKeyword aFunctionId) const;
-
   // Returns an already addrefed buffer.  Guaranteed to return non-null.
   // (Will abort on allocation failure.)
   static already_AddRefed<nsStringBuffer>
     BufferFromString(const nsString& aValue);
-
-  // Convert the given Ident value into AtomIdent.
-  void AtomizeIdentValue();
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -790,18 +605,10 @@ protected:
     nsStringBuffer* MOZ_OWNING_REF mString;
     nsAtom* MOZ_OWNING_REF mAtom;
     Array* MOZ_OWNING_REF mArray;
-    mozilla::css::URLValue* MOZ_OWNING_REF mURL;
-    mozilla::css::GridTemplateAreasValue* MOZ_OWNING_REF mGridTemplateAreas;
     nsCSSValuePair_heap* MOZ_OWNING_REF mPair;
     nsCSSValueList_heap* MOZ_OWNING_REF mList;
-    nsCSSValueList* mListDependent;
     nsCSSValueSharedList* MOZ_OWNING_REF mSharedList;
     nsCSSValuePairList_heap* MOZ_OWNING_REF mPairList;
-    nsCSSValuePairList* mPairListDependent;
-    mozilla::SharedFontList* MOZ_OWNING_REF mFontFamilyList;
-    mozilla::FontStretch mFontStretch;
-    mozilla::FontSlantStyle mFontSlantStyle;
-    mozilla::FontWeight mFontWeight;
   } mValue;
 };
 
@@ -968,28 +775,18 @@ public:
   nsCSSValueList* mHead;
 };
 
-// This has to be here so that the relationship between nsCSSValueList
-// and nsCSSValueList_heap is visible.
 inline nsCSSValueList*
 nsCSSValue::GetListValue()
 {
-  if (mUnit == eCSSUnit_List)
-    return mValue.mList;
-  else {
-    MOZ_ASSERT(mUnit == eCSSUnit_ListDep, "not a list value");
-    return mValue.mListDependent;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(mUnit == eCSSUnit_List, "not a list value");
+  return mValue.mList;
 }
 
 inline const nsCSSValueList*
 nsCSSValue::GetListValue() const
 {
-  if (mUnit == eCSSUnit_List)
-    return mValue.mList;
-  else {
-    MOZ_ASSERT(mUnit == eCSSUnit_ListDep, "not a list value");
-    return mValue.mListDependent;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(mUnit == eCSSUnit_List, "not a list value");
+  return mValue.mList;
 }
 
 struct nsCSSValuePair {
@@ -1145,23 +942,15 @@ private:
 inline nsCSSValuePairList*
 nsCSSValue::GetPairListValue()
 {
-  if (mUnit == eCSSUnit_PairList)
-    return mValue.mPairList;
-  else {
-    MOZ_ASSERT (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
-    return mValue.mPairListDependent;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(mUnit == eCSSUnit_PairList, "not a pairlist value");
+  return mValue.mPairList;
 }
 
 inline const nsCSSValuePairList*
 nsCSSValue::GetPairListValue() const
 {
-  if (mUnit == eCSSUnit_PairList)
-    return mValue.mPairList;
-  else {
-    MOZ_ASSERT (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
-    return mValue.mPairListDependent;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(mUnit == eCSSUnit_PairList, "not a pairlist value");
+  return mValue.mPairList;
 }
 
 #endif /* nsCSSValue_h___ */

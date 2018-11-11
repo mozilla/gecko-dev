@@ -7,12 +7,13 @@
 #ifndef mozilla_layers_GeckoContentController_h
 #define mozilla_layers_GeckoContentController_h
 
-#include "FrameMetrics.h"               // for FrameMetrics, etc
 #include "InputData.h"                  // for PinchGestureInput
 #include "Units.h"                      // for CSSPoint, CSSRect, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
 #include "mozilla/DefineEnum.h"         // for MOZ_DEFINE_ENUM
 #include "mozilla/EventForwards.h"      // for Modifiers
+#include "mozilla/layers/RepaintRequest.h" // for RepaintRequest
+#include "mozilla/layers/ScrollableLayerGuid.h" // for ScrollableLayerGuid, etc
 #include "nsISupportsImpl.h"
 
 namespace mozilla {
@@ -27,7 +28,7 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GeckoContentController)
 
   /**
-   * Requests a paint of the given FrameMetrics |aFrameMetrics| from Gecko.
+   * Requests a paint of the given RepaintRequest |aRequest| from Gecko.
    * Implementations per-platform are responsible for actually handling this.
    *
    * This method must always be called on the repaint thread, which depends
@@ -35,7 +36,7 @@ public:
    * Gecko main thread, while for RemoteContentController it is the compositor
    * thread where it can send IPDL messages.
    */
-  virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) = 0;
+  virtual void RequestContentRepaint(const RepaintRequest& aRequest) = 0;
 
   /**
    * Different types of tap-related events that can be sent in
@@ -147,7 +148,7 @@ public:
   /**
    * Notify content of a MozMouseScrollFailed event.
    */
-  virtual void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent)
+  virtual void NotifyMozMouseScrollEvent(const ScrollableLayerGuid::ViewID& aScrollId, const nsString& aEvent)
   {}
 
   /**
@@ -155,8 +156,8 @@ public:
    */
   virtual void NotifyFlushComplete() = 0;
 
-  virtual void NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId) = 0;
-  virtual void NotifyAsyncAutoscrollRejected(const FrameMetrics::ViewID& aScrollId) = 0;
+  virtual void NotifyAsyncScrollbarDragRejected(const ScrollableLayerGuid::ViewID& aScrollId) = 0;
+  virtual void NotifyAsyncAutoscrollRejected(const ScrollableLayerGuid::ViewID& aScrollId) = 0;
 
   virtual void CancelAutoscroll(const ScrollableLayerGuid& aGuid) = 0;
 

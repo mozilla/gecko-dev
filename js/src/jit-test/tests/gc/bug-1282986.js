@@ -1,5 +1,4 @@
-if (!('oomTest' in this))
-    quit();
+// |jit-test| skip-if: !('oomTest' in this)
 
 var lfLogBuffer = `
 evalInWorker(\`
@@ -11,7 +10,7 @@ loadFile(lfLogBuffer);
 function loadFile(lfVarx) {
     oomTest(function() {
         let m = parseModule(lfVarx);
-        instantiateModule(m);
-        evaluateModule(m);
+        m.declarationInstantiation();
+        m.evaluation();
     });
 }

@@ -20,25 +20,22 @@ class TemporaryExtensionInstaller extends PureComponent {
   static get propTypes() {
     return {
       dispatch: PropTypes.func.isRequired,
-      // Provided by wrapping the component with FluentReact.withLocalization.
-      getString: PropTypes.func.isRequired,
     };
   }
 
   install() {
-    const message = this.props.getString("about-debugging-tmp-extension-install-message");
-    this.props.dispatch(Actions.installTemporaryExtension(message));
+    this.props.dispatch(Actions.installTemporaryExtension());
   }
 
   render() {
     return Localized(
       {
-        id: "about-debugging-tmp-extension-install-button"
+        id: "about-debugging-tmp-extension-install-button",
       },
       dom.button(
         {
-          className: "aboutdebugging-button js-temporary-extension-install-button",
-          onClick: e => this.install()
+          className: "default-button js-temporary-extension-install-button",
+          onClick: e => this.install(),
         },
         "Load Temporary Add-on…"
       )
@@ -46,4 +43,4 @@ class TemporaryExtensionInstaller extends PureComponent {
   }
 }
 
-module.exports = FluentReact.withLocalization(TemporaryExtensionInstaller);
+module.exports = TemporaryExtensionInstaller;

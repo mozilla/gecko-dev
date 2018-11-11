@@ -128,7 +128,7 @@ var onConnectionReady = async function([aType, aTraits]) {
     const a = document.createElement("a");
     a.onclick = function() {
       if (gClient.mainRoot.traits.allowChromeProcess) {
-        gClient.getProcess()
+        gClient.mainRoot.getProcess(0)
                .then(aResponse => {
                  openToolbox(aResponse.form, true);
                });
@@ -163,8 +163,7 @@ var onConnectionReady = async function([aType, aTraits]) {
 function buildAddonLink(addon, parent) {
   const a = document.createElement("a");
   a.onclick = async function() {
-    const isBrowsingContext = addon.isWebExtension;
-    openToolbox(addon, true, "webconsole", isBrowsingContext);
+    openToolbox(addon, true, "webconsole");
   };
 
   a.textContent = addon.name;
@@ -223,12 +222,11 @@ function handleConnectionTimeout() {
  * The user clicked on one of the buttons.
  * Opens the toolbox.
  */
-function openToolbox(form, chrome = false, tool = "webconsole", isBrowsingContext) {
+function openToolbox(form, chrome = false, tool = "webconsole") {
   const options = {
     form: form,
     client: gClient,
     chrome: chrome,
-    isBrowsingContext: isBrowsingContext
   };
   TargetFactory.forRemoteTab(options).then((target) => {
     const hostType = Toolbox.HostType.WINDOW;

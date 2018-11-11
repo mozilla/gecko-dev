@@ -125,7 +125,8 @@ public:
                                             bool forceCommitment) override;
   MOZ_MUST_USE nsresult GetTransactionSecurityInfo(nsISupports **) override;
   MOZ_MUST_USE nsresult NudgeTunnel(NudgeTunnelCallback *callback);
-  MOZ_MUST_USE nsresult SetProxiedTransaction(nsAHttpTransaction *aTrans);
+  MOZ_MUST_USE nsresult SetProxiedTransaction(nsAHttpTransaction *aTrans,
+                                              nsAHttpTransaction *aSpdyConnectTransaction = nullptr);
   void     newIODriver(nsIAsyncInputStream *aSocketIn,
                        nsIAsyncOutputStream *aSocketOut,
                        nsIAsyncInputStream **outSocketIn,
@@ -156,6 +157,7 @@ private:
 
 private:
   RefPtr<nsAHttpTransaction> mTransaction;
+  nsWeakPtr mWeakTrans; // SpdyConnectTransaction *
   nsCOMPtr<nsISupports> mSecInfo;
   nsCOMPtr<nsITimer> mTimer;
   RefPtr<NudgeTunnelCallback> mNudgeCallback;
@@ -187,7 +189,8 @@ public:
                          nsIInterfaceRequestor *callbacks,
                          uint32_t caps,
                          nsHttpTransaction *trans,
-                         nsAHttpConnection *session);
+                         nsAHttpConnection *session,
+                         bool isWebsocket);
   ~SpdyConnectTransaction();
 
   SpdyConnectTransaction *QuerySpdyConnectTransaction() override { return this; }
@@ -210,6 +213,9 @@ public:
   // ConnectedReadyForInput() tests whether the spdy connect transaction is attached to
   // an nsHttpConnection that can properly deal with flow control, etc..
   bool ConnectedReadyForInput();
+
+  bool IsWebsocket() { return mIsWebsocket; }
+  void SetConnRefTaken();
 
 private:
   friend class InputStreamShim;
@@ -247,6 +253,18 @@ private:
   RefPtr<InputStreamShim>      mTunnelStreamIn;
   RefPtr<OutputStreamShim>     mTunnelStreamOut;
   RefPtr<nsHttpTransaction>    mDrivingTransaction;
+
+  // This is all for websocket support
+  bool                           mIsWebsocket;
+  bool                           mConnRefTaken;
+  nsCOMPtr<nsIAsyncOutputStream> mInputShimPipe;
+  nsCOMPtr<nsIAsyncInputStream>  mOutputShimPipe;
+  nsresult WriteDataToBuffer(nsAHttpSegmentWriter *writer,
+                             uint32_t count,
+                             uint32_t *countWritten);
+  MOZ_MUST_USE nsresult WebsocketWriteSegments(nsAHttpSegmentWriter *writer,
+                                               uint32_t count,
+                                               uint32_t *countWritten);
 };
 
 } // namespace net

@@ -13,7 +13,6 @@ ChromeUtils.defineModuleGetter(this, "PrivateBrowsingUtils",
 
 ChromeUtils.defineModuleGetter(this, "AppConstants",
   "resource://gre/modules/AppConstants.jsm");
-const ONBOARDING_FINISHED_PREF = "browser.onboarding.notification.finished";
 
 // List of prefs that require migration to indexedDB.
 // Object key is the name of the pref in indexedDB, each will contain a
@@ -46,30 +45,12 @@ this.PrefsFeed = class PrefsFeed {
     }
   }
 
-  _initOnboardingPref() {
-    const snippetsEnabled = this._prefs.get("feeds.snippets");
-    if (!snippetsEnabled) {
-      this.setOnboardingDisabledDefault(true);
-    }
-  }
-
-  setOnboardingDisabledDefault(value) {
-    const branch = Services.prefs.getDefaultBranch("");
-    branch.setBoolPref(ONBOARDING_FINISHED_PREF, value);
-  }
-
   onPrefChanged(name, value) {
     if (this._prefMap.has(name)) {
       this.store.dispatch(ac.BroadcastToContent({type: at.PREF_CHANGED, data: {name, value}}));
     }
 
     this._checkPrerender(name);
-
-    if (name === "feeds.snippets") {
-      // If snippets are disabled, onboarding notifications should also be
-      // disabled because they look like snippets.
-      this.setOnboardingDisabledDefault(!value);
-    }
   }
 
   _migratePrefs() {
@@ -105,12 +86,18 @@ this.PrefsFeed = class PrefsFeed {
     values.fxa_endpoint = Services.prefs.getStringPref(
       "browser.newtabpage.activity-stream.fxaccounts.endpoint", "https://accounts.firefox.com");
 
+    // Read the pref for search shortcuts top sites experiment from firefox.js and store it
+    // in our interal list of prefs to watch
+    let searchTopSiteExperimentPrefValue = Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts");
+    values["improvesearch.topSiteSearchShortcuts"] = searchTopSiteExperimentPrefValue;
+    this._prefMap.set("improvesearch.topSiteSearchShortcuts", searchTopSiteExperimentPrefValue);
+
     // Set the initial state of all prefs in redux
     this.store.dispatch(ac.BroadcastToContent({type: at.PREFS_INITIAL_VALUES, data: values}));
 
     this._migratePrefs();
     this._setPrerenderPref();
-    this._initOnboardingPref();
   }
 
   removeListeners() {
@@ -134,13 +121,9 @@ this.PrefsFeed = class PrefsFeed {
         break;
       case at.UNINIT:
         this.removeListeners();
-        this.setOnboardingDisabledDefault(false);
         break;
       case at.SET_PREF:
         this._prefs.set(action.data.name, action.data.value);
-        break;
-      case at.DISABLE_ONBOARDING:
-        this.setOnboardingDisabledDefault(true);
         break;
       case at.UPDATE_SECTION_PREFS:
         this._setIndexedDBPref(action.data.id, action.data.value);

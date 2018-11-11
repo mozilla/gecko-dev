@@ -673,7 +673,9 @@ var AddonTestUtils = {
           if (this.usePrivilegedSignatures) {
             let privileged = typeof this.usePrivilegedSignatures == "function" ?
                              this.usePrivilegedSignatures(id) : this.usePrivilegedSignatures;
-            if (privileged) {
+            if (privileged === "system") {
+              fakeCert.organizationalUnit = "Mozilla Components";
+            } else if (privileged) {
               fakeCert.organizationalUnit = "Mozilla Extensions";
             }
           }
@@ -792,12 +794,13 @@ var AddonTestUtils = {
                                  addon => addon.startupPromise));
   },
 
-  async promiseShutdownManager() {
+  async promiseShutdownManager(clearOverrides = true) {
     if (!this.addonIntegrationService)
       return false;
 
-    if (this.overrideEntry) {
+    if (this.overrideEntry && clearOverrides) {
       this.overrideEntry.destruct();
+      this.overrideEntry = null;
     }
 
     Services.obs.notifyObservers(null, "quit-application-granted");
@@ -853,7 +856,7 @@ var AddonTestUtils = {
    *        after the AddonManager is shut down, before it is re-started.
    */
   async promiseRestartManager(newVersion) {
-    await this.promiseShutdownManager();
+    await this.promiseShutdownManager(false);
     await this.promiseStartupManager(newVersion);
   },
 
@@ -955,7 +958,7 @@ var AddonTestUtils = {
     data = Object.assign({}, defaults, data);
 
     let props = ["id", "version", "type", "internalName", "updateURL",
-                 "optionsURL", "optionsType", "aboutURL", "iconURL", "icon64URL",
+                 "optionsURL", "optionsType", "aboutURL", "iconURL",
                  "skinnable", "bootstrap", "strictCompatibility",
                  "hasEmbeddedWebExtension"];
     rdf += this._writeProps(data, props);

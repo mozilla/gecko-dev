@@ -26,7 +26,7 @@ class TabsPanel extends Component {
     return {
       client: PropTypes.instanceOf(DebuggerClient).isRequired,
       connect: PropTypes.object,
-      id: PropTypes.string.isRequired
+      id: PropTypes.string.isRequired,
     };
   }
 
@@ -34,7 +34,7 @@ class TabsPanel extends Component {
     super(props);
 
     this.state = {
-      tabs: []
+      tabs: [],
     };
 
     this.update = this.update.bind(this);
@@ -42,13 +42,13 @@ class TabsPanel extends Component {
 
   componentDidMount() {
     const { client } = this.props;
-    client.addListener("tabListChanged", this.update);
+    client.mainRoot.on("tabListChanged", this.update);
     this.update();
   }
 
   componentWillUnmount() {
     const { client } = this.props;
-    client.removeListener("tabListChanged", this.update);
+    client.mainRoot.off("tabListChanged", this.update);
   }
 
   async update() {
@@ -62,7 +62,7 @@ class TabsPanel extends Component {
         const base64Favicon = btoa(String.fromCharCode.apply(String, tab.favicon));
         tab.icon = "data:image/png;base64," + base64Favicon;
       } else {
-        tab.icon = "chrome://devtools/skin/images/globe.svg";
+        tab.icon = "chrome://devtools/skin/images/aboutdebugging-globe-icon.svg";
       }
     }
 
@@ -77,11 +77,11 @@ class TabsPanel extends Component {
       id: id + "-panel",
       className: "panel",
       role: "tabpanel",
-      "aria-labelledby": id + "-header"
+      "aria-labelledby": id + "-header",
     },
     PanelHeader({
       id: id + "-header",
-      name: Strings.GetStringFromName("tabs")
+      name: Strings.GetStringFromName("tabs"),
     }),
     dom.div({},
       TargetList({
@@ -91,7 +91,7 @@ class TabsPanel extends Component {
         name: Strings.GetStringFromName("tabs"),
         sort: false,
         targetClass: TabTarget,
-        targets: tabs
+        targets: tabs,
       })
     ));
   }

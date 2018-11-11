@@ -32,7 +32,7 @@ struct Gradient {
 };
 
 Gradient fetch_gradient(int address) {
-    vec4 data[2] = fetch_from_resource_cache_2(address);
+    vec4 data[2] = fetch_from_gpu_cache_2(address);
     return Gradient(
         data[0],
         int(data[1].x),
@@ -45,7 +45,7 @@ void brush_vs(
     int prim_address,
     RectWithSize local_rect,
     RectWithSize segment_rect,
-    ivec3 user_data,
+    ivec4 user_data,
     mat4 transform,
     PictureTask pic_task,
     int brush_flags,

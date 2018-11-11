@@ -34,8 +34,6 @@ using namespace mozilla;
 
 typedef nsCSSProps::KTableEntry KTableEntry;
 
-using namespace mozilla;
-
 static int32_t gPropertyTableRefCount;
 static nsStaticCaseInsensitiveNameTable* gFontDescTable;
 static nsStaticCaseInsensitiveNameTable* gCounterDescTable;
@@ -189,30 +187,6 @@ nsCSSProps::GetStringValue(nsCSSCounterDesc aCounterDesc)
 }
 
 /***************************************************************************/
-
-const KTableEntry nsCSSProps::kTransformStyleKTable[] = {
-  { eCSSKeyword_flat, NS_STYLE_TRANSFORM_STYLE_FLAT },
-  { eCSSKeyword_preserve_3d, NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D },
-  { eCSSKeyword_UNKNOWN, -1 }
-};
-
-const KTableEntry nsCSSProps::kImageLayerRepeatKTable[] = {
-  { eCSSKeyword_no_repeat,  StyleImageLayerRepeat::NoRepeat },
-  { eCSSKeyword_repeat,     StyleImageLayerRepeat::Repeat },
-  { eCSSKeyword_repeat_x,   StyleImageLayerRepeat::RepeatX },
-  { eCSSKeyword_repeat_y,   StyleImageLayerRepeat::RepeatY },
-  { eCSSKeyword_round,      StyleImageLayerRepeat::Round},
-  { eCSSKeyword_space,      StyleImageLayerRepeat::Space},
-  { eCSSKeyword_UNKNOWN, -1 }
-};
-
-const KTableEntry nsCSSProps::kBorderImageRepeatKTable[] = {
-  { eCSSKeyword_stretch, StyleBorderImageRepeat::Stretch },
-  { eCSSKeyword_repeat, StyleBorderImageRepeat::Repeat },
-  { eCSSKeyword_round, StyleBorderImageRepeat::Round },
-  { eCSSKeyword_space, StyleBorderImageRepeat::Space },
-  { eCSSKeyword_UNKNOWN, -1 }
-};
 
 const KTableEntry nsCSSProps::kBorderStyleKTable[] = {
   { eCSSKeyword_none,   NS_STYLE_BORDER_STYLE_NONE },
@@ -566,14 +540,6 @@ const KTableEntry nsCSSProps::kOverflowSubKTable[] = {
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
-const KTableEntry nsCSSProps::kRadialGradientSizeKTable[] = {
-  { eCSSKeyword_closest_side,    NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE },
-  { eCSSKeyword_closest_corner,  NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER },
-  { eCSSKeyword_farthest_side,   NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE },
-  { eCSSKeyword_farthest_corner, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER },
-  { eCSSKeyword_UNKNOWN,         -1 }
-};
-
 const KTableEntry nsCSSProps::kOverscrollBehaviorKTable[] = {
   { eCSSKeyword_auto,       StyleOverscrollBehavior::Auto },
   { eCSSKeyword_contain,    StyleOverscrollBehavior::Contain },
@@ -588,7 +554,7 @@ const KTableEntry nsCSSProps::kScrollSnapTypeKTable[] = {
   { eCSSKeyword_UNKNOWN,   -1 }
 };
 
-KTableEntry nsCSSProps::kTextAlignKTable[] = {
+const KTableEntry nsCSSProps::kTextAlignKTable[] = {
   { eCSSKeyword_left, NS_STYLE_TEXT_ALIGN_LEFT },
   { eCSSKeyword_right, NS_STYLE_TEXT_ALIGN_RIGHT },
   { eCSSKeyword_center, NS_STYLE_TEXT_ALIGN_CENTER },
@@ -598,8 +564,6 @@ KTableEntry nsCSSProps::kTextAlignKTable[] = {
   { eCSSKeyword__moz_left, NS_STYLE_TEXT_ALIGN_MOZ_LEFT },
   { eCSSKeyword_start, NS_STYLE_TEXT_ALIGN_START },
   { eCSSKeyword_end, NS_STYLE_TEXT_ALIGN_END },
-  { eCSSKeyword_unsafe, NS_STYLE_TEXT_ALIGN_UNSAFE },
-  { eCSSKeyword_match_parent, NS_STYLE_TEXT_ALIGN_MATCH_PARENT },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -644,17 +608,6 @@ const KTableEntry nsCSSProps::kTouchActionKTable[] = {
   { eCSSKeyword_pan_y,        NS_STYLE_TOUCH_ACTION_PAN_Y },
   { eCSSKeyword_manipulation, NS_STYLE_TOUCH_ACTION_MANIPULATION },
   { eCSSKeyword_UNKNOWN,      -1 }
-};
-
-const KTableEntry nsCSSProps::kTransitionTimingFunctionKTable[] = {
-  { eCSSKeyword_ease, NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE },
-  { eCSSKeyword_linear, NS_STYLE_TRANSITION_TIMING_FUNCTION_LINEAR },
-  { eCSSKeyword_ease_in, NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN },
-  { eCSSKeyword_ease_out, NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_OUT },
-  { eCSSKeyword_ease_in_out, NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE_IN_OUT },
-  { eCSSKeyword_step_start, NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_START },
-  { eCSSKeyword_step_end, NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_END },
-  { eCSSKeyword_UNKNOWN, -1 }
 };
 
 const KTableEntry nsCSSProps::kVerticalAlignKTable[] = {

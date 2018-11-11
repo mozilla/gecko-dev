@@ -7198,10 +7198,10 @@ class MBinaryCache
     public MixPolicy<BoxPolicy<0>, BoxPolicy<1> >::Data
 {
   protected:
-    explicit MBinaryCache(MDefinition* left, MDefinition* right)
+    explicit MBinaryCache(MDefinition* left, MDefinition* right, MIRType resType)
       : MBinaryInstruction(classOpcode, left, right)
     {
-        setResultType(MIRType::Value);
+        setResultType(resType);
     }
 
   public:
@@ -7789,6 +7789,50 @@ class MClassConstructor : public MNullaryInstruction
     AliasSet getAliasSet() const override {
         return AliasSet::None();
     }
+};
+
+class MModuleMetadata : public MNullaryInstruction
+{
+    CompilerObject module_;
+
+    explicit MModuleMetadata(JSObject* module)
+      : MNullaryInstruction(classOpcode),
+        module_(module)
+    {
+        setResultType(MIRType::Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ModuleMetadata)
+    TRIVIAL_NEW_WRAPPERS
+
+    JSObject* module() const {
+      return module_;
+    }
+
+    AliasSet getAliasSet() const override {
+        return AliasSet::None();
+    }
+
+    bool appendRoots(MRootList& roots) const override {
+        return roots.append(module_);
+    }
+};
+
+class MDynamicImport : public MBinaryInstruction,
+                       public BoxInputsPolicy::Data
+{
+    explicit MDynamicImport(MDefinition* referencingPrivate, MDefinition* specifier)
+      : MBinaryInstruction(classOpcode, referencingPrivate, specifier)
+    {
+        setResultType(MIRType::Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(DynamicImport)
+    TRIVIAL_NEW_WRAPPERS
+    NAMED_OPERANDS((0, referencingPrivate))
+    NAMED_OPERANDS((1, specifier))
 };
 
 struct LambdaFunctionInfo
@@ -13518,14 +13562,11 @@ class MAsmJSLoadHeap
     public NoTypePolicy::Data
 {
     uint32_t memoryBaseIndex_;
-    uint32_t boundsCheckIndex_;
 
-    explicit MAsmJSLoadHeap(uint32_t memoryBaseIndex, uint32_t boundsCheckIndex,
-                            Scalar::Type accessType)
+    explicit MAsmJSLoadHeap(uint32_t memoryBaseIndex, Scalar::Type accessType)
       : MVariadicInstruction(classOpcode),
         MAsmJSMemoryAccess(accessType),
-        memoryBaseIndex_(memoryBaseIndex),
-        boundsCheckIndex_(boundsCheckIndex)
+        memoryBaseIndex_(memoryBaseIndex)
     {
         setResultType(ScalarTypeToMIRType(accessType));
     }
@@ -13539,22 +13580,18 @@ class MAsmJSLoadHeap
                                MDefinition* boundsCheckLimit,
                                Scalar::Type accessType)
     {
-        uint32_t nextIndex = 1;
+        uint32_t nextIndex = 2;
         uint32_t memoryBaseIndex = memoryBase ? nextIndex++ : UINT32_MAX;
-        uint32_t boundsCheckIndex = boundsCheckLimit ? nextIndex++ : UINT32_MAX;
 
-        MAsmJSLoadHeap* load = new(alloc) MAsmJSLoadHeap(memoryBaseIndex, boundsCheckIndex,
-                                                         accessType);
+        MAsmJSLoadHeap* load = new(alloc) MAsmJSLoadHeap(memoryBaseIndex, accessType);
         if (!load->init(alloc, nextIndex)) {
             return nullptr;
         }
 
         load->initOperand(0, base);
+        load->initOperand(1, boundsCheckLimit);
         if (memoryBase) {
             load->initOperand(memoryBaseIndex, memoryBase);
-        }
-        if (boundsCheckLimit) {
-            load->initOperand(boundsCheckIndex, boundsCheckLimit);
         }
 
         return load;
@@ -13562,8 +13599,9 @@ class MAsmJSLoadHeap
 
     MDefinition* base() const { return getOperand(0); }
     void replaceBase(MDefinition* newBase) { replaceOperand(0, newBase); }
-    MDefinition* memoryBase() const { return getOperand(memoryBaseIndex_); }
-    MDefinition* boundsCheckLimit() const { return getOperand(boundsCheckIndex_); }
+    bool hasMemoryBase() const { return memoryBaseIndex_ != UINT32_MAX; }
+    MDefinition* memoryBase() const { MOZ_ASSERT(hasMemoryBase()); return getOperand(memoryBaseIndex_); }
+    MDefinition* boundsCheckLimit() const { return getOperand(1); }
 
     bool congruentTo(const MDefinition* ins) const override;
     AliasSet getAliasSet() const override {
@@ -13578,14 +13616,11 @@ class MAsmJSStoreHeap
     public NoTypePolicy::Data
 {
     uint32_t memoryBaseIndex_;
-    uint32_t boundsCheckIndex_;
 
-    explicit MAsmJSStoreHeap(uint32_t memoryBaseIndex, uint32_t boundsCheckIndex,
-                             Scalar::Type accessType)
+    explicit MAsmJSStoreHeap(uint32_t memoryBaseIndex, Scalar::Type accessType)
       : MVariadicInstruction(classOpcode),
         MAsmJSMemoryAccess(accessType),
-        memoryBaseIndex_(memoryBaseIndex),
-        boundsCheckIndex_(boundsCheckIndex)
+        memoryBaseIndex_(memoryBaseIndex)
     {
     }
 
@@ -13599,23 +13634,19 @@ class MAsmJSStoreHeap
                                 Scalar::Type accessType,
                                 MDefinition* v)
     {
-        uint32_t nextIndex = 2;
+        uint32_t nextIndex = 3;
         uint32_t memoryBaseIndex = memoryBase ? nextIndex++ : UINT32_MAX;
-        uint32_t boundsCheckIndex = boundsCheckLimit ? nextIndex++ : UINT32_MAX;
 
-        MAsmJSStoreHeap* store = new(alloc) MAsmJSStoreHeap(memoryBaseIndex, boundsCheckIndex,
-                                                            accessType);
+        MAsmJSStoreHeap* store = new(alloc) MAsmJSStoreHeap(memoryBaseIndex, accessType);
         if (!store->init(alloc, nextIndex)) {
             return nullptr;
         }
 
         store->initOperand(0, base);
         store->initOperand(1, v);
+        store->initOperand(2, boundsCheckLimit);
         if (memoryBase) {
             store->initOperand(memoryBaseIndex, memoryBase);
-        }
-        if (boundsCheckLimit) {
-            store->initOperand(boundsCheckIndex, boundsCheckLimit);
         }
 
         return store;
@@ -13624,8 +13655,9 @@ class MAsmJSStoreHeap
     MDefinition* base() const { return getOperand(0); }
     void replaceBase(MDefinition* newBase) { replaceOperand(0, newBase); }
     MDefinition* value() const { return getOperand(1); }
-    MDefinition* memoryBase() const { return getOperand(memoryBaseIndex_); }
-    MDefinition* boundsCheckLimit() const { return getOperand(boundsCheckIndex_); }
+    bool hasMemoryBase() const { return memoryBaseIndex_ != UINT32_MAX; }
+    MDefinition* memoryBase() const { MOZ_ASSERT(hasMemoryBase()); return getOperand(memoryBaseIndex_); }
+    MDefinition* boundsCheckLimit() const { return getOperand(2); }
 
     AliasSet getAliasSet() const override {
         return AliasSet::Store(AliasSet::WasmHeap);

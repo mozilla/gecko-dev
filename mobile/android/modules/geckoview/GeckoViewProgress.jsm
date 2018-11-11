@@ -131,7 +131,7 @@ var IdentityHandler = {
         mixed_display: mixedDisplay,
         mixed_active: mixedActive,
         tracking: trackingMode,
-      }
+      },
     };
 
     if (aBrowser.contentPrincipal) {
@@ -141,7 +141,8 @@ var IdentityHandler = {
     // Don't show identity data for pages with an unknown identity or if any
     // mixed content is loaded (mixed display content is loaded by default).
     if (identityMode === this.IDENTITY_MODE_UNKNOWN ||
-        (aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)) {
+        (aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN) ||
+        (aState & Ci.nsIWebProgressListener.STATE_IS_INSECURE)) {
       result.secure = false;
       return result;
     }
@@ -245,14 +246,15 @@ class GeckoViewProgress extends GeckoViewModule {
 
       let message = {
         type: "GeckoView:PageStop",
-        success: isSuccess
+        success: isSuccess,
       };
 
       this.eventDispatcher.sendRequest(message);
     }
   }
 
-  onSecurityChange(aWebProgress, aRequest, aState) {
+  onSecurityChange(aWebProgress, aRequest, aOldState, aState,
+                   aContentBlockingLogJSON) {
     debug `onSecurityChange`;
 
     // Don't need to do anything if the data we use to update the UI hasn't changed
@@ -267,7 +269,7 @@ class GeckoViewProgress extends GeckoViewModule {
 
     let message = {
       type: "GeckoView:SecurityChanged",
-      identity: identity
+      identity: identity,
     };
 
     this.eventDispatcher.sendRequest(message);
@@ -293,7 +295,7 @@ class GeckoViewProgress extends GeckoViewModule {
 
         this.eventDispatcher.sendRequest({
           type: "GeckoView:PageStop",
-          success: false
+          success: false,
         });
       }
     }

@@ -7,9 +7,8 @@
 const { Ci } = require("chrome");
 const promise = require("promise");
 const Services = require("Services");
+const asyncStorage = require("devtools/shared/async-storage");
 const EventEmitter = require("devtools/shared/event-emitter");
-
-const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
 loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/debugger-client", true);
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
@@ -25,6 +24,8 @@ loader.lazyRequireGetter(this, "PriorityLevels", "devtools/client/shared/compone
 loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
 loader.lazyRequireGetter(this, "gDevTools", "devtools/client/framework/devtools", true);
 loader.lazyRequireGetter(this, "Telemetry", "devtools/client/shared/telemetry");
+
+const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
 const RELOAD_CONDITION_PREF_PREFIX = "devtools.responsive.reloadConditions.";
 const RELOAD_NOTIFICATION_PREF = "devtools.responsive.reloadNotification.enabled";
@@ -128,7 +129,7 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
     tel.recordEvent("activate", "responsive_design", null, {
       "host": hostType,
       "width": Math.ceil(window.outerWidth / 50) * 50,
-      "session_id": toolbox ? toolbox.sessionId : -1
+      "session_id": toolbox ? toolbox.sessionId : -1,
     });
 
     // Track opens keyed by the UI entry point used.
@@ -191,7 +192,7 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
     t.recordEvent("deactivate", "responsive_design", null, {
       "host": hostType,
       "width": Math.ceil(window.outerWidth / 50) * 50,
-      "session_id": toolbox ? toolbox.sessionId : -1
+      "session_id": toolbox ? toolbox.sessionId : -1,
     });
   },
 
@@ -346,7 +347,7 @@ ResponsiveUI.prototype = {
         debug("Wait until browser mounted");
         await message.wait(toolWindow, "browser-mounted");
         return ui.getViewportBrowser();
-      }
+      },
     });
     debug("Wait until swap start");
     await this.swap.start();
@@ -360,6 +361,9 @@ ResponsiveUI.prototype = {
     // Get the protocol ready to speak with emulation actor
     debug("Wait until RDP server connect");
     await this.connectToServer();
+
+    // Restore the previous state of RDM.
+    await this.restoreState();
 
     // Show the settings onboarding tooltip
     if (Services.prefs.getBoolPref(SHOW_SETTING_TOOLTIP_PREF)) {
@@ -460,6 +464,10 @@ ResponsiveUI.prototype = {
   },
 
   async connectToServer() {
+    // The client being instantiated here is separate from the toolbox. It is being used
+    // separately and has a life cycle that doesn't correspond to the toolbox. As a
+    // result, it does not have a target, so we are not using `target.getFront` here. See
+    // also the implementation for about:debugging
     DebuggerServer.init();
     DebuggerServer.registerAllActors();
     this.client = new DebuggerClient(DebuggerServer.connectPipe());
@@ -531,7 +539,10 @@ ResponsiveUI.prototype = {
         this.onExit();
         break;
       case "remove-device-association":
-        this.onRemoveDeviceAssociation(event);
+        this.onRemoveDeviceAssociation();
+        break;
+      case "viewport-resize":
+        this.onViewportResize(event);
         break;
     }
   },
@@ -597,7 +608,7 @@ ResponsiveUI.prototype = {
     ResponsiveUIManager.closeIfNeeded(browserWindow, tab);
   },
 
-  async onRemoveDeviceAssociation(event) {
+  async onRemoveDeviceAssociation() {
     let reloadNeeded = false;
     await this.updateDPPX();
     reloadNeeded |= await this.updateUserAgent() &&
@@ -609,6 +620,48 @@ ResponsiveUI.prototype = {
     }
     // Used by tests
     this.emit("device-association-removed");
+  },
+
+  onViewportResize(event) {
+    const { width, height } = event.data;
+    this.emit("viewport-resize", {
+      width,
+      height,
+    });
+  },
+
+  /**
+   * Restores the previous state of RDM.
+   */
+  async restoreState() {
+    const deviceState = await asyncStorage.getItem("devtools.responsive.deviceState");
+    if (deviceState) {
+      // Return if there is a device state to restore, this will be done when the
+      // device list is loaded after the post-init.
+      return;
+    }
+
+    const pixelRatio =
+      Services.prefs.getIntPref("devtools.responsive.viewport.pixelRatio", 0);
+    const touchSimulationEnabled =
+      Services.prefs.getBoolPref("devtools.responsive.touchSimulation.enabled", false);
+    const userAgent = Services.prefs.getCharPref("devtools.responsive.userAgent", "");
+
+    let reloadNeeded = false;
+
+    await this.updateDPPX(pixelRatio);
+
+    if (touchSimulationEnabled) {
+      reloadNeeded |= await this.updateTouchSimulation(touchSimulationEnabled) &&
+                      this.reloadOnChange("touchSimulation");
+    }
+    if (userAgent) {
+      reloadNeeded |= await this.updateUserAgent(userAgent) &&
+                      this.reloadOnChange("userAgent");
+    }
+    if (reloadNeeded) {
+      this.getViewportBrowser().reload();
+    }
   },
 
   /**
@@ -669,12 +722,18 @@ ResponsiveUI.prototype = {
    *         Whether a reload is needed to apply the change.
    */
   updateTouchSimulation(enabled) {
-    if (!enabled) {
-      return this.emulationFront.clearTouchEventsOverride();
+    let reloadNeeded;
+    if (enabled) {
+      reloadNeeded = this.emulationFront.setTouchEventsOverride(
+        Ci.nsIDocShell.TOUCHEVENTS_OVERRIDE_ENABLED
+      ).then(() => this.emulationFront.setMetaViewportOverride(
+        Ci.nsIDocShell.META_VIEWPORT_OVERRIDE_ENABLED
+      ));
+    } else {
+      reloadNeeded = this.emulationFront.clearTouchEventsOverride()
+        .then(() => this.emulationFront.clearMetaViewportOverride());
     }
-    return this.emulationFront.setTouchEventsOverride(
-      Ci.nsIDocShell.TOUCHEVENTS_OVERRIDE_ENABLED
-    );
+    return reloadNeeded;
   },
 
   /**

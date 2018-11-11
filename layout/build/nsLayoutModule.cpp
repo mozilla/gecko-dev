@@ -24,7 +24,6 @@
 #include "nsIContentViewer.h"
 #include "nsIController.h"
 #include "nsIControllers.h"
-#include "nsIDocumentEncoder.h"
 #include "nsIFactory.h"
 #include "nsIIdleService.h"
 #include "nsHTMLStyleSheet.h"
@@ -65,7 +64,6 @@
 #include "mozilla/dom/DOMRequest.h"
 #include "mozilla/dom/SDBConnection.h"
 #include "mozilla/dom/LocalStorageManager.h"
-#include "mozilla/dom/network/UDPSocketChild.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/dom/StorageActivityService.h"
@@ -210,19 +208,11 @@ static bool gInitialized = false;
 
 // Perform our one-time intialization for this module
 
-static nsresult
-Initialize()
+void
+nsLayoutModuleInitialize()
 {
   if (gInitialized) {
     MOZ_CRASH("Recursive layout module initialization");
-    return NS_ERROR_FAILURE;
-  }
-  if (XRE_GetProcessType() == GeckoProcessType_GPU) {
-    // We mark the layout module as being available in the GPU process so that
-    // XPCOM's component manager initializes the power manager service, which
-    // is needed for nsAppShell. However, we don't actually need anything in
-    // the layout module itself.
-    return NS_OK;
   }
 
   static_assert(sizeof(uintptr_t) == sizeof(void*),
@@ -231,18 +221,27 @@ Initialize()
 
   gInitialized = true;
 
-  nsresult rv;
-  rv = xpcModuleCtor();
-  if (NS_FAILED(rv))
-    return rv;
-
-  rv = nsLayoutStatics::Initialize();
-  if (NS_FAILED(rv)) {
-    Shutdown();
-    return rv;
+  if (XRE_GetProcessType() == GeckoProcessType_VR) {
+    // VR process doesn't need the layout module.
+    return;
   }
 
-  return NS_OK;
+  if (XRE_GetProcessType() == GeckoProcessType_GPU) {
+    // We mark the layout module as being available in the GPU process so that
+    // XPCOM's component manager initializes the power manager service, which
+    // is needed for nsAppShell. However, we don't actually need anything in
+    // the layout module itself.
+    return;
+  }
+
+  if (NS_FAILED(xpcModuleCtor())) {
+    MOZ_CRASH("xpcModuleCtor failed");
+  }
+
+  if (NS_FAILED(nsLayoutStatics::Initialize())) {
+    Shutdown();
+    MOZ_CRASH("nsLayoutStatics::Initialize failed");
+  }
 }
 
 // Shutdown this module, releasing all of the module resources
@@ -268,8 +267,6 @@ nsresult NS_CreateFrameTraversal(nsIFrameTraversal** aResult);
 
 already_AddRefed<nsIContentViewer> NS_NewContentViewer();
 nsresult NS_NewContentDocumentLoaderFactory(nsIDocumentLoaderFactory** aResult);
-nsresult NS_NewHTMLCopyTextEncoder(nsIDocumentEncoder** aResult);
-nsresult NS_NewTextEncoder(nsIDocumentEncoder** aResult);
 nsresult NS_NewContentPolicy(nsIContentPolicy** aResult);
 
 nsresult NS_NewEventListenerService(nsIEventListenerService** aResult);
@@ -319,8 +316,6 @@ MAKE_CTOR(CreateNewFrameTraversal,      nsIFrameTraversal,      NS_CreateFrameTr
 NS_GENERIC_FACTORY_CONSTRUCTOR(inDeepTreeWalker)
 
 MAKE_CTOR2(CreateContentViewer,           nsIContentViewer,            NS_NewContentViewer)
-MAKE_CTOR(CreateTextEncoder,              nsIDocumentEncoder,          NS_NewTextEncoder)
-MAKE_CTOR(CreateHTMLCopyTextEncoder,      nsIDocumentEncoder,          NS_NewHTMLCopyTextEncoder)
 MAKE_CTOR(CreateXMLContentSerializer,     nsIContentSerializer,        NS_NewXMLContentSerializer)
 MAKE_CTOR(CreateHTMLContentSerializer,    nsIContentSerializer,        NS_NewHTMLContentSerializer)
 MAKE_CTOR(CreateXHTMLContentSerializer,   nsIContentSerializer,        NS_NewXHTMLContentSerializer)
@@ -394,8 +389,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsStructuredCloneContainer)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(OSFileConstantsService,
                                          OSFileConstantsService::GetOrCreate);
 
-NS_GENERIC_FACTORY_CONSTRUCTOR(UDPSocketChild)
-
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(GeckoMediaPluginService, GeckoMediaPluginService::GetGeckoMediaPluginService)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsScriptError)
@@ -429,8 +422,6 @@ NS_DEFINE_NAMED_CID(NS_LAYOUT_DEBUGGER_CID);
 NS_DEFINE_NAMED_CID(NS_FRAMETRAVERSAL_CID);
 NS_DEFINE_NAMED_CID(IN_DEEPTREEWALKER_CID);
 NS_DEFINE_NAMED_CID(NS_CONTENT_VIEWER_CID);
-NS_DEFINE_NAMED_CID(NS_TEXT_ENCODER_CID);
-NS_DEFINE_NAMED_CID(NS_HTMLCOPY_TEXT_ENCODER_CID);
 NS_DEFINE_NAMED_CID(NS_XMLCONTENTSERIALIZER_CID);
 NS_DEFINE_NAMED_CID(NS_XHTMLCONTENTSERIALIZER_CID);
 NS_DEFINE_NAMED_CID(NS_HTMLCONTENTSERIALIZER_CID);
@@ -481,7 +472,6 @@ NS_DEFINE_NAMED_CID(NS_HAPTICFEEDBACK_CID);
 #endif
 NS_DEFINE_NAMED_CID(NS_POWERMANAGERSERVICE_CID);
 NS_DEFINE_NAMED_CID(OSFILECONSTANTSSERVICE_CID);
-NS_DEFINE_NAMED_CID(UDPSOCKETCHILD_CID);
 NS_DEFINE_NAMED_CID(NS_MEDIAMANAGERSERVICE_CID);
 #ifdef MOZ_WEBSPEECH_TEST_BACKEND
 NS_DEFINE_NAMED_CID(NS_FAKE_SPEECH_RECOGNITION_SERVICE_CID);
@@ -505,6 +495,7 @@ NS_DEFINE_NAMED_CID(TEXT_INPUT_PROCESSOR_CID);
 NS_DEFINE_NAMED_CID(NS_SCRIPTERROR_CID);
 
 static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
+  // clang-format off
   XPCONNECT_CIDENTRIES
 #ifdef DEBUG
   { &kNS_LAYOUT_DEBUGGER_CID, false, nullptr, CreateNewLayoutDebugger },
@@ -512,8 +503,6 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_FRAMETRAVERSAL_CID, false, nullptr, CreateNewFrameTraversal },
   { &kIN_DEEPTREEWALKER_CID, false, nullptr, inDeepTreeWalkerConstructor },
   { &kNS_CONTENT_VIEWER_CID, false, nullptr, CreateContentViewer },
-  { &kNS_TEXT_ENCODER_CID, false, nullptr, CreateTextEncoder },
-  { &kNS_HTMLCOPY_TEXT_ENCODER_CID, false, nullptr, CreateHTMLCopyTextEncoder },
   { &kNS_XMLCONTENTSERIALIZER_CID, false, nullptr, CreateXMLContentSerializer },
   { &kNS_HTMLCONTENTSERIALIZER_CID, false, nullptr, CreateHTMLContentSerializer },
   { &kNS_XHTMLCONTENTSERIALIZER_CID, false, nullptr, CreateXHTMLContentSerializer },
@@ -570,7 +559,6 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_STRUCTUREDCLONECONTAINER_CID, false, nullptr, nsStructuredCloneContainerConstructor },
   { &kNS_POWERMANAGERSERVICE_CID, false, nullptr, nsIPowerManagerServiceConstructor, Module::ALLOW_IN_GPU_PROCESS },
   { &kOSFILECONSTANTSSERVICE_CID, true, nullptr, OSFileConstantsServiceConstructor },
-  { &kUDPSOCKETCHILD_CID, false, nullptr, UDPSocketChildConstructor },
   { &kGECKO_MEDIA_PLUGIN_SERVICE_CID, true, nullptr, GeckoMediaPluginServiceConstructor },
   { &kNS_MEDIAMANAGERSERVICE_CID, false, nullptr, nsIMediaManagerServiceConstructor },
 #ifdef ACCESSIBILITY
@@ -582,18 +570,13 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kTEXT_INPUT_PROCESSOR_CID, false, nullptr, TextInputProcessorConstructor },
   { &kNS_SCRIPTERROR_CID, false, nullptr, nsScriptErrorConstructor },
   { nullptr }
+  // clang-format on
 };
 
 static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
+  // clang-format off
   XPCONNECT_CONTRACTS
   { "@mozilla.org/inspector/deep-tree-walker;1", &kIN_DEEPTREEWALKER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "text/xml", &kNS_TEXT_ENCODER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "application/xml", &kNS_TEXT_ENCODER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "application/xhtml+xml", &kNS_TEXT_ENCODER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "image/svg+xml", &kNS_TEXT_ENCODER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "text/html", &kNS_TEXT_ENCODER_CID },
-  { NS_DOC_ENCODER_CONTRACTID_BASE "text/plain", &kNS_TEXT_ENCODER_CID },
-  { NS_HTMLCOPY_ENCODER_CONTRACTID, &kNS_HTMLCOPY_TEXT_ENCODER_CID },
   { NS_CONTENTSERIALIZER_CONTRACTID_PREFIX "text/xml", &kNS_XMLCONTENTSERIALIZER_CID },
   { NS_CONTENTSERIALIZER_CONTRACTID_PREFIX "application/xml", &kNS_XMLCONTENTSERIALIZER_CID },
   { NS_CONTENTSERIALIZER_CONTRACTID_PREFIX "application/xhtml+xml", &kNS_XHTMLCONTENTSERIALIZER_CID },
@@ -649,11 +632,9 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { NS_STRUCTUREDCLONECONTAINER_CONTRACTID, &kNS_STRUCTUREDCLONECONTAINER_CID },
   { POWERMANAGERSERVICE_CONTRACTID, &kNS_POWERMANAGERSERVICE_CID, Module::ALLOW_IN_GPU_PROCESS },
   { OSFILECONSTANTSSERVICE_CONTRACTID, &kOSFILECONSTANTSSERVICE_CID },
-  { "@mozilla.org/udp-socket-child;1", &kUDPSOCKETCHILD_CID },
   { MEDIAMANAGERSERVICE_CONTRACTID, &kNS_MEDIAMANAGERSERVICE_CID },
 #ifdef ACCESSIBILITY
   { "@mozilla.org/accessibilityService;1", &kNS_ACCESSIBILITY_SERVICE_CID },
-  { "@mozilla.org/accessibleRetrieval;1", &kNS_ACCESSIBILITY_SERVICE_CID },
 #endif
   { "@mozilla.org/gecko-media-plugin-service;1",  &kGECKO_MEDIA_PLUGIN_SERVICE_CID },
   { PRESENTATION_SERVICE_CONTRACTID, &kPRESENTATION_SERVICE_CID },
@@ -665,7 +646,6 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
 };
 
 static const mozilla::Module::CategoryEntry kLayoutCategories[] = {
-  XPCONNECT_CATEGORIES
   { "content-policy", NS_DATADOCUMENTCONTENTPOLICY_CONTRACTID, NS_DATADOCUMENTCONTENTPOLICY_CONTRACTID },
   { "content-policy", NS_NODATAPROTOCOLCONTENTPOLICY_CONTRACTID, NS_NODATAPROTOCOLCONTENTPOLICY_CONTRACTID },
   { "content-policy", "CSPService", CSPSERVICE_CONTRACTID },
@@ -681,12 +661,22 @@ static const mozilla::Module::CategoryEntry kLayoutCategories[] = {
   { "profile-after-change", "PresentationService", PRESENTATION_SERVICE_CONTRACTID },
   { "profile-after-change", "Notification Telemetry Service", NOTIFICATIONTELEMETRYSERVICE_CONTRACTID },
   { nullptr }
+  // clang-format on
 };
+
+static nsresult
+Initialize()
+{
+  // nsLayoutModuleInitialize should be called first.
+  MOZ_RELEASE_ASSERT(gInitialized);
+  return NS_OK;
+}
 
 static void
 LayoutModuleDtor()
 {
-  if (XRE_GetProcessType() == GeckoProcessType_GPU) {
+  if (XRE_GetProcessType() == GeckoProcessType_GPU ||
+      XRE_GetProcessType() == GeckoProcessType_VR) {
     return;
   }
 

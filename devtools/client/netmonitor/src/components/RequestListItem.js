@@ -215,17 +215,17 @@ class RequestListItem extends Component {
       },
         columns.status && RequestListColumnStatus({ item }),
         columns.method && RequestListColumnMethod({ item }),
+        columns.domain && RequestListColumnDomain({
+            item,
+            onSecurityIconMouseDown,
+        }),
         columns.file && RequestListColumnFile({ item }),
         columns.protocol && RequestListColumnProtocol({ item }),
         columns.scheme && RequestListColumnScheme({ item }),
-        columns.domain && RequestListColumnDomain({
-          item,
-          onSecurityIconMouseDown
-        }),
         columns.remoteip && RequestListColumnRemoteIP({ item }),
         columns.cause && RequestListColumnCause({
           item,
-          onCauseBadgeMouseDown
+          onCauseBadgeMouseDown,
         }),
         columns.type && RequestListColumnType({ item }),
         columns.cookies && RequestListColumnCookies({ connector, item }),
@@ -266,7 +266,7 @@ class RequestListItem extends Component {
           header => RequestListColumnResponseHeader({
             connector,
             item,
-            header
+            header,
           }),
         ),
         columns.waterfall && RequestListColumnWaterfall({

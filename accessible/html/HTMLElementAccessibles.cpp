@@ -223,13 +223,7 @@ HTMLHeaderOrFooterAccessible::NativeRole() const
 
   // No sectioning or sectioning root elements found.
   if (!parent) {
-    if (mContent->IsHTMLElement(nsGkAtoms::header)) {
-      return roles::HEADER;
-    }
-
-    if (mContent->IsHTMLElement(nsGkAtoms::footer)) {
-      return roles::FOOTER;
-    }
+    return roles::LANDMARK;
   }
 
   return roles::SECTION;
@@ -242,13 +236,41 @@ HTMLHeaderOrFooterAccessible::LandmarkRole() const
     return nullptr;
 
   a11y::role r = const_cast<HTMLHeaderOrFooterAccessible*>(this)->Role();
-  if (r == roles::HEADER) {
-    return nsGkAtoms::banner;
-  }
+  if (r == roles::LANDMARK) {
+    if (mContent->IsHTMLElement(nsGkAtoms::header)) {
+      return nsGkAtoms::banner;
+    }
 
-  if (r == roles::FOOTER) {
-    return nsGkAtoms::contentinfo;
+    if (mContent->IsHTMLElement(nsGkAtoms::footer)) {
+      return nsGkAtoms::contentinfo;
+    }
   }
 
   return nullptr;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// HTMLSectionAccessible
+////////////////////////////////////////////////////////////////////////////////
+
+role
+HTMLSectionAccessible::NativeRole() const
+{
+  nsAutoString name;
+  const_cast<HTMLSectionAccessible*>(this)->Name(name);
+  return name.IsEmpty() ? roles::SECTION : roles::REGION;
+}
+
+nsAtom*
+HTMLSectionAccessible::LandmarkRole() const
+{
+  if (!HasOwnContent()) {
+    return nullptr;
+  }
+
+  // Only return xml-roles "region" if the section has an accessible name.
+  nsAutoString name;
+  const_cast<HTMLSectionAccessible*>(this)->Name(name);
+  return name.IsEmpty() ? nullptr : nsGkAtoms::region;
 }

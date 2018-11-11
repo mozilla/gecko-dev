@@ -8,6 +8,15 @@
 #ifndef __nsWindow_h__
 #define __nsWindow_h__
 
+#include <gdk/gdk.h>
+#include <gtk/gtk.h>
+#ifdef MOZ_X11
+#include <gdk/gdkx.h>
+#include "X11UndefineNone.h"
+#endif /* MOZ_X11 */
+#ifdef MOZ_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 #include "mozcontainer.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -16,20 +25,8 @@
 #include "nsGkAtoms.h"
 #include "nsRefPtrHashtable.h"
 #include "nsIFrame.h"
-
 #include "nsBaseWidget.h"
 #include "CompositorWidget.h"
-#include <gdk/gdk.h>
-#include <gtk/gtk.h>
-
-#ifdef MOZ_X11
-#include <gdk/gdkx.h>
-#include "X11UndefineNone.h"
-#endif /* MOZ_X11 */
-#ifdef MOZ_WAYLAND
-#include <gdk/gdkwayland.h>
-#endif
-
 #include "mozilla/widget/WindowSurface.h"
 #include "mozilla/widget/WindowSurfaceProvider.h"
 
@@ -125,6 +122,7 @@ public:
     virtual float      GetDPI() override;
     virtual double     GetDefaultScaleInternal() override;
     mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override;
+    mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScaleByScreen() override;
     virtual void       SetParent(nsIWidget* aNewParent) override;
     virtual void       SetModal(bool aModal) override;
     virtual bool       IsVisible() const override;
@@ -289,6 +287,7 @@ public:
     // descendant windows
     GtkWidget*         GetMozContainerWidget();
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
+    GtkWidget*         GetGtkWidget() { return mShell; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
     void               DispatchDragEvent(mozilla::EventMessage aMsg,

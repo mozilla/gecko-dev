@@ -10,21 +10,21 @@ types.addDictType("browsingContextTarget.attach", {
   threadActor: "number",
   cacheDisabled: "boolean",
   javascriptEnabled: "boolean",
-  traits: "json"
+  traits: "json",
 });
 
 types.addDictType("browsingContextTarget.detach", {
   error: "nullable:string",
-  type: "nullable:string"
+  type: "nullable:string",
 });
 
 types.addDictType("browsingContextTarget.switchtoframe", {
   error: "nullable:string",
-  message: "nullable:string"
+  message: "nullable:string",
 });
 
 types.addDictType("browsingContextTarget.listframes", {
-  frames: "array:browsingContextTarget.window"
+  frames: "array:browsingContextTarget.window",
 });
 
 types.addDictType("browsingContextTarget.window", {
@@ -32,22 +32,23 @@ types.addDictType("browsingContextTarget.window", {
   parentID: "nullable:string",
   url: "nullable:string", // should be present if not destroying
   title: "nullable:string", // should be present if not destroying
-  destroy: "nullable:boolean" // not present if not destroying
+  destroy: "nullable:boolean", // not present if not destroying
 });
 
 types.addDictType("browsingContextTarget.workers", {
-  error: "nullable:string"
+  error: "nullable:string",
+  workers: "nullable:array:json",
 });
 
 types.addDictType("browsingContextTarget.reload", {
-  force: "boolean"
+  force: "boolean",
 });
 
 types.addDictType("browsingContextTarget.reconfigure", {
   javascriptEnabled: "nullable:boolean",
   cacheDisabled: "nullable:boolean",
   serviceWorkersTestingEnabled: "nullable:boolean",
-  performReload: "nullable:boolean"
+  performReload: "nullable:boolean",
 });
 
 const browsingContextTargetSpecPrototype = {
@@ -56,60 +57,60 @@ const browsingContextTargetSpecPrototype = {
   methods: {
     attach: {
       request: {},
-      response: RetVal("browsingContextTarget.attach")
+      response: RetVal("browsingContextTarget.attach"),
     },
     detach: {
       request: {},
-      response: RetVal("browsingContextTarget.detach")
+      response: RetVal("browsingContextTarget.detach"),
     },
     ensureCSSErrorReportingEnabled: {
       request: {},
-      response: {}
+      response: {},
     },
     focus: {
       request: {},
-      response: {}
+      response: {},
     },
     reload: {
       request: {
         options: Option(0, "browsingContextTarget.reload"),
       },
-      response: {}
+      response: {},
     },
     navigateTo: {
       request: {
         url: Option(0, "string"),
       },
-      response: {}
+      response: {},
     },
     reconfigure: {
       request: {
-        options: Option(0, "browsingContextTarget.reconfigure")
+        options: Option(0, "browsingContextTarget.reconfigure"),
       },
-      response: {}
+      response: {},
     },
     switchToFrame: {
       request: {
-        windowId: Option(0, "string")
+        windowId: Option(0, "string"),
       },
-      response: RetVal("browsingContextTarget.switchtoframe")
+      response: RetVal("browsingContextTarget.switchtoframe"),
     },
     listFrames: {
       request: {},
-      response: RetVal("browsingContextTarget.listframes")
+      response: RetVal("browsingContextTarget.listframes"),
     },
     listWorkers: {
       request: {},
-      response: RetVal("browsingContextTarget.workers")
+      response: RetVal("browsingContextTarget.workers"),
     },
     logInPage: {
       request: {
         text: Option(0, "string"),
         category: Option(0, "string"),
-        flags: Option(0, "string")
+        flags: Option(0, "string"),
       },
-      response: {}
-    }
+      response: {},
+    },
   },
   events: {
     tabNavigated: {
@@ -118,21 +119,28 @@ const browsingContextTargetSpecPrototype = {
       title: Option(0, "string"),
       nativeConsoleAPI: Option(0, "boolean"),
       state: Option(0, "string"),
-      isFrameSwitching: Option(0, "boolean")
+      isFrameSwitching: Option(0, "boolean"),
     },
     frameUpdate: {
       type: "frameUpdate",
       frames: Option(0, "nullable:array:browsingContextTarget.window"),
       selected: Option(0, "nullable:number"),
-      destroyAll: Option(0, "nullable:boolean")
+      destroyAll: Option(0, "nullable:boolean"),
     },
     tabDetached: {
-      type: "tabDetached"
+      type: "tabDetached",
+      // This is to make browser_dbg_navigation.js to work as it expect to
+      // see a packet object when listening for tabDetached
+      from: Option(0, "string"),
     },
     workerListChanged: {
-      type: "workerListChanged"
-    }
-  }
+      type: "workerListChanged",
+    },
+    newSource: {
+      type: "newSource",
+      source: Option(0, "json"),
+    },
+  },
 };
 
 const browsingContextTargetSpec = generateActorSpec(browsingContextTargetSpecPrototype);

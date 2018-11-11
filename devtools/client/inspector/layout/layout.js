@@ -6,6 +6,8 @@
 
 const { createFactory, createElement } = require("devtools/client/shared/vendor/react");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
+const FlexboxInspector = require("devtools/client/inspector/flexbox/flexbox");
+const GridInspector = require("devtools/client/inspector/grids/grid-inspector");
 
 const LayoutApp = createFactory(require("./components/LayoutApp"));
 
@@ -13,8 +15,6 @@ const { LocalizationHelper } = require("devtools/shared/l10n");
 const INSPECTOR_L10N =
   new LocalizationHelper("devtools/client/locales/inspector.properties");
 
-loader.lazyRequireGetter(this, "FlexboxInspector", "devtools/client/inspector/flexbox/flexbox");
-loader.lazyRequireGetter(this, "GridInspector", "devtools/client/inspector/grids/grid-inspector");
 loader.lazyRequireGetter(this, "SwatchColorPickerTooltip", "devtools/client/shared/widgets/tooltip/SwatchColorPickerTooltip");
 
 class LayoutView {
@@ -47,7 +47,6 @@ class LayoutView {
     const {
       onSetFlexboxOverlayColor,
       onToggleFlexboxHighlighter,
-      onToggleFlexItemShown,
     } = this.flexboxInspector.getComponentProps();
 
     this.gridInspector = new GridInspector(this.inspector, this.inspector.panelWin);
@@ -70,7 +69,6 @@ class LayoutView {
       onShowBoxModelHighlighterForNode,
       onShowGridOutlineHighlight,
       onToggleFlexboxHighlighter,
-      onToggleFlexItemShown,
       onToggleGeometryEditor,
       onToggleGridHighlighter,
       onToggleShowGridAreas,

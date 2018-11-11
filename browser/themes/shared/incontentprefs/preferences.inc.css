@@ -24,17 +24,18 @@
   padding: 0;
 }
 
-.prefpane > groupbox + groupbox {
-  margin-top: 16px;
+groupbox[data-category] {
+  margin: 0 0 32px;
 }
 
-groupbox + groupbox > .groupbox-body,
-groupbox + vbox groupbox > .groupbox-body {
-  margin-top: 4px;
+caption {
+  margin: 16px 0 4px;
+  font-size: 1.14em;
+  font-weight: 600;
 }
 
-.groupbox-title {
-  margin-top: 16px;
+.header-name {
+  margin-bottom: 8px;
 }
 
 description.indent,
@@ -49,11 +50,18 @@ html|option {
   -moz-user-select: none;
 }
 
+/* Buttons get a default min-width in XUL. When they also have flex, they will
+ * be large enough anyway, and we don't want them to become smaller than their inner
+ * text which would then overflow the button. Set min-width back to auto for that:
+ */
+button[flex] {
+  min-width: auto;
+}
+
 description,
 label {
   line-height: 1.8em;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin: 0;
 }
 
 .tip-caption {
@@ -109,10 +117,6 @@ button > hbox > label {
   margin-right: -4px;
   padding-left: 4px;
   padding-right: 4px;
-}
-
-[data-subcategory] > .groupbox-title {
-  padding-inline-start: 4px;
 }
 
 .ac-site-icon {
@@ -226,6 +230,10 @@ button > hbox > label {
   font-size: 90%;
 }
 
+#useDocumentColors {
+  margin: 0;
+}
+
 #activeLanguages {
   height: 16em;
 }
@@ -244,14 +252,6 @@ button > hbox > label {
 
 #downloadFolder:-moz-locale-dir(rtl) {
   background-position-x: right 8px;
-}
-
-#updateApp > .groupbox-body > label {
-  margin: 0 0 4px;
-}
-
-#updateApp > .groupbox-body > description {
-  margin: 0;
 }
 
 #updateBox {
@@ -321,11 +321,6 @@ button > hbox > label {
 }
 
 /* Home Pane */
-#homepageGroup > .groupbox-title {
-  /* The Restore Defaults button will make this heading taller than the other
-   * sections, so lower the top margin to account for it. */
-  margin-top: 6px;
-}
 #homepageGroup menulist,
 #homepageGroup textbox {
   margin: 5px 0;
@@ -403,16 +398,8 @@ button > hbox > label {
   margin-bottom: 4px;
 }
 
-#trackingProtectionBox {
-  margin-top: 16px;
-}
-
 #doNotTrackLearnMoreBox {
   margin-top: 32px;
-}
-
-#trackingProtectionAdvancedSettings {
-  margin-inline-start: 15px;
 }
 
 #historyPane {
@@ -430,11 +417,6 @@ button > hbox > label {
   margin-top: 1.5em;
 }
 
-#blockCookiesWarning {
-  margin-top: 1.5em !important;
-  margin-bottom: -1em !important;
-}
-
 /* Collapse the non-active vboxes in decks to use only the height the
    active vbox needs */
 #historyPane:not([selectedIndex="1"]) > #historyDontRememberPane,
@@ -443,19 +425,6 @@ button > hbox > label {
 #fxaLoginStatus:not([selectedIndex="1"]) > #fxaLoginUnverified,
 #fxaLoginStatus:not([selectedIndex="2"]) > #fxaLoginRejected {
   visibility: collapse;
-}
-
-#weavePrefsDeck > vbox > label,
-#weavePrefsDeck > vbox > groupbox,
-#weavePrefsDeck > vbox > description,
-#weavePrefsDeck > #hasFxaAccount > vbox > label,
-#weavePrefsDeck > #hasFxaAccount > hbox > label {
-  /* no margin-inline-start for elements at the beginning of a line */
-  margin-inline-start: 0;
-}
-
-#weavePrefsDeck > vbox > groupbox {
-  margin-top: 16px;
 }
 
 #tabsElement {
@@ -507,7 +476,7 @@ button > hbox > label {
   min-width: 66ch;
 }
 
-.dialogBox > .groupbox-title {
+.dialogTitleBar {
   margin-top: 0;
   padding: 3.5px 0;
   background-color: #F1F1F1;
@@ -516,6 +485,7 @@ button > hbox > label {
 
 .dialogTitle {
   font-size: .9em;
+  font-weight: 600;
   text-align: center;
   -moz-user-select: none;
 }
@@ -527,20 +497,11 @@ button > hbox > label {
   min-height: auto;
 }
 
-.dialogBox > .groupbox-body {
-  -moz-appearance: none;
-  padding: 20px;
-}
-
 .dialogFrame {
+  margin: 20px;
   -moz-box-flex: 1;
   /* Default dialog dimensions */
   width: 66ch;
-}
-
-.largeDialogContainer.doScroll {
-  overflow-y: auto;
-  -moz-box-flex: 1;
 }
 
 /**
@@ -692,6 +653,13 @@ button > hbox > label {
   margin-inline-end: 8px;
   margin-top: 7px;
   margin-bottom: 7px;
+}
+
+html|img.update-throbber {
+  vertical-align: middle;
+}
+
+image.update-throbber {
   list-style-image: url("chrome://global/skin/icons/loading.png");
 }
 
@@ -704,73 +672,6 @@ button > hbox > label {
 .navigation {
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-.navigation > .help-button {
-  margin-bottom: 36px;
-  padding: 1px; /* Adding padding around help label in order to make entire keyboard focusing outline visible */
-}
-
-.help-button > .text-link {
-  -moz-box-flex: 1;
-  margin-inline-start: 34px;
-  margin-inline-end: 0;
-  text-decoration: none;
-  color: currentColor;
-  width: 36px;
-  height: 36px;
-  cursor: default;
-}
-
-.help-button > .text-link:hover {
-  background-color: var(--in-content-category-background-hover);
-  border-radius: 2px;
-}
-
-.help-button > .text-link:hover:active:not([disabled]) {
-  background-color: var(--in-content-category-background-active);
-}
-
-.help-button > .text-link:-moz-focusring {
-  outline: var(--in-content-category-outline-focus);
-}
-
-.help-icon {
-  list-style-image: url("chrome://global/skin/icons/help.svg");
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  width: 16px;
-  height: 16px;
-  margin: 10px;
-  margin-inline-start: 13px;
-  vertical-align: middle;
-}
-
-.help-icon:hover {
-  fill: currentColor !important;
-}
-
-.help-label {
-  margin: 0 4px;
-  font-size: .9em;
-  -moz-user-select: none;
-}
-
-@media (max-width: 830px) {
-  .help-button > .text-link {
-    -moz-box-flex: 0;
-    width: 36px;
-    height: 36px;
-    margin-inline-start: 0;
-  }
-
-  .help-icon {
-    margin: 10px;
-  }
-
-  .help-label {
-    display: none;
-  }
 }
 
 .face-sad {
@@ -951,6 +852,11 @@ menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .me
   margin-inline-start: 0;
 }
 
+#LanguagesDialog > .dialog-button-box > .dialog-button[dlgtype="accept"],
+#BrowserLanguagesDialog > .dialog-button-box > .dialog-button[dlgtype="accept"] {
+  margin-inline-end: 0;
+}
+
 #requestedLocales {
   min-height: 200px;
 }
@@ -961,7 +867,21 @@ menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .me
   margin-inline-end: 4px;
 }
 
+#warning-message > .message-bar-description {
+  width: 32em;
+}
+
 .add-web-language,
 .add-browser-language {
-  margin: 0 4px;
+  margin: 0;
+  margin-inline-start: 4px;
+}
+
+.action-button {
+  margin-inline-end: 0;
+}
+
+/* Menulist styles */
+.label-item {
+  font-size: 0.8em;
 }

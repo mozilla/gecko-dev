@@ -75,9 +75,9 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "Priljubljene teme:",
   "pocket_read_even_more": "Prikaži več vesti",
   "pocket_more_reccommendations": "Več priporočil",
-  "pocket_learn_more": "Več o tem",
-  "pocket_cta_button": "Get Pocket",
-  "pocket_cta_text": "Save the stories you love in Pocket, and fuel your mind with fascinating reads.",
+  "pocket_how_it_works": "Kako deluje",
+  "pocket_cta_button": "Prenesi Pocket",
+  "pocket_cta_text": "Shranite zgodbe, ki jih imate radi, v Pocket, in napolnite svoje misli z navdušujočim branjem.",
   "highlights_empty_state": "Začnite z brskanjem, mi pa vam bomo tu prikazovali odlične članke, videoposnetke ter druge strani, ki ste jih nedavno obiskali ali shranili med zaznamke.",
   "topstories_empty_state": "Zdaj ste seznanjeni z novicami. Vrnite se pozneje in si oglejte nove prispevke iz {provider}. Komaj čakate? Izberite priljubljeno temo in odkrijte več velikih zgodb na spletu.",
   "manual_migration_explanation2": "Preskusite Firefox z zaznamki, zgodovino in gesli iz drugega brskalnika.",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "Pogoji uporabe",
   "firstrun_privacy_notice": "Obvestilom o zasebnosti",
   "firstrun_continue_to_login": "Nadaljuj",
-  "firstrun_skip_login": "Preskoči ta korak"
+  "firstrun_skip_login": "Preskoči ta korak",
+  "context_menu_title": "Odpri meni",
+  "pocket_learn_more": "Več o tem"
 };

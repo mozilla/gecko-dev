@@ -15,11 +15,11 @@ const { startRecording, stopRecording } = require("devtools/client/performance/t
 add_task(async function() {
   const { panel, toolbox } = await initPerformanceInNewTab({
     url: SIMPLE_URL,
-    win: window
+    win: window,
   });
 
   Services.prefs.setIntPref(PROFILER_BUFFER_SIZE_PREF, 1000);
-  Services.prefs.setIntPref(PROFILER_SAMPLE_RATE_PREF, 2);
+  Services.prefs.setIntPref(PROFILER_SAMPLE_RATE_PREF, 2000);
 
   await startRecording(panel);
   const { entries, interval } = await toolbox.performance.getConfiguration();

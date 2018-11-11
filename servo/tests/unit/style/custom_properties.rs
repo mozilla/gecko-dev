@@ -4,8 +4,8 @@
 
 use cssparser::{Parser, ParserInput};
 use servo_arc::Arc;
-use style::custom_properties::{Name, SpecifiedValue, CustomPropertiesMap, CustomPropertiesBuilder};
-use style::properties::DeclaredValue;
+use style::custom_properties::{Name, SpecifiedValue, CustomPropertiesMap, CustomPropertiesBuilder, CssEnvironment};
+use style::properties::CustomDeclarationValue;
 use test::{self, Bencher};
 
 fn cascade(
@@ -18,10 +18,11 @@ fn cascade(
         (Name::from(name), SpecifiedValue::parse(&mut parser).unwrap())
     }).collect::<Vec<_>>();
 
-    let mut builder = CustomPropertiesBuilder::new(inherited);
+    let env = CssEnvironment;
+    let mut builder = CustomPropertiesBuilder::new(inherited, &env);
 
     for &(ref name, ref val) in &values {
-        builder.cascade(name, DeclaredValue::Value(val));
+        builder.cascade(name, &CustomDeclarationValue::Value(val.clone()));
     }
 
     builder.build()

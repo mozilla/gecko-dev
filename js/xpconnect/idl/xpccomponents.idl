@@ -14,6 +14,7 @@ interface nsIClassInfo;
 interface nsICommandParams;
 interface nsIComponentManager;
 interface nsICycleCollectorListener;
+interface nsIDocumentEncoder;
 interface nsIEditorSpellCheck;
 interface nsIFile;
 interface nsILoadContext;
@@ -738,6 +739,23 @@ interface nsIXPCComponents_Utils : nsISupports
 
     /* Create a persistent property object. */
     nsIPersistentProperties createPersistentProperties();
+
+    /* Create a document encoder object. */
+    nsIDocumentEncoder createDocumentEncoder(in string contentType);
+
+    /* Create an HTML copy encoder object. */
+    nsIDocumentEncoder createHTMLCopyEncoder();
+
+    // These attributes are for startup testing purposes. They are not expected
+    // to be used for production code.
+    readonly attribute Array<ACString> loadedModules;
+    readonly attribute Array<ACString> loadedComponents;
+
+    // These 2 functions will only return useful values if the
+    // "browser.startup.record" preference was true at the time the JS file
+    // was loaded.
+    ACString getModuleImportStack(in AUTF8String aLocation);
+    ACString getComponentLoadStack(in AUTF8String aLocation);
 };
 
 /**

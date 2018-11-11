@@ -279,6 +279,11 @@ public:
     return mIsHardwareAccelerated;
   }
 
+  ConversionRequired NeedsConversion() const override
+  {
+    return ConversionRequired::kNeedAnnexB;
+  }
+
 private:
   const VideoInfo mConfig;
   GeckoSurface::GlobalRef mSurface;
@@ -337,11 +342,6 @@ public:
     }
 
     return InitPromise::CreateAndResolve(TrackInfo::kAudioTrack, __func__);
-  }
-
-  ConversionRequired NeedsConversion() const override
-  {
-    return ConversionRequired::kNeedAnnexB;
   }
 
 private:
@@ -498,7 +498,7 @@ RemoteDataDecoder::Flush()
 {
   RefPtr<RemoteDataDecoder> self = this;
   return InvokeAsync(mTaskQueue, __func__, [self, this]() {
-    mDecodedData.Clear();
+    mDecodedData = DecodedData();
     mNumPendingInputs = 0;
     mDecodePromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
     mDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
@@ -726,12 +726,12 @@ RemoteDataDecoder::ReturnDecodedData()
 
   // We only want to clear mDecodedData when we have resolved the promises.
   if (!mDecodePromise.IsEmpty()) {
-    mDecodePromise.Resolve(mDecodedData, __func__);
-    mDecodedData.Clear();
+    mDecodePromise.Resolve(std::move(mDecodedData), __func__);
+    mDecodedData = DecodedData();
   } else if (!mDrainPromise.IsEmpty() &&
              (!mDecodedData.IsEmpty() || mDrainStatus == DrainStatus::DRAINED)) {
-    mDrainPromise.Resolve(mDecodedData, __func__);
-    mDecodedData.Clear();
+    mDrainPromise.Resolve(std::move(mDecodedData), __func__);
+    mDecodedData = DecodedData();
   }
 }
 

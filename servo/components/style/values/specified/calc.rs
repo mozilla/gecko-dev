@@ -9,13 +9,13 @@
 use cssparser::{AngleOrNumber, NumberOrPercentage, Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
-use values::{CSSFloat, CSSInteger};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::computed;
-use values::specified::{Angle, Time};
-use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use values::specified::length::ViewportPercentageLength;
+use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
+use values::specified::{Angle, Time};
+use values::{CSSFloat, CSSInteger};
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
@@ -469,22 +469,22 @@ impl CalcNode {
             CalcNode::Sub(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.radians() - rhs.radians())
+                Angle::from_calc(lhs.degrees() - rhs.degrees())
             },
             CalcNode::Sum(ref a, ref b) => {
                 let lhs = a.to_angle()?;
                 let rhs = b.to_angle()?;
-                Angle::from_calc(lhs.radians() + rhs.radians())
+                Angle::from_calc(lhs.degrees() + rhs.degrees())
             },
             CalcNode::Mul(ref a, ref b) => match a.to_angle() {
                 Ok(lhs) => {
                     let rhs = b.to_number()?;
-                    Angle::from_calc(lhs.radians() * rhs)
+                    Angle::from_calc(lhs.degrees() * rhs)
                 },
                 Err(..) => {
                     let lhs = a.to_number()?;
                     let rhs = b.to_angle()?;
-                    Angle::from_calc(lhs * rhs.radians())
+                    Angle::from_calc(lhs * rhs.degrees())
                 },
             },
             CalcNode::Div(ref a, ref b) => {
@@ -493,7 +493,7 @@ impl CalcNode {
                 if rhs == 0. {
                     return Err(());
                 }
-                Angle::from_calc(lhs.radians() / rhs)
+                Angle::from_calc(lhs.degrees() / rhs)
             },
             CalcNode::Number(..) |
             CalcNode::Length(..) |
@@ -529,8 +529,7 @@ impl CalcNode {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<CSSInteger, ParseError<'i>> {
-        Self::parse_number(context, input)
-            .map(|n| n.round() as CSSInteger)
+        Self::parse_number(context, input).map(|n| n.round() as CSSInteger)
     }
 
     /// Convenience parsing function for `<length> | <percentage>`.

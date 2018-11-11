@@ -180,8 +180,6 @@ with modules["XPCOM"]:
     # Used by nsCycleCollectionParticipant
     errors["NS_SUCCESS_INTERRUPTED_TRAVERSE"] = SUCCESS(2)
     # DEPRECATED
-    errors["NS_ERROR_SERVICE_NOT_FOUND"] = SUCCESS(22)
-    # DEPRECATED
     errors["NS_ERROR_SERVICE_IN_USE"] = SUCCESS(23)
 
 # =======================================================================
@@ -337,6 +335,8 @@ with modules["NETWORK"]:
     errors["NS_ERROR_NET_PARTIAL_TRANSFER"] = FAILURE(76)
     # HTTP/2 detected invalid TLS configuration
     errors["NS_ERROR_NET_INADEQUATE_SECURITY"] = FAILURE(82)
+    # HTTP/2 sent a GOAWAY
+    errors["NS_ERROR_NET_HTTP2_SENT_GOAWAY"] = FAILURE(83)
 
     # XXX really need to better rationalize these error codes.  are consumers of
     # necko really expected to know how to discern the meaning of these??
@@ -975,6 +975,8 @@ with modules["DOM_INDEXEDDB"]:
     errors["NS_ERROR_DOM_INDEXEDDB_VERSION_ERR"] = FAILURE(12)
     errors["NS_ERROR_DOM_INDEXEDDB_RECOVERABLE_ERR"] = FAILURE(1001)
     errors["NS_ERROR_DOM_INDEXEDDB_KEY_ERR"] = FAILURE(1002)
+    errors["NS_ERROR_DOM_INDEXEDDB_RENAME_OBJECT_STORE_ERR"] = FAILURE(1003)
+    errors["NS_ERROR_DOM_INDEXEDDB_RENAME_INDEX_ERR"] = FAILURE(1004)
 
 
 # =======================================================================
@@ -1091,6 +1093,7 @@ with modules["URL_CLASSIFIER"]:
     errors["NS_ERROR_UC_PARSER_MISSING_PARAM"] = FAILURE(12)
     errors["NS_ERROR_UC_PARSER_DECODE_FAILURE"] = FAILURE(13)
     errors["NS_ERROR_UC_PARSER_UNKNOWN_THREAT"] = FAILURE(14)
+    errors["NS_ERROR_UC_PARSER_MISSING_VALUE"] = FAILURE(15)
 
 
 # =======================================================================
@@ -1240,10 +1243,12 @@ use super::nsresult;
 
 """)
 
-    output.write("pub const NS_ERROR_MODULE_BASE_OFFSET: u32 = {};\n".format(MODULE_BASE_OFFSET))
+    output.write("pub const NS_ERROR_MODULE_BASE_OFFSET: nsresult = nsresult({});\n"
+                 .format(MODULE_BASE_OFFSET))
 
     for mod, val in modules.iteritems():
-        output.write("pub const NS_ERROR_MODULE_{}: u16 = {};\n".format(mod, val.num))
+        output.write("pub const NS_ERROR_MODULE_{}: nsresult = nsresult({});\n"
+                     .format(mod, val.num))
 
     for error, val in errors.iteritems():
-        output.write("pub const {}: nsresult = 0x{:X};\n".format(error, val))
+        output.write("pub const {}: nsresult = nsresult(0x{:X});\n".format(error, val))

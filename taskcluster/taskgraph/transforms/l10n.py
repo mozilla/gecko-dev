@@ -11,6 +11,7 @@ import copy
 import json
 
 from mozbuild.chunkify import chunkify
+from taskgraph.loader.multi_dep import schema
 from taskgraph.transforms.base import (
     TransformSequence,
 )
@@ -18,7 +19,6 @@ from taskgraph.util.schema import (
     validate_schema,
     optionally_keyed_by,
     resolve_keyed_by,
-    Schema,
 )
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.taskcluster import get_artifact_prefix
@@ -46,7 +46,7 @@ taskref_or_string = Any(
 job_description_schema = {str(k): v for k, v in job_description_schema.schema.iteritems()}
 task_description_schema = {str(k): v for k, v in task_description_schema.schema.iteritems()}
 
-l10n_description_schema = Schema({
+l10n_description_schema = schema.extend({
     # Name for this job, inferred from the dependent job before validation
     Required('name'): basestring,
 
@@ -72,7 +72,7 @@ l10n_description_schema = Schema({
         Optional('config-paths'): [basestring],
 
         # Options to pass to the mozharness script
-        Required('options'): _by_platform([basestring]),
+        Optional('options'): _by_platform([basestring]),
 
         # Action commands to provide to mozharness script
         Required('actions'): _by_platform([basestring]),
@@ -96,9 +96,6 @@ l10n_description_schema = Schema({
     Required('description'): _by_platform(basestring),
 
     Optional('run-on-projects'): job_description_schema['run-on-projects'],
-
-    # dictionary of dependent task objects, keyed by kind.
-    Required('dependent-tasks'): {basestring: object},
 
     # worker-type to utilize
     Required('worker-type'): _by_platform(basestring),
@@ -144,7 +141,7 @@ l10n_description_schema = Schema({
     # Max number locales per chunk
     Optional('locales-per-chunk'): _by_platform(int),
 
-    # Task deps to chain this task with, added in transforms from dependent-task
+    # Task deps to chain this task with, added in transforms from primary-dependency
     # if this is a nightly
     Optional('dependencies'): {basestring: basestring},
 
@@ -197,7 +194,7 @@ def _remove_locales(locales, to_remove=None):
 @transforms.add
 def setup_name(config, jobs):
     for job in jobs:
-        dep = job['dependent-tasks']['build']
+        dep = job['primary-dependency']
         # Set the name to the same as the dep task, without kind name.
         # Label will get set automatically with this kinds name.
         job['name'] = job.get('name',
@@ -208,7 +205,7 @@ def setup_name(config, jobs):
 @transforms.add
 def copy_in_useful_magic(config, jobs):
     for job in jobs:
-        dep = job['dependent-tasks']['build']
+        dep = job['primary-dependency']
         attributes = copy_attributes_from_dependent_job(dep)
         attributes.update(job.get('attributes', {}))
         # build-platform is needed on `job` for by-build-platform

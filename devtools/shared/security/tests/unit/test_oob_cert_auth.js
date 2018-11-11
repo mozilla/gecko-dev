@@ -3,7 +3,7 @@
 
 "use strict";
 
-var cert = require("devtools/shared/security/cert");
+const cert = require("devtools/shared/security/cert");
 
 // Test basic functionality of DevTools client and server OOB_CERT auth (used
 // with WiFi debugging)
@@ -41,11 +41,13 @@ add_task(async function() {
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator: serverAuth,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.encryption = true;
-  listener.authenticator = serverAuth;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
@@ -62,8 +64,8 @@ add_task(async function() {
     encryption: true,
     authenticator: clientAuth,
     cert: {
-      sha256: serverCert.sha256Fingerprint
-    }
+      sha256: serverCert.sha256Fingerprint,
+    },
   });
   ok(transport, "Client transport created");
 
@@ -76,11 +78,7 @@ add_task(async function() {
 
   // Send a message the server will echo back
   const message = "secrets";
-  const reply = await client.request({
-    to: "root",
-    type: "echo",
-    message
-  });
+  const reply = await client.mainRoot.echo({ message });
   equal(reply.message, message, "Encrypted echo matches");
 
   client.removeListener("closed", onUnexpectedClose);
@@ -102,11 +100,13 @@ add_task(async function() {
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator: serverAuth,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.encryption = true;
-  listener.authenticator = serverAuth;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
@@ -115,7 +115,7 @@ add_task(async function() {
   const transport = await DebuggerClient.socketConnect({
     host: "127.0.0.1",
     port: listener.port,
-    encryption: true
+    encryption: true,
     // authenticator: PROMPT is the default
   });
 
@@ -137,7 +137,7 @@ add_task(async function() {
     await client.request({
       to: "root",
       type: "echo",
-      message
+      message,
     });
   } catch (e) {
     ok(true, "Sending a message failed");
@@ -173,15 +173,17 @@ add_task(async function() {
     // Pass to server, skipping prompt for tests
     oobData.resolve({
       k: oob.k + 1,
-      sha256: oob.sha256
+      sha256: oob.sha256,
     });
   };
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator: serverAuth,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.encryption = true;
-  listener.authenticator = serverAuth;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
@@ -192,8 +194,8 @@ add_task(async function() {
       encryption: true,
       authenticator: clientAuth,
       cert: {
-        sha256: serverCert.sha256Fingerprint
-      }
+        sha256: serverCert.sha256Fingerprint,
+      },
     });
   } catch (e) {
     ok(true, "Client failed to connect as expected");
@@ -228,15 +230,17 @@ add_task(async function() {
     // Pass to server, skipping prompt for tests
     oobData.resolve({
       k: oob.k,
-      sha256: oob.sha256 + 1
+      sha256: oob.sha256 + 1,
     });
   };
 
-  const listener = DebuggerServer.createListener();
+  const socketOptions = {
+    authenticator: serverAuth,
+    encryption: true,
+    portOrPath: -1,
+  };
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   ok(listener, "Socket listener created");
-  listener.portOrPath = -1;
-  listener.encryption = true;
-  listener.authenticator = serverAuth;
   await listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
@@ -247,8 +251,8 @@ add_task(async function() {
       encryption: true,
       authenticator: clientAuth,
       cert: {
-        sha256: serverCert.sha256Fingerprint
-      }
+        sha256: serverCert.sha256Fingerprint,
+      },
     });
   } catch (e) {
     ok(true, "Client failed to connect as expected");

@@ -12,7 +12,7 @@
 #include "nscore.h"
 #include "nsIURI.h"
 #include "prprf.h"
-#include "nsIErrorService.h"
+#include "nsErrorService.h"
 #include "netCore.h"
 #include "nsIObserverService.h"
 #include "nsIPrefService.h"
@@ -53,6 +53,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/net/CaptivePortalService.h"
+#include "mozilla/net/NetworkConnectivityService.h"
 #include "mozilla/Unused.h"
 #include "ReferrerPolicy.h"
 #include "nsContentSecurityManager.h"
@@ -215,12 +216,9 @@ nsresult
 nsIOService::Init()
 {
     // XXX hack until xpidl supports error info directly (bug 13423)
-    nsCOMPtr<nsIErrorService> errorService = do_GetService(NS_ERRORSERVICE_CONTRACTID);
-    if (errorService) {
-        errorService->RegisterErrorStringBundle(NS_ERROR_MODULE_NETWORK, NECKO_MSGS_URL);
-    }
-    else
-        NS_WARNING("failed to get error service");
+    nsCOMPtr<nsIErrorService> errorService = nsErrorService::GetOrCreate();
+    MOZ_ALWAYS_TRUE(errorService);
+    errorService->RegisterErrorStringBundle(NS_ERROR_MODULE_NETWORK, NECKO_MSGS_URL);
 
     InitializeCaptivePortalService();
 
@@ -261,6 +259,10 @@ nsIOService::Init()
     InitializeProtocolProxyService();
 
     SetOffline(false);
+
+    RefPtr<NetworkConnectivityService> ncs =
+      NetworkConnectivityService::GetSingleton();
+    ncs->Init();
 
     return NS_OK;
 }
@@ -1655,10 +1657,23 @@ nsIOService::ExtractCharsetFromContentType(const nsACString &aTypeHeader,
 // parse policyString to policy enum value (see ReferrerPolicy.h)
 NS_IMETHODIMP
 nsIOService::ParseAttributePolicyString(const nsAString& policyString,
-                                                uint32_t *outPolicyEnum)
+                                        uint32_t *outPolicyEnum)
 {
   NS_ENSURE_ARG(outPolicyEnum);
   *outPolicyEnum = (uint32_t)AttributeReferrerPolicyFromString(policyString);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsIOService::GetReferrerPolicyString(uint32_t aPolicy,
+                                     nsACString &aResult)
+{
+  if (aPolicy >= ArrayLength(kReferrerPolicyString)) {
+    aResult.AssignLiteral("unknown");
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  aResult.AssignASCII(ReferrerPolicyToString(static_cast<ReferrerPolicy>(aPolicy)));
   return NS_OK;
 }
 
@@ -1770,13 +1785,7 @@ nsIOService::SpeculativeConnectInternal(nsIURI *aURI,
 
     nsCOMPtr<nsIPrincipal> loadingPrincipal = aPrincipal;
 
-    NS_ASSERTION(aPrincipal, "We expect passing a principal here.");
-
-    // If the principal is given, we use this principal directly. Otherwise,
-    // we fallback to use the system principal.
-    if (!aPrincipal) {
-        loadingPrincipal = nsContentUtils::GetSystemPrincipal();
-    }
+    MOZ_ASSERT(aPrincipal, "We expect passing a principal here.");
 
     // dummy channel used to create a TCP connection.
     // we perform security checks on the *real* channel, responsible
@@ -1814,25 +1823,11 @@ nsIOService::SpeculativeConnectInternal(nsIURI *aURI,
 }
 
 NS_IMETHODIMP
-nsIOService::SpeculativeConnect(nsIURI *aURI,
-                                nsIInterfaceRequestor *aCallbacks)
-{
-    return SpeculativeConnectInternal(aURI, nullptr, aCallbacks, false);
-}
-
-NS_IMETHODIMP
 nsIOService::SpeculativeConnect2(nsIURI *aURI,
                                  nsIPrincipal *aPrincipal,
                                  nsIInterfaceRequestor *aCallbacks)
 {
     return SpeculativeConnectInternal(aURI, aPrincipal, aCallbacks, false);
-}
-
-NS_IMETHODIMP
-nsIOService::SpeculativeAnonymousConnect(nsIURI *aURI,
-                                         nsIInterfaceRequestor *aCallbacks)
-{
-    return SpeculativeConnectInternal(aURI, nullptr, aCallbacks, true);
 }
 
 NS_IMETHODIMP

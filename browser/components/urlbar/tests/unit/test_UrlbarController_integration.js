@@ -7,7 +7,12 @@
 
 "use strict";
 
+ChromeUtils.import("resource://gre/modules/PromiseUtils.jsm");
+
 const TEST_URL = "http://example.com";
+const match = new UrlbarMatch(UrlbarUtils.MATCH_TYPE.TAB_SWITCH,
+                              UrlbarUtils.MATCH_SOURCE.TABS,
+                              { url: TEST_URL });
 let controller;
 
 /**
@@ -27,18 +32,24 @@ function assertContextMatches(context, expectedValues) {
 }
 
 add_task(async function setup() {
-  await PlacesTestUtils.addVisits(TEST_URL);
-
-  controller = new UrlbarController();
+  controller = new UrlbarController({
+    browserWindow: {
+      location: {
+        href: AppConstants.BROWSER_CHROME_URL,
+      },
+    },
+  });
 });
 
 add_task(async function test_basic_search() {
   const context = createContext(TEST_URL);
 
+  registerBasicTestProvider([match]);
+
   let startedPromise = promiseControllerNotification(controller, "onQueryStarted");
   let resultsPromise = promiseControllerNotification(controller, "onQueryResults");
 
-  controller.handleQuery(context);
+  controller.startQuery(context);
 
   let params = await startedPromise;
 
@@ -46,10 +57,29 @@ add_task(async function test_basic_search() {
 
   params = await resultsPromise;
 
-  Assert.equal(params[0].results.length, 12,
-    "Should have given the expected amount of results");
+  Assert.deepEqual(params[0].results, [match],
+    "Should have the expected match");
+});
 
-  for (let result of params[0].results) {
-    Assert.ok(result.url.includes(TEST_URL));
-  }
+add_task(async function test_cancel_search() {
+  const context = createContext(TEST_URL);
+
+  let providerCanceledPromise = PromiseUtils.defer();
+  registerBasicTestProvider([match], providerCanceledPromise.resolve);
+
+  let startedPromise = promiseControllerNotification(controller, "onQueryStarted");
+  let cancelPromise = promiseControllerNotification(controller, "onQueryResults");
+
+  await controller.startQuery(context);
+
+  let params = await startedPromise;
+
+  controller.cancelQuery(context);
+
+  Assert.equal(params[0], context);
+
+  info("Should tell the provider the query is canceled");
+  await providerCanceledPromise;
+
+  params = await cancelPromise;
 });

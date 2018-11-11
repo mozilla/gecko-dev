@@ -120,7 +120,6 @@
 #include "vm/TypedArrayObject.h"
 #include "vm/WrapperObject.h"
 #include "wasm/WasmJS.h"
-#include "wasm/WasmModule.h"
 
 #include "vm/Compartment-inl.h"
 #include "vm/ErrorObject-inl.h"
@@ -192,6 +191,8 @@ enum GlobalAppSlot
 {
     GlobalAppSlotModuleLoadHook,           // Shell-specific; load a module graph
     GlobalAppSlotModuleResolveHook,        // HostResolveImportedModule
+    GlobalAppSlotModuleMetadataHook,       // HostPopulateImportMeta
+    GlobalAppSlotModuleDynamicImportHook,  // HostImportModuleDynamically
     GlobalAppSlotCount
 };
 static_assert(GlobalAppSlotCount <= JSCLASS_GLOBAL_APPLICATION_SLOTS,
@@ -488,14 +489,8 @@ OffThreadJob::waitUntilDone(JSContext* cx)
     return token;
 }
 
-using ScriptObjectMap = JS::WeakCache<js::GCHashMap<HeapPtr<JSScript*>,
-                                                    HeapPtr<JSObject*>,
-                                                    MovableCellHasher<HeapPtr<JSScript*>>,
-                                                    SystemAllocPolicy>>;
-
 struct ShellCompartmentPrivate {
     GCPtrObject grayRoot;
-    UniquePtr<ScriptObjectMap> moduleLoaderScriptObjectMap;
 };
 
 struct MOZ_STACK_CLASS EnvironmentPreparer : public js::ScriptEnvironmentPreparer {
@@ -855,6 +850,32 @@ EnvironmentPreparer::invoke(HandleObject global, Closure& closure)
     }
 }
 
+static bool
+RegisterScriptPathWithModuleLoader(JSContext* cx, HandleScript script, const char* filename)
+{
+    // Set the private value associated with a script to a object containing the
+    // script's filename so that the module loader can use it to resolve
+    // relative imports.
+
+    RootedString path(cx, JS_NewStringCopyZ(cx, filename));
+    if (!path) {
+        return false;
+    }
+
+    RootedObject infoObject(cx, JS_NewPlainObject(cx));
+    if (!infoObject) {
+        return false;
+    }
+
+    RootedValue pathValue(cx, StringValue(path));
+    if (!JS_DefineProperty(cx, infoObject, "path", pathValue, 0)) {
+        return false;
+    }
+
+    JS::SetScriptPrivate(script, ObjectValue(*infoObject));
+    return true;
+}
+
 static MOZ_MUST_USE bool
 RunFile(JSContext* cx, const char* filename, FILE* file, bool compileOnly)
 {
@@ -886,6 +907,10 @@ RunFile(JSContext* cx, const char* filename, FILE* file, bool compileOnly)
             return false;
         }
         MOZ_ASSERT(script);
+    }
+
+    if (!RegisterScriptPathWithModuleLoader(cx, script, filename)) {
+        return false;
     }
 
     #ifdef DEBUG
@@ -924,6 +949,10 @@ RunBinAST(JSContext* cx, const char* filename, FILE* file)
         }
     }
 
+    if (!RegisterScriptPathWithModuleLoader(cx, script, filename)) {
+        return false;
+    }
+
     return JS_ExecuteScript(cx, script);
 }
 
@@ -932,7 +961,6 @@ RunBinAST(JSContext* cx, const char* filename, FILE* file)
 static bool
 InitModuleLoader(JSContext* cx)
 {
-
     // Decompress and evaluate the embedded module loader source to initialize
     // the module loader for the current compartment.
 
@@ -2247,6 +2275,17 @@ js::shell::FileAsString(JSContext* cx, JS::HandleString pathnameStr)
 
     AutoCloseFile autoClose(file);
 
+    struct stat st;
+    if (fstat(fileno(file), &st) != 0) {
+        JS_ReportErrorUTF8(cx, "can't stat %s", pathname.get());
+        return nullptr;
+    }
+
+    if ((st.st_mode & S_IFMT) != S_IFREG) {
+        JS_ReportErrorUTF8(cx, "can't read non-regular file %s", pathname.get());
+        return nullptr;
+    }
+
     if (fseek(file, 0, SEEK_END) != 0) {
         pathname = JS_EncodeStringToUTF8(cx, pathnameStr);
         if (!pathname) {
@@ -2256,7 +2295,13 @@ js::shell::FileAsString(JSContext* cx, JS::HandleString pathnameStr)
         return nullptr;
     }
 
-    size_t len = ftell(file);
+    long endPos = ftell(file);
+    if (endPos < 0) {
+        JS_ReportErrorUTF8(cx, "can't read length of %s", pathname.get());
+        return nullptr;
+    }
+
+    size_t len = endPos;
     if (fseek(file, 0, SEEK_SET) != 0) {
         pathname = JS_EncodeStringToUTF8(cx, pathnameStr);
         if (!pathname) {
@@ -2268,6 +2313,7 @@ js::shell::FileAsString(JSContext* cx, JS::HandleString pathnameStr)
 
     UniqueChars buf(js_pod_malloc<char>(len + 1));
     if (!buf) {
+        JS_ReportErrorUTF8(cx, "out of memory reading %s", pathname.get());
         return nullptr;
     }
 
@@ -3073,10 +3119,9 @@ TryNotes(JSContext* cx, HandleScript script, Sprinter* sp)
     }
 
     for (const JSTryNote& tn : script->trynotes()) {
-        uint32_t startOff = script->pcToOffset(script->main()) + tn.start;
         if (!sp->jsprintf(" %-16s %6u %8u %8u\n",
                           TryNoteName(static_cast<JSTryNoteKind>(tn.kind)),
-                          tn.stackDepth, startOff, startOff + tn.length))
+                          tn.stackDepth, tn.start, tn.start + tn.length))
         {
             return false;
         }
@@ -3281,7 +3326,7 @@ DisassembleToSprinter(JSContext* cx, unsigned argc, Value* vp, Sprinter* sprinte
             RootedScript script(cx);
             RootedValue value(cx, p.argv[i]);
             if (value.isObject() && value.toObject().is<ModuleObject>()) {
-                script = value.toObject().as<ModuleObject>().script();
+                script = value.toObject().as<ModuleObject>().maybeScript();
             } else {
                 script = TestingFunctionArgumentToScript(cx, value, fun.address());
             }
@@ -3826,7 +3871,7 @@ EvalInContext(JSContext* cx, unsigned argc, Value* vp)
 static bool
 EnsureGeckoProfilingStackInstalled(JSContext* cx, ShellContext* sc)
 {
-    if (cx->geckoProfiler().installed()) {
+    if (cx->geckoProfiler().infraInstalled()) {
         MOZ_ASSERT(sc->geckoProfilingStack);
         return true;
     }
@@ -3842,13 +3887,6 @@ EnsureGeckoProfilingStackInstalled(JSContext* cx, ShellContext* sc)
     return true;
 }
 
-static void
-DestroyShellCompartmentPrivate(JSFreeOp* fop, JS::Compartment* compartment)
-{
-    auto priv = static_cast<ShellCompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
-    js_delete(priv);
-}
-
 struct WorkerInput
 {
     JSRuntime* parentRuntime;
@@ -3861,6 +3899,13 @@ struct WorkerInput
 
     ~WorkerInput() = default;
 };
+
+static void
+DestroyShellCompartmentPrivate(JSFreeOp* fop, JS::Compartment* compartment)
+{
+    auto priv = static_cast<ShellCompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
+    js_delete(priv);
+}
 
 static void SetWorkerContextOptions(JSContext* cx);
 static bool ShellBuildId(JS::BuildIdCharVector* buildId);
@@ -4406,8 +4451,9 @@ SetJitCompilerOption(JSContext* cx, unsigned argc, Value* vp)
     }
 
     JSFlatString* strArg = JS_FlattenString(cx, args[0].toString());
-    if (!strArg)
+    if (!strArg) {
         return false;
+    }
 
 #define JIT_COMPILER_MATCH(key, string)                 \
     else if (JS_FlatStringEqualsAscii(strArg, string))  \
@@ -4424,8 +4470,9 @@ SetJitCompilerOption(JSContext* cx, unsigned argc, Value* vp)
     }
 
     int32_t number = args[1].toInt32();
-    if (number < 0)
+    if (number < 0) {
         number = -1;
+    }
 
     // Throw if disabling the JITs and there's JIT code on the stack, to avoid
     // assertion failures.
@@ -4620,83 +4667,6 @@ EnsureShellCompartmentPrivate(JSContext* cx)
     return priv;
 }
 
-static ScriptObjectMap*
-EnsureModuleLoaderScriptObjectMap(JSContext* cx)
-{
-    auto priv = EnsureShellCompartmentPrivate(cx);
-    if (!priv) {
-        return nullptr;
-    }
-
-    if (priv->moduleLoaderScriptObjectMap) {
-        return priv->moduleLoaderScriptObjectMap.get();
-    }
-
-    JS::Zone* zone = cx->zone();
-    auto* map = cx->new_<ScriptObjectMap>(zone);
-    if (!map) {
-        return nullptr;
-    }
-
-    priv->moduleLoaderScriptObjectMap.reset(map);
-    return map;
-}
-
-// An object used to represent a JSScript in the shell's self-hosted module
-// loader since we can't pass those directly.
-class ShellScriptObject : public NativeObject
-{
-  public:
-    static const Class class_;
-
-    enum {
-        ScriptSlot = 0
-    };
-
-    static JSObject* get(JSContext* cx, HandleScript script);
-
-    JSScript* script() const;
-};
-
-const Class ShellScriptObject::class_ = {
-    "ShellScriptObject",
-    JSCLASS_HAS_RESERVED_SLOTS(1)
-};
-
-/* static */ JSObject*
-ShellScriptObject::get(JSContext* cx, HandleScript script)
-{
-    auto map = EnsureModuleLoaderScriptObjectMap(cx);
-    if (!map) {
-        return nullptr;
-    }
-
-    auto ptr = map->lookup(script);
-    if (ptr) {
-        return ptr->value();
-    }
-
-    JSObject* obj = NewObjectWithGivenProto(cx, &class_, nullptr);
-    if (!obj) {
-        return nullptr;
-    }
-
-    obj->as<NativeObject>().setReservedSlot(ScriptSlot, PrivateGCThingValue(script));
-
-    if (!map->put(script, obj)) {
-        ReportOutOfMemory(cx);
-        return nullptr;
-    }
-
-    return obj;
-}
-
-JSScript*
-ShellScriptObject::script() const
-{
-    return getReservedSlot(ScriptSlot).toGCThing()->as<JSScript>();
-}
-
 static bool
 ParseModule(JSContext* cx, unsigned argc, Value* vp)
 {
@@ -4747,76 +4717,13 @@ ParseModule(JSContext* cx, unsigned argc, Value* vp)
     JS::SourceBufferHolder srcBuf(chars, scriptContents->length(),
                                   JS::SourceBufferHolder::NoOwnership);
 
-    RootedScript script(cx, frontend::CompileModule(cx, options, srcBuf));
-    if (!script) {
+    RootedObject module(cx, frontend::CompileModule(cx, options, srcBuf));
+    if (!module) {
         return false;
     }
 
-    JSObject* obj = ShellScriptObject::get(cx, script);
-    if (!obj) {
-        return false;
-    }
-
-    args.rval().setObject(*obj);
+    args.rval().setObject(*module);
     return true;
-}
-
-static bool
-ReportArgumentTypeError(JSContext* cx, HandleValue value, const char* expected)
-{
-    const char* typeName = InformalValueTypeName(value);
-    JS_ReportErrorASCII(cx, "Expected %s, got %s", expected, typeName);
-    return false;
-}
-
-static bool
-InstantiateModule(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
-                                  "instantiateModule", "0", "s");
-        return false;
-    }
-
-    if (!args[0].isObject() || !args[0].toObject().is<ShellScriptObject>()) {
-        return ReportArgumentTypeError(cx, args[0], "ShellScriptObject");
-    }
-
-    JSScript* script = args[0].toObject().as<ShellScriptObject>().script();
-    RootedModuleObject module(cx, script->module());
-    if (!module) {
-        JS_ReportErrorASCII(cx, "Expected a module script");
-        return false;
-    }
-
-    args.rval().setUndefined();
-    return ModuleObject::Instantiate(cx, module);
-}
-
-static bool
-EvaluateModule(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
-                                  "evaluateModule", "0", "s");
-        return false;
-    }
-
-    if (!args[0].isObject() || !args[0].toObject().is<ShellScriptObject>()) {
-        return ReportArgumentTypeError(cx, args[0], "ShellScriptObject");
-    }
-
-    JSScript* script = args[0].toObject().as<ShellScriptObject>().script();
-    RootedModuleObject module(cx, script->module());
-    if (!module) {
-        JS_ReportErrorASCII(cx, "Expected a module script");
-        return false;
-    }
-
-    args.rval().setUndefined();
-    return ModuleObject::Evaluate(cx, module);
 }
 
 static bool
@@ -4865,11 +4772,9 @@ SetModuleResolveHook(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
-static JSScript*
-CallModuleResolveHook(JSContext* cx, HandleScript script, HandleString specifier)
+static JSObject*
+ShellModuleResolveHook(JSContext* cx, HandleValue referencingPrivate, HandleString specifier)
 {
-    MOZ_ASSERT(script->module());
-
     Handle<GlobalObject*> global = cx->global();
     RootedValue hookValue(cx, global->getReservedSlot(GlobalAppSlotModuleResolveHook));
     if (hookValue.isUndefined()) {
@@ -4878,13 +4783,8 @@ CallModuleResolveHook(JSContext* cx, HandleScript script, HandleString specifier
     }
     MOZ_ASSERT(hookValue.toObject().is<JSFunction>());
 
-    JSObject* obj = ShellScriptObject::get(cx, script);
-    if (!obj) {
-        return nullptr;
-    }
-
     JS::AutoValueArray<2> args(cx);
-    args[0].setObject(*obj);
+    args[0].set(referencingPrivate);
     args[1].setString(specifier);
 
     RootedValue result(cx);
@@ -4892,31 +4792,200 @@ CallModuleResolveHook(JSContext* cx, HandleScript script, HandleString specifier
         return nullptr;
     }
 
-    if (!result.isObject() || !result.toObject().is<ShellScriptObject>()) {
-         JS_ReportErrorASCII(cx, "Module resolve hook did not return script object");
+    if (!result.isObject() || !result.toObject().is<ModuleObject>()) {
+         JS_ReportErrorASCII(cx, "Module resolve hook did not return Module object");
          return nullptr;
     }
 
-    return result.toObject().as<ShellScriptObject>().script();
+    return &result.toObject();
 }
 
 static bool
-ShellModuleMetadataHook(JSContext* cx, HandleScript script, HandleObject metaObject)
+SetModuleMetadataHook(JSContext* cx, unsigned argc, Value* vp)
 {
-    // For the shell, just use the script's filename as the base URL.
-    const char* filename = script->scriptSource()->filename();
-    MOZ_ASSERT(filename);
-
-    RootedString url(cx, NewStringCopyZ<CanGC>(cx, filename));
-    if (!url) {
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 1) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "setModuleMetadataHook", "0", "s");
         return false;
     }
 
-    if (!JS_DefineProperty(cx, metaObject, "url", url, JSPROP_ENUMERATE)) {
+    if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+        const char* typeName = InformalValueTypeName(args[0]);
+        JS_ReportErrorASCII(cx, "expected hook function, got %s", typeName);
         return false;
     }
 
+    Handle<GlobalObject*> global = cx->global();
+    global->setReservedSlot(GlobalAppSlotModuleMetadataHook, args[0]);
+
+    args.rval().setUndefined();
     return true;
+}
+
+static bool
+CallModuleMetadataHook(JSContext* cx, HandleValue modulePrivate, HandleObject metaObject)
+{
+    Handle<GlobalObject*> global = cx->global();
+    RootedValue hookValue(cx, global->getReservedSlot(GlobalAppSlotModuleMetadataHook));
+    if (hookValue.isUndefined()) {
+        JS_ReportErrorASCII(cx, "Module metadata hook not set");
+        return false;
+    }
+    MOZ_ASSERT(hookValue.toObject().is<JSFunction>());
+
+    JS::AutoValueArray<2> args(cx);
+    args[0].set(modulePrivate);
+    args[1].setObject(*metaObject);
+
+    RootedValue dummy(cx);
+    return JS_CallFunctionValue(cx, nullptr, hookValue, args, &dummy);
+}
+
+static bool
+ReportArgumentTypeError(JSContext* cx, HandleValue value, const char* expected)
+{
+    const char* typeName = InformalValueTypeName(value);
+    JS_ReportErrorASCII(cx, "Expected %s, got %s", expected, typeName);
+    return false;
+}
+
+static bool
+ShellSetModulePrivate(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() != 2) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "setModulePrivate", "0", "s");
+        return false;
+    }
+
+    if (!args[0].isObject() || !args[0].toObject().is<ModuleObject>()) {
+        return ReportArgumentTypeError(cx, args[0], "module object");
+    }
+
+    JS::SetModulePrivate(&args[0].toObject(), args[1]);
+    args.rval().setUndefined();
+    return true;
+}
+
+static bool
+ShellGetModulePrivate(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() != 1) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "getModulePrivate", "0", "s");
+        return false;
+    }
+
+    if (!args[0].isObject() || !args[0].toObject().is<ModuleObject>()) {
+        return ReportArgumentTypeError(cx, args[0], "module object");
+    }
+
+    args.rval().set(JS::GetModulePrivate(&args[0].toObject()));
+    return true;
+}
+
+static bool
+SetModuleDynamicImportHook(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 1) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "setModuleDynamicImportHook", "0", "s");
+        return false;
+    }
+
+    if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+        const char* typeName = InformalValueTypeName(args[0]);
+        JS_ReportErrorASCII(cx, "expected hook function, got %s", typeName);
+        return false;
+    }
+
+    Handle<GlobalObject*> global = cx->global();
+    global->setReservedSlot(GlobalAppSlotModuleDynamicImportHook, args[0]);
+
+    args.rval().setUndefined();
+    return true;
+}
+
+static bool
+FinishDynamicModuleImport(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 3) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "finishDynamicModuleImport", "0", "s");
+        return false;
+    }
+
+    if (!args[1].isString()) {
+        return ReportArgumentTypeError(cx, args[1], "String");
+    }
+
+    if (!args[2].isObject() || !args[2].toObject().is<PromiseObject>()) {
+        return ReportArgumentTypeError(cx, args[2], "PromiseObject");
+    }
+
+    RootedString specifier(cx, args[1].toString());
+    Rooted<PromiseObject*> promise(cx, &args[2].toObject().as<PromiseObject>());
+
+    return js::FinishDynamicModuleImport(cx, args[0], specifier, promise);
+}
+
+static bool
+AbortDynamicModuleImport(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 4) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
+                                  "abortDynamicModuleImport", "0", "s");
+        return false;
+    }
+
+    if (!args[1].isString()) {
+        return ReportArgumentTypeError(cx, args[1], "String");
+    }
+
+    if (!args[2].isObject() || !args[2].toObject().is<PromiseObject>()) {
+        return ReportArgumentTypeError(cx, args[2], "PromiseObject");
+    }
+
+    if (!args[3].isObject() || !args[3].toObject().is<ErrorObject>()) {
+        return ReportArgumentTypeError(cx, args[3], "ErrorObject");
+    }
+
+    RootedString specifier(cx, args[1].toString());
+    Rooted<PromiseObject*> promise(cx, &args[2].toObject().as<PromiseObject>());
+    Rooted<ErrorObject*> error(cx, &args[3].toObject().as<ErrorObject>());
+
+    Rooted<Value> value(cx, ObjectValue(*error));
+    cx->setPendingException(value);
+    return js::FinishDynamicModuleImport(cx, args[0], specifier, promise);
+}
+
+static bool
+ShellModuleDynamicImportHook(JSContext* cx, HandleValue referencingPrivate, HandleString specifier,
+                             HandleObject promise)
+{
+    Handle<GlobalObject*> global = cx->global();
+    RootedValue hookValue(cx, global->getReservedSlot(GlobalAppSlotModuleDynamicImportHook));
+    if (hookValue.isUndefined()) {
+        JS_ReportErrorASCII(cx, "Module resolve hook not set");
+        return false;
+    }
+    MOZ_ASSERT(hookValue.toObject().is<JSFunction>());
+
+    JS::AutoValueArray<3> args(cx);
+    args[0].set(referencingPrivate);
+    args[1].setString(specifier);
+    args[2].setObject(*promise);
+
+    RootedValue result(cx);
+    return JS_CallFunctionValue(cx, nullptr, hookValue, args, &result);
 }
 
 static bool
@@ -4938,133 +5007,6 @@ GetModuleLoadPath(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
-static ModuleEnvironmentObject*
-GetModuleEnvironment(JSContext* cx, HandleValue scriptValue)
-{
-    JSScript* script = scriptValue.toObject().as<ShellScriptObject>().script();
-    RootedModuleObject module(cx, script->module());
-    if (!module) {
-        JS_ReportErrorASCII(cx, "Expecting a module script");
-        return nullptr;
-    }
-
-    if (module->hadEvaluationError()) {
-        JS_ReportErrorASCII(cx, "Module environment unavailable");
-        return nullptr;
-    }
-
-    // Use the initial environment so that tests can check bindings exist before
-    // they have been instantiated.
-    RootedModuleEnvironmentObject env(cx, &module->initialEnvironment());
-    MOZ_ASSERT(env);
-    return env;
-}
-
-static bool
-GetModuleEnvironmentNames(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1) {
-        JS_ReportErrorASCII(cx, "Wrong number of arguments");
-        return false;
-    }
-
-    if (!args[0].isObject() || !args[0].toObject().is<ShellScriptObject>()) {
-        JS_ReportErrorASCII(cx, "First argument should be a ShellScriptObject");
-        return false;
-    }
-
-    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, args[0]));
-    if (!env) {
-        return false;
-    }
-
-    Rooted<IdVector> ids(cx, IdVector(cx));
-    if (!JS_Enumerate(cx, env, &ids)) {
-        return false;
-    }
-
-    uint32_t length = ids.length();
-    RootedArrayObject array(cx, NewDenseFullyAllocatedArray(cx, length));
-    if (!array) {
-        return false;
-    }
-
-    array->setDenseInitializedLength(length);
-    for (uint32_t i = 0; i < length; i++) {
-        array->initDenseElement(i, StringValue(JSID_TO_STRING(ids[i])));
-    }
-
-    args.rval().setObject(*array);
-    return true;
-}
-
-static bool
-GetModuleEnvironmentValue(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 2) {
-        JS_ReportErrorASCII(cx, "Wrong number of arguments");
-        return false;
-    }
-
-    if (!args[0].isObject() || !args[0].toObject().is<ShellScriptObject>()) {
-        JS_ReportErrorASCII(cx, "First argument should be a ShellScriptObject");
-        return false;
-    }
-
-    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, args[0]));
-    if (!env) {
-        return false;
-    }
-
-    RootedString name(cx, JS::ToString(cx, args[1]));
-    if (!name) {
-        return false;
-    }
-
-    RootedId id(cx);
-    if (!JS_StringToId(cx, name, &id)) {
-        return false;
-    }
-
-    if (!GetProperty(cx, env, env, id, args.rval())) {
-        return false;
-    }
-
-    if (args.rval().isMagic(JS_UNINITIALIZED_LEXICAL)) {
-        ReportRuntimeLexicalError(cx, JSMSG_UNINITIALIZED_LEXICAL, id);
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-GetModuleObject(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1) {
-        JS_ReportErrorASCII(cx, "Wrong number of arguments");
-        return false;
-    }
-
-    if (!args[0].isObject() || !args[0].toObject().is<ShellScriptObject>()) {
-        JS_ReportErrorASCII(cx, "First argument should be a ShellScriptObject");
-        return false;
-    }
-
-    JSScript* script = args[0].toObject().as<ShellScriptObject>().script();
-    RootedModuleObject module(cx, script->module());
-    if (!module) {
-        JS_ReportErrorASCII(cx, "Expecting a module script");
-        return false;
-    }
-
-    args.rval().setObject(*module);
-    return true;
-}
-
 #if defined(JS_BUILD_BINAST)
 
 using js::frontend::BinASTParser;
@@ -5077,17 +5019,19 @@ template <typename Tok>
 static bool
 ParseBinASTData(JSContext* cx, uint8_t* buf_data, uint32_t buf_length,
                 GlobalSharedContext* globalsc, UsedNameTracker& usedNames,
-                const JS::ReadOnlyCompileOptions& options)
+                const JS::ReadOnlyCompileOptions& options,
+                HandleScriptSourceObject sourceObj)
 {
     MOZ_ASSERT(globalsc);
 
     // Note: We need to keep `reader` alive as long as we can use `parsed`.
-    BinASTParser<Tok> reader(cx, cx->tempLifoAlloc(), usedNames, options);
+    BinASTParser<Tok> reader(cx, cx->tempLifoAlloc(), usedNames, options, sourceObj);
 
     JS::Result<ParseNode*> parsed = reader.parse(globalsc, buf_data, buf_length);
 
-    if (parsed.isErr())
+    if (parsed.isErr()) {
         return false;
+    }
 
 #ifdef DEBUG
     Fprinter out(stderr);
@@ -5183,12 +5127,17 @@ BinParse(JSContext* cx, unsigned argc, Value* vp)
 
     UsedNameTracker usedNames(cx);
 
+    RootedScriptSourceObject sourceObj(cx, frontend::CreateScriptSourceObject(cx, options, Nothing()));
+    if (!sourceObj) {
+        return false;
+    }
+
     Directives directives(false);
     GlobalSharedContext globalsc(cx, ScopeKind::Global, directives, false);
 
     auto parseFunc = useMultipart ? ParseBinASTData<frontend::BinTokenReaderMultipart>
                                   : ParseBinASTData<frontend::BinTokenReaderTester>;
-    if (!parseFunc(cx, buf_data, buf_length, &globalsc, usedNames, options)) {
+    if (!parseFunc(cx, buf_data, buf_length, &globalsc, usedNames, options, sourceObj)) {
         return false;
     }
 
@@ -5217,6 +5166,7 @@ Parse(JSContext* cx, unsigned argc, Value* vp)
     }
 
     bool allowSyntaxParser = true;
+    frontend::ParseGoal goal = frontend::ParseGoal::Script;
 
     if (args.length() >= 2) {
         if (!args[1].isObject()) {
@@ -5238,6 +5188,21 @@ Parse(JSContext* cx, unsigned argc, Value* vp)
             JS_ReportErrorASCII(cx, "option `allowSyntaxParser` should be a boolean, got %s", typeName);
             return false;
         }
+
+        RootedValue optionModule(cx);
+        if (!JS_GetProperty(cx, objOptions, "module", &optionModule)) {
+            return false;
+        }
+
+        if (optionModule.isBoolean()) {
+            if (optionModule.toBoolean()) {
+                goal = frontend::ParseGoal::Module;
+            }
+        } else if (!optionModule.isUndefined()) {
+            const char* typeName = InformalValueTypeName(optionModule);
+            JS_ReportErrorASCII(cx, "option `module` should be a boolean, got %s", typeName);
+            return false;
+        }
     }
 
     JSFlatString* scriptContents = args[0].toString()->ensureFlat(cx);
@@ -5257,6 +5222,11 @@ Parse(JSContext* cx, unsigned argc, Value* vp)
     options.setIntroductionType("js shell parse")
            .setFileAndLine("<string>", 1)
            .setAllowSyntaxParser(allowSyntaxParser);
+    if (goal == frontend::ParseGoal::Module) {
+        // See frontend::CompileModule.
+        options.maybeMakeStrictMode(true);
+        options.allowHTMLComments = false;
+    }
 
     UsedNameTracker usedNames(cx);
 
@@ -5268,12 +5238,29 @@ Parse(JSContext* cx, unsigned argc, Value* vp)
 
     Parser<FullParseHandler, char16_t> parser(cx, cx->tempLifoAlloc(), options, chars, length,
                                               /* foldConstants = */ false, usedNames, nullptr,
-                                              nullptr, sourceObject, ParseGoal::Script);
+                                              nullptr, sourceObject, goal);
     if (!parser.checkOptions()) {
         return false;
     }
 
-    ParseNode* pn = parser.parse(); // Deallocated once `parser` goes out of scope.
+    ParseNode* pn; // Deallocated once `parser` goes out of scope.
+    if (goal == frontend::ParseGoal::Script) {
+        pn = parser.parse();
+    } else {
+        if (!GlobalObject::ensureModulePrototypesCreated(cx, cx->global())) {
+            return false;
+        }
+
+        Rooted<ModuleObject*> module(cx, ModuleObject::create(cx));
+        if (!module) {
+            return false;
+        }
+
+        ModuleBuilder builder(cx, module, parser.anyChars);
+
+        ModuleSharedContext modulesc(cx, module, nullptr, builder);
+        pn = parser.moduleBody(&modulesc);
+    }
     if (!pn) {
         return false;
     }
@@ -5566,17 +5553,12 @@ FinishOffThreadModule(JSContext* cx, unsigned argc, Value* vp)
 
     DeleteOffThreadJob(cx, job);
 
-    RootedScript script(cx, JS::FinishOffThreadModule(cx, token));
-    if (!script) {
+    RootedObject module(cx, JS::FinishOffThreadModule(cx, token));
+    if (!module) {
         return false;
     }
 
-    JSObject* obj = ShellScriptObject::get(cx, script);
-    if (!obj) {
-        return false;
-    }
-
-    args.rval().setObject(*obj);
+    args.rval().setObject(*module);
     return true;
 }
 
@@ -5689,29 +5671,6 @@ runOffThreadDecodedScript(JSContext* cx, unsigned argc, Value* vp)
 
     return JS_ExecuteScript(cx, script, args.rval());
 }
-
-struct MOZ_RAII FreeOnReturn
-{
-    JSContext* cx;
-    const char* ptr;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-    explicit FreeOnReturn(JSContext* cx, const char* ptr = nullptr
-                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : cx(cx), ptr(ptr)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    void init(const char* ptr) {
-        MOZ_ASSERT(!this->ptr);
-        this->ptr = ptr;
-    }
-
-    ~FreeOnReturn() {
-        JS_free(cx, (void*)ptr);
-    }
-};
 
 static int sArgc;
 static char** sArgv;
@@ -5899,6 +5858,313 @@ NestedShell(JSContext* cx, unsigned argc, Value* vp)
     }
 
     args.rval().setUndefined();
+    return true;
+}
+
+static bool
+ReadAll(int fd, wasm::Bytes* bytes)
+{
+    size_t lastLength = bytes->length();
+    while (true) {
+        static const int ChunkSize = 64 * 1024;
+        if (!bytes->growBy(ChunkSize)) {
+            return false;
+        }
+
+        intptr_t readCount;
+        while (true) {
+            readCount = read(fd, bytes->begin() + lastLength, ChunkSize);
+            if (readCount >= 0) {
+                break;
+            }
+            if (errno != EINTR) {
+                return false;
+            }
+        }
+
+        if (readCount < ChunkSize) {
+            bytes->shrinkTo(lastLength + readCount);
+            if (readCount == 0) {
+                return true;
+            }
+        }
+
+        lastLength = bytes->length();
+    }
+}
+
+static bool
+WriteAll(int fd, const uint8_t* bytes, size_t length)
+{
+    while (length > 0) {
+        int written = write(fd, bytes, length);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return false;
+        }
+        MOZ_ASSERT(unsigned(written) <= length);
+        length -= written;
+        bytes += written;
+    }
+
+    return true;
+}
+
+class AutoPipe
+{
+    int fds_[2];
+
+  public:
+    AutoPipe()
+    {
+        fds_[0] = -1;
+        fds_[1] = -1;
+    }
+
+    ~AutoPipe() {
+        if (fds_[0] != -1) {
+            close(fds_[0]);
+        }
+        if (fds_[1] != -1) {
+            close(fds_[1]);
+        }
+    }
+
+    bool init() {
+#ifdef XP_WIN
+        return !_pipe(fds_, 4096, O_BINARY);
+#else
+        return !pipe(fds_);
+#endif
+    }
+
+    int reader() const {
+        MOZ_ASSERT(fds_[0] != -1);
+        return fds_[0];
+    }
+
+    int writer() const {
+        MOZ_ASSERT(fds_[1] != -1);
+        return fds_[1];
+    }
+
+    void closeReader() {
+        MOZ_ASSERT(fds_[0] != -1);
+        close(fds_[0]);
+        fds_[0] = -1;
+    }
+
+    void closeWriter() {
+        MOZ_ASSERT(fds_[1] != -1);
+        close(fds_[1]);
+        fds_[1] = -1;
+    }
+};
+
+static bool
+CompileAndSerializeInSeparateProcess(JSContext* cx, const uint8_t* bytecode, size_t bytecodeLength,
+                                     wasm::Bytes* serialized)
+{
+    AutoPipe stdIn, stdOut;
+    if (!stdIn.init() || !stdOut.init()) {
+        return false;
+    }
+
+    AutoCStringVector argv(cx);
+
+    UniqueChars argv0 = DuplicateString(cx, sArgv[0]);
+    if (!argv0 || !argv.append(std::move(argv0))) {
+        return false;
+    }
+
+    UniqueChars argv1 = DuplicateString("--wasm-compile-and-serialize");
+    if (!argv1 || !argv.append(std::move(argv1))) {
+        return false;
+    }
+
+#ifdef XP_WIN
+    // The spawned process will have all the stdIn/stdOut file handles open, but
+    // without the power of fork, we need some other way to communicate the
+    // integer fd values so we encode them in argv and WasmCompileAndSerialize()
+    // has a matching #ifdef XP_WIN to parse them out. Communicate both ends of
+    // both pipes so the child process can closed the unused ends.
+
+    UniqueChars argv2 = JS_smprintf("%d", stdIn.reader());
+    if (!argv2 || !argv.append(std::move(argv2))) {
+        return false;
+    }
+
+    UniqueChars argv3 = JS_smprintf("%d", stdIn.writer());
+    if (!argv3 || !argv.append(std::move(argv3))) {
+        return false;
+    }
+
+    UniqueChars argv4 = JS_smprintf("%d", stdOut.reader());
+    if (!argv4 || !argv.append(std::move(argv4))) {
+        return false;
+    }
+
+    UniqueChars argv5 = JS_smprintf("%d", stdOut.writer());
+    if (!argv5 || !argv.append(std::move(argv5))) {
+        return false;
+    }
+#endif
+
+    for (unsigned i = 0; i < sPropagatedFlags.length(); i++) {
+        UniqueChars flags = DuplicateString(cx, sPropagatedFlags[i]);
+        if (!flags || !argv.append(std::move(flags))) {
+            return false;
+        }
+    }
+
+    if (!argv.append(nullptr)) {
+        return false;
+    }
+
+#ifdef XP_WIN
+    if (!EscapeForShell(cx, argv)) {
+        return false;
+    }
+
+    int childPid = _spawnv(P_NOWAIT, sArgv[0], argv.get());
+    if (childPid == -1) {
+        return false;
+    }
+#else
+    pid_t childPid = fork();
+    switch (childPid) {
+      case -1:
+        return false;
+      case 0:
+        // In the child process. Redirect stdin/stdout to the respective ends of
+        // the pipes. Closing stdIn.writer() is necessary for stdin to hit EOF.
+        // This case statement must not return before exec() takes over. Rather,
+        // exit(-1) is used to return failure to the parent process.
+        if (dup2(stdIn.reader(), STDIN_FILENO) == -1) {
+            exit(-1);
+        }
+        if (dup2(stdOut.writer(), STDOUT_FILENO) == -1) {
+            exit(-1);
+        }
+        close(stdIn.reader());
+        close(stdIn.writer());
+        close(stdOut.reader());
+        close(stdOut.writer());
+        execv(sArgv[0], argv.get());
+        exit(-1);
+    }
+#endif
+
+    // In the parent process. Closing stdOut.writer() is necessary for
+    // stdOut.reader() below to hit EOF.
+    stdIn.closeReader();
+    stdOut.closeWriter();
+
+    if (!WriteAll(stdIn.writer(), bytecode, bytecodeLength)) {
+        return false;
+    }
+
+    stdIn.closeWriter();
+
+    if (!ReadAll(stdOut.reader(), serialized)) {
+        return false;
+    }
+
+    stdOut.closeReader();
+
+    int status;
+#ifdef XP_WIN
+    if (_cwait(&status, childPid, WAIT_CHILD) == -1) {
+        return false;
+    }
+#else
+    while (true) {
+        if (waitpid(childPid, &status, 0) >= 0) {
+            break;
+        }
+        if (errno != EINTR) {
+            return false;
+        }
+    }
+#endif
+
+    return status == 0;
+}
+
+static bool
+WasmCompileAndSerialize(JSContext* cx)
+{
+    MOZ_ASSERT(wasm::HasCachingSupport(cx));
+
+#ifdef XP_WIN
+    // See CompileAndSerializeInSeparateProcess for why we've had to smuggle
+    // these fd values through argv. Closing the writing ends is necessary for
+    // the reading ends to hit EOF.
+    MOZ_RELEASE_ASSERT(sArgc >= 6);
+    MOZ_ASSERT(!strcmp(sArgv[1], "--wasm-compile-and-serialize"));
+    int stdIn = atoi(sArgv[2]);   // stdIn.reader()
+    close(atoi(sArgv[3]));        // stdIn.writer()
+    close(atoi(sArgv[4]));        // stdOut.reader()
+    int stdOut = atoi(sArgv[5]);  // stdOut.writer()
+#else
+    int stdIn = STDIN_FILENO;
+    int stdOut = STDOUT_FILENO;
+#endif
+
+    wasm::MutableBytes bytecode = js_new<wasm::ShareableBytes>();
+    if (!ReadAll(stdIn, &bytecode->bytes)) {
+        return false;
+    }
+
+    wasm::Bytes serialized;
+    if (!wasm::CompileAndSerialize(*bytecode, &serialized)) {
+        return false;
+    }
+
+    if (!WriteAll(stdOut, serialized.begin(), serialized.length())) {
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+WasmCompileInSeparateProcess(JSContext* cx, unsigned argc, Value* vp)
+{
+    if (!wasm::HasCachingSupport(cx)) {
+        JS_ReportErrorASCII(cx, "WebAssembly caching not supported");
+        return false;
+    }
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args.requireAtLeast(cx, "wasmCompileInSeparateProcess", 1)) {
+        return false;
+    }
+
+    SharedMem<uint8_t*> bytecode;
+    size_t numBytes;
+    if (!args[0].isObject() || !IsBufferSource(&args[0].toObject(), &bytecode, &numBytes)) {
+        RootedObject callee(cx, &args.callee());
+        ReportUsageErrorASCII(cx, callee, "Argument must be a buffer source");
+        return false;
+    }
+
+    wasm::Bytes serialized;
+    if (!CompileAndSerializeInSeparateProcess(cx, bytecode.unwrap(), numBytes, &serialized)) {
+        if (!cx->isExceptionPending()) {
+            JS_ReportErrorASCII(cx, "creating and executing child process");
+        }
+        return false;
+    }
+
+    RootedObject module(cx);
+    if (!wasm::DeserializeModule(cx, serialized, &module)) {
+        return false;
+    }
+
+    args.rval().setObject(*module);
     return true;
 }
 
@@ -6586,7 +6852,7 @@ DisableGeckoProfiling(JSContext* cx, unsigned argc, Value* vp)
 //
 // For the SharedArrayBuffer and WasmMemoryObject we transmit the underlying
 // SharedArrayRawBuffer ("SARB"). For the WasmModuleObject we transmit the
-// underlying wasm::Module.  The transmitted types are refcounted.  When they
+// underlying JS::WasmModule.  The transmitted types are refcounted.  When they
 // are in the mailbox their reference counts are at least 1, accounting for the
 // reference from the mailbox.
 //
@@ -6606,7 +6872,8 @@ enum class MailboxTag {
     Empty,
     SharedArrayBuffer,
     WasmMemory,
-    WasmModule
+    WasmModule,
+    Number,
 };
 
 struct SharedObjectMailbox
@@ -6616,7 +6883,8 @@ struct SharedObjectMailbox
             SharedArrayRawBuffer* buffer;
             uint32_t              length;
         } sarb;
-        const wasm::Module*       module;
+        JS::WasmModule*           module;
+        double                    number;
     };
 
     SharedObjectMailbox() : tag(MailboxTag::Empty) {}
@@ -6646,6 +6914,7 @@ DestructSharedObjectMailbox()
         auto mbx = sharedObjectMailbox->lock();
         switch (mbx->tag) {
           case MailboxTag::Empty:
+          case MailboxTag::Number:
             break;
           case MailboxTag::SharedArrayBuffer:
           case MailboxTag::WasmMemory:
@@ -6675,10 +6944,17 @@ GetSharedObject(JSContext* cx, unsigned argc, Value* vp)
           case MailboxTag::Empty: {
             break;
           }
+          case MailboxTag::Number: {
+            args.rval().setNumber(mbx->val.number);
+            return true;
+          }
           case MailboxTag::SharedArrayBuffer:
           case MailboxTag::WasmMemory: {
             // Flag was set in the sender; ensure it is set in the receiver.
             MOZ_ASSERT(cx->realm()->creationOptions().getSharedMemoryAndAtomicsEnabled());
+
+            // The protocol for creating a SAB requires the refcount to be
+            // incremented prior to the SAB creation.
 
             SharedArrayRawBuffer* buf = mbx->val.sarb.buffer;
             uint32_t length = mbx->val.sarb.length;
@@ -6686,28 +6962,35 @@ GetSharedObject(JSContext* cx, unsigned argc, Value* vp)
                 JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SC_SAB_REFCNT_OFLO);
                 return false;
             }
-            auto dropBuf = MakeScopeExit([buf] { buf->dropReference(); });
+
+            // If the allocation fails we must decrement the refcount before
+            // returning.
 
             Rooted<ArrayBufferObjectMaybeShared*> maybesab(cx, SharedArrayBufferObject::New(cx, buf, length));
             if (!maybesab) {
+                buf->dropReference();
                 return false;
             }
+
+            // At this point the SAB was created successfully and it owns the
+            // refcount-increase on the buffer that we performed above.  So even
+            // if we fail to allocate along any path below we must not decrement
+            // the refcount; the garbage collector must be allowed to handle
+            // that via finalization of the orphaned SAB object.
+
             if (mbx->tag == MailboxTag::SharedArrayBuffer) {
                 newObj = maybesab;
             } else {
                 if (!GlobalObject::ensureConstructor(cx, cx->global(), JSProto_WebAssembly)) {
                     return false;
                 }
-
                 RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmMemory).toObject());
                 newObj = WasmMemoryObject::create(cx, maybesab, proto);
                 MOZ_ASSERT_IF(newObj, newObj->as<WasmMemoryObject>().isShared());
+                if (!newObj) {
+                    return false;
+                }
             }
-            if (!newObj) {
-                return false;
-            }
-
-            dropBuf.release();
 
             break;
           }
@@ -6721,8 +7004,7 @@ GetSharedObject(JSContext* cx, unsigned argc, Value* vp)
 
             // WasmModuleObject::create() increments the refcount on the module
             // and signals an error and returns null if that fails.
-            RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmModule).toObject());
-            newObj = WasmModuleObject::create(cx, *mbx->val.module, proto);
+            newObj = mbx->val.module->createObject(cx);
             if (!newObj) {
                 return false;
             }
@@ -6776,14 +7058,17 @@ SetSharedObject(JSContext* cx, unsigned argc, Value* vp)
                 JS_ReportErrorASCII(cx, "Invalid argument to SetSharedObject");
                 return false;
             }
-        } else if (obj->is<WasmModuleObject>()) {
+        } else if (JS::IsWasmModuleObject(obj)) {
             tag = MailboxTag::WasmModule;
-            value.module = &obj->as<WasmModuleObject>().module();
-            value.module->AddRef();
+            value.module = JS::GetWasmModule(obj).forget().take();
         } else {
             JS_ReportErrorASCII(cx, "Invalid argument to SetSharedObject");
             return false;
         }
+    } else if (args.get(0).isNumber()) {
+        tag = MailboxTag::Number;
+        value.number = args.get(0).toNumber();
+        // Nothing
     } else if (args.get(0).isNullOrUndefined()) {
         // Nothing
     } else {
@@ -6796,6 +7081,7 @@ SetSharedObject(JSContext* cx, unsigned argc, Value* vp)
 
         switch (mbx->tag) {
           case MailboxTag::Empty:
+          case MailboxTag::Number:
             break;
           case MailboxTag::SharedArrayBuffer:
           case MailboxTag::WasmMemory:
@@ -7523,7 +7809,11 @@ DumpScopeChain(JSContext* cx, unsigned argc, Value* vp)
         }
         script = JSFunction::getOrCreateScript(cx, fun);
     } else {
-        script = obj->as<ModuleObject>().script();
+        script = obj->as<ModuleObject>().maybeScript();
+        if (!script) {
+            JS_ReportErrorASCII(cx, "module does not have an associated script");
+            return false;
+        }
     }
 
     script->bodyScope()->dump();
@@ -8229,15 +8519,7 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 
     JS_FN_HELP("parseModule", ParseModule, 1, 0,
 "parseModule(code)",
-"  Parses source text as a module and returns a script object."),
-
-    JS_FN_HELP("instantiateModule", InstantiateModule, 1, 0,
-"instantiateModule(moduleScript)",
-"  Instantiate a module script graph."),
-
-    JS_FN_HELP("evaluateModule", EvaluateModule, 1, 0,
-"evaluateModule(moduleScript)",
-"  Evaluate a previously instantiated module script graph."),
+"  Parses source text as a module and returns a Module object."),
 
     JS_FN_HELP("setModuleLoadHook", SetModuleLoadHook, 1, 0,
 "setModuleLoadHook(function(path))",
@@ -8246,27 +8528,45 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "  module loader."),
 
     JS_FN_HELP("setModuleResolveHook", SetModuleResolveHook, 1, 0,
-"setModuleResolveHook(function(module, specifier) {})",
+"setModuleResolveHook(function(referrer, specifier))",
 "  Set the HostResolveImportedModule hook to |function|.\n"
 "  This hook is used to look up a previously loaded module object.  It should\n"
 "  be implemented by the module loader."),
+
+    JS_FN_HELP("setModuleMetadataHook", SetModuleMetadataHook, 1, 0,
+"setModuleMetadataHook(function(module) {})",
+"  Set the HostPopulateImportMeta hook to |function|.\n"
+"  This hook is used to create the metadata object returned by import.meta for\n"
+"  a module.  It should be implemented by the module loader."),
+
+    JS_FN_HELP("setModuleDynamicImportHook", SetModuleDynamicImportHook, 1, 0,
+"setModuleDynamicImportHook(function(referrer, specifier, promise))",
+"  Set the HostImportModuleDynamically hook to |function|.\n"
+"  This hook is used to dynamically import a module.  It should\n"
+"  be implemented by the module loader."),
+
+    JS_FN_HELP("finishDynamicModuleImport", FinishDynamicModuleImport, 3, 0,
+"finishDynamicModuleImport(referrer, specifier, promise)",
+"  The module loader's dynamic import hook should call this when the module has"
+"  been loaded successfully."),
+
+    JS_FN_HELP("abortDynamicModuleImport", AbortDynamicModuleImport, 4, 0,
+"abortDynamicModuleImport(referrer, specifier, promise, error)",
+"  The module loader's dynamic import hook should call this when the module "
+"  import has failed."),
+
+    JS_FN_HELP("setModulePrivate", ShellSetModulePrivate, 2, 0,
+"setModulePrivate(scriptObject, privateValue)",
+"  Associate a private value with a module object.\n"),
+
+    JS_FN_HELP("getModulePrivate", ShellGetModulePrivate, 2, 0,
+"getModulePrivate(scriptObject)",
+"  Get the private value associated with a module object.\n"),
 
     JS_FN_HELP("getModuleLoadPath", GetModuleLoadPath, 0, 0,
 "getModuleLoadPath()",
 "  Return any --module-load-path argument passed to the shell.  Used by the\n"
 "  module loader.\n"),
-
-    JS_FN_HELP("getModuleEnvironmentNames", GetModuleEnvironmentNames, 1, 0,
-"getModuleEnvironmentNames(module)",
-"  Get the list of a module environment's bound names for a specified module.\n"),
-
-    JS_FN_HELP("getModuleEnvironmentValue", GetModuleEnvironmentValue, 2, 0,
-"getModuleEnvironmentValue(module, name)",
-"  Get the value of a bound name in a module environment.\n"),
-
-    JS_FN_HELP("getModuleObject", GetModuleObject, 1, 0,
-"getModuleObject(module)",
-"  Get the internal JS object that holds module metadata for a module script.\n"),
 
 #if defined(JS_BUILD_BINAST)
 
@@ -8633,6 +8933,12 @@ JS_FN_HELP("parseBin", BinParse, 1, 0,
 "unless you're willing to update your code if these experimental APIs change\n"
 "underneath you."),
 #endif // ENABLE_INTL_API
+
+    JS_FN_HELP("wasmCompileInSeparateProcess", WasmCompileInSeparateProcess, 1, 0,
+"wasmCompileInSeparateProcess(buffer)",
+"  Compile the given buffer in a separate process, serialize the resulting\n"
+"  wasm::Module into bytes, and deserialize those bytes in the current\n"
+"  process, returning the resulting WebAssembly.Module."),
 
     JS_FS_HELP_END
 };
@@ -9972,7 +10278,7 @@ ProcessArgs(JSContext* cx, OptionParser* op)
         return false;
     }
 
-    if (!modulePaths.empty() && !InitModuleLoader(cx)) {
+    if (!InitModuleLoader(cx)) {
         return false;
     }
 
@@ -10056,13 +10362,19 @@ SetContextOptions(JSContext* cx, const OptionParser& op)
 #endif
 #ifdef ENABLE_WASM_GC
     enableWasmGc = op.getBoolOption("wasm-gc");
-# ifdef ENABLE_WASM_CRANELIFT
-    enableWasmGc = false;
-# endif
 #endif
     enableTestWasmAwaitTier2 = op.getBoolOption("test-wasm-await-tier2");
     enableAsyncStacks = !op.getBoolOption("no-async-stacks");
-    enableStreams = op.getBoolOption("enable-streams");
+    enableStreams = !op.getBoolOption("no-streams");
+
+#if defined ENABLE_WASM_GC && defined ENABLE_WASM_CRANELIFT
+    // Note, once we remove --wasm-gc this test will no longer make any sense
+    // and we'll need a better solution.
+    if (enableWasmGc && wasmForceCranelift) {
+        fprintf(stderr, "Do not combine --wasm-gc and --wasm-force-cranelift, they are incompatible.\n");
+        return false;
+    }
+#endif
 
     JS::ContextOptionsRef(cx).setBaseline(enableBaseline)
                              .setIon(enableIon)
@@ -10426,6 +10738,15 @@ SetWorkerContextOptions(JSContext* cx)
 static int
 Shell(JSContext* cx, OptionParser* op, char** envp)
 {
+    if (op->getBoolOption("wasm-compile-and-serialize")) {
+        if (!WasmCompileAndSerialize(cx)) {
+            // Errors have been printed directly to stderr.
+            MOZ_ASSERT(!cx->isExceptionPending());
+            return -1;
+        }
+        return EXIT_SUCCESS;
+    }
+
 #ifdef MOZ_CODE_COVERAGE
     InstallCoverageSignalHandlers();
 #endif
@@ -10626,6 +10947,8 @@ main(int argc, char** argv, char** envp)
         || !op.addMultiStringOption('m', "module", "PATH", "Module path to run")
 #if defined(JS_BUILD_BINAST)
         || !op.addMultiStringOption('B', "binast", "PATH", "BinAST path to run")
+#else
+        || !op.addMultiStringOption('B', "binast", "", "No-op")
 #endif // JS_BUILD_BINAST
         || !op.addMultiStringOption('e', "execute", "CODE", "Inline code to run")
         || !op.addBoolOption('i', "shell", "Enter prompt after running code")
@@ -10676,7 +10999,8 @@ main(int argc, char** argv, char** envp)
 #endif
         || !op.addBoolOption('\0', "no-native-regexp", "Disable native regexp compilation")
         || !op.addBoolOption('\0', "no-unboxed-objects", "Disable creating unboxed plain objects")
-        || !op.addBoolOption('\0', "enable-streams", "Enable WHATWG Streams")
+        || !op.addBoolOption('\0', "enable-streams", "Enable WHATWG Streams (default)")
+        || !op.addBoolOption('\0', "no-streams", "Disable WHATWG Streams")
 #ifdef ENABLE_SHARED_ARRAY_BUFFER
         || !op.addStringOption('\0', "shared-memory", "on/off",
                                "SharedArrayBuffer and Atomics "
@@ -10798,6 +11122,7 @@ main(int argc, char** argv, char** envp)
         || !op.addBoolOption('\0', "no-async-stacks", "Disable async stacks")
         || !op.addMultiStringOption('\0', "dll", "LIBRARY", "Dynamically load LIBRARY")
         || !op.addBoolOption('\0', "suppress-minidump", "Suppress crash minidumps")
+        || !op.addBoolOption('\0', "wasm-compile-and-serialize", "Compile the wasm bytecode from stdin and serialize the results to stdout")
     )
     {
         return EXIT_FAILURE;
@@ -10965,14 +11290,15 @@ main(int argc, char** argv, char** envp)
 
     js::SetPreserveWrapperCallback(cx, DummyPreserveWrapperCallback);
 
-    JS::SetModuleResolveHook(cx->runtime(), CallModuleResolveHook);
-    JS::SetModuleMetadataHook(cx->runtime(), ShellModuleMetadataHook);
+    JS::SetModuleResolveHook(cx->runtime(), ShellModuleResolveHook);
+    JS::SetModuleDynamicImportHook(cx->runtime(), ShellModuleDynamicImportHook);
+    JS::SetModuleMetadataHook(cx->runtime(), CallModuleMetadataHook);
 
     result = Shell(cx, &op, envp);
 
 #ifdef DEBUG
     if (OOM_printAllocationCount) {
-        printf("OOM max count: %" PRIu64 "\n", js::oom::counter);
+        printf("OOM max count: %" PRIu64 "\n", js::oom::simulator.counter());
     }
 #endif
 

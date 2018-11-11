@@ -8,12 +8,7 @@
 
 "use strict";
 
-/* eslint-disable mozilla/use-chromeutils-import */
-
-Cu.import("resource://gre/modules/Messaging.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-const {ChromeUtils} = Cu.getGlobalForObject(XPCOMUtils);
+ChromeUtils.import("resource://gre/modules/Messaging.jsm");
 
 // event name
 const TOPIC_ANDROID_CAST_DEVICE_ADDED   = "AndroidCastDevice:Added";
@@ -93,7 +88,7 @@ TestControlChannelListener.prototype = {
   onOffer: function(aOffer) { this._isOnOfferCalledResolve(); },
   onAnswer: function(aAnswer) { this._isOnAnswerCalledResolve(); },
   onIceCandidate: function(aCandidate) { this._isOnIceCandidateCalledResolve(); },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIPresentationControlChannelListener])
+  QueryInterface: ChromeUtils.generateQI([Ci.nsIPresentationControlChannelListener]),
 };
 
 function deviceManagement() {
@@ -145,7 +140,7 @@ function deviceManagement() {
       this.isRemoveDeviceCalled = new Promise((aResolve) => {
         this._isRemoveDeviceCalledResolve = aResolve;
       });
-    }
+    },
   };
   listener.reset();
   // Should be no device.
@@ -155,7 +150,7 @@ function deviceManagement() {
   provider.listener = listener;
   let device = {
     uuid: "chromecast",
-    friendlyName: "chromecast"
+    friendlyName: "chromecast",
   };
 
   // Sync device from Android.
@@ -216,13 +211,13 @@ function presentationLaunchAndTerminate() {
       receiverControlChannel = aControlChannel;
       receiverControlChannel.listener = receiverControlChannelListener;
     },
-    getDevice: function(aDeviceId) { return this.devices[aDeviceId]; }
+    getDevice: function(aDeviceId) { return this.devices[aDeviceId]; },
   };
   provider.listener = listener;
 
   let device = {
     uuid: "chromecast",
-    friendlyName: "chromecast"
+    friendlyName: "chromecast",
   };
 
   // Add and get the device.
@@ -276,7 +271,7 @@ function presentationLaunchAndTerminate() {
       let candidate = {
         candidate: "1 1 UDP 1 127.0.0.1 34567 type host",
         sdpMid: "helloworld",
-        sdpMLineIndex: 1
+        sdpMLineIndex: 1,
       };
       try {
         controllerControlChannel.sendIceCandidate(JSON.stringify(candidate));

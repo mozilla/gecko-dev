@@ -1948,6 +1948,7 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
     }
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // Stack manipulation functions.
@@ -2580,9 +2581,9 @@ WasmCompareExchange64(MacroAssembler& masm, const wasm::MemoryAccessDesc& access
 
     masm.bind(&tryAgain);
 
-    // FIXME: emit signal handling information
-
+    masm.append(access, masm.size());
     masm.as_lld(output.reg, SecondScratchReg, 0);
+
     masm.ma_b(output.reg, expect.reg, &exit, Assembler::NotEqual, ShortJump);
     masm.movePtr(replace.reg, ScratchRegister);
     masm.as_scd(ScratchRegister, SecondScratchReg, 0);
@@ -2620,9 +2621,9 @@ AtomicExchange64(MacroAssembler& masm, const wasm::MemoryAccessDesc& access,
 
     masm.bind(&tryAgain);
 
-    // FIXME: emit signal handling information
-
+    masm.append(access, masm.size());
     masm.as_lld(output.reg, SecondScratchReg, 0);
+
     masm.movePtr(src.reg, ScratchRegister);
     masm.as_scd(ScratchRegister, SecondScratchReg, 0);
     masm.ma_b(ScratchRegister, ScratchRegister, &tryAgain, Assembler::Zero, ShortJump);
@@ -2657,8 +2658,7 @@ AtomicFetchOp64(MacroAssembler& masm, const wasm::MemoryAccessDesc& access, Atom
 
     masm.bind(&tryAgain);
 
-    // FIXME: Emit signal handling information.
-
+    masm.append(access, masm.size());
     masm.as_lld(output.reg, SecondScratchReg, 0);
 
     switch(op) {
@@ -2760,3 +2760,4 @@ MacroAssembler::convertUInt64ToFloat32(Register64 src_, FloatRegister dest, Regi
 }
 
 //}}} check_macroassembler_style
+// clang-format on

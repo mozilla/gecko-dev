@@ -105,13 +105,14 @@ PrioEncoder::Encode(GlobalObject& aGlobal,
     ClearOnShutdown(&sSingleton);
   }
 
-  bool dataItems[] = {
-    aPrioParams.mBrowserIsUserDefault,
-    aPrioParams.mNewTabPageEnabled,
-    aPrioParams.mPdfViewerUsed,
-  };
+  nsTArray<bool> dataItems = aPrioParams.mBooleans;
+  if (dataItems.Length() > gNumBooleans) {
+    aRv.ThrowRangeError<MSG_VALUE_OUT_OF_RANGE>(
+      NS_LITERAL_STRING("Maximum boolean value exceeded"));
+    return;
+  }
 
-  PrioConfig prioConfig = PrioConfig_new(mozilla::ArrayLength(dataItems),
+  PrioConfig prioConfig = PrioConfig_new(dataItems.Length(),
                                          sPublicKeyA,
                                          sPublicKeyB,
                                          reinterpret_cast<const unsigned char*>(aBatchID.BeginReading()),
@@ -132,7 +133,7 @@ PrioEncoder::Encode(GlobalObject& aGlobal,
   unsigned int lenB = 0;
 
   prio_rv = PrioClient_encode(prioConfig,
-                              dataItems,
+                              dataItems.Elements(),
                               &forServerA,
                               &lenA,
                               &forServerB,

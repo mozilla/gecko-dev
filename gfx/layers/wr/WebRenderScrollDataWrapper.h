@@ -310,10 +310,16 @@ public:
     return mLayer->GetScrollbarAnimationId();
   }
 
-  FrameMetrics::ViewID GetFixedPositionScrollContainerId() const
+  ScrollableLayerGuid::ViewID GetFixedPositionScrollContainerId() const
   {
     MOZ_ASSERT(IsValid());
     return mLayer->GetFixedPositionScrollContainerId();
+  }
+
+  Maybe<uint64_t> GetZoomAnimationId() const
+  {
+    MOZ_ASSERT(IsValid());
+    return mLayer->GetZoomAnimationId();
   }
 
   bool IsBackfaceHidden() const

@@ -417,27 +417,38 @@ NotificationController::ScheduleChildDocBinding(DocAccessible* aDocument)
 }
 
 void
-NotificationController::ScheduleContentInsertion(Accessible* aContainer,
-                                                 nsIContent* aStartChildNode,
+NotificationController::ScheduleContentInsertion(nsIContent* aStartChildNode,
                                                  nsIContent* aEndChildNode)
 {
-  nsTArray<nsCOMPtr<nsIContent>> list;
-
-  bool needsProcessing = false;
-  nsIContent* node = aStartChildNode;
-  while (node != aEndChildNode) {
-    // Notification triggers for content insertion even if no content was
-    // actually inserted, check if the given content has a frame to discard
-    // this case early.
-    if (node->GetPrimaryFrame()) {
-      if (list.AppendElement(node))
-        needsProcessing = true;
-    }
-    node = node->GetNextSibling();
+  // The frame constructor guarantees that only ranges with the same parent
+  // arrive here in presence of dynamic changes to the page, see
+  // nsCSSFrameConstructor::IssueSingleInsertNotifications' callers.
+  nsINode* parent = aStartChildNode->GetFlattenedTreeParentNode();
+  if (!parent) {
+    return;
   }
 
-  if (needsProcessing) {
-    mContentInsertions.LookupOrAdd(aContainer)->AppendElements(list);
+  Accessible* container = mDocument->AccessibleOrTrueContainer(parent);
+  if (!container) {
+    return;
+  }
+
+  AutoTArray<nsCOMPtr<nsIContent>, 10> list;
+  for (nsIContent* node = aStartChildNode;
+       node != aEndChildNode;
+       node = node->GetNextSibling()) {
+    MOZ_ASSERT(parent == node->GetFlattenedTreeParentNode());
+    // Notification triggers for content insertion even if no content was
+    // actually inserted (like if the content is display: none). Try to catch
+    // this case early.
+    if (node->GetPrimaryFrame() ||
+        (node->IsElement() && node->AsElement()->IsDisplayContents())) {
+      list.AppendElement(node);
+    }
+  }
+
+  if (!list.IsEmpty()) {
+    mContentInsertions.LookupOrAdd(container)->AppendElements(list);
     ScheduleProcessing();
   }
 }

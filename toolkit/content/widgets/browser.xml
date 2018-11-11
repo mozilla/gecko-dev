@@ -252,6 +252,18 @@
         ]]></body>
       </method>
 
+      <method name="deprioritize">
+        <body><![CDATA[
+          if (!this.isRemoteBrowser) {
+            return;
+          }
+          let {frameLoader} = this;
+          if (frameLoader.tabParent) {
+            frameLoader.tabParent.deprioritize();
+          }
+        ]]></body>
+      </method>
+
 
       <property name="renderLayers">
         <getter>
@@ -448,7 +460,7 @@
           if (this.isRemoteBrowser) {
             return this._outerWindowID;
           }
-          return this.contentWindow.windowUtils.outerWindowID;
+          return this.docShell.outerWindowID;
         ]]></getter>
       </property>
 
@@ -487,22 +499,12 @@
                 readonly="true"
                 onget="return this.isRemoteBrowser ? this._remoteWebProgress : this.docShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIWebProgress);"/>
 
-      <field name="_contentWindow">null</field>
-      <property name="contentWindowAsCPOW"
-                readonly="true"
-                onget="return this.isRemoteBrowser ? this._contentWindow : this.contentWindow;"/>
-
       <property name="sessionHistory"
                 onget="return this.webNavigation.sessionHistory;"
                 readonly="true"/>
 
       <property name="markupDocumentViewer"
                 onget="return this.docShell.contentViewer;"
-                readonly="true"/>
-
-      <field name="_contentDocument">null</field>
-      <property name="contentDocumentAsCPOW"
-                onget="return this.isRemoteBrowser ? this._contentDocument : this.contentDocument;"
                 readonly="true"/>
 
       <field name="_contentTitle">""</field>
@@ -1007,7 +1009,16 @@
             // RemoteWebProgress, ensure it is loaded and ready.
             let jsm = "resource://gre/modules/RemoteWebProgress.jsm";
             let { RemoteWebProgressManager } = ChromeUtils.import(jsm, {});
+
+            let oldManager = this._remoteWebProgressManager;
             this._remoteWebProgressManager = new RemoteWebProgressManager(this);
+            if (oldManager) {
+              // We're transitioning from one remote type to another. This means that
+              // the RemoteWebProgress listener is listening to the old message manager,
+              // and needs to be pointed at the new one.
+              this._remoteWebProgressManager.swapListeners(oldManager);
+            }
+
             this._remoteWebProgress = this._remoteWebProgressManager.topLevelWebProgress;
 
             this.messageManager.loadFrameScript("chrome://global/content/browser-child.js", true);
@@ -1068,6 +1079,11 @@
           }
 
           if (!this.isRemoteBrowser) {
+            // If we've transitioned from remote to non-remote, we'll give up trying to
+            // keep the web progress listeners persisted during the transition.
+            delete this._remoteWebProgressManager;
+            delete this._remoteWebProgress;
+
             this.addEventListener("pagehide", this.onPageHide, true);
           }
 
@@ -1888,6 +1904,24 @@
         </body>
       </method>
 
+      <method name="drawSnapshot">
+        <parameter name="x"/>
+        <parameter name="y"/>
+        <parameter name="w"/>
+        <parameter name="h"/>
+        <parameter name="scale"/>
+        <parameter name="backgroundColor"/>
+        <body>
+          <![CDATA[
+            if (!this.frameLoader) {
+              throw Components.Exception("No frame loader.",
+                                         Cr.NS_ERROR_FAILURE);
+            }
+            return this.frameLoader.drawSnapshot(x, y, w, h, scale, backgroundColor);
+          ]]>
+        </body>
+      </method>
+
       <method name="dropLinks">
         <parameter name="aLinksCount"/>
         <parameter name="aLinks"/>
@@ -1906,6 +1940,17 @@
           }
           this.droppedLinkHandler(null, links, aTriggeringPrincipal);
           return true;
+        ]]></body>
+      </method>
+
+      <method name="getContentBlockingLog">
+        <body><![CDATA[
+          if (this.isRemoteBrowser) {
+            return this.frameLoader.tabParent.getContentBlockingLog();
+          }
+          return this.docShell ?
+                   this.docShell.getContentBlockingLog() :
+                   Promise.reject("docshell isn't available");
         ]]></body>
       </method>
     </implementation>

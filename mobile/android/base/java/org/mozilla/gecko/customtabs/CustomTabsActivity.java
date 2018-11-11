@@ -56,10 +56,12 @@ import org.mozilla.gecko.util.PackageUtil;
 import org.mozilla.gecko.webapps.WebApps;
 import org.mozilla.gecko.widget.ActionModePresenter;
 import org.mozilla.gecko.widget.GeckoPopupMenu;
+import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
+import org.mozilla.geckoview.WebRequestError;
 
 import java.util.List;
 
@@ -583,18 +585,17 @@ public class CustomTabsActivity extends AppCompatActivity
     }
 
     @Override
-    public GeckoResult<Boolean> onLoadRequest(final GeckoSession session, final String urlStr,
-                                              final int target,
-                                              final int flags) {
-        if (target != GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW) {
-            return GeckoResult.fromValue(false);
+    public GeckoResult<AllowOrDeny> onLoadRequest(final GeckoSession session,
+                                                  final LoadRequest request) {
+        if (request.target != GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW) {
+            return GeckoResult.fromValue(AllowOrDeny.ALLOW);
         }
 
-        final Uri uri = Uri.parse(urlStr);
+        final Uri uri = Uri.parse(request.uri);
         if (uri == null) {
             // We can't handle this, so deny it.
-            Log.w(LOGTAG, "Failed to parse URL for navigation: " + urlStr);
-            return GeckoResult.fromValue(true);
+            Log.w(LOGTAG, "Failed to parse URL for navigation: " + request.uri);
+            return GeckoResult.fromValue(AllowOrDeny.DENY);
         }
 
         // Always use Fennec for these schemes.
@@ -607,7 +608,7 @@ public class CustomTabsActivity extends AppCompatActivity
             try {
                 startActivity(intent);
             } catch (ActivityNotFoundException e) {
-                Log.w(LOGTAG, "No activity handler found for: " + urlStr);
+                Log.w(LOGTAG, "No activity handler found for: " + request.uri);
             }
         } else {
             final Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -615,11 +616,11 @@ public class CustomTabsActivity extends AppCompatActivity
             try {
                 startActivity(intent);
             } catch (ActivityNotFoundException e) {
-                Log.w(LOGTAG, "No activity handler found for: " + urlStr);
+                Log.w(LOGTAG, "No activity handler found for: " + request.uri);
             }
         }
 
-        return GeckoResult.fromValue(true);
+        return GeckoResult.fromValue(AllowOrDeny.DENY);
     }
 
     @Override
@@ -630,7 +631,7 @@ public class CustomTabsActivity extends AppCompatActivity
 
     @Override
     public GeckoResult<String> onLoadError(final GeckoSession session, final String urlStr,
-                                           final int category, final int error) {
+                                           final WebRequestError error) {
         return null;
     }
 

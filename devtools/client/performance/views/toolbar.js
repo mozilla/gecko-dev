@@ -22,7 +22,7 @@ var ToolbarView = {
 
     this.optionsView = new OptionsView({
       branchName: BRANCH_NAME,
-      menupopup: this._popup
+      menupopup: this._popup,
     });
 
     // Set the visibility of experimental UI options on load
@@ -60,7 +60,7 @@ var ToolbarView = {
    */
   _buildMarkersFilterPopup: function() {
     for (const [markerName, markerDetails] of Object.entries(TIMELINE_BLUEPRINT)) {
-      const menuitem = document.createElement("menuitem");
+      const menuitem = document.createXULElement("menuitem");
       menuitem.setAttribute("closemenu", "none");
       menuitem.setAttribute("type", "checkbox");
       menuitem.setAttribute("align", "center");
@@ -154,7 +154,7 @@ var ToolbarView = {
     this.emit(EVENTS.UI_PREF_CHANGED, prefName, value);
   },
 
-  toString: () => "[object ToolbarView]"
+  toString: () => "[object ToolbarView]",
 };
 
 EventEmitter.decorate(ToolbarView);

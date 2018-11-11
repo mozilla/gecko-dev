@@ -26,6 +26,9 @@ with Files('configobj/**'):
 with Files('dlmanager/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
+with Files('enum34/**'):
+    BUG_COMPONENT = ('Release Engineering', 'General Automation')
+
 with Files('futures/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
@@ -40,6 +43,12 @@ with Files('lldbutils/**'):
 
 with Files('mock-1.0.0/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
+
+with Files('mohawk/**'):
+    BUG_COMPONENT = ('Taskcluster', 'Platform Libraries')
+
+with Files('mozilla-version/**'):
+    BUG_COMPONENT = ('Release Engineering', 'General Automation')
 
 with Files('psutil/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
@@ -74,10 +83,16 @@ with Files('redo/**'):
 with Files('requests*/**'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
+with Files('requirements.*'):
+    BUG_COMPONENT = ('Firefox Build System', 'General')
+
 with Files('rsa/**'):
     BUG_COMPONENT = ('Core', 'Security: PSM')
 
 with Files('slugid/**'):
+    BUG_COMPONENT = ('Taskcluster', 'Platform Libraries')
+
+with Files('taskcluster/**'):
     BUG_COMPONENT = ('Taskcluster', 'Platform Libraries')
 
 with Files('virtualenv/**'):

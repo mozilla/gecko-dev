@@ -46,6 +46,7 @@
 #include "nsCommandLine.h"
 #include "nsCommandParams.h"
 #include "nsPersistentProperties.h"
+#include "nsIDocumentEncoder.h"
 
 using namespace mozilla;
 using namespace JS;
@@ -207,6 +208,7 @@ NS_IMETHODIMP
 nsXPCComponents_Interfaces::NewEnumerate(nsIXPConnectWrappedNative* wrapper,
                                          JSContext* cx, JSObject* obj,
                                          JS::AutoIdVector& properties,
+                                         bool enumerableOnly,
                                          bool* _retval)
 {
 
@@ -394,6 +396,7 @@ NS_IMETHODIMP
 nsXPCComponents_InterfacesByID::NewEnumerate(nsIXPConnectWrappedNative* wrapper,
                                              JSContext* cx, JSObject* obj,
                                              JS::AutoIdVector& properties,
+                                             bool enumerableOnly,
                                              bool* _retval)
 {
 
@@ -589,6 +592,7 @@ NS_IMETHODIMP
 nsXPCComponents_Classes::NewEnumerate(nsIXPConnectWrappedNative* wrapper,
                                       JSContext* cx, JSObject* obj,
                                       JS::AutoIdVector& properties,
+                                      bool enumerableOnly,
                                       bool* _retval)
 {
     nsCOMPtr<nsIComponentRegistrar> compMgr;
@@ -784,6 +788,7 @@ NS_IMETHODIMP
 nsXPCComponents_ClassesByID::NewEnumerate(nsIXPConnectWrappedNative* wrapper,
                                           JSContext* cx, JSObject* obj,
                                           JS::AutoIdVector& properties,
+                                          bool enumerableOnly,
                                           bool* _retval)
 {
 
@@ -993,6 +998,7 @@ NS_IMETHODIMP
 nsXPCComponents_Results::NewEnumerate(nsIXPConnectWrappedNative* wrapper,
                                       JSContext* cx, JSObject* obj,
                                       JS::AutoIdVector& properties,
+                                      bool enumerableOnly,
                                       bool* _retval)
 {
     const char* name;
@@ -1970,7 +1976,7 @@ nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
         nsCOMPtr<nsIXPConnectWrappedNative> wn;
         if (NS_FAILED(xpc->GetWrappedNativeOfJSObject(cx, &val.toObject(),
                                                       getter_AddRefs(wn))) || !wn ||
-            !(cInterfaceID = do_QueryWrappedNative(wn))) {
+            !(cInterfaceID = do_QueryInterface(wn->Native()))) {
             return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
         }
     } else {
@@ -2018,7 +2024,7 @@ nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
         nsCOMPtr<nsIXPConnectWrappedNative> wn;
         if (NS_FAILED(xpc->GetWrappedNativeOfJSObject(cx, val.toObjectOrNull(),
                                                       getter_AddRefs(wn))) || !wn ||
-            !(cClassID = do_QueryWrappedNative(wn))) {
+            !(cClassID = do_QueryInterface(wn->Native()))) {
             return ThrowAndFail(NS_ERROR_XPC_UNEXPECTED, cx, _retval);
         }
     }
@@ -3268,6 +3274,53 @@ nsXPCComponents_Utils::CreatePersistentProperties(nsIPersistentProperties** aPer
     nsCOMPtr<nsIPersistentProperties> props = new nsPersistentProperties();
     props.forget(aPersistentProperties);
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::CreateDocumentEncoder(const char* aContentType,
+                                             nsIDocumentEncoder** aDocumentEncoder)
+{
+    NS_ENSURE_ARG_POINTER(aDocumentEncoder);
+    nsCOMPtr<nsIDocumentEncoder> encoder = do_createDocumentEncoder(aContentType);
+    encoder.forget(aDocumentEncoder);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::CreateHTMLCopyEncoder(nsIDocumentEncoder** aDocumentEncoder)
+{
+    NS_ENSURE_ARG_POINTER(aDocumentEncoder);
+    nsCOMPtr<nsIDocumentEncoder> encoder = do_createHTMLCopyEncoder();
+    encoder.forget(aDocumentEncoder);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::GetLoadedModules(nsTArray<nsCString>& aLoadedModules)
+{
+    mozJSComponentLoader::Get()->GetLoadedModules(aLoadedModules);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::GetLoadedComponents(nsTArray<nsCString>& aLoadedComponents)
+{
+    mozJSComponentLoader::Get()->GetLoadedComponents(aLoadedComponents);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::GetModuleImportStack(const nsACString& aLocation,
+                                            nsACString& aRetval)
+{
+    return mozJSComponentLoader::Get()->GetModuleImportStack(aLocation, aRetval);
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::GetComponentLoadStack(const nsACString& aLocation,
+                                             nsACString& aRetval)
+{
+    return mozJSComponentLoader::Get()->GetComponentLoadStack(aLocation, aRetval);
 }
 
 /***************************************************************************/

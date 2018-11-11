@@ -11,13 +11,12 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::u32;
 use {BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DeviceIntPoint, DeviceUintRect};
 use {DeviceUintSize, ExternalScrollId, FontInstanceKey, FontInstanceOptions};
 use {FontInstancePlatformOptions, FontKey, FontVariation, GlyphDimensions, GlyphIndex, ImageData};
 use {ImageDescriptor, ImageKey, ItemTag, LayoutPoint, LayoutSize, LayoutTransform, LayoutVector2D};
-use {NativeFontHandle, WorldPoint, NormalizedRect};
+use {NativeFontHandle, WorldPoint};
 
 pub type TileSize = u16;
 /// Documents are rendered in the ascending order of their associated layer values.
@@ -28,7 +27,7 @@ pub enum ResourceUpdate {
     AddImage(AddImage),
     UpdateImage(UpdateImage),
     DeleteImage(ImageKey),
-    SetImageVisibleArea(ImageKey, NormalizedRect),
+    SetImageVisibleArea(ImageKey, DeviceUintRect),
     AddFont(AddFont),
     DeleteFont(FontKey),
     AddFontInstance(AddFontInstance),
@@ -61,6 +60,8 @@ pub struct Transaction {
 
     generate_frame: bool,
 
+    invalidate_rendered_frame: bool,
+
     low_priority: bool,
 }
 
@@ -74,6 +75,7 @@ impl Transaction {
             notifications: Vec::new(),
             use_scene_builder_thread: true,
             generate_frame: false,
+            invalidate_rendered_frame: false,
             low_priority: false,
         }
     }
@@ -91,6 +93,7 @@ impl Transaction {
 
     pub fn is_empty(&self) -> bool {
         !self.generate_frame &&
+            !self.invalidate_rendered_frame &&
             self.scene_ops.is_empty() &&
             self.frame_ops.is_empty() &&
             self.resource_updates.is_empty() &&
@@ -229,7 +232,7 @@ impl Transaction {
     }
 
     pub fn set_pinch_zoom(&mut self, pinch_zoom: ZoomFactor) {
-        self.scene_ops.push(SceneMsg::SetPinchZoom(pinch_zoom));
+        self.frame_ops.push(FrameMsg::SetPinchZoom(pinch_zoom));
     }
 
     pub fn set_pan(&mut self, pan: DeviceIntPoint) {
@@ -245,6 +248,16 @@ impl Transaction {
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
     pub fn generate_frame(&mut self) {
         self.generate_frame = true;
+    }
+
+    /// Invalidate rendered frame. It ensure that frame will be rendered during
+    /// next frame generation. WebRender could skip frame rendering if there
+    /// is no update.
+    /// But there are cases that needs to force rendering.
+    ///  - Content of image is updated by reusing same ExternalImageId.
+    ///  - Platform requests it if pixels become stale (like wakeup from standby).
+    pub fn invalidate_rendered_frame(&mut self) {
+        self.invalidate_rendered_frame = true;
     }
 
     /// Supply a list of animated property bindings that should be used to resolve
@@ -281,6 +294,7 @@ impl Transaction {
                 notifications: self.notifications,
                 use_scene_builder_thread: self.use_scene_builder_thread,
                 generate_frame: self.generate_frame,
+                invalidate_rendered_frame: self.invalidate_rendered_frame,
                 low_priority: self.low_priority,
             },
             self.payloads,
@@ -321,7 +335,7 @@ impl Transaction {
         self.resource_updates.push(ResourceUpdate::DeleteImage(key));
     }
 
-    pub fn set_image_visible_area(&mut self, key: ImageKey, area: NormalizedRect) {
+    pub fn set_image_visible_area(&mut self, key: ImageKey, area: DeviceUintRect) {
         self.resource_updates.push(ResourceUpdate::SetImageVisibleArea(key, area))
     }
 
@@ -391,6 +405,7 @@ pub struct TransactionMsg {
     pub frame_ops: Vec<FrameMsg>,
     pub resource_updates: Vec<ResourceUpdate>,
     pub generate_frame: bool,
+    pub invalidate_rendered_frame: bool,
     pub use_scene_builder_thread: bool,
     pub low_priority: bool,
 
@@ -401,6 +416,7 @@ pub struct TransactionMsg {
 impl TransactionMsg {
     pub fn is_empty(&self) -> bool {
         !self.generate_frame &&
+            !self.invalidate_rendered_frame &&
             self.scene_ops.is_empty() &&
             self.frame_ops.is_empty() &&
             self.resource_updates.is_empty() &&
@@ -415,6 +431,7 @@ impl TransactionMsg {
             resource_updates: Vec::new(),
             notifications: Vec::new(),
             generate_frame: false,
+            invalidate_rendered_frame: false,
             use_scene_builder_thread: false,
             low_priority: false,
         }
@@ -427,6 +444,7 @@ impl TransactionMsg {
             resource_updates: Vec::new(),
             notifications: Vec::new(),
             generate_frame: false,
+            invalidate_rendered_frame: false,
             use_scene_builder_thread: false,
             low_priority: false,
         }
@@ -505,7 +523,6 @@ pub struct AddFontInstance {
 pub enum SceneMsg {
     UpdateEpoch(PipelineId, Epoch),
     SetPageZoom(ZoomFactor),
-    SetPinchZoom(ZoomFactor),
     SetRootPipeline(PipelineId),
     RemovePipeline(PipelineId),
     SetDisplayList {
@@ -536,6 +553,7 @@ pub enum FrameMsg {
     GetScrollNodeState(MsgSender<Vec<ScrollNodeState>>),
     UpdateDynamicProperties(DynamicProperties),
     AppendDynamicProperties(DynamicProperties),
+    SetPinchZoom(ZoomFactor),
 }
 
 impl fmt::Debug for SceneMsg {
@@ -544,7 +562,6 @@ impl fmt::Debug for SceneMsg {
             SceneMsg::UpdateEpoch(..) => "SceneMsg::UpdateEpoch",
             SceneMsg::SetDisplayList { .. } => "SceneMsg::SetDisplayList",
             SceneMsg::SetPageZoom(..) => "SceneMsg::SetPageZoom",
-            SceneMsg::SetPinchZoom(..) => "SceneMsg::SetPinchZoom",
             SceneMsg::RemovePipeline(..) => "SceneMsg::RemovePipeline",
             SceneMsg::SetWindowParameters { .. } => "SceneMsg::SetWindowParameters",
             SceneMsg::SetRootPipeline(..) => "SceneMsg::SetRootPipeline",
@@ -564,6 +581,7 @@ impl fmt::Debug for FrameMsg {
             FrameMsg::EnableFrameOutput(..) => "FrameMsg::EnableFrameOutput",
             FrameMsg::UpdateDynamicProperties(..) => "FrameMsg::UpdateDynamicProperties",
             FrameMsg::AppendDynamicProperties(..) => "FrameMsg::AppendDynamicProperties",
+            FrameMsg::SetPinchZoom(..) => "FrameMsg::SetPinchZoom",
         })
     }
 }
@@ -662,6 +680,8 @@ pub enum ApiMsg {
     GetGlyphIndices(FontKey, String, MsgSender<Vec<Option<u32>>>),
     /// Adds a new document namespace.
     CloneApi(MsgSender<IdNamespace>),
+    /// Adds a new document namespace.
+    CloneApiByClient(IdNamespace),
     /// Adds a new document with given initial size.
     AddDocument(DocumentId, DeviceUintSize, DocumentLayer),
     /// A message targeted at a particular document.
@@ -695,6 +715,7 @@ impl fmt::Debug for ApiMsg {
             ApiMsg::GetGlyphDimensions(..) => "ApiMsg::GetGlyphDimensions",
             ApiMsg::GetGlyphIndices(..) => "ApiMsg::GetGlyphIndices",
             ApiMsg::CloneApi(..) => "ApiMsg::CloneApi",
+            ApiMsg::CloneApiByClient(..) => "ApiMsg::CloneApiByClient",
             ApiMsg::AddDocument(..) => "ApiMsg::AddDocument",
             ApiMsg::UpdateDocument(..) => "ApiMsg::UpdateDocument",
             ApiMsg::DeleteDocument(..) => "ApiMsg::DeleteDocument",
@@ -770,6 +791,11 @@ pub struct MemoryReport {
     pub vertex_data_textures: usize,
     pub render_target_textures: usize,
     pub texture_cache_textures: usize,
+    pub depth_target_textures: usize,
+    //
+    // GPU memory total (tracked separately, should equal the sum of the above).
+    //
+    pub total_gpu_bytes_allocated: usize,
 }
 
 impl ::std::ops::AddAssign for MemoryReport {
@@ -787,6 +813,11 @@ impl ::std::ops::AddAssign for MemoryReport {
         self.vertex_data_textures += other.vertex_data_textures;
         self.render_target_textures += other.render_target_textures;
         self.texture_cache_textures += other.texture_cache_textures;
+        self.depth_target_textures += other.depth_target_textures;
+
+        // The total_gpu_memory value accounts for all WebRender instances, and
+        // thus can't be aggregated. It should really be reported out of band,
+        // but putting it in this struct facilitates sending it across Gecko IPC.
     }
 }
 
@@ -864,6 +895,23 @@ impl RenderApiSender {
             next_id: Cell::new(ResourceId(0)),
         }
     }
+
+    /// Creates a new resource API object with a dedicated namespace.
+    /// Namespace id is allocated by client.
+    ///
+    /// The function could be used only when RendererOptions::namespace_alloc_by_client is true.
+    /// When the option is true, create_api() could not be used to prevent namespace id conflict.
+    pub fn create_api_by_client(&self, namespace_id: IdNamespace) -> RenderApi {
+        let msg = ApiMsg::CloneApiByClient(namespace_id);
+        self.api_sender.send(msg).expect("Failed to send CloneApiByClient message");
+        RenderApi {
+            api_sender: self.api_sender.clone(),
+            payload_sender: self.payload_sender.clone(),
+            namespace_id,
+            next_id: Cell::new(ResourceId(0)),
+        }
+    }
+
 }
 
 pub struct RenderApi {
@@ -1239,6 +1287,7 @@ pub trait RenderNotifier: Send {
 pub enum Checkpoint {
     SceneBuilt,
     FrameBuilt,
+    FrameTexturesUpdated,
     FrameRendered,
     /// NotificationRequests get notified with this if they get dropped without having been
     /// notified. This provides the guarantee that if a request is created it will get notified.
@@ -1249,34 +1298,47 @@ pub trait NotificationHandler : Send + Sync {
     fn notify(&self, when: Checkpoint);
 }
 
-#[derive(Clone)]
 pub struct NotificationRequest {
-    handler: Arc<NotificationHandler>,
+    handler: Option<Box<NotificationHandler>>,
     when: Checkpoint,
-    done: bool,
 }
 
 impl NotificationRequest {
-    pub fn new(when: Checkpoint, handler: Arc<NotificationHandler>) -> Self {
+    pub fn new(when: Checkpoint, handler: Box<NotificationHandler>) -> Self {
         NotificationRequest {
-            handler,
+            handler: Some(handler),
             when,
-            done: false,
         }
     }
 
     pub fn when(&self) -> Checkpoint { self.when }
 
     pub fn notify(mut self) {
-        self.handler.notify(self.when);
-        self.done = true;
+        if let Some(handler) = self.handler.take() {
+            handler.notify(self.when);
+        }
     }
 }
 
 impl Drop for NotificationRequest {
     fn drop(&mut self) {
-        if !self.done {
-            self.handler.notify(Checkpoint::TransactionDropped);
+        if let Some(ref mut handler) = self.handler {
+            handler.notify(Checkpoint::TransactionDropped);
+        }
+    }
+}
+
+// This Clone impl yields an "empty" request because we don't want the requests
+// to be notified twice so the request is owned by only one of the API messages
+// (the original one) after the clone.
+// This works in practice because the notifications requests are used for
+// synchronization so we don't need to include them in the recording mechanism
+// in wrench that clones the messages.
+impl Clone for NotificationRequest {
+    fn clone(&self) -> Self {
+        NotificationRequest {
+            when: self.when,
+            handler: None,
         }
     }
 }

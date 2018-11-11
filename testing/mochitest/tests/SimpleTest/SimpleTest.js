@@ -267,8 +267,16 @@ SimpleTest.setExpected();
 /**
  * Something like assert.
 **/
-SimpleTest.ok = function (condition, name, diag, stack = null) {
+SimpleTest.ok = function (condition, name) {
+    if (arguments.length > 2) {
+      const diag = "Too many arguments passed to `ok(condition, name)`";
+      SimpleTest.record(false, name, diag);
+    } else {
+      SimpleTest.record(condition, name);
+    }
+};
 
+SimpleTest.record = function (condition, name, diag, stack) {
     var test = {'result': !!condition, 'name': name, 'diag': diag};
     if (SimpleTest.expected == 'fail') {
       if (!test.result) {
@@ -309,19 +317,19 @@ SimpleTest.is = function (a, b, name) {
     // Be lazy and use Object.is til we want to test a browser without it.
     var pass = Object.is(a, b);
     var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b)
-    SimpleTest.ok(pass, name, diag);
+    SimpleTest.record(pass, name, diag);
 };
 
 SimpleTest.isfuzzy = function (a, b, epsilon, name) {
   var pass = (a >= b - epsilon) && (a <= b + epsilon);
   var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b) + " epsilon: +/- " + repr(epsilon)
-  SimpleTest.ok(pass, name, diag);
+  SimpleTest.record(pass, name, diag);
 };
 
 SimpleTest.isnot = function (a, b, name) {
     var pass = !Object.is(a, b);
     var diag = pass ? "" : "didn't expect " + repr(a) + ", but got it";
-    SimpleTest.ok(pass, name, diag);
+    SimpleTest.record(pass, name, diag);
 };
 
 /**
@@ -731,7 +739,7 @@ SimpleTest.promiseFocus = function (targetWindow, expectBlankPage)
  * @param targetWindow
  *        optional window to be loaded and focused, defaults to 'window'.
  *        This may also be a <browser> element, in which case the window within
- *        that browser will be focused.
+ *        that browser will be focused. This cannot be a window CPOW.
  * @param expectBlankPage
  *        true if targetWindow.location is 'about:blank'. Defaults to false
  */
@@ -888,35 +896,15 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     }
 
     var isWrapper = Cu.isCrossProcessWrapper(targetWindow);
-    if (isWrapper || (browser && browser.isRemoteBrowser)) {
-        var mustFocusSubframe = false;
-        if (isWrapper) {
-            // Look for a tabbrowser and see if targetWindow corresponds to one
-            // within that tabbrowser. If not, just return.
-            var tabBrowser = window.gBrowser || null;
-            browser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
-            if (!browser) {
-                SimpleTest.info("child process window cannot be focused");
-                return;
-            }
+    if (isWrapper) {
+        throw new Error("Can't pass CPOW to SimpleTest.focus as the content window.");
+    }
 
-            mustFocusSubframe = (targetWindow != targetWindow.top);
-        }
-
-        // If a subframe in a child process needs to be focused, first focus the
-        // parent frame, then send a WaitForFocus:FocusChild message to the child
-        // containing the subframe to focus.
+    if (browser && browser.isRemoteBrowser) {
         browser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
-            if (mustFocusSubframe) {
-                mustFocusSubframe = false;
-                var mm = gBrowser.selectedBrowser.messageManager;
-                mm.sendAsyncMessage("WaitForFocus:FocusChild", {}, { child: targetWindow } );
-            }
-            else {
-                browser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
-                SimpleTest._pendingWaitForFocusCount--;
-                setTimeout(callback, 0, browser ? browser.contentWindowAsCPOW : targetWindow);
-            }
+            browser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
+            SimpleTest._pendingWaitForFocusCount--;
+            setTimeout(callback, 0, browser);
         });
 
         // Serialize the waitForFocusInner function and run it in the child process.
@@ -1597,9 +1585,9 @@ SimpleTest.isDeeply = function (it, as, name) {
     var stack = [{ vals: [it, as] }];
     var seen = [];
     if ( SimpleTest._deepCheck(it, as, stack, seen)) {
-        SimpleTest.ok(true, name);
+        SimpleTest.record(true, name);
     } else {
-        SimpleTest.ok(false, name, SimpleTest._formatStack(stack));
+        SimpleTest.record(false, name, SimpleTest._formatStack(stack));
     }
 };
 
@@ -1622,6 +1610,7 @@ SimpleTest.isa = function (object, clas) {
 
 // Global symbols:
 var ok = SimpleTest.ok;
+var record = SimpleTest.record;
 var is = SimpleTest.is;
 var isfuzzy = SimpleTest.isfuzzy;
 var isnot = SimpleTest.isnot;
@@ -1651,8 +1640,9 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber,
     }
     if (!SimpleTest._ignoringAllUncaughtExceptions) {
         // Don't log if SimpleTest.finish() is already called, it would cause failures
-        if (!SimpleTest._alreadyFinished)
-          SimpleTest.ok(isExpected, message, error);
+        if (!SimpleTest._alreadyFinished) {
+            SimpleTest.record(isExpected, message, error);
+        }
         SimpleTest._expectingUncaughtException = false;
     } else {
         SimpleTest.todo(false, message + ": " + error);

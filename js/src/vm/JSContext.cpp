@@ -118,7 +118,7 @@ JSContext::init(ContextKind kind)
         }
 
 #ifdef JS_SIMULATOR
-        simulator_ = jit::Simulator::Create(this);
+        simulator_ = jit::Simulator::Create();
         if (!simulator_) {
             return false;
         }
@@ -1136,13 +1136,14 @@ JSContext::recoverFromOutOfMemory()
 }
 
 static bool
-InternalEnqueuePromiseJobCallback(JSContext* cx, JS::HandleObject job,
+InternalEnqueuePromiseJobCallback(JSContext* cx, JS::HandleObject promise,
+                                  JS::HandleObject job,
                                   JS::HandleObject allocationSite,
                                   JS::HandleObject incumbentGlobal, void* data)
 {
     MOZ_ASSERT(job);
     JS::JobQueueMayNotBeEmpty(cx);
-    if (!cx->jobQueue->append(job)) {
+    if (!cx->jobQueue->pushBack(job)) {
         ReportOutOfMemory(cx);
         return false;
     }
@@ -1177,7 +1178,7 @@ js::EnqueueJob(JSContext* cx, JS::HandleObject job)
 {
     MOZ_ASSERT(cx->jobQueue);
     JS::JobQueueMayNotBeEmpty(cx);
-    if (!cx->jobQueue->append(job)) {
+    if (!cx->jobQueue->pushBack(job)) {
         ReportOutOfMemory(cx);
         return false;
     }
@@ -1215,30 +1216,19 @@ js::RunJobs(JSContext* cx)
         RootedValue rval(cx);
 
         // Execute jobs in a loop until we've reached the end of the queue.
-        // Since executing a job can trigger enqueuing of additional jobs,
-        // it's crucial to re-check the queue length during each iteration.
-        for (size_t i = 0; i < cx->jobQueue->length(); i++) {
+        while (!cx->jobQueue->empty()) {
             // A previous job might have set this flag. E.g., the js shell
             // sets it if the `quit` builtin function is called.
             if (cx->stopDrainingJobQueue) {
                 break;
             }
 
-            job = cx->jobQueue->get()[i];
-
-            // It's possible that queue draining was interrupted prematurely,
-            // leaving the queue partly processed. In that case, slots for
-            // already-executed entries will contain nullptrs, which we should
-            // just skip.
-            if (!job) {
-                continue;
-            }
-
-            cx->jobQueue->get()[i] = nullptr;
+            job = cx->jobQueue->front();
+            cx->jobQueue->popFront();
 
             // If the next job is the last job in the job queue, allow
             // skipping the standard job queuing behavior.
-            if (i == cx->jobQueue->length() - 1) {
+            if (cx->jobQueue->empty()) {
                 JS::JobQueueIsEmpty(cx);
             }
 
@@ -1676,11 +1666,24 @@ AutoEnterOOMUnsafeRegion::crash(size_t size, const char* reason)
 }
 
 #ifdef DEBUG
-AutoUnsafeCallWithABI::AutoUnsafeCallWithABI()
+AutoUnsafeCallWithABI::AutoUnsafeCallWithABI(UnsafeABIStrictness strictness)
   : cx_(TlsContext.get()),
     nested_(cx_->hasAutoUnsafeCallWithABI),
     nogc(cx_)
 {
+    switch(strictness) {
+      case UnsafeABIStrictness::NoExceptions:
+        MOZ_ASSERT(!JS_IsExceptionPending(cx_));
+        checkForPendingException_ = true;
+        break;
+      case UnsafeABIStrictness::AllowPendingExceptions:
+        checkForPendingException_ = !JS_IsExceptionPending(cx_);
+        break;
+      case UnsafeABIStrictness::AllowThrownExceptions:
+        checkForPendingException_ = false;
+        break;
+    }
+
     cx_->hasAutoUnsafeCallWithABI = true;
 }
 
@@ -1691,5 +1694,6 @@ AutoUnsafeCallWithABI::~AutoUnsafeCallWithABI()
         cx_->hasAutoUnsafeCallWithABI = false;
         cx_->inUnsafeCallWithABI = false;
     }
+    MOZ_ASSERT_IF(checkForPendingException_, !JS_IsExceptionPending(cx_));
 }
 #endif

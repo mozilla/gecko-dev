@@ -3,8 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 %endif
-%filter substitution
-%define identityPopupExpanderWidth 38px
 
 /* Hide all conditional elements by default. */
 :-moz-any([when-connection],[when-mixedcontent],[when-ciphers],[when-loginforms]) {
@@ -74,7 +72,7 @@
   max-width: 33em;
 }
 
-.identity-popup-section:not(:first-child) {
+.identity-popup-section {
   border-top: 1px solid var(--panel-separator-color);
 }
 
@@ -105,7 +103,7 @@
   margin: 0;
   padding: 4px 0;
   min-width: auto;
-  width: @identityPopupExpanderWidth@;
+  width: 38px;
   border-style: none;
   -moz-appearance: none;
   background: url("chrome://browser/skin/arrow-left.svg") center no-repeat;
@@ -147,6 +145,9 @@
 
 /* CONTENT */
 
+#identity-popup-mainView-panel-header > label,
+#identity-popup-securityView > .panel-header,
+#identity-popup-breakageReportView > .panel-header,
 #identity-popup-content-blocking-report-breakage,
 #identity-popup-content-blocking-disabled-label,
 .identity-popup-content-blocking-category-label,
@@ -161,6 +162,23 @@
 #identity-popup-content-blocking-content > description {
   font-size: 110%;
   margin: 0;
+}
+
+#identity-popup-mainView-panel-header {
+  padding: 4px 1em;
+  min-height: 40px;
+  -moz-box-pack: center;
+  -moz-box-align: center;
+}
+
+#identity-popup-mainView-panel-header-span {
+  display: inline-block;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: break-word;
+  /* This is needed for the overflow-wrap to work correctly.
+   * 33em is the panel width, panel-header has 1em padding on each side. */
+  max-width: calc(33rem - 2em);
 }
 
 #identity-popup-permissions-content > description,
@@ -178,11 +196,12 @@
   font-size: 150%;
 }
 
-.identity-popup-host {
-  word-wrap: break-word;
-  /* 1em + 2em + 24px is .identity-popup-security-content padding
-   * 30em is the panel width */
-  max-width: calc(30rem - 3rem - 24px - @identityPopupExpanderWidth@);
+#identity-popup-host {
+  overflow-wrap: break-word;
+  /* This is needed for the overflow-wrap to work correctly.
+   * 1em + 2em + 24px is .identity-popup-security-content padding
+   * 33em is the panel width */
+  max-width: calc(33rem - 3rem - 24px);
 }
 
 .identity-popup-warning-gray {
@@ -364,15 +383,6 @@ description#identity-popup-content-verifier,
   background-image: url("chrome://browser/skin/controlcenter/tracking-protection.svg");
 }
 
-/* We can currently show either the old tracking protection-only UI, which has "Tracking Protection"
- * as a label, or the new content blocking UI which has a different label and also a list of
- * categories of blockers. This rule hides elements depending on which UI we want to show */
-#identity-popup-content-blocking-content[contentBlockingUI] #tracking-protection-label,
-#identity-popup-content-blocking-content:not([contentBlockingUI]) #content-blocking-label,
-#identity-popup-content-blocking-content:not([contentBlockingUI]) > #identity-popup-content-blocking-category-list {
-  display: none;
-}
-
 /* Disabled label */
 
 #identity-popup-content-blocking-disabled-label {
@@ -390,22 +400,7 @@ description#identity-popup-content-verifier,
   stroke: #d7b600;
 }
 
-#identity-popup-content-blocking-content[enabled][hasException] #identity-popup-content-blocking-disabled-label-global {
-  display: none;
-}
-
-#identity-popup-content-blocking-content:not([enabled]) #identity-popup-content-blocking-disabled-label {
-  display: -moz-box;
-  background-color: #d70022;
-  stroke: #d70022;
-}
-
-#identity-popup-content-blocking-content:not([contentBlockingUI]):not([enabled]) #identity-popup-content-blocking-disabled-label {
-  background-color: #b1b1b3;
-  stroke: #b1b1b3;
-}
-
-#identity-popup-content-blocking-content:not([enabled]) #identity-popup-content-blocking-disabled-label-exception {
+#identity-popup-content-blocking-content[hasException] #identity-popup-content-blocking-disabled-label-global {
   display: none;
 }
 
@@ -439,21 +434,13 @@ description#identity-popup-content-verifier,
   display: none;
 }
 
-#identity-popup-content-blocking-content[enabled][hasException] .identity-popup-content-blocking-category-state-label,
+#identity-popup-content-blocking-content[hasException] .identity-popup-content-blocking-category-state-label,
 .identity-popup-content-blocking-category:not(.blocked) .identity-popup-content-blocking-category-state-label {
   display: none;
 }
 
 .identity-popup-content-blocking-category.blocked .identity-popup-content-blocking-category-add-blocking {
   display: none;
-}
-
-.fastblock-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/slowtrackers.svg);
-}
-
-#identity-popup-content-blocking-category-fastblock.blocked > .fastblock-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/slowtrackers-disabled.svg);
 }
 
 .tracking-protection-icon {
@@ -475,18 +462,56 @@ description#identity-popup-content-verifier,
 /* Content Blocking action button */
 
 .tracking-protection-button {
+  list-style-image: url(chrome://browser/skin/tracking-protection.svg);
+  -moz-appearance: none;
   margin: 1em 0 0;
   display: none;
+  height: 32px;
+  background-color: var(--arrowpanel-dimmed);
+  color: inherit;
+}
+
+.tracking-protection-button:hover {
+  background-color: var(--arrowpanel-dimmed-further);
+}
+
+.tracking-protection-button:hover:active {
+  background-color: var(--arrowpanel-dimmed-even-further);
+}
+
+.tracking-protection-button:-moz-focusring {
+  box-shadow: var(--focus-ring-box-shadow);
+}
+
+#tracking-action-block {
+  background-color: #8000d7;
+  color: #fff;
+}
+
+#tracking-action-block:hover {
+  background-color: #7100be;
+}
+
+#tracking-action-block:hover:active {
+  background-color: #6200a4;
+}
+
+#tracking-action-block .button-icon {
+  fill-opacity: 1;
+}
+
+#tracking-action-unblock,
+#tracking-action-unblock-private {
+  list-style-image: url(chrome://browser/skin/tracking-protection-disabled.svg);
 }
 
 #identity-popup-content-blocking-report-breakage {
   margin-top: 6px;
 }
 
-/* Hide the "report breakage" button if TP is off or we have not detected any
- * trackers (except if the user added an exception, in which case they might
- * still (especially!) want to report the breakage). */
-#identity-popup-content-blocking-content:not([enabled]) #identity-popup-content-blocking-report-breakage,
+/* Hide the "report breakage" button if we have not detected any trackers
+ * (except if the user added an exception, in which case they might still
+ * (especially!) want to report the breakage). */
 #identity-popup-content-blocking-content:not([active]):not([hasException]) #identity-popup-content-blocking-report-breakage {
   display: none;
 }
@@ -497,7 +522,7 @@ description#identity-popup-content-verifier,
 /* Offer to permanently add an exception in normal mode. */
 #main-window[privatebrowsingmode] #identity-popup-content-blocking-content[active]:not([hasException]) > #tracking-action-unblock-private,
 /* If there's an exception just offer to remove the exception again. */
-#identity-popup-content-blocking-content[enabled][hasException] > #tracking-action-block {
+#identity-popup-content-blocking-content[hasException] > #tracking-action-block {
   display: -moz-box;
 }
 

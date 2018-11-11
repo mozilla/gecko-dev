@@ -53,6 +53,11 @@ const POLICIES_TESTS = [
     },
   },
 
+  // POLICY: DisableBuiltinPDFViewer
+  {
+    policies: { "DisableBuiltinPDFViewer": true },
+    lockedPrefs: { "pdfjs.disabled": true },
+  },
 
   // POLICY: DisableFormHistory
   {
@@ -113,7 +118,7 @@ const POLICIES_TESTS = [
     },
   },
 
-  // POLICY: Certificates
+  // POLICY: Certificates (true)
   {
     policies: {
       "Certificates": {
@@ -122,6 +127,18 @@ const POLICIES_TESTS = [
     },
     lockedPrefs: {
       "security.enterprise_roots.enabled": true,
+    },
+  },
+
+  // POLICY: Certificates (false)
+  {
+    policies: {
+      "Certificates": {
+        "ImportEnterpriseRoots": false,
+      },
+    },
+    lockedPrefs: {
+      "security.enterprise_roots.enabled": false,
     },
   },
 
@@ -152,6 +169,35 @@ const POLICIES_TESTS = [
       "privacy.clearOnShutdown.sessions": true,
       "privacy.clearOnShutdown.siteSettings": true,
       "privacy.clearOnShutdown.offlineApps": true,
+    },
+  },
+
+  // POLICY: DNSOverHTTPS Locked
+  {
+    policies: {
+      "DNSOverHTTPS": {
+        "Enabled": true,
+        "ProviderURL": "http://example.com/provider",
+        "Locked": true,
+      },
+    },
+    lockedPrefs: {
+      "network.trr.mode": 2,
+      "network.trr.uri": "http://example.com/provider",
+    },
+  },
+
+  // POLICY: DNSOverHTTPS Unlocked
+  {
+    policies: {
+      "DNSOverHTTPS": {
+        "Enabled": false,
+        "ProviderURL": "http://example.com/provider",
+      },
+    },
+    unlockedPrefs: {
+      "network.trr.mode": 5,
+      "network.trr.uri": "http://example.com/provider",
     },
   },
 ];

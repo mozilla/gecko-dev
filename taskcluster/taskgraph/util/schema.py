@@ -115,7 +115,7 @@ def resolve_keyed_by(item, field, item_name, **extra_values):
             return item
 
         keyed_by = value.keys()[0][3:]  # strip off 'by-' prefix
-        key = extra_values.get(keyed_by) if keyed_by in extra_values else item[keyed_by]
+        key = extra_values[keyed_by] if keyed_by in extra_values else item.get(keyed_by)
         alternatives = value.values()[0]
 
         if len(alternatives) == 1 and 'default' in alternatives:
@@ -125,6 +125,16 @@ def resolve_keyed_by(item, field, item_name, **extra_values):
                 "Keyed-by '{}' unnecessary with only value 'default' "
                 "found, when determining item '{}' in '{}'".format(
                     keyed_by, field, item_name))
+
+        if key is None:
+            if 'default' in alternatives:
+                value = container[subfield] = alternatives['default']
+                continue
+            else:
+                raise Exception(
+                    "No attribute {} and no value for 'default' found "
+                    "while determining item {} in {}".format(
+                        keyed_by, field, item_name))
 
         matches = keymatch(alternatives, key)
         if len(matches) > 1:
@@ -189,14 +199,21 @@ def check_schema(schema):
     iter('schema', schema.schema)
 
 
-def Schema(*args, **kwargs):
+class Schema(voluptuous.Schema):
     """
     Operates identically to voluptuous.Schema, but applying some taskgraph-specific checks
     in the process.
     """
-    schema = voluptuous.Schema(*args, **kwargs)
-    check_schema(schema)
-    return schema
+    def __init__(self, *args, **kwargs):
+        super(Schema, self).__init__(*args, **kwargs)
+        check_schema(self)
+
+    def extend(self, *args, **kwargs):
+        schema = super(Schema, self).extend(*args, **kwargs)
+        check_schema(schema)
+        # We want twice extend schema to be checked too.
+        schema.__class__ = Schema
+        return schema
 
 
 OptimizationSchema = voluptuous.Any(

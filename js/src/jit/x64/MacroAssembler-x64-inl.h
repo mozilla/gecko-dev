@@ -14,6 +14,7 @@
 namespace js {
 namespace jit {
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 
@@ -916,7 +917,8 @@ MacroAssembler::truncateFloat32ToUInt64(Address src, Address dest, Register temp
 
     truncateFloat32ToInt64(src, dest, temp);
 
-    // For unsigned conversion the case of [INT64, UINT64] needs to get handle seperately.
+    // For unsigned conversion the case of [INT64, UINT64] needs to get handled
+    // separately.
     loadPtr(dest, temp);
     branchPtr(Assembler::Condition::NotSigned, temp, Imm32(0), &done);
 
@@ -963,6 +965,7 @@ MacroAssembler::truncateDoubleToUInt64(Address src, Address dest, Register temp,
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 // ===============================================================
 
 void

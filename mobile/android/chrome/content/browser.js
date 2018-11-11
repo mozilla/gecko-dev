@@ -105,8 +105,6 @@ ChromeUtils.defineModuleGetter(this, "RuntimePermissions", "resource://gre/modul
 
 ChromeUtils.defineModuleGetter(this, "WebsiteMetadata", "resource://gre/modules/WebsiteMetadata.jsm");
 
-ChromeUtils.defineModuleGetter(this, "TelemetryStopwatch", "resource://gre/modules/TelemetryStopwatch.jsm");
-
 XPCOMUtils.defineLazyServiceGetter(this, "FontEnumerator",
   "@mozilla.org/gfx/fontenumerator;1",
   "nsIFontEnumerator");
@@ -486,7 +484,7 @@ var BrowserApp = {
     if (AppConstants.ACCESSIBILITY) {
       InitLater(() => GlobalEventDispatcher.dispatch("GeckoView:AccessibilityReady"));
       GlobalEventDispatcher.registerListener((aEvent, aData, aCallback) => {
-        if (aData.enabled) {
+        if (aData.touchEnabled) {
           AccessFu.enable();
         } else {
           AccessFu.disable();
@@ -1578,6 +1576,13 @@ var BrowserApp = {
         case "cookies_sessions":
           promises.push(Sanitizer.clearItem("cookies"));
           promises.push(Sanitizer.clearItem("sessions"));
+          break;
+        case "downloadFiles":
+          // If the user is quiting the app and the downloads are to be sanitized
+          // means he chose to "Clear private data -> Downloads" upon exit so
+          // all downloads will be purged, irrespective of their current state (in progress/error/completed)
+          let clearUnfinishedDownloads = aShutdown === true;
+          promises.push(Sanitizer.clearItem(key, undefined, clearUnfinishedDownloads));
           break;
         case "openTabs":
           if (aShutdown === true) {
@@ -2895,6 +2900,9 @@ var NativeWindow = {
         return;
       }
 
+      // Find the HTMLMediaElement host if the element is inside video controls UA Widget.
+      this._target = this._findMediaElementHostFromControls(this._target);
+
       // Try to build a list of contextmenu items. If successful, actually show the
       // native context menu by passing the list to Java.
       this._buildMenu(event.clientX, event.clientY);
@@ -2956,6 +2964,27 @@ var NativeWindow = {
           this.menus[context] = [];
         }
         this.menus[context] = this.menus[context].concat(items);
+    },
+
+    _findMediaElementHostFromControls(element) {
+      if (!(element instanceof HTMLMediaElement)) {
+        let n = element;
+        while (n) {
+          if (n instanceof ShadowRoot) {
+            if (n.host instanceof HTMLMediaElement) {
+              // Node is a UA Widget Shadow Root with HTMLMediaElement as host
+              return n.host;
+            }
+            // Node is a normal Shadow Root, give up
+            return element;
+          }
+          // Set the node to its parentNode and continue the loop.
+          n = n.parentNode;
+        }
+      }
+      // Return the element given that the loop ends without finding anything,
+      // or because the element is already an HTMLMediaElement.
+      return element;
     },
 
     /* Does the basic work of building a context menu to show. Will combine HTML and Native
@@ -3875,7 +3904,7 @@ Tab.prototype = {
       url = this.originalURI.spec;
     }
 
-    this.browser.docShell.loadURI(url, flags, null, null, null);
+    this.browser.docShell.loadURI(url, flags, null, null, null, this.browser.contentPrincipal);
   },
 
   destroy: function() {
@@ -4205,7 +4234,7 @@ Tab.prototype = {
           if (errorExtra == "fileAccessDenied") {
             // Check if we already have the permissions, then - if we do not have them, show the prompt and reload the page.
             // If we already have them, it means access to file was denied.
-            RuntimePermissions.checkPermission(RuntimePermissions.READ_EXTERNAL_STORAGE).then((permissionAlreadyGranted) => {
+            RuntimePermissions.checkPermissions(RuntimePermissions.READ_EXTERNAL_STORAGE).then((permissionAlreadyGranted) => {
               if (!permissionAlreadyGranted) {
                 RuntimePermissions.waitForPermissions(RuntimePermissions.READ_EXTERNAL_STORAGE).then((permissionGranted) => {
                   if (permissionGranted) {
@@ -4704,7 +4733,8 @@ Tab.prototype = {
   _state: null,
   _hostChanged: false, // onLocationChange will flip this bit
 
-  onSecurityChange: function(aWebProgress, aRequest, aState) {
+  onSecurityChange: function(aWebProgress, aRequest, aOldState, aState,
+                             aContentBlockingLogJSON) {
     // Don't need to do anything if the data we use to update the UI hasn't changed
     if (this._state == aState && !this._hostChanged)
       return;
@@ -5043,7 +5073,14 @@ var ErrorPageEventHandler = {
             // Allow users to override and continue through to the site,
             let webNav = BrowserApp.selectedBrowser.docShell.QueryInterface(Ci.nsIWebNavigation);
             let location = BrowserApp.selectedBrowser.contentWindow.location;
-            webNav.loadURI(location, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER, null, null, null);
+            let attrs = {};
+            let isPrivate = PrivateBrowsingUtils.isBrowserPrivate(BrowserApp.selectedBrowser);
+            if (isPrivate) {
+              attrs["privateBrowsingId"] = 1;
+            }
+
+            let triggeringPrincipal = nullServices.scriptSecurityManager.createNullPrincipal(attrs);
+            webNav.loadURI(location, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER, null, null, triggeringPrincipal);
 
             // ....but add a notify bar as a reminder, so that they don't lose
             // track after, e.g., tab switching.
@@ -6015,7 +6052,7 @@ var SearchEngines = {
   },
 
   addOpenSearchEngine: function addOpenSearchEngine(engine) {
-    Services.search.addEngine(engine.url, Ci.nsISearchEngine.DATA_XML, engine.iconURL, false, {
+    Services.search.addEngine(engine.url, engine.iconURL, false, {
       onSuccess: function() {
         // Display a toast confirming addition of new search engine.
         Snackbars.show(Strings.browser.formatStringFromName("alertSearchEngineAddedToast", [engine.title], 1), Snackbars.LENGTH_LONG);

@@ -17,7 +17,7 @@
 #include "nsIURI.h"
 class nsPresContext;
 class nsIPresShell;
-class nsDocShellLoadInfo;
+class nsDocShellLoadState;
 namespace mozilla {
 class Encoding;
 class HTMLEditor;
@@ -63,7 +63,7 @@ interface nsICommandManager;
 interface nsICommandParams;
 interface nsILoadURIDelegate;
 native TabChildRef(already_AddRefed<nsITabChild>);
-native nsDocShellLoadInfoPtr(nsDocShellLoadInfo*);
+native nsDocShellLoadStatePtr(nsDocShellLoadState*);
 
 webidl BrowsingContext;
 webidl ContentFrameMessageManager;
@@ -78,23 +78,9 @@ interface nsIDocShell : nsIDocShellTreeItem
    * however, the URL dispatcher will go through its normal process of content
    * loading.
    *
-   * @param uri        - The URI to load.
-   * @param loadInfo   - This is the extended load info for this load.  This
-   *                     most often will be null, but if you need to do
-   *                     additional setup for this load you can get a loadInfo
-   *                     object by calling createLoadInfo.  Once you have this
-   *                     object you can set the needed properties on it and
-   *                     then pass it to loadURI.
-   * @param aLoadFlags - Flags to modify load behaviour. Flags are defined in
-   *                     nsIWebNavigation.  Note that using flags outside
-   *                     LOAD_FLAGS_MASK is only allowed if passing in a
-   *                     non-null loadInfo.  And even some of those might not
-   *                     be allowed.  Use at your own risk.
+   * @param loadState   - This is the extended load info for this load.
    */
-  [noscript]void loadURI(in nsIURI uri,
-                         in nsDocShellLoadInfoPtr loadInfo,
-                         in unsigned long aLoadFlags,
-                         in boolean firstParty);
+  [noscript]void loadURI(in nsDocShellLoadStatePtr loadState);
 
   const long INTERNAL_LOAD_FLAGS_NONE                    = 0x0;
   const long INTERNAL_LOAD_FLAGS_INHERIT_PRINCIPAL       = 0x1;
@@ -104,6 +90,12 @@ interface nsIDocShell : nsIDocShellTreeItem
   // This flag marks the first load in this object
   // @see nsIWebNavigation::LOAD_FLAGS_FIRST_LOAD
   const long INTERNAL_LOAD_FLAGS_FIRST_LOAD              = 0x8;
+
+
+  // The set of flags that should not be set before calling into
+  // nsDocShell::LoadURI and other nsDocShell loading functions.
+  const long INTERNAL_LOAD_FLAGS_LOADURI_SETUP_FLAGS     = 0xf;
+
 
   const long INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER       = 0x10;
   const long INTERNAL_LOAD_FLAGS_FORCE_ALLOW_COOKIES     = 0x20;
@@ -198,7 +190,7 @@ interface nsIDocShell : nsIDocShellTreeItem
                               in nsIPrincipal aPrincipalToInherit,
                               in uint32_t aFlags,
                               in AString aWindowTarget,
-                              in string aTypeHint,
+                              in ACString aTypeHint,
                               in AString aFileName,
                               in nsIInputStream aPostDataStream,
                               in nsIInputStream aHeadersStream,
@@ -216,8 +208,8 @@ interface nsIDocShell : nsIDocShellTreeItem
    * depending on the value of aReplace.
    */
   [implicit_jscontext]
-  void addState(in jsval aData, in DOMString aTitle,
-                in DOMString aURL, in boolean aReplace);
+  void addState(in jsval aData, in AString aTitle,
+                in AString aURL, in boolean aReplace);
 
   /**
    * Reset state to a new content model within the current document and the document
@@ -266,6 +258,11 @@ interface nsIDocShell : nsIDocShellTreeItem
   readonly attribute nsIContentViewer contentViewer;
 
   /**
+   * Get the id of the outer window that is or will be in this docshell.
+   */
+  [infallible] readonly attribute unsigned long long outerWindowID;
+
+  /**
    * This attribute allows chrome to tie in to handle DOM events that may
    * be of interest to chrome.
    */
@@ -274,7 +271,7 @@ interface nsIDocShell : nsIDocShellTreeItem
   /**
    * This allows chrome to set a custom User agent on a specific docshell
    */
-  attribute DOMString customUserAgent;
+  attribute AString customUserAgent;
 
   /**
    * Whether CSS error reporting is enabled.
@@ -1094,6 +1091,8 @@ interface nsIDocShell : nsIDocShellTreeItem
                                                                   in string asyncCause);
   [noscript,notxpcom,nostdcall] void notifyJSRunToCompletionStop();
 
+  [noscript] void GetOSHEId(out uint32_t aSHEntryId);
+
   /**
    * This attribute determines whether a document which is not about:blank has
    * already be loaded by this docShell.
@@ -1139,7 +1138,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    * This allows chrome to override the default choice of whether touch events
    * are available on a specific docshell. Possible values are listed below.
    */
-  attribute unsigned long touchEventsOverride;
+  [infallible] attribute unsigned long touchEventsOverride;
   /**
    * Override platform/pref default behaviour and force-disable touch events.
    */
@@ -1152,6 +1151,28 @@ interface nsIDocShell : nsIDocShellTreeItem
    * Don't override the platform/pref default behaviour for touch events.
    */
   const unsigned long TOUCHEVENTS_OVERRIDE_NONE = 2;
+
+  /**
+   * Override platform/pref default behaviour and force-disable support for
+   * <meta name="viewport">.
+   */
+  const unsigned long META_VIEWPORT_OVERRIDE_DISABLED = 0;
+  /**
+   * Override platform/pref default behaviour and force-enable support for
+   * <meta name="viewport">.
+   */
+  const unsigned long META_VIEWPORT_OVERRIDE_ENABLED = 1;
+  /**
+   * Don't override the platform/pref default behaviour for support for
+   * <meta name="viewport">.
+   */
+  const unsigned long META_VIEWPORT_OVERRIDE_NONE = 2;
+  /**
+   * This allows chrome to override the default choice of whether the
+   * <meta name="viewport"> tag is respected in a specific docshell.
+   * Possible values are listed above.
+   */
+  attribute unsigned long metaViewportOverride;
 
   /**
    * This value is `true` if its corresponding unit of related browsing contexts
@@ -1213,9 +1234,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   mozilla::HTMLEditor* GetHTMLEditor();
   nsresult SetHTMLEditor(mozilla::HTMLEditor* aHTMLEditor);
-
-  void AttachBrowsingContext(nsIDocShell* aParentDocShell);
-  void DetachBrowsingContext();
 %}
 
   /**
@@ -1236,11 +1254,22 @@ interface nsIDocShell : nsIDocShellTreeItem
    * Display mode for this docshell. Defaults to DISPLAY_MODE_BROWSER.
    * Media queries only look at the value in the top-most docshell.
    */
-  attribute unsigned long displayMode;
+  [infallible] attribute unsigned long displayMode;
 
   /**
    * The message manager for this docshell.  This does not throw, but
    * can return null if the docshell has no message manager.
    */
   [infallible] readonly attribute ContentFrameMessageManager messageManager;
+
+  /**
+   * Asynchronously retrieve a JSON string representing a log of the
+   * content blocking events happened so far in the current tab from the
+   * content process.
+   *
+   * This returns a Promise which resolves to a string on success, and is
+   * rejected on failure.  For documentation on the string format, please
+   * see nsISecureBrowserUI.contentBlockingLogJSON.
+   */
+  Promise getContentBlockingLog();
 };

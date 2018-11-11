@@ -18,6 +18,7 @@ import mozinfo
 from mozharness.base.errors import BaseErrorList
 from mozharness.base.script import PreScriptAction
 from mozharness.base.vcs.vcsbase import MercurialScript
+from mozharness.mozilla.testing.android import AndroidMixin
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 from mozharness.mozilla.testing.codecoverage import (
     CodeCoverageMixin,
@@ -29,7 +30,7 @@ from mozharness.mozilla.structuredlog import StructuredOutputParser
 from mozharness.base.log import INFO
 
 
-class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
+class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
     config_options = [
         [['--test-type'], {
             "action": "extend",
@@ -89,6 +90,13 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
             "default": False,
             "help": "Forcibly enable single thread traversal in Stylo with STYLO_THREADS=1"}
          ],
+        [["--setpref"], {
+            "action": "append",
+            "metavar": "PREF=VALUE",
+            "dest": "extra_prefs",
+            "default": [],
+            "help": "Defines an extra user preference."}
+         ],
     ] + copy.deepcopy(testing_config_options) + \
         copy.deepcopy(code_coverage_config_options)
 
@@ -97,9 +105,12 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
             config_options=self.config_options,
             all_actions=[
                 'clobber',
+                'setup-avds',
+                'start-emulator',
                 'download-and-extract',
                 'create-virtualenv',
                 'pull',
+                'verify-device',
                 'install',
                 'run-tests',
             ],
@@ -114,6 +125,9 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
         self.installer_path = c.get('installer_path')
         self.binary_path = c.get('binary_path')
         self.abs_app_dir = None
+        self.xre_path = None
+        if self.is_emulator:
+            self.device_serial = 'emulator-5554'
 
     def query_abs_app_dir(self):
         """We can't set this in advance, because OSX install directories
@@ -137,6 +151,10 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
         dirs['abs_test_bin_dir'] = os.path.join(dirs['abs_test_install_dir'], 'bin')
         dirs["abs_wpttest_dir"] = os.path.join(dirs['abs_test_install_dir'], "web-platform")
         dirs['abs_blob_upload_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'blobber_upload_dir')
+        if self.is_android:
+            dirs['abs_xre_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'hostutils')
+        if self.is_emulator:
+            dirs['abs_avds_dir'] = self.config.get('avds_dir')
 
         abs_dirs.update(dirs)
         self.abs_dirs = abs_dirs
@@ -171,9 +189,18 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
             # And exit
 
         c = self.config
+        run_file_name = "runtests.py"
+
         dirs = self.query_abs_dirs()
         abs_app_dir = self.query_abs_app_dir()
-        run_file_name = "runtests.py"
+        str_format_values = {
+            'binary_path': self.binary_path,
+            'test_path': dirs["abs_wpttest_dir"],
+            'test_install_path': dirs["abs_test_install_dir"],
+            'abs_app_dir': abs_app_dir,
+            'abs_work_dir': dirs["abs_work_dir"],
+            'xre_path': self.xre_path,
+        }
 
         cmd = [self.query_python_path('python'), '-u']
         cmd.append(os.path.join(dirs["abs_wpttest_dir"], run_file_name))
@@ -199,11 +226,21 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
                 "--run-by-dir=%i" % (3 if not mozinfo.info["asan"] else 0),
                 "--no-pause-after-test"]
 
-        if not sys.platform.startswith("linux"):
-            cmd += ["--exclude=css"]
+        if self.is_android:
+            cmd += ["--device-serial=%s" % self.device_serial]
+            cmd += ["--package-name=%s" % self.query_package_name()]
+
+        if mozinfo.info["os"] == "win" and mozinfo.info["os_version"] == "6.1":
+            # On Windows 7 --install-fonts fails, so fall back to a Firefox-specific codepath
+            self._install_fonts()
+        else:
+            cmd += ["--install-fonts"]
 
         for test_type in test_types:
             cmd.append("--test-type=%s" % test_type)
+
+        if c['extra_prefs']:
+            cmd.extend(['--setpref={}'.format(p) for p in c['extra_prefs']])
 
         if not c["e10s"]:
             cmd.append("--disable-e10s")
@@ -226,6 +263,8 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
                     if val:
                         cmd.append("--%s=%s" % (opt.replace("_", "-"), val))
 
+        options = list(c.get("options", []))
+
         if "wdspec" in test_types:
             geckodriver_path = self._query_geckodriver()
             if not geckodriver_path or not os.path.isfile(geckodriver_path):
@@ -233,16 +272,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
                            "in common test package: %s" % str(geckodriver_path))
             cmd.append("--webdriver-binary=%s" % geckodriver_path)
             cmd.append("--webdriver-arg=-vv")  # enable trace logs
-
-        options = list(c.get("options", []))
-
-        str_format_values = {
-            'binary_path': self.binary_path,
-            'test_path': dirs["abs_wpttest_dir"],
-            'test_install_path': dirs["abs_test_install_dir"],
-            'abs_app_dir': abs_app_dir,
-            'abs_work_dir': dirs["abs_work_dir"]
-        }
 
         test_type_suite = {
             "testharness": "web-platform-tests",
@@ -272,8 +301,19 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
                           "mozpack/*",
                           "mozbuild/*"],
             suite_categories=["web-platform"])
+        if self.is_android:
+            dirs = self.query_abs_dirs()
+            self.xre_path = self.download_hostutils(dirs['abs_xre_dir'])
+
+    def install(self):
+        if self.is_android:
+            self.install_apk(self.installer_path)
+        else:
+            super(WebPlatformTest, self).install()
 
     def _install_fonts(self):
+        if self.is_android:
+            return
         # Ensure the Ahem font is available
         dirs = self.query_abs_dirs()
 
@@ -291,8 +331,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
 
     def run_tests(self):
         dirs = self.query_abs_dirs()
-
-        self._install_fonts()
 
         parser = StructuredOutputParser(config=self.config,
                                         log_obj=self.log_obj,
@@ -316,6 +354,9 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin):
             env['STYLO_THREADS'] = '1'
         else:
             env['STYLO_THREADS'] = '4'
+
+        if self.is_android:
+            env['ADB_PATH'] = self.adb_path
 
         env = self.query_env(partial_env=env, log_level=INFO)
 

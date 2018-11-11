@@ -61,9 +61,8 @@ PaymentRequestEnumerator::GetNext(nsISupports** aItem)
   if (!rowRequest) {
     return NS_ERROR_FAILURE;
   }
-  nsCOMPtr<nsIPaymentRequest> request = do_QueryInterface(rowRequest);
   mIndex++;
-  request.forget(aItem);
+  rowRequest.forget(aItem);
   return NS_OK;
 }
 
@@ -114,8 +113,7 @@ PaymentRequestService::GetPaymentRequestById(const nsAString& aRequestId,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  nsCOMPtr<nsIPaymentRequest> request = do_QueryInterface(rowRequest);
-  request.forget(aRequest);
+  rowRequest.forget(aRequest);
   return NS_OK;
 }
 
@@ -236,7 +234,6 @@ PaymentRequestService::RequestPayment(const nsAString& aRequestId,
     case IPCPaymentActionRequest::TIPCPaymentCreateActionRequest: {
       MOZ_ASSERT(!request);
       const IPCPaymentCreateActionRequest& action = aAction;
-      uint64_t tabId = aIPC->GetTabId();
       nsCOMPtr<nsIMutableArray> methodData = do_CreateInstance(NS_ARRAY_CONTRACTID);
       MOZ_ASSERT(methodData);
       for (IPCPaymentMethodData data : action.methodData()) {
@@ -253,7 +250,7 @@ PaymentRequestService::RequestPayment(const nsAString& aRequestId,
       rv = payments::PaymentOptions::Create(action.options(), getter_AddRefs(options));
       NS_ENSURE_SUCCESS(rv, rv);
       RefPtr<payments::PaymentRequest> request =
-        new payments::PaymentRequest(tabId,
+        new payments::PaymentRequest(action.topOuterWindowId(),
                                      aRequestId,
                                      action.topLevelPrincipal(),
                                      methodData,

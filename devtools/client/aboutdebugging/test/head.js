@@ -14,6 +14,7 @@ Services.scriptloader.loadSubScript(
 
 const { AddonManager } = ChromeUtils.import("resource://gre/modules/AddonManager.jsm", {});
 const { Management } = ChromeUtils.import("resource://gre/modules/Extension.jsm", {});
+const { ExtensionTestCommon } = ChromeUtils.import("resource://testing-common/ExtensionTestCommon.jsm", {});
 
 async function openAboutDebugging(page, win) {
   info("opening about:debugging");
@@ -165,12 +166,16 @@ function getTabList(document) {
     document.querySelector("#tabs.targets");
 }
 
-async function installAddon({document, path, name, isWebExtension}) {
+async function installAddon({document, path, file, name, isWebExtension}) {
   // Mock the file picker to select a test addon
   const MockFilePicker = SpecialPowers.MockFilePicker;
   MockFilePicker.init(window);
-  const file = getSupportsFile(path);
-  MockFilePicker.setFiles([file.file]);
+  if (path) {
+    file = getSupportsFile(path);
+    MockFilePicker.setFiles([file.file]);
+  } else {
+    MockFilePicker.setFiles([file]);
+  }
 
   let onAddonInstalled;
 
@@ -217,7 +222,7 @@ async function uninstallAddon({document, id, name}) {
         AddonManager.removeAddonListener(listener);
 
         done();
-      }
+      },
     };
     AddonManager.addAddonListener(listener);
     addon.uninstall();
@@ -341,7 +346,7 @@ function waitForDelayedStartupFinished(win) {
 /**
  * open the about:debugging page and install an addon
  */
-async function setupTestAboutDebuggingWebExtension(name, path) {
+async function setupTestAboutDebuggingWebExtension(name, file) {
   await new Promise(resolve => {
     const options = {"set": [
       // Force enabling of addons debugging
@@ -360,7 +365,7 @@ async function setupTestAboutDebuggingWebExtension(name, path) {
 
   await installAddon({
     document,
-    path,
+    file,
     name,
     isWebExtension: true,
   });
@@ -423,7 +428,7 @@ function promiseAddonEvent(event) {
       [event]: function(...args) {
         AddonManager.removeAddonListener(listener);
         resolve(args);
-      }
+      },
     };
 
     AddonManager.addAddonListener(listener);
@@ -444,7 +449,7 @@ function installAddonWithManager(filePath) {
       onDownloadCancelled: reject,
       onInstallFailed: reject,
       onInstallCancelled: reject,
-      onInstallEnded: resolve
+      onInstallEnded: resolve,
     });
     install.install();
   });
@@ -457,9 +462,11 @@ function getAddonByID(addonId) {
 /**
  * Uninstall an add-on.
  */
-async function tearDownAddon(addon) {
+async function tearDownAddon(AboutDebugging, addon) {
   const onUninstalled = promiseAddonEvent("onUninstalled");
+  const onListUpdated = once(AboutDebugging, "addons-updated");
   addon.uninstall();
+  await onListUpdated;
   const [uninstalledAddon] = await onUninstalled;
   is(uninstalledAddon.id, addon.id,
      `Add-on was uninstalled: ${uninstalledAddon.id}`);

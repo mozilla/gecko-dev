@@ -446,7 +446,7 @@ this.VideoControlsImplPageWidget = class {
           case "play":
             this.setPlayButtonState(false);
             this.setupStatusFader();
-            if (!this._triggeredByControls && this.dynamicControls && this.videocontrols.isTouchControls) {
+            if (!this._triggeredByControls && this.dynamicControls && this.isTouchControls) {
               this.startFadeOut(this.controlBar);
             }
             if (!this._triggeredByControls) {
@@ -1113,6 +1113,9 @@ this.VideoControlsImplPageWidget = class {
           options: {
             easing: "ease",
             duration: 400,
+             // The fill mode here and below is a workaround to avoid flicker
+             // due to bug 1495350.
+             fill: "both",
           },
         },
         controlBar: {
@@ -1123,6 +1126,7 @@ this.VideoControlsImplPageWidget = class {
           options: {
             easing: "ease",
             duration: 200,
+            fill: "both",
           },
         },
         statusOverlay: {
@@ -1133,6 +1137,7 @@ this.VideoControlsImplPageWidget = class {
           ],
           options: {
             duration: 1050,
+            fill: "both",
           },
         },
       },
@@ -1203,7 +1208,7 @@ this.VideoControlsImplPageWidget = class {
               case "finished":
                 // There is no animation currently playing.
                 // Schedule a new animation with the desired playback direction.
-                animation.updatePlaybackRate(fadeIn ? 1 : -1);
+                animation.playbackRate = fadeIn ? 1 : -1;
                 animation.play();
                 break;
               case "running":
@@ -1222,13 +1227,20 @@ this.VideoControlsImplPageWidget = class {
           animation.cancel();
           finishedPromise = Promise.resolve();
         }
-        finishedPromise.then(() => {
+        finishedPromise.then(animation => {
           if (element == this.controlBar) {
             this.onControlBarAnimationFinished();
           }
           element.classList.remove(fadeIn ? "fadein" : "fadeout");
           if (!fadeIn) {
             element.hidden = true;
+          }
+          if (animation) {
+            // Explicitly clear the animation effect so that filling animations
+            // stop overwriting stylesheet styles. Remove when bug 1495350 is
+            // fixed and animations are no longer filling animations.
+            // This also stops them from accumulating (See bug 1253476).
+            animation.cancel();
           }
         }, () => { /* Do nothing on rejection */ });
       },
@@ -1761,11 +1773,20 @@ this.VideoControlsImplPageWidget = class {
         return new Proxy(element, this.reflowTriggeringCallValidator);
       },
 
-      // Set the values to intrinsic dimensions before the first update.
       reflowedDimensions: {
+        // Set the dimensions to intrinsic <video> dimensions before the first
+        // update.
+        // These values are not picked up by <audio> in adjustControlSize()
+        // (except for the fact that they are non-zero),
+        // it takes controlBarMinHeight and the value below instead.
         videoHeight: 150,
         videoWidth: 300,
-        videocontrolsWidth: 300,
+
+        // <audio> takes this width to grow/shrink controls.
+        // The initial value has to be smaller than the calculated minRequiredWidth
+        // so that we don't run into bug 1495821 (see comment on adjustControlSize()
+        // below)
+        videocontrolsWidth: 0,
       },
 
       updateReflowedDimensions() {
@@ -1774,6 +1795,29 @@ this.VideoControlsImplPageWidget = class {
         this.reflowedDimensions.videocontrolsWidth = this.videocontrols.clientWidth;
       },
 
+      /**
+       * adjustControlSize() considers outer dimensions of the <video>/<audio> element
+       * from layout, and accordingly, sets/hides the controls, and adjusts
+       * the width/height of the control bar.
+       *
+       * It's important to remember that for <audio>, layout (specifically,
+       * nsVideoFrame) rely on us to expose the intrinsic dimensions of the
+       * control bar to properly size the <audio> element. We interact with layout
+       * by:
+       *
+       * 1) When the element has a non-zero height, explicitly set the height
+       *    of the control bar to a size between controlBarMinHeight and
+       *    controlBarMinVisibleHeight in response.
+       *    Note: the logic here is flawed and had caused the end height to be
+       *    depend on its previous state, see bug 1495817.
+       * 2) When the element has a outer width smaller or equal to minControlBarPaddingWidth,
+       *    explicitly set the control bar to minRequiredWidth, so that when the
+       *    outer width is unset, the audio element could go back to minRequiredWidth.
+       *    Otherwise, set the width of the control bar to be the current outer width.
+       *    Note: the logic here is also flawed; when the control bar is set to
+       *    the current outer width, it never go back when the width is unset,
+       *    see bug 1495821.
+       */
       adjustControlSize() {
         const minControlBarPaddingWidth = 18;
 
@@ -1910,8 +1954,8 @@ this.VideoControlsImplPageWidget = class {
         }
 
         // TODO: Switch to touch controls on touch-based desktops (bug 1447547)
-        this.videocontrols.isTouchControls = isMobile;
-        if (this.videocontrols.isTouchControls) {
+        this.isTouchControls = isMobile;
+        if (this.isTouchControls) {
           this.controlsContainer.classList.add("touch");
         }
 
@@ -1990,8 +2034,8 @@ this.VideoControlsImplPageWidget = class {
 
         for (let { el, type, nonTouchOnly = false, touchOnly = false,
                    mozSystemGroup = true, capture = false } of this.controlsEvents) {
-          if ((this.videocontrols.isTouchControls && nonTouchOnly) ||
-              (!this.videocontrols.isTouchControls && touchOnly)) {
+          if ((this.isTouchControls && nonTouchOnly) ||
+              (!this.isTouchControls && touchOnly)) {
             continue;
           }
           el.addEventListener(type, this, { mozSystemGroup, capture });
@@ -2006,10 +2050,6 @@ this.VideoControlsImplPageWidget = class {
       video: null,
       controlsTimer: null,
       controlsTimeout: 5000,
-
-      get Utils() {
-        return this.videocontrols.Utils;
-      },
 
       get visible() {
         return !this.Utils.controlBar.hasAttribute("fadeout") &&
@@ -2097,9 +2137,12 @@ this.VideoControlsImplPageWidget = class {
         this.clearTimer();
       },
 
-      init(shadowRoot) {
+      init(shadowRoot, utils) {
+        this.Utils = utils;
         this.videocontrols = this.Utils.videocontrols;
         this.video = this.Utils.video;
+        this.document = this.videocontrols.ownerDocument;
+        this.window = this.document.defaultView;
         this.shadowRoot = shadowRoot;
 
         this.controlsEvents = [
@@ -2136,8 +2179,8 @@ this.VideoControlsImplPageWidget = class {
     };
 
     this.Utils.init(this.shadowRoot);
-    if (this.isTouchControls) {
-      this.TouchUtils.init(this.shadowRoot);
+    if (this.Utils.isTouchControls) {
+      this.TouchUtils.init(this.shadowRoot, this.Utils);
     }
     this.shadowRoot.firstChild.dispatchEvent(new this.window.CustomEvent("VideoBindingAttached"));
 
@@ -2200,7 +2243,8 @@ this.VideoControlsImplPageWidget = class {
                       unmutelabel="&muteButton.unmuteLabel;"
                       tabindex="-1"/>
               <div id="volumeStack" class="volumeStack progressContainer" role="none">
-                <input type="range" id="volumeControl" class="volumeControl" min="0" max="100" step="1" tabindex="-1"/>
+                <input type="range" id="volumeControl" class="volumeControl" min="0" max="100" step="1" tabindex="-1"
+                       aria-label="&volumeScrubber.label;"/>
               </div>
               <button id="castingButton" class="button castingButton"
                       aria-label="&castingButton.castingLabel;"/>
@@ -2225,19 +2269,19 @@ this.VideoControlsImplPageWidget = class {
 
   _setupEventListeners() {
     this.shadowRoot.firstChild.addEventListener("mouseover", event => {
-      if (!this.isTouchControls) {
+      if (!this.Utils.isTouchControls) {
         this.Utils.onMouseInOut(event);
       }
     });
 
     this.shadowRoot.firstChild.addEventListener("mouseout", event => {
-      if (!this.isTouchControls) {
+      if (!this.Utils.isTouchControls) {
         this.Utils.onMouseInOut(event);
       }
     });
 
     this.shadowRoot.firstChild.addEventListener("mousemove", event => {
-      if (!this.isTouchControls) {
+      if (!this.Utils.isTouchControls) {
         this.Utils.onMouseMove(event);
       }
     });
@@ -2328,8 +2372,8 @@ this.NoControlsImplPageWidget = class {
         }
 
         // TODO: Switch to touch controls on touch-based desktops (bug 1447547)
-        this.videocontrols.isTouchControls = isMobile;
-        if (this.videocontrols.isTouchControls) {
+        this.isTouchControls = isMobile;
+        if (this.isTouchControls) {
           this.controlsContainer.classList.add("touch");
         }
 

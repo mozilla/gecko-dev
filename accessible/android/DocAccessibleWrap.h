@@ -7,11 +7,48 @@
 #define mozilla_a11y_DocAccessibleWrap_h__
 
 #include "DocAccessible.h"
+#include "nsITimer.h"
 
 namespace mozilla {
 namespace a11y {
 
-typedef DocAccessible DocAccessibleWrap;
+class DocAccessibleWrap : public DocAccessible
+{
+public:
+  DocAccessibleWrap(nsIDocument* aDocument, nsIPresShell* aPresShell);
+  virtual ~DocAccessibleWrap();
+
+  virtual nsresult HandleAccEvent(AccEvent* aEvent) override;
+
+  /**
+   * Manage the mapping from id to Accessible.
+   */
+  void AddID(uint32_t aID, AccessibleWrap* aAcc)
+  {
+    mIDToAccessibleMap.Put(aID, aAcc);
+  }
+  void RemoveID(uint32_t aID) { mIDToAccessibleMap.Remove(aID); }
+  AccessibleWrap* GetAccessibleByID(int32_t aID) const;
+
+  enum {
+    eBatch_Viewport = 0
+  };
+
+protected:
+  /*
+   * This provides a mapping from 32 bit id to accessible objects.
+   */
+  nsDataHashtable<nsUint32HashKey, AccessibleWrap*> mIDToAccessibleMap;
+
+  virtual void DoInitialUpdate() override;
+
+private:
+  void CacheViewport();
+
+  static void CacheViewportCallback(nsITimer* aTimer, void* aDocAccParam);
+
+  nsCOMPtr<nsITimer> mCacheRefreshTimer;
+};
 
 } // namespace a11y
 } // namespace mozilla

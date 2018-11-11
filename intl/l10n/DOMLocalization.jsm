@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-
-/* fluent-dom@cab517f (July 31, 2018) */
+/* fluent-dom@fa25466f (October 12, 2018) */
 
 const { Localization } =
   ChromeUtils.import("resource://gre/modules/Localization.jsm", {});
@@ -39,7 +38,7 @@ const TEXT_LEVEL_ELEMENTS = {
   "http://www.w3.org/1999/xhtml": [
     "em", "strong", "small", "s", "cite", "q", "dfn", "abbr", "data",
     "time", "code", "var", "samp", "kbd", "sub", "sup", "i", "b", "u",
-    "mark", "bdi", "bdo", "span", "br", "wbr"
+    "mark", "bdi", "bdo", "span", "br", "wbr",
   ],
 };
 
@@ -57,18 +56,17 @@ const LOCALIZABLE_ATTRIBUTES = {
     track: ["label"],
     img: ["alt"],
     textarea: ["placeholder"],
-    th: ["abbr"]
+    th: ["abbr"],
   },
   "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul": {
     global: [
-      "accesskey", "aria-label", "aria-valuetext", "aria-moz-hint", "label"
-    ],
+      "accesskey", "aria-label", "aria-valuetext", "aria-moz-hint", "label",
+      "title", "tooltiptext"],
     description: ["value"],
     key: ["key", "keycode"],
     label: ["value"],
     textbox: ["placeholder"],
-    toolbarbutton: ["tooltiptext"],
-  }
+  },
 };
 
 
@@ -177,7 +175,7 @@ function overlayAttributes(fromElement, toElement) {
   }
 
   // fromElement might be a {value, attributes} object as returned by
-  // Localization.messageFromContext. In which case attributes may be null to
+  // Localization.messageFromBundle. In which case attributes may be null to
   // save GC cycles.
   if (!fromElement.attributes) {
     return;
@@ -407,13 +405,13 @@ const L10N_ELEMENT_QUERY = `[${L10NID_ATTR_NAME}]`;
  */
 class DOMLocalization extends Localization {
   /**
-   * @param {Array<String>}    resourceIds      - List of resource IDs
-   * @param {Function}         generateMessages - Function that returns a
-   *                                              generator over MessageContexts
+   * @param {Array<String>}    resourceIds     - List of resource IDs
+   * @param {Function}         generateBundles - Function that returns a
+   *                                             generator over FluentBundles
    * @returns {DOMLocalization}
    */
-  constructor(resourceIds, generateMessages) {
-    super(resourceIds, generateMessages);
+  constructor(resourceIds, generateBundles) {
+    super(resourceIds, generateBundles);
 
     // A Set of DOM trees observed by the `MutationObserver`.
     this.roots = new Set();
@@ -429,7 +427,7 @@ class DOMLocalization extends Localization {
       characterData: false,
       childList: true,
       subtree: true,
-      attributeFilter: [L10NID_ATTR_NAME, L10NARGS_ATTR_NAME]
+      attributeFilter: [L10NID_ATTR_NAME, L10NARGS_ATTR_NAME],
     };
   }
 
@@ -499,7 +497,7 @@ class DOMLocalization extends Localization {
   getAttributes(element) {
     return {
       id: element.getAttribute(L10NID_ATTR_NAME),
-      args: JSON.parse(element.getAttribute(L10NARGS_ATTR_NAME) || null)
+      args: JSON.parse(element.getAttribute(L10NARGS_ATTR_NAME) || null),
     };
   }
 
@@ -810,7 +808,7 @@ class DOMLocalization extends Localization {
   getKeysForElement(element) {
     return {
       id: element.getAttribute(L10NID_ATTR_NAME),
-      args: JSON.parse(element.getAttribute(L10NARGS_ATTR_NAME) || null)
+      args: JSON.parse(element.getAttribute(L10NARGS_ATTR_NAME) || null),
     };
   }
 }

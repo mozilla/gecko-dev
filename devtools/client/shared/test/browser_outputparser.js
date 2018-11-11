@@ -5,6 +5,7 @@
 
 const OutputParser = require("devtools/client/shared/output-parser");
 const {initCssProperties, getCssProperties} = require("devtools/shared/fronts/css-properties");
+const { CSS_PROPERTIES_DB} = require("devtools/shared/css/properties-db");
 const CSS_SHAPES_ENABLED_PREF = "devtools.inspector.shapesHighlighter.enabled";
 
 add_task(async function() {
@@ -18,7 +19,13 @@ async function performTest() {
     "<h1>browser_outputParser.js</h1><div></div>");
 
   // Mock the toolbox that initCssProperties expect so we get the fallback css properties.
-  const toolbox = {target: {client: {}, hasActor: () => false}};
+  const toolbox = {
+    target: {
+      client: {},
+      hasActor: () => false,
+      getFront: typeName => ({getCSSDatabase: () => CSS_PROPERTIES_DB}),
+    },
+  };
   await initCssProperties(toolbox);
   const cssProperties = getCssProperties(toolbox);
 
@@ -51,7 +58,7 @@ function makeColorTest(name, value, segments) {
   const result = {
     name,
     value,
-    expected: ""
+    expected: "",
   };
 
   for (const segment of segments) {
@@ -167,7 +174,7 @@ function testParseCssProperty(doc, parser) {
     info(test.desc);
 
     const frag = parser.parseCssProperty(test.name, test.value, {
-      colorSwatchClass: COLOR_TEST_CLASS
+      colorSwatchClass: COLOR_TEST_CLASS,
     });
 
     target.appendChild(frag);
@@ -181,7 +188,7 @@ function testParseCssProperty(doc, parser) {
 
 function testParseCssVar(doc, parser) {
   const frag = parser.parseCssProperty("color", "var(--some-kind-of-green)", {
-    colorSwatchClass: "test-colorswatch"
+    colorSwatchClass: "test-colorswatch",
   });
 
   const target = doc.querySelector("div");
@@ -227,14 +234,14 @@ function testParseURL(doc, parser) {
       desc: "bad url, missing paren",
       leader: "url(",
       trailer: "",
-      expectedTrailer: ")"
+      expectedTrailer: ")",
     },
     {
       desc: "bad url, missing paren, with baseURI",
       baseURI: "data:text/html,<style></style>",
       leader: "url(",
       trailer: "",
-      expectedTrailer: ")"
+      expectedTrailer: ")",
     },
     {
       desc: "bad url, double quote, missing paren",
@@ -246,8 +253,8 @@ function testParseURL(doc, parser) {
       desc: "bad url, single quote, missing paren and quote",
       leader: "url('",
       trailer: "",
-      expectedTrailer: "')"
-    }
+      expectedTrailer: "')",
+    },
   ];
 
   for (const test of tests) {
@@ -275,7 +282,7 @@ function testParseURL(doc, parser) {
 
 function testParseFilter(doc, parser) {
   const frag = parser.parseCssProperty("filter", "something invalid", {
-    filterSwatchClass: "test-filterswatch"
+    filterSwatchClass: "test-filterswatch",
   });
 
   const swatchCount = frag.querySelectorAll(".test-filterswatch").length;
@@ -284,7 +291,7 @@ function testParseFilter(doc, parser) {
 
 function testParseAngle(doc, parser) {
   let frag = parser.parseCssProperty("rotate", "90deg", {
-    angleSwatchClass: "test-angleswatch"
+    angleSwatchClass: "test-angleswatch",
   });
 
   let swatchCount = frag.querySelectorAll(".test-angleswatch").length;
@@ -292,7 +299,7 @@ function testParseAngle(doc, parser) {
 
   frag = parser.parseCssProperty("background-image",
     "linear-gradient(90deg, red, blue", {
-      angleSwatchClass: "test-angleswatch"
+      angleSwatchClass: "test-angleswatch",
     });
 
   swatchCount = frag.querySelectorAll(".test-angleswatch").length;
@@ -307,109 +314,109 @@ function testParseShape(doc, parser) {
       desc: "Polygon shape",
       definition: "polygon(evenodd, 0px 0px, 10%200px,30%30% , calc(250px - 10px) 0 ,\n "
                   + "12em var(--variable), 100% 100%) margin-box",
-      spanCount: 18
+      spanCount: 18,
     },
     {
       desc: "Invalid polygon shape",
       definition: "polygon(0px 0px 100px 20px, 20% 20%)",
-      spanCount: 0
+      spanCount: 0,
     },
     {
       desc: "Circle shape with all arguments",
       definition: "circle(25% at\n 30% 200px) border-box",
-      spanCount: 4
+      spanCount: 4,
     },
     {
       desc: "Circle shape with only one center",
       definition: "circle(25em at 40%)",
-      spanCount: 3
+      spanCount: 3,
     },
     {
       desc: "Circle shape with no radius",
       definition: "circle(at 30% 40%)",
-      spanCount: 3
+      spanCount: 3,
     },
     {
       desc: "Circle shape with no center",
       definition: "circle(12em)",
-      spanCount: 1
+      spanCount: 1,
     },
     {
       desc: "Circle shape with no arguments",
       definition: "circle()",
-      spanCount: 0
+      spanCount: 0,
     },
     {
       desc: "Circle shape with no space before at",
       definition: "circle(25%at 30% 30%)",
-      spanCount: 4
+      spanCount: 4,
     },
     {
       desc: "Invalid circle shape",
       definition: "circle(25%at30%30%)",
-      spanCount: 0
+      spanCount: 0,
     },
     {
       desc: "Ellipse shape with all arguments",
       definition: "ellipse(200px 10em at 25% 120px) content-box",
-      spanCount: 5
+      spanCount: 5,
     },
     {
       desc: "Ellipse shape with only one center",
       definition: "ellipse(200px 10% at 120px)",
-      spanCount: 4
+      spanCount: 4,
     },
     {
       desc: "Ellipse shape with no radius",
       definition: "ellipse(at 25% 120px)",
-      spanCount: 3
+      spanCount: 3,
     },
     {
       desc: "Ellipse shape with no center",
       definition: "ellipse(200px\n10em)",
-      spanCount: 2
+      spanCount: 2,
     },
     {
       desc: "Ellipse shape with no arguments",
       definition: "ellipse()",
-      spanCount: 0
+      spanCount: 0,
     },
     {
       desc: "Invalid ellipse shape",
       definition: "ellipse(200px100px at 30$ 20%)",
-      spanCount: 0
+      spanCount: 0,
     },
     {
       desc: "Inset shape with 4 arguments",
       definition: "inset(200px 100px\n 30%15%)",
-      spanCount: 4
+      spanCount: 4,
     },
     {
       desc: "Inset shape with 3 arguments",
       definition: "inset(200px 100px 15%)",
-      spanCount: 3
+      spanCount: 3,
     },
     {
       desc: "Inset shape with 2 arguments",
       definition: "inset(200px 100px)",
-      spanCount: 2
+      spanCount: 2,
     },
     {
       desc: "Inset shape with 1 argument",
       definition: "inset(200px)",
-      spanCount: 1
+      spanCount: 1,
     },
     {
       desc: "Inset shape with 0 arguments",
       definition: "inset()",
-      spanCount: 0
-    }
+      spanCount: 0,
+    },
   ];
 
   for (const {desc, definition, spanCount} of tests) {
     info(desc);
     const frag = parser.parseCssProperty("clip-path", definition, {
-      shapeClass: "ruleview-shape"
+      shapeClass: "ruleview-shape",
     });
     const spans = frag.querySelectorAll(".ruleview-shape-point");
     is(spans.length, spanCount, desc + " span count");
@@ -423,20 +430,20 @@ function testParseVariable(doc, parser) {
       text: "var(--seen)",
       variables: {"--seen": "chartreuse" },
       expected: "<span>var(<span data-variable=\"--seen = chartreuse\">--seen</span>)" +
-        "</span>"
+        "</span>",
     },
     {
       text: "var(--not-seen)",
       variables: {},
       expected: "<span>var(<span class=\"unmatched-class\" " +
-        "data-variable=\"--not-seen is not set\">--not-seen</span>)</span>"
+        "data-variable=\"--not-seen is not set\">--not-seen</span>)</span>",
     },
     {
       text: "var(--seen, seagreen)",
       variables: {"--seen": "chartreuse" },
       expected: "<span>var(<span data-variable=\"--seen = chartreuse\">--seen</span>," +
         "<span class=\"unmatched-class\"> <span data-color=\"seagreen\"><span>seagreen" +
-        "</span></span></span>)</span>"
+        "</span></span></span>)</span>",
     },
     {
       text: "var(--not-seen, var(--seen))",
@@ -444,7 +451,7 @@ function testParseVariable(doc, parser) {
       expected: "<span>var(<span class=\"unmatched-class\" " +
         "data-variable=\"--not-seen is not set\">--not-seen</span>,<span> <span>var" +
         "(<span data-variable=\"--seen = chartreuse\">--seen</span>)</span></span>)" +
-        "</span>"
+        "</span>",
     },
   ];
 
@@ -455,7 +462,7 @@ function testParseVariable(doc, parser) {
 
     const frag = parser.parseCssProperty("color", test.text, {
       isVariableInUse: getValue,
-      unmatchedVariableClass: "unmatched-class"
+      unmatchedVariableClass: "unmatched-class",
     });
 
     const target = doc.querySelector("div");
@@ -472,28 +479,28 @@ function testParseFontFamily(doc, parser) {
     {
       desc: "No fonts",
       definition: "",
-      families: []
+      families: [],
     },
     {
       desc: "List of fonts",
       definition: "Arial,Helvetica,sans-serif",
-      families: ["Arial", "Helvetica", "sans-serif"]
+      families: ["Arial", "Helvetica", "sans-serif"],
     },
     {
       desc: "Fonts with spaces",
       definition: "Open Sans",
-      families: ["Open Sans"]
+      families: ["Open Sans"],
     },
     {
       desc: "Quoted fonts",
       definition: "\"Arial\",'Open Sans'",
-      families: ["Arial", "Open Sans"]
+      families: ["Arial", "Open Sans"],
     },
     {
       desc: "Fonts with extra whitespace",
       definition: " Open  Sans  ",
-      families: ["Open Sans"]
-    }
+      families: ["Open Sans"],
+    },
   ];
 
   const textContentTests = [
@@ -526,13 +533,13 @@ function testParseFontFamily(doc, parser) {
       desc: "Whitespace within font preserved",
       definition: "'  Ari al '",
       output: "'  Ari al '",
-    }
+    },
   ];
 
   for (const {desc, definition, families} of tests) {
     info(desc);
     const frag = parser.parseCssProperty("font-family", definition, {
-      fontFamilyClass: "ruleview-font-family"
+      fontFamilyClass: "ruleview-font-family",
     });
     const spans = frag.querySelectorAll(".ruleview-font-family");
 

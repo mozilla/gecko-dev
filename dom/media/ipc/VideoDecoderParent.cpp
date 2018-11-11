@@ -42,14 +42,16 @@ private:
   virtual ~KnowsCompositorVideo() = default;
 };
 
-VideoDecoderParent::VideoDecoderParent(VideoDecoderManagerParent* aParent,
-                                       const VideoInfo& aVideoInfo,
-                                       float aFramerate,
-                                       const layers::TextureFactoryIdentifier& aIdentifier,
-                                       TaskQueue* aManagerTaskQueue,
-                                       TaskQueue* aDecodeTaskQueue,
-                                       bool* aSuccess,
-                                       nsCString* aErrorDescription)
+VideoDecoderParent::VideoDecoderParent(
+  VideoDecoderManagerParent* aParent,
+  const VideoInfo& aVideoInfo,
+  float aFramerate,
+  const CreateDecoderParams::OptionSet& aOptions,
+  const layers::TextureFactoryIdentifier& aIdentifier,
+  TaskQueue* aManagerTaskQueue,
+  TaskQueue* aDecodeTaskQueue,
+  bool* aSuccess,
+  nsCString* aErrorDescription)
   : mParent(aParent)
   , mManagerTaskQueue(aManagerTaskQueue)
   , mDecodeTaskQueue(aDecodeTaskQueue)
@@ -67,6 +69,9 @@ VideoDecoderParent::VideoDecoderParent(VideoDecoderManagerParent* aParent,
   mKnowsCompositor->IdentifyTextureHost(aIdentifier);
 
 #ifdef XP_WIN
+  using Option = CreateDecoderParams::Option;
+  using OptionSet = CreateDecoderParams::OptionSet;
+
   // TODO: Ideally we wouldn't hardcode the WMF PDM, and we'd use the normal PDM
   // factory logic for picking a decoder.
   WMFDecoderModule::Init();
@@ -78,6 +83,7 @@ VideoDecoderParent::VideoDecoderParent(VideoDecoderManagerParent* aParent,
   params.mKnowsCompositor = mKnowsCompositor;
   params.mImageContainer = new layers::ImageContainer();
   params.mRate = CreateDecoderParams::VideoFrameRate(aFramerate);
+  params.mOptions = aOptions;
   MediaResult error(NS_OK);
   params.mError = &error;
 
@@ -159,11 +165,11 @@ VideoDecoderParent::RecvInput(const MediaRawDataIPDL& aData)
   RefPtr<VideoDecoderParent> self = this;
   mDecoder->Decode(data)->Then(
     mManagerTaskQueue, __func__,
-    [self, this](const MediaDataDecoder::DecodedData& aResults) {
+    [self, this](MediaDataDecoder::DecodedData&& aResults) {
       if (mDestroyed) {
         return;
       }
-      ProcessDecodedData(aResults);
+      ProcessDecodedData(std::move(aResults));
       Unused << SendInputExhausted();
     },
     [self](const MediaResult& aError) { self->Error(aError); });
@@ -171,8 +177,7 @@ VideoDecoderParent::RecvInput(const MediaRawDataIPDL& aData)
 }
 
 void
-VideoDecoderParent::ProcessDecodedData(
-  const MediaDataDecoder::DecodedData& aData)
+VideoDecoderParent::ProcessDecodedData(MediaDataDecoder::DecodedData&& aData)
 {
   MOZ_ASSERT(OnManagerThread());
 
@@ -181,7 +186,7 @@ VideoDecoderParent::ProcessDecodedData(
     return;
   }
 
-  for (const auto& data : aData) {
+  for (auto&& data : aData) {
     MOZ_ASSERT(data->mType == MediaData::VIDEO_DATA,
                 "Can only decode videos using VideoDecoderParent!");
     VideoData* video = static_cast<VideoData*>(data.get());
@@ -194,7 +199,7 @@ VideoDecoderParent::ProcessDecodedData(
 
     if (!texture) {
       texture = ImageClient::CreateTextureClientForImage(video->mImage,
-                                                          mKnowsCompositor);
+                                                         mKnowsCompositor);
     }
 
     if (texture && !texture->IsAddedToCompositableClient()) {
@@ -242,9 +247,9 @@ VideoDecoderParent::RecvDrain()
   RefPtr<VideoDecoderParent> self = this;
   mDecoder->Drain()->Then(
     mManagerTaskQueue, __func__,
-    [self, this](const MediaDataDecoder::DecodedData& aResults) {
+    [self, this](MediaDataDecoder::DecodedData&& aResults) {
       if (!mDestroyed) {
-        ProcessDecodedData(aResults);
+        ProcessDecodedData(std::move(aResults));
         Unused << SendDrainComplete();
       }
     },

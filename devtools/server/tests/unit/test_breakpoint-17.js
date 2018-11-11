@@ -26,7 +26,7 @@ function run_test_with_server(server, callback) {
   gClient = new DebuggerClient(server.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-breakpoints",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_breakpoints_columns();
                            });
@@ -44,12 +44,12 @@ const code =
 
 const firstLocation = {
   line: 3,
-  column: 4
+  column: 4,
 };
 
 const secondLocation = {
   line: 3,
-  column: 18
+  column: 18,
 };
 
 function test_breakpoints_columns() {

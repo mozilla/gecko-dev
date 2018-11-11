@@ -127,6 +127,8 @@ pub enum ColorDepth {
     Color10,
     /// 12 bits image
     Color12,
+    /// 16 bits image
+    Color16,
 }
 
 impl ColorDepth {
@@ -136,6 +138,7 @@ impl ColorDepth {
             ColorDepth::Color8 => 8,
             ColorDepth::Color10 => 10,
             ColorDepth::Color12 => 12,
+            ColorDepth::Color16 => 16,
         }
     }
     /// 10 and 12 bits images are encoded using 16 bits integer, we need to
@@ -145,6 +148,7 @@ impl ColorDepth {
             ColorDepth::Color8 => 1.0,
             ColorDepth::Color10 => 64.0,
             ColorDepth::Color12 => 16.0,
+            ColorDepth::Color16 => 1.0,
         }
     }
 }
@@ -339,7 +343,14 @@ pub trait BlobImageHandler: Send {
 /// A group of rasterization requests to execute synchronously on the scene builder thread.
 pub trait AsyncBlobImageRasterizer : Send {
     /// Rasterize the requests.
-    fn rasterize(&mut self, requests: &[BlobImageParams]) -> Vec<(BlobImageRequest, BlobImageResult)>;
+    ///
+    /// Gecko uses te priority hint to schedule work in a way that minimizes the risk
+    /// of high priority work being blocked by (or enqued behind) low priority work.
+    fn rasterize(
+        &mut self,
+        requests: &[BlobImageParams],
+        low_priority: bool
+    ) -> Vec<(BlobImageRequest, BlobImageResult)>;
 }
 
 

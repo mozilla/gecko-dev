@@ -609,15 +609,11 @@ AppendKeyframe(double aOffset,
 {
   Keyframe& frame = *aKeyframes.AppendElement();
   frame.mOffset.emplace(aOffset);
-
-  if (aValue.mServo) {
-    RefPtr<RawServoDeclarationBlock> decl =
-      Servo_AnimationValue_Uncompute(aValue.mServo).Consume();
-    frame.mPropertyValues.AppendElement(
-      PropertyValuePair(aProperty, std::move(decl)));
-  } else {
-    MOZ_CRASH("old style system disabled");
-  }
+  MOZ_ASSERT(aValue.mServo);
+  RefPtr<RawServoDeclarationBlock> decl =
+    Servo_AnimationValue_Uncompute(aValue.mServo).Consume();
+  frame.mPropertyValues.AppendElement(
+    PropertyValuePair(aProperty, std::move(decl)));
   return frame;
 }
 
@@ -631,7 +627,7 @@ GetTransitionKeyframes(nsCSSPropertyID aProperty,
 
   Keyframe& fromFrame = AppendKeyframe(0.0, aProperty, std::move(aStartValue),
                                        keyframes);
-  if (aTimingFunction.mType != nsTimingFunction::Type::Linear) {
+  if (!aTimingFunction.IsLinear()) {
     fromFrame.mTimingFunction.emplace();
     fromFrame.mTimingFunction->Init(aTimingFunction);
   }
@@ -831,7 +827,7 @@ nsTransitionManager::ConsiderInitiatingTransition(
   target.emplace(aElement, aPseudoType);
   KeyframeEffectParams effectOptions;
   RefPtr<ElementPropertyTransition> pt =
-    new ElementPropertyTransition(aElement->OwnerDoc(), target, timing,
+    new ElementPropertyTransition(aElement->OwnerDoc(), target, std::move(timing),
                                   startForReversingTest, reversePortion,
                                   effectOptions);
 

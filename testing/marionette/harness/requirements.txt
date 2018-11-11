@@ -2,7 +2,7 @@ browsermob-proxy >= 0.6.0
 manifestparser >= 1.1
 marionette-driver >= 2.7.0
 mozcrash >= 0.5
-mozdevice >= 1.0.0
+mozdevice >= 1.1.6
 mozinfo >= 0.8
 mozlog >= 3.0
 moznetwork >= 0.21
@@ -12,4 +12,4 @@ mozrunner >= 7.0.1
 moztest >= 0.8
 mozversion >= 1.1
 six
-wptserve >= 1.3.0
+wptserve >= 2.0.0

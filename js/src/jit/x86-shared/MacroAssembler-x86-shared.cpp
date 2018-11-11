@@ -270,6 +270,7 @@ MacroAssemblerX86Shared::minMaxFloat32(FloatRegister first, FloatRegister second
     bind(&done);
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.
@@ -791,6 +792,26 @@ MacroAssembler::wasmTrapInstruction()
     return ud2();
 }
 
+void
+MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Register boundsCheckLimit, Label* label)
+{
+    cmp32(index, boundsCheckLimit);
+    j(cond, label);
+    if (JitOptions.spectreIndexMasking) {
+        cmovCCl(cond, Operand(boundsCheckLimit), index);
+    }
+}
+
+void
+MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCheckLimit, Label* label)
+{
+    cmp32(index, Operand(boundsCheckLimit));
+    j(cond, label);
+    if (JitOptions.spectreIndexMasking) {
+        cmovCCl(cond, Operand(boundsCheckLimit), index);
+    }
+}
+
 // RAII class that generates the jumps to traps when it's destructed, to
 // prevent some code duplication in the outOfLineWasmTruncateXtoY methods.
 struct MOZ_RAII AutoHandleWasmTruncateToIntErrors
@@ -843,25 +864,26 @@ MacroAssembler::oolWasmTruncateCheckF64ToI32(FloatRegister input, Register outpu
 
     if (isSaturating) {
         if (isUnsigned) {
-            // Negative overflow and NaN both are converted to 0, and the only other case
-            // is positive overflow which is converted to UINT32_MAX.
+            // Negative overflow and NaN both are converted to 0, and the only
+            // other case is positive overflow which is converted to
+            // UINT32_MAX.
             Label nonNegative;
             loadConstantDouble(0.0, ScratchDoubleReg);
             branchDouble(Assembler::DoubleGreaterThanOrEqual, input, ScratchDoubleReg, &nonNegative);
             move32(Imm32(0), output);
             jump(rejoin);
-            bind(&nonNegative);
 
+            bind(&nonNegative);
             move32(Imm32(UINT32_MAX), output);
         } else {
-            // Negative overflow is already saturated to INT32_MIN, so we only have
-            // to handle NaN and positive overflow here.
+            // Negative overflow is already saturated to INT32_MIN, so we only
+            // have to handle NaN and positive overflow here.
             Label notNaN;
             branchDouble(Assembler::DoubleOrdered, input, input, &notNaN);
             move32(Imm32(0), output);
             jump(rejoin);
-            bind(&notNaN);
 
+            bind(&notNaN);
             loadConstantDouble(0.0, ScratchDoubleReg);
             branchDouble(Assembler::DoubleLessThan, input, ScratchDoubleReg, rejoin);
             sub32(Imm32(1), output);
@@ -902,25 +924,26 @@ MacroAssembler::oolWasmTruncateCheckF32ToI32(FloatRegister input, Register outpu
 
     if (isSaturating) {
         if (isUnsigned) {
-            // Negative overflow and NaN both are converted to 0, and the only other case
-            // is positive overflow which is converted to UINT32_MAX.
+            // Negative overflow and NaN both are converted to 0, and the only
+            // other case is positive overflow which is converted to
+            // UINT32_MAX.
             Label nonNegative;
             loadConstantFloat32(0.0f, ScratchDoubleReg);
             branchFloat(Assembler::DoubleGreaterThanOrEqual, input, ScratchDoubleReg, &nonNegative);
             move32(Imm32(0), output);
             jump(rejoin);
-            bind(&nonNegative);
 
+            bind(&nonNegative);
             move32(Imm32(UINT32_MAX), output);
         } else {
-            // Negative overflow is already saturated to INT32_MIN, so we only have
-            // to handle NaN and positive overflow here.
+            // Negative overflow is already saturated to INT32_MIN, so we only
+            // have to handle NaN and positive overflow here.
             Label notNaN;
             branchFloat(Assembler::DoubleOrdered, input, input, &notNaN);
             move32(Imm32(0), output);
             jump(rejoin);
-            bind(&notNaN);
 
+            bind(&notNaN);
             loadConstantFloat32(0.0f, ScratchFloat32Reg);
             branchFloat(Assembler::DoubleLessThan, input, ScratchFloat32Reg, rejoin);
             sub32(Imm32(1), output);
@@ -959,25 +982,26 @@ MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input, Register64 out
 
     if (isSaturating) {
         if (isUnsigned) {
-            // Negative overflow and NaN both are converted to 0, and the only other case
-            // is positive overflow which is converted to UINT64_MAX.
-            Label nonNegative;
+            // Negative overflow and NaN both are converted to 0, and the only
+            // other case is positive overflow which is converted to
+            // UINT64_MAX.
+            Label positive;
             loadConstantDouble(0.0, ScratchDoubleReg);
-            branchDouble(Assembler::DoubleGreaterThanOrEqual, input, ScratchDoubleReg, &nonNegative);
+            branchDouble(Assembler::DoubleGreaterThan, input, ScratchDoubleReg, &positive);
             move64(Imm64(0), output);
             jump(rejoin);
-            bind(&nonNegative);
 
+            bind(&positive);
             move64(Imm64(UINT64_MAX), output);
         } else {
-            // Negative overflow is already saturated to INT64_MIN, so we only have
-            // to handle NaN and positive overflow here.
+            // Negative overflow is already saturated to INT64_MIN, so we only
+            // have to handle NaN and positive overflow here.
             Label notNaN;
             branchDouble(Assembler::DoubleOrdered, input, input, &notNaN);
             move64(Imm64(0), output);
             jump(rejoin);
-            bind(&notNaN);
 
+            bind(&notNaN);
             loadConstantDouble(0.0, ScratchDoubleReg);
             branchDouble(Assembler::DoubleLessThan, input, ScratchDoubleReg, rejoin);
             sub64(Imm64(1), output);
@@ -1019,25 +1043,26 @@ MacroAssembler::oolWasmTruncateCheckF32ToI64(FloatRegister input, Register64 out
 
     if (isSaturating) {
         if (isUnsigned) {
-            // Negative overflow and NaN both are converted to 0, and the only other case
-            // is positive overflow which is converted to UINT64_MAX.
-            Label nonNegative;
-            loadConstantFloat32(0.0f, ScratchDoubleReg);
-            branchFloat(Assembler::DoubleGreaterThanOrEqual, input, ScratchDoubleReg, &nonNegative);
+            // Negative overflow and NaN both are converted to 0, and the only
+            // other case is positive overflow which is converted to
+            // UINT64_MAX.
+            Label positive;
+            loadConstantFloat32(0.0f, ScratchFloat32Reg);
+            branchFloat(Assembler::DoubleGreaterThan, input, ScratchFloat32Reg, &positive);
             move64(Imm64(0), output);
             jump(rejoin);
-            bind(&nonNegative);
 
+            bind(&positive);
             move64(Imm64(UINT64_MAX), output);
         } else {
-            // Negative overflow is already saturated to INT64_MIN, so we only have
-            // to handle NaN and positive overflow here.
+            // Negative overflow is already saturated to INT64_MIN, so we only
+            // have to handle NaN and positive overflow here.
             Label notNaN;
             branchFloat(Assembler::DoubleOrdered, input, input, &notNaN);
             move64(Imm64(0), output);
             jump(rejoin);
-            bind(&notNaN);
 
+            bind(&notNaN);
             loadConstantFloat32(0.0f, ScratchFloat32Reg);
             branchFloat(Assembler::DoubleLessThan, input, ScratchFloat32Reg, rejoin);
             sub64(Imm64(1), output);
@@ -1649,3 +1674,4 @@ MacroAssembler::speculationBarrier()
 }
 
 //}}} check_macroassembler_style
+// clang-format on

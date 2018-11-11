@@ -3,6 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+if (!("SpecialPowers" in window)) {
+  dump("Robocop robocop_testharness.js found SpecialPowers unavailable: reloading...\n");
+  setTimeout(() => {
+    window.location.reload();
+  }, 1000);
+}
+
 function sendMessageToJava(message) {
   SpecialPowers.Services.androidBridge.dispatch(message.type, message);
 }
@@ -38,7 +45,10 @@ function _evalURI(uri, sandbox) {
  * Robocop:Java messages.
  */
 function testOneFile(uri) {
-  let HEAD_JS = "robocop_head.js";
+  let HEAD_JS = [
+    "head.js",
+    "robocop_head.js",
+  ];
 
   // System principal.  This is dangerous, but this is test code that
   // should only run on developer and build farm machines, and the
@@ -49,14 +59,17 @@ function testOneFile(uri) {
   let principal = SpecialPowers.Cc["@mozilla.org/systemprincipal;1"]
                                .createInstance(SpecialPowers.Ci.nsIPrincipal);
 
-  let testScope = SpecialPowers.Cu.Sandbox(principal);
+  let testScope =
+    SpecialPowers.Cu.Sandbox(principal, { sandboxName: uri,
+                                          wantGlobalProperties: ["ChromeUtils"] });
 
   // Populate test environment with test harness prerequisites.
+  testScope.SpecialPowers = SpecialPowers;
   testScope.Components = SpecialPowers.Components;
   testScope._TEST_FILE = uri;
 
-  // Output from head.js is fed, line by line, to this function.  We
-  // send any such output back to the Java Robocop harness.
+  // Output from robocop_head.js is fed, line by line, to this function.
+  // We send any such output back to the Java Robocop harness.
   testScope.dump = function(str) {
     let message = { type: "Robocop:Java",
                     innerType: "progress",
@@ -67,7 +80,13 @@ function testOneFile(uri) {
 
   // Populate test environment with test harness.  The symbols defined
   // above must be present before executing the test harness.
-  _evalURI(HEAD_JS, testScope);
+  for (script of HEAD_JS) {
+    _evalURI(script, testScope);
+  }
+
+  // Required to make tests/browser/chrome/head.js not notice that it isn't
+  // running in a real Mochitest environment.
+  testScope.info = testScope.do_print;
 
   return _evalURI(uri, testScope);
 }

@@ -1157,23 +1157,12 @@ DataTransfer::ConvertFromVariant(nsIVariant* aVariant,
 
     nsCOMPtr<nsIFlavorDataProvider> fdp = do_QueryInterface(data);
     if (fdp) {
-      // for flavour data providers, use kFlavorHasDataProvider (which has the
-      // value 0) as the length.
+      // For flavour data providers, use 0 as the length.
       fdp.forget(aSupports);
-      *aLength = nsITransferable::kFlavorHasDataProvider;
-    }
-    else {
-      // wrap the item in an nsISupportsInterfacePointer
-      nsCOMPtr<nsISupportsInterfacePointer> ptrSupports =
-        do_CreateInstance(NS_SUPPORTS_INTERFACE_POINTER_CONTRACTID);
-      if (!ptrSupports) {
-        return false;
-      }
-
-      ptrSupports->SetData(data);
-      ptrSupports.forget(aSupports);
-
-      *aLength = sizeof(nsISupportsInterfacePointer *);
+      *aLength = 0;
+    } else {
+      data.forget(aSupports);
+      *aLength = sizeof(nsISupports *);
     }
 
     return true;

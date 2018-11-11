@@ -12,7 +12,8 @@
 
 /* defined by the harness */
 /* globals _HEAD_FILES, _HEAD_JS_PATH, _JSDEBUGGER_PORT, _JSCOV_DIR,
-    _MOZINFO_JS_PATH, _TEST_FILE, _TEST_NAME, _TESTING_MODULES_DIR:true */
+    _MOZINFO_JS_PATH, _TEST_FILE, _TEST_NAME, _TESTING_MODULES_DIR:true,
+    _PREFS_FILE */
 
 /* defined by XPCShellImpl.cpp */
 /* globals load, sendCommand */
@@ -57,6 +58,12 @@ var Assert = new AssertCls(function(err, message, stack) {
     do_report_result(true, message, stack);
   }
 }, true);
+
+// Bug 1506134 for followup.  Some xpcshell tests use ContentTask.jsm, which
+// expects browser-test.js to have set a testScope that includes record.
+function record(condition, name, diag, stack) {
+  do_report_result(condition, name, stack);
+}
 
 var _add_params = function(params) {
   if (typeof _XPCSHELL_PROCESS != "undefined") {
@@ -141,7 +148,7 @@ try {
     observe(msg) {
       if (typeof info === "function")
         info("CONSOLE_MESSAGE: (" + levelNames[msg.logLevel] + ") " + msg.toString());
-    }
+    },
   };
   // Don't use _Services.console here as it causes one of the devtools tests
   // to fail, probably due to initializing Services.console too early.
@@ -201,7 +208,7 @@ _Timer.prototype = {
     // undershoots.
     var newDelay = this._delay - elapsed;
     do_timeout(newDelay, this._func);
-  }
+  },
 };
 
 function _isGenerator(val) {
@@ -305,7 +312,7 @@ var _fakeIdleService = {
       return this;
     }
     throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
-  }
+  },
 };
 
 /**
@@ -433,12 +440,16 @@ function _setupDebuggerServer(breakpointFiles, callback) {
   for (let topic of TOPICS) {
     _Services.obs.addObserver(observe, topic);
   }
-  return DebuggerServer;
+
+  const { SocketListener } = require("devtools/shared/security/socket");
+
+  return { DebuggerServer, SocketListener };
 }
 
 function _initDebugging(port) {
   let initialized = false;
-  let DebuggerServer = _setupDebuggerServer(_TEST_FILE, () => { initialized = true; });
+  const { DebuggerServer, SocketListener } =
+    _setupDebuggerServer(_TEST_FILE, () => { initialized = true; });
 
   info("");
   info("*******************************************************************");
@@ -449,19 +460,21 @@ function _initDebugging(port) {
   info("*******************************************************************");
   info("");
 
-  let AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
-  let authenticator = new AuthenticatorType.Server();
+  const AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
+  const authenticator = new AuthenticatorType.Server();
   authenticator.allowConnection = () => {
     return DebuggerServer.AuthenticationResult.ALLOW;
   };
+  const socketOptions = {
+    authenticator,
+    portOrPath: port,
+  };
 
-  let listener = DebuggerServer.createListener();
-  listener.portOrPath = port;
-  listener.authenticator = authenticator;
+  const listener = new SocketListener(DebuggerServer, socketOptions);
   listener.open();
 
   // spin an event loop until the debugger connects.
-  let tm = Cc["@mozilla.org/thread-manager;1"].getService();
+  const tm = Cc["@mozilla.org/thread-manager;1"].getService();
   tm.spinEventLoopUntil(() => {
     if (initialized) {
       return true;
@@ -586,7 +599,7 @@ function _execute_test() {
     _testLogger.error(_exception_message(ex),
                       {
                         stack: _format_stack(stack),
-                        source_file: filename
+                        source_file: filename,
                       });
   };
 
@@ -641,7 +654,7 @@ function _load_files(aFiles) {
       load(element);
     } catch (e) {
       let extra = {
-        source_file: element
+        source_file: element,
       };
       if (e.stack) {
         extra.stack = _format_stack(e.stack);
@@ -709,7 +722,7 @@ function executeSoon(callback, aName) {
       } finally {
         do_test_finished(funcName);
       }
-    }
+    },
   });
 }
 
@@ -734,7 +747,7 @@ function do_throw(error, stack) {
   _testLogger.error(_exception_message(error),
                     {
                       source_file: filename,
-                      stack: _format_stack(stack)
+                      stack: _format_stack(stack),
                     });
   _abort_failed_test();
 }
@@ -791,7 +804,7 @@ function do_report_unexpected_exception(ex, text) {
   _testLogger.error(text + "Unexpected exception " + _exception_message(ex),
                     {
                       source_file: filename,
-                      stack: _format_stack(ex.stack)
+                      stack: _format_stack(ex.stack),
                     });
   _do_quit();
   throw Components.Exception("", Cr.NS_ERROR_ABORT);
@@ -802,7 +815,7 @@ function do_note_exception(ex, text) {
   _testLogger.info(text + "Swallowed exception " + _exception_message(ex),
                    {
                      source_file: filename,
-                     stack: _format_stack(ex.stack)
+                     stack: _format_stack(ex.stack),
                    });
 }
 
@@ -1267,7 +1280,7 @@ function do_await_remote_message(name, optionalCallback) {
             do_test_finished();
           }
         }
-      }
+      },
     };
 
     var mm;
@@ -1411,7 +1424,7 @@ function run_next_test() {
       // Check for uncaught rejections as early and often as possible.
       _PromiseTestUtils.assertNoUncaughtRejections();
       let _properties;
-      [_properties, _gRunningTest, ] = _gTests[_gTestIndex++];
+      [_properties, _gRunningTest ] = _gTests[_gTestIndex++];
 
       // Must set to pending before we check for skip, so that we keep the
       // running counts correct.
@@ -1477,33 +1490,21 @@ function run_next_test() {
 }
 
 try {
+  // Set global preferences
   if (runningInParent) {
-    // Always use network provider for geolocation tests
-    // so we bypass the OSX dialog raised by the corelocation provider
-    _Services.prefs.setBoolPref("geo.provider.testing", true);
-  }
-} catch (e) { }
-// We need to avoid hitting the network with certain components.
-try {
-  if (runningInParent) {
-    _Services.prefs.setCharPref("media.gmp-manager.url.override", "http://%(server)s/dummy-gmp-manager.xml");
-    _Services.prefs.setCharPref("media.gmp-manager.updateEnabled", false);
-    _Services.prefs.setCharPref("extensions.systemAddon.update.url", "http://%(server)s/dummy-system-addons.xml");
-    _Services.prefs.setCharPref("app.normandy.api_url", "https://%(server)s/selfsupport-dummy/");
-    _Services.prefs.setCharPref("toolkit.telemetry.server", "https://%(server)s/telemetry-dummy");
-    _Services.prefs.setCharPref("browser.search.geoip.url", "https://%(server)s/geoip-dummy");
-    _Services.prefs.setCharPref("browser.safebrowsing.downloads.remote.url", "https://%(server)s/safebrowsing-dummy");
-  }
-} catch (e) { }
+    let prefsFile = Cc["@mozilla.org/file/local;1"]
+      .createInstance(Ci.nsIFile);
+    prefsFile.initWithPath(_PREFS_FILE);
+    _Services.prefs.readUserPrefsFromFile(prefsFile);
 
-// Make tests run consistently on DevEdition (which has a lightweight theme
-// selected by default).
-try {
-  if (runningInParent) {
+    // Make tests run consistently on DevEdition (which has a lightweight theme
+    // selected by default).
     _Services.prefs.deleteBranch("lightweightThemes.selectedThemeID");
     _Services.prefs.deleteBranch("browser.devedition.theme.enabled");
   }
-} catch (e) { }
+} catch (e) {
+  do_throw(e);
+}
 
 function _load_mozinfo() {
   let mozinfoFile = Cc["@mozilla.org/file/local;1"]
@@ -1524,8 +1525,8 @@ Object.defineProperty(this, "mozinfo", {
     let _mozinfo = _load_mozinfo();
     Object.defineProperty(this, "mozinfo", {
       configurable: false,
-      value: _mozinfo
+      value: _mozinfo,
     });
     return _mozinfo;
-  }
+  },
 });

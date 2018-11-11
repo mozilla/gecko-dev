@@ -14,12 +14,18 @@ if (commonFile) {
 // Put any other stuff relative to this test folder below.
 
 ChromeUtils.import("resource:///modules/UrlbarController.jsm");
-ChromeUtils.defineModuleGetter(this, "UrlbarInput",
-                               "resource:///modules/UrlbarInput.jsm");
-ChromeUtils.defineModuleGetter(this, "UrlbarTokenizer",
-                               "resource:///modules/UrlbarTokenizer.jsm");
-ChromeUtils.defineModuleGetter(this, "PlacesTestUtils",
-                               "resource://testing-common/PlacesTestUtils.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  PlacesTestUtils: "resource://testing-common/PlacesTestUtils.jsm",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  UrlbarController: "resource:///modules/UrlbarController.jsm",
+  UrlbarInput: "resource:///modules/UrlbarInput.jsm",
+  UrlbarMatch: "resource:///modules/UrlbarMatch.jsm",
+  UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
+  UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.jsm",
+  UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.jsm",
+  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.jsm",
+  UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
+});
 
 // ================================================
 // Load mocking/stubbing library, sinon
@@ -38,7 +44,7 @@ function createContext(searchString = "foo") {
   return new QueryContext({
     searchString,
     lastKey: searchString ? searchString[searchString.length - 1] : "",
-    maxResults: 1,
+    maxResults: UrlbarPrefs.get("maxRichResults"),
     isPrivate: true,
   });
 }
@@ -48,22 +54,73 @@ function createContext(searchString = "foo") {
  *
  * @param {UrlbarController} controller The controller to wait for a response from.
  * @param {string} notification The name of the notification to wait for.
+ * @param {boolean} expected Wether the notification is expected.
  * @returns {Promise} A promise that is resolved with the arguments supplied to
  *   the notification.
  */
-function promiseControllerNotification(controller, notification) {
-  return new Promise(resolve => {
+function promiseControllerNotification(controller, notification, expected = true) {
+  return new Promise((resolve, reject) => {
     let proxifiedObserver = new Proxy({}, {
       get: (target, name) => {
         if (name == notification) {
           return (...args) => {
             controller.removeQueryListener(proxifiedObserver);
-            resolve(args);
+            if (expected) {
+              resolve(args);
+            } else {
+              reject();
+            }
           };
         }
         return () => false;
       },
     });
     controller.addQueryListener(proxifiedObserver);
+  });
+}
+
+/**
+ * Helper function to clear the existing providers and register a basic provider
+ * that returns only the results given.
+ *
+ * @param {array} results The results for the provider to return.
+ * @param {function} [cancelCallback] Optional, called when the query provider
+ *                                    receives a cancel instruction.
+ */
+function registerBasicTestProvider(results, cancelCallback) {
+  // First unregister all the existing providers.
+  for (let providers of UrlbarProvidersManager.providers.values()) {
+    for (let provider of providers.values()) {
+      // While here check all providers have name and type.
+      Assert.ok(Object.values(UrlbarUtils.PROVIDER_TYPE).includes(provider.type),
+        `The provider "${provider.name}" should have a valid type`);
+      Assert.ok(provider.name, "All providers should have a name");
+      UrlbarProvidersManager.unregisterProvider(provider);
+    }
+  }
+  UrlbarProvidersManager.registerProvider({
+    get name() {
+      return "TestProvider";
+    },
+    get type() {
+      return UrlbarUtils.PROVIDER_TYPE.PROFILE;
+    },
+    get sources() {
+      return results.map(r => r.source);
+    },
+    async startQuery(context, add) {
+      Assert.ok(context, "context is passed-in");
+      Assert.equal(typeof add, "function", "add is a callback");
+      this._context = context;
+      for (const result of results) {
+        add(this, result);
+      }
+    },
+    cancelQuery(context) {
+      Assert.equal(this._context, context, "context is the same");
+      if (cancelCallback) {
+        cancelCallback();
+      }
+    },
   });
 }

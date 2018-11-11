@@ -182,8 +182,9 @@ public:
   // nsIWebProgressListener has methods with identical names...
   NS_FORWARD_NSISECURITYEVENTSINK(nsDocLoader::)
 
-  nsDocShell();
-  virtual nsresult Init() override;
+  // Create a new nsDocShell object, initializing it.
+  static already_AddRefed<nsDocShell>
+  Create(mozilla::dom::BrowsingContext* aBrowsingContext);
 
   NS_IMETHOD Stop() override
   {
@@ -230,7 +231,8 @@ public:
   NS_IMETHOD SetPrivateBrowsing(bool) override;
   NS_IMETHOD GetUseRemoteTabs(bool*) override;
   NS_IMETHOD SetRemoteTabs(bool) override;
-  NS_IMETHOD GetScriptableOriginAttributes(JS::MutableHandle<JS::Value>) override;
+  NS_IMETHOD GetScriptableOriginAttributes(JSContext*,
+                                           JS::MutableHandle<JS::Value>) override;
   NS_IMETHOD_(void) GetOriginAttributes(mozilla::OriginAttributes& aAttrs) override;
 
   // Restores a cached presentation from history (mLSHE).
@@ -379,13 +381,16 @@ public:
   // shift while triggering reload)
   bool IsForceReloading();
 
-  already_AddRefed<mozilla::dom::BrowsingContext>
-  GetBrowsingContext() const;
+  /**
+   * Native getter for a DocShell's BrowsingContext.
+   */
+  mozilla::dom::BrowsingContext* GetBrowsingContext() const;
 
 private: // member functions
   friend class nsDSURIContentListener;
   friend class FramingChecker;
   friend class OnLinkClickEvent;
+  friend class nsIDocShell;
 
   // It is necessary to allow adding a timeline marker wherever a docshell
   // instance is available. This operation happens frequently and needs to
@@ -403,6 +408,8 @@ private: // member functions
     nsDocShell*, UniquePtr<AbstractTimelineMarker>&&);
   friend void mozilla::TimelineConsumers::PopMarkers(nsDocShell*,
     JSContext*, nsTArray<dom::ProfileTimelineMarker>&);
+
+  explicit nsDocShell(mozilla::dom::BrowsingContext* aBrowsingContext);
 
   // Security checks to prevent frameset spoofing. See comments at
   // implementation sites.
@@ -533,7 +540,7 @@ private: // member functions
                      uint32_t aReferrerPolicy,
                      nsIPrincipal* aTriggeringPrincipal,
                      nsIPrincipal* aPrincipalToInherit,
-                     const char* aTypeHint,
+                     const nsACString& aTypeHint,
                      const nsAString& aFileName,
                      nsIInputStream* aPostData,
                      nsIInputStream* aHeadersData,
@@ -904,6 +911,14 @@ private: // member functions
     return mCSSErrorReportingEnabled;
   }
 
+  // Handles retrieval of subframe session history for nsDocShell::LoadURI. If a
+  // load is requested in a subframe of the current DocShell, the subframe
+  // loadType may need to reflect the loadType of the parent document, or in
+  // some cases (like reloads), the history load may need to be cancelled. See
+  // function comments for in-depth logic descriptions.
+  void
+  MaybeHandleSubframeHistory(nsDocShellLoadState* aLoadState);
+
 private: // data members
   static nsIURIFixup* sURIFixup;
 
@@ -935,6 +950,7 @@ private: // data members
   nsCOMPtr<nsIMutableArray> mRefreshURIList;
   nsCOMPtr<nsIMutableArray> mSavedRefreshURIList;
   nsCOMPtr<nsIDOMStorageManager> mSessionStorageManager;
+  uint64_t mContentWindowID;
   nsCOMPtr<nsIContentViewer> mContentViewer;
   nsCOMPtr<nsIWidget> mParentWidget;
   RefPtr<mozilla::dom::ChildSHistory> mSessionHistory;
@@ -1027,9 +1043,8 @@ private: // data members
   int32_t mMarginWidth;
   int32_t mMarginHeight;
 
-  // This can either be a content docshell or a chrome docshell. After
-  // Create() is called, the type is not expected to change.
-  int32_t mItemType;
+  // This can either be a content docshell or a chrome docshell.
+  const int32_t mItemType;
 
   // Index into the nsISHEntry array, indicating the previous and current
   // entry at the time that this DocShell begins to load. Consequently
@@ -1079,6 +1094,10 @@ private: // data members
   // as constants in the nsIDocShell.idl file.
   uint32_t mTouchEventsOverride;
 
+  // Whether or not handling of the <meta name="viewport"> tag is overridden.
+  // Possible values are defined as constants in nsIDocShell.idl.
+  uint32_t mMetaViewportOverride;
+
   // mFullscreenAllowed stores how we determine whether fullscreen is allowed
   // when GetFullscreenAllowed() is called. Fullscreen is allowed in a
   // docshell when all containing iframes have the allowfullscreen
@@ -1118,6 +1137,7 @@ private: // data members
   bool mAllowContentRetargeting : 1;
   bool mAllowContentRetargetingOnChildren : 1;
   bool mUseErrorPages : 1;
+  bool mUseStrictSecurityChecks : 1;
   bool mObserveErrorPages : 1;
   bool mCSSErrorReportingEnabled : 1;
   bool mAllowAuth : 1;
@@ -1173,6 +1193,9 @@ private: // data members
   // We will check the innerWin's timing before creating a new one
   // in MaybeInitTiming()
   bool mBlankTiming : 1;
+
+  // This flag indicates when the title is valid for the current URI.
+  bool mTitleValidForCurrentURI : 1;
 };
 
 #endif /* nsDocShell_h__ */

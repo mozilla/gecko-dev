@@ -6,6 +6,7 @@
 //!
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
+use super::{AllowQuirks, Number, Percentage, ToComputedValue};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::Size2D;
@@ -13,17 +14,18 @@ use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::cmp;
 use std::ops::{Add, Mul};
-use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
-use super::{AllowQuirks, Number, Percentage, ToComputedValue};
-use values::{Auto, CSSFloat, Either, Normal};
+use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 use values::computed::{self, CSSPixelLength, Context, ExtremumLength};
+use values::generics::length::{MaxLength as GenericMaxLength, MozLength as GenericMozLength};
 use values::generics::NonNegative;
+use values::generics::transform::IsZeroLength;
 use values::specified::calc::CalcNode;
+use values::{Auto, CSSFloat, Either, IsAuto, Normal};
 
-pub use values::specified::calc::CalcLengthOrPercentage;
 pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, Image};
+pub use values::specified::calc::CalcLengthOrPercentage;
 
 /// Number of app units per pixel
 pub const AU_PER_PX: CSSFloat = 60.;
@@ -96,6 +98,16 @@ impl FontBaseSize {
 }
 
 impl FontRelativeLength {
+    /// Return true if this is a zero value.
+    fn is_zero(&self) -> bool {
+        match *self {
+            FontRelativeLength::Em(v) |
+            FontRelativeLength::Ex(v) |
+            FontRelativeLength::Ch(v) |
+            FontRelativeLength::Rem(v) => v == 0.0,
+        }
+    }
+
     /// Computes the font-relative length.
     pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> CSSPixelLength {
         use std::f32;
@@ -229,6 +241,16 @@ pub enum ViewportPercentageLength {
 }
 
 impl ViewportPercentageLength {
+    /// Return true if this is a zero value.
+    fn is_zero(&self) -> bool {
+        match *self {
+            ViewportPercentageLength::Vw(v) |
+            ViewportPercentageLength::Vh(v) |
+            ViewportPercentageLength::Vmin(v) |
+            ViewportPercentageLength::Vmax(v) => v == 0.0,
+        }
+    }
+
     /// Computes the given viewport-relative length for the given viewport size.
     pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> CSSPixelLength {
         let (factor, length) = match *self {
@@ -483,6 +505,18 @@ impl NoCalcLength {
 }
 
 impl SpecifiedValueInfo for NoCalcLength {}
+
+impl IsZeroLength for NoCalcLength {
+    #[inline]
+    fn is_zero_length(&self) -> bool {
+        match *self {
+            NoCalcLength::Absolute(v) => v.is_zero(),
+            NoCalcLength::FontRelative(v) => v.is_zero(),
+            NoCalcLength::ViewportPercentage(v) => v.is_zero(),
+            NoCalcLength::ServoCharacterWidth(v) => v.0 == 0,
+        }
+    }
+}
 
 /// An extension to `NoCalcLength` to parse `calc` expressions.
 /// This is commonly used for the `<length>` values.
@@ -838,6 +872,17 @@ impl LengthOrPercentage {
     }
 }
 
+impl IsZeroLength for LengthOrPercentage {
+    #[inline]
+    fn is_zero_length(&self) -> bool {
+        match *self {
+            LengthOrPercentage::Length(l) => l.is_zero_length(),
+            LengthOrPercentage::Percentage(p) => p.0 == 0.0,
+            LengthOrPercentage::Calc(_) => false,
+        }
+    }
+}
+
 /// Either a `<length>`, a `<percentage>`, or the `auto` keyword.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
@@ -978,6 +1023,13 @@ impl Parse for LengthOrPercentageOrAuto {
 
 /// A wrapper of LengthOrPercentageOrAuto, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentageOrAuto = NonNegative<LengthOrPercentageOrAuto>;
+
+impl IsAuto for NonNegativeLengthOrPercentageOrAuto {
+    #[inline]
+    fn is_auto(&self) -> bool {
+        *self == Self::auto()
+    }
+}
 
 impl NonNegativeLengthOrPercentageOrAuto {
     /// 0
@@ -1188,18 +1240,8 @@ impl LengthOrNumber {
     }
 }
 
-/// A value suitable for a `min-width` or `min-height` property.
-///
-/// Unlike `max-width` or `max-height` properties, a MozLength can be `auto`,
-/// and cannot be `none`.
-///
-/// Note that it only accepts non-negative values.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-pub enum MozLength {
-    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
-    ExtremumLength(ExtremumLength),
-}
+/// A specified value for `min-width`, `min-height`, `width` or `height` property.
+pub type MozLength = GenericMozLength<LengthOrPercentageOrAuto>;
 
 impl Parse for MozLength {
     fn parse<'i, 't>(
@@ -1219,7 +1261,7 @@ impl MozLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let length = LengthOrPercentageOrAuto::parse_non_negative(context, input)?;
-        Ok(MozLength::LengthOrPercentageOrAuto(length))
+        Ok(GenericMozLength::LengthOrPercentageOrAuto(length))
     }
 
     /// Parses, with quirks.
@@ -1229,34 +1271,29 @@ impl MozLength {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(l) = input.try(ExtremumLength::parse) {
-            return Ok(MozLength::ExtremumLength(l));
+            return Ok(GenericMozLength::ExtremumLength(l));
         }
 
         let length =
             LengthOrPercentageOrAuto::parse_non_negative_quirky(context, input, allow_quirks)?;
-        Ok(MozLength::LengthOrPercentageOrAuto(length))
+        Ok(GenericMozLength::LengthOrPercentageOrAuto(length))
     }
 
     /// Returns `auto`.
     #[inline]
     pub fn auto() -> Self {
-        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::auto())
+        GenericMozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::auto())
     }
 
     /// Returns `0%`.
     #[inline]
     pub fn zero_percent() -> Self {
-        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent())
+        GenericMozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent())
     }
 }
 
-/// A value suitable for a `max-width` or `max-height` property.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
-pub enum MaxLength {
-    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
-    ExtremumLength(ExtremumLength),
-}
+/// A specified value for `max-width` or `max-height` property.
+pub type MaxLength = GenericMaxLength<LengthOrPercentageOrNone>;
 
 impl Parse for MaxLength {
     fn parse<'i, 't>(
@@ -1276,7 +1313,7 @@ impl MaxLength {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let length = LengthOrPercentageOrNone::parse_non_negative(context, input)?;
-        Ok(MaxLength::LengthOrPercentageOrNone(length))
+        Ok(GenericMaxLength::LengthOrPercentageOrNone(length))
     }
 
     /// Parses, with quirks.
@@ -1286,11 +1323,11 @@ impl MaxLength {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(l) = input.try(ExtremumLength::parse) {
-            return Ok(MaxLength::ExtremumLength(l));
+            return Ok(GenericMaxLength::ExtremumLength(l));
         }
 
         let length =
             LengthOrPercentageOrNone::parse_non_negative_quirky(context, input, allow_quirks)?;
-        Ok(MaxLength::LengthOrPercentageOrNone(length))
+        Ok(GenericMaxLength::LengthOrPercentageOrNone(length))
     }
 }

@@ -17,11 +17,11 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 for (let script of [
   "chrome://browser/content/browser.js",
   "chrome://browser/content/search/searchbar.js",
+  "chrome://browser/content/search/search-one-offs.js",
 
   "chrome://browser/content/browser-captivePortal.js",
   "chrome://browser/content/browser-compacttheme.js",
   "chrome://browser/content/browser-contentblocking.js",
-  "chrome://browser/content/browser-feeds.js",
   "chrome://browser/content/browser-media.js",
   "chrome://browser/content/browser-pageActions.js",
   "chrome://browser/content/browser-places.js",

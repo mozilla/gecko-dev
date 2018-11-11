@@ -2,32 +2,39 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#layout-container {
+.layout-container {
   height: 100%;
   width: 100%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
   min-width: 200px;
 }
 
-#layout-container .accordion ._content {
+.layout-container .accordion ._content {
   padding: 0;
+}
+
+#layout-container .accordion ._header {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 /**
  * Common styles for the layout container
  */
 
-#layout-container li {
+.layout-container li {
   padding: 3px 0;
   -moz-user-select: none;
 }
 
-#layout-container input {
+.layout-container input {
   margin-inline-end: 7px;
   vertical-align: middle;
 }
 
-#layout-container label {
+.layout-container label {
   margin-inline-start: -3px;
 }
 
@@ -89,6 +96,19 @@
   flex-direction: column;
 }
 
+#layout-flexbox-container .flex-header-content:not(.flex-item-shown) {
+  overflow: hidden;
+  display: flex;
+}
+
+#layout-flexbox-container .flex-header-content:not(.flex-item-shown) .objectBox {
+  max-width: calc(100% - 20px);
+  margin-inline-end: 5px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /**
  * Header
  */
@@ -97,8 +117,8 @@
   display: flex;
   align-items: center;
   height: 32px;
-  border-bottom: 1px solid var(--theme-splitter-color);
   padding: 0 3px;
+  border-block-end: 1px solid var(--theme-splitter-color);
 }
 
 .flex-header-button-prev::before {
@@ -124,16 +144,20 @@
  */
 
 .flex-item-list {
-  border-bottom: 1px solid var(--theme-splitter-color);
   font-size: 12px;
   margin: 0;
   padding-inline-start: 34px;
   padding-top: 5px;
   padding-bottom: 5px;
+  overflow: hidden;
 }
 
 .flex-item-list .devtools-button {
   background-color: transparent;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  inline-size: 100%;
+  text-align: start;
 }
 
 /**
@@ -159,11 +183,260 @@
 }
 
 /**
+ * Flex Item Sizing Outline
+ */
+
+.flex-outline-container {
+  display: flex;
+  justify-content: center;
+}
+
+.flex-outline {
+  display: grid;
+  margin: 2em 0;
+  grid-auto-rows: 35px;
+  flex-basis: 80%;
+  max-width: 450px;
+}
+
+.flex-outline.column {
+  transform: translate(50%, -2em) rotate(.25turn);
+  transform-origin: center left;
+  flex-basis: 150px;
+  margin-bottom: 120px;
+}
+
+.flex-outline-final,
+.flex-outline-basis,
+.flex-outline-delta {
+  grid-row: 1;
+}
+
+.flex-outline-final {
+  border: 2px solid currentColor;
+  position: relative;
+  grid-column: final-start / final-end;
+}
+
+.flex-outline-final.clamped::after {
+  content: "";
+  background-image: url(chrome://devtools/skin/images/lock.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  background-position: center 1px;
+  fill: currentColor;
+  -moz-context-properties: fill;
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: -10px;
+  top: 6px;
+  /* Making sure the icon is visible against any background by creating a plain background
+     around its shape, using a drop-shadow filter. */
+  filter:
+    drop-shadow(1px 0px 0px var(--theme-body-background))
+    drop-shadow(0px 1px 0px var(--theme-body-background))
+    drop-shadow(-1px 0px 0px var(--theme-body-background))
+    drop-shadow(0px -1px 0px var(--theme-body-background));
+}
+
+.flex-outline.column .flex-outline-final.clamped::after {
+  transform: rotate(-.25turn);
+}
+
+.flex-outline-basis {
+  border-style: dotted;
+  border-width: 3px;
+  margin: 1px;
+  grid-column: basis-start / basis-end;
+}
+
+.flex-outline-basis.zero-basis {
+  border-width: 0 0 0 3px;
+}
+
+.flex-outline-delta {
+  grid-column: delta-start / delta-end;
+  margin: 3px 0;
+  opacity: .5;
+  position: relative;
+}
+
+.flex-outline-delta::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: calc(50% - .5px);
+  height: 1px;
+  background: currentColor;
+}
+
+.flex-outline-delta::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  top: 50%;
+  border: 1px solid currentColor;
+}
+
+.flex-outline.growing .flex-outline-delta:after {
+  right: 2px;
+  border-width: 1px 1px 0 0;
+  transform-origin: top right;
+  transform: rotate(.125turn);
+}
+
+.flex-outline.shrinking .flex-outline-delta:after {
+  left: 2px;
+  border-width: 1px 0 0 1px;
+  transform-origin: top left;
+  transform: rotate(-.125turn);
+}
+
+.flex-outline-point {
+  position: relative;
+  -moz-user-select: none;
+}
+
+.flex-outline-point {
+  grid-row: 1;
+}
+
+.flex-outline-point.basis,
+.flex-outline-point.basisfinal {
+  grid-column-end: basis-end;
+  justify-self: end;
+}
+
+.flex-outline.shrinking .flex-outline-point.basis {
+  grid-column-start: basis-end;
+  justify-self: start;
+}
+
+.flex-outline-point.final {
+  grid-column-start: final-end;
+  left: -1px;
+}
+
+.flex-outline.shrinking .flex-outline-point.final {
+  grid-column-end: final-end;
+  grid-column-start: unset;
+  justify-self: end;
+}
+
+.flex-outline-point.min {
+  grid-column: min;
+  place-self: end;
+}
+
+.flex-outline.shrinking .flex-outline-point.min {
+  place-self: end start;
+}
+
+.flex-outline-point.max {
+  grid-column: max;
+  align-self: end;
+  left: -1px;
+}
+
+.flex-outline-point::before {
+  content: attr(data-label);
+  display: block;
+  position: relative;
+  padding: 0 3px;
+  height: 10px;
+  border-color: currentColor;
+  border-style: solid;
+  border-width: 0;
+}
+
+.flex-outline.column .flex-outline-point::before {
+  padding: 0;
+  writing-mode: sideways-lr;
+}
+
+.flex-outline-point.basis::before,
+.flex-outline-point.final::before,
+.flex-outline-point.basisfinal::before {
+  top: -12px;
+}
+
+.flex-outline-point.min::before,
+.flex-outline-point.max::before {
+  bottom: -12px;
+}
+
+.flex-outline.column .flex-outline-point.max::before,
+.flex-outline.column .flex-outline-point.min::before {
+  text-indent: -12px;
+}
+
+.flex-outline-point.final::before,
+.flex-outline.shrinking .flex-outline-point.min::before,
+.flex-outline-point.max::before,
+.flex-outline.shrinking .flex-outline-point.basis::before,
+.flex-outline.column .flex-outline-point.basisfinal::before {
+  border-width: 0 0 0 1px;
+}
+
+.flex-outline-point.basis::before,
+.flex-outline-point.min::before,
+.flex-outline.shrinking .flex-outline-point.final::before,
+.flex-outline.row .flex-outline-point.basisfinal::before {
+  border-width: 0 1px 0 0;
+}
+
+/**
  * Flex Item Sizing Properties
  */
 
-#flex-item-sizing-properties span {
- font-weight: 600;
+.flex-item-sizing {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flex-item-sizing .section {
+  --padding: 10px;
+  padding: var(--padding);
+  border-block-start: 1px solid var(--theme-splitter-color);
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-column-gap: var(--padding);
+}
+
+.flex-item-sizing .section:first-child {
+  border: 0;
+}
+
+.flex-item-sizing .name {
+  font-weight: 600;
+  grid-column: 1;
+}
+
+.flex-item-sizing .value {
+  text-align: end;
+  font-weight: 600;
+}
+
+.flex-item-sizing .value .unit {
+  color: var(--theme-comment);
+  font-weight: normal;
+}
+
+.flex-item-sizing .css-property-link {
+  font-weight: normal;
+  margin-inline-start: .5em;
+}
+
+.flex-item-sizing .reasons,
+.flex-item-sizing .reasons li {
+  grid-column: 1 / 3;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 /**
@@ -171,6 +444,7 @@
  */
 
 #flex-container-properties {
+  border-block-start: 1px solid var(--theme-splitter-color);
   margin-bottom: 5px;
 }
 

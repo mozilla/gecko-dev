@@ -13,8 +13,6 @@ ChromeUtils.defineModuleGetter(this, "TabCrashHandler",
  * Wait for a <notification> to be closed then call the specified callback.
  */
 function waitForNotificationClose(notification, cb) {
-  let parent = notification.parentNode;
-
   let observer = new MutationObserver(function onMutatations(mutations) {
     for (let mutation of mutations) {
       for (let i = 0; i < mutation.removedNodes.length; i++) {
@@ -27,20 +25,18 @@ function waitForNotificationClose(notification, cb) {
       }
     }
   });
-  observer.observe(parent, {childList: true});
+  observer.observe(notification.control.stack, {childList: true});
 }
 
 function closeAllNotifications() {
-  let notificationBox = document.getElementById("global-notificationbox");
-
-  if (!notificationBox || !notificationBox.currentNotification) {
+  if (!gNotificationBox.currentNotification) {
     return Promise.resolve();
   }
 
   return new Promise(resolve => {
-    for (let notification of notificationBox.allNotifications) {
+    for (let notification of gNotificationBox.allNotifications) {
       waitForNotificationClose(notification, function() {
-        if (notificationBox.allNotifications.length === 0) {
+        if (gNotificationBox.allNotifications.length === 0) {
           resolve();
         }
       });
@@ -465,28 +461,18 @@ function promiseNotificationShown(notification) {
  */
 function promiseOnBookmarkItemAdded(aExpectedURI) {
   return new Promise((resolve, reject) => {
-    let bookmarksObserver = {
-      onItemAdded(aItemId, aFolderId, aIndex, aItemType, aURI) {
-        info("Added a bookmark to " + aURI.spec);
-        PlacesUtils.bookmarks.removeObserver(bookmarksObserver);
-        if (aURI.equals(aExpectedURI)) {
-          resolve();
-        } else {
-          reject(new Error("Added an unexpected bookmark"));
-        }
-      },
-      onBeginUpdateBatch() {},
-      onEndUpdateBatch() {},
-      onItemRemoved() {},
-      onItemChanged() {},
-      onItemVisited() {},
-      onItemMoved() {},
-      QueryInterface: ChromeUtils.generateQI([
-        Ci.nsINavBookmarkObserver,
-      ]),
+    let listener = events => {
+      is(events.length, 1, "Should only receive one event.");
+      info("Added a bookmark to " + events[0].url);
+      PlacesUtils.observers.removeListener(["bookmark-added"], listener);
+      if (events[0].url == aExpectedURI.spec) {
+        resolve();
+      } else {
+        reject(new Error("Added an unexpected bookmark"));
+      }
     };
     info("Waiting for a bookmark to be added");
-    PlacesUtils.bookmarks.addObserver(bookmarksObserver);
+    PlacesUtils.observers.addListener(["bookmark-added"], listener);
   });
 }
 

@@ -8,7 +8,7 @@ const L10N = new Localization([
   "browser/newtab/onboarding.ftl",
 ]);
 
-const ONBOARDING_MESSAGES = [
+const ONBOARDING_MESSAGES = () => ([
   {
     id: "ONBOARDING_1",
     template: "onboarding",
@@ -35,7 +35,7 @@ const ONBOARDING_MESSAGES = [
       button_label: {string_id: "onboarding-button-label-try-now"},
       button_action: {
         type: "OPEN_URL",
-        data: {url: "https://screenshots.firefox.com/#tour"},
+        data: {args: "https://screenshots.firefox.com/#tour"},
       },
     },
     trigger: {id: "firstRun"},
@@ -52,10 +52,9 @@ const ONBOARDING_MESSAGES = [
       button_label: {string_id: "onboarding-button-label-try-now"},
       button_action: {
         type: "OPEN_ABOUT_PAGE",
-        data: {page: "addons"},
+        data: {args: "addons"},
       },
     },
-    targeting: "isInExperimentCohort == 1",
     trigger: {id: "firstRun"},
   },
   {
@@ -70,13 +69,13 @@ const ONBOARDING_MESSAGES = [
       button_label: {string_id: "onboarding-button-label-try-now"},
       button_action: {
         type: "OPEN_URL",
-        data: {url: "https://addons.mozilla.org/en-US/firefox/addon/ghostery/"},
+        data: {args: "https://addons.mozilla.org/en-US/firefox/addon/ghostery/"},
       },
     },
-    targeting: "isInExperimentCohort == 2",
+    targeting: "providerCohorts.onboarding == 'ghostery'",
     trigger: {id: "firstRun"},
   },
-];
+]);
 
 const OnboardingMessageProvider = {
   async getExtraAttributes() {
@@ -87,8 +86,12 @@ const OnboardingMessageProvider = {
     return {header: header.value, button_label: button_label.value};
   },
   async getMessages() {
-    const messages = await this.translateMessages(ONBOARDING_MESSAGES);
+    const messages = await this.translateMessages(ONBOARDING_MESSAGES());
     return messages;
+  },
+  getUntranslatedMessages() {
+    // This is helpful for jsonSchema testing - since we are localizing in the provider
+    return ONBOARDING_MESSAGES();
   },
   async translateMessages(messages) {
     let translatedMessages = [];

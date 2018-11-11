@@ -40,9 +40,6 @@ Push Information
    the symbolic ref containing ``head_rev`` that should be pulled from
    ``head_repository``.
 
-``include_nightly``
-   Include nightly builds and tests in the graph.
-
 ``owner``
    Email address indicating the person who made the push.  Note that this
    value may be forged and *must not* be relied on for authentication.
@@ -56,6 +53,9 @@ Push Information
 ``pushdate``
    The timestamp of the push to the repository that triggered this decision
    task.  Expressed as an integer seconds since the UNIX epoch.
+
+``hg_branch``
+  The mercurial branch where the revision lives in.
 
 ``build_date``
    The timestamp of the build date. Defaults to ``pushdate`` and falls back to present time of
@@ -114,9 +114,6 @@ syntax or reading a project-specific configuration file).
 ``target_tasks_method``
     The method to use to determine the target task set.  This is the suffix of
     one of the functions in ``taskcluster/taskgraph/target_tasks.py``.
-
-``include_nightly``
-    If true, then nightly tasks are eligible for optimization.
 
 ``release_history``
    History of recent releases by platform and locale, used when generating

@@ -18,7 +18,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   NormandyApi: "resource://normandy/lib/NormandyApi.jsm",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.jsm",
   CleanupManager: "resource://normandy/lib/CleanupManager.jsm",
-  AddonStudies: "resource://normandy/lib/AddonStudies.jsm",
   Uptake: "resource://normandy/lib/Uptake.jsm",
   ActionsManager: "resource://normandy/lib/ActionsManager.jsm",
 });
@@ -158,7 +157,12 @@ var RecipeRunner = {
     }
 
     const apiUrl = Services.prefs.getCharPref(API_URL_PREF);
-    if (!apiUrl || !apiUrl.startsWith("https://")) {
+    if (!apiUrl) {
+      log.warn(`Disabling Shield because ${API_URL_PREF} is not set.`);
+      this.disable();
+      return;
+    }
+    if (!apiUrl.startsWith("https://")) {
       log.warn(`Disabling Shield because ${API_URL_PREF} is not an HTTPS url: ${apiUrl}.`);
       this.disable();
       return;
@@ -242,9 +246,6 @@ var RecipeRunner = {
     }
 
     await actions.finalize();
-
-    // Close storage connections
-    await AddonStudies.close();
 
     Uptake.reportRunner(Uptake.RUNNER_SUCCESS);
   },

@@ -465,7 +465,7 @@ NativeObject::growSlots(JSContext* cx, uint32_t oldCount, uint32_t newCount)
 }
 
 /* static */ bool
-NativeObject::growSlotsDontReportOOM(JSContext* cx, NativeObject* obj, uint32_t newCount)
+NativeObject::growSlotsPure(JSContext* cx, NativeObject* obj, uint32_t newCount)
 {
     // IC code calls this directly.
     AutoUnsafeCallWithABI unsafe;
@@ -478,7 +478,7 @@ NativeObject::growSlotsDontReportOOM(JSContext* cx, NativeObject* obj, uint32_t 
 }
 
 /* static */ bool
-NativeObject::addDenseElementDontReportOOM(JSContext* cx, NativeObject* obj)
+NativeObject::addDenseElementPure(JSContext* cx, NativeObject* obj)
 {
     // IC code calls this directly.
     AutoUnsafeCallWithABI unsafe;
@@ -2040,12 +2040,6 @@ DefineNonexistentProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
 {
     // Optimized NativeDefineProperty() version for known absent properties.
 
-#ifdef DEBUG
-    // Indexed properties of typed arrays should have been handled by SetTypedArrayElement.
-    uint64_t index;
-    MOZ_ASSERT_IF(obj->is<TypedArrayObject>(), !IsTypedArrayIndex(id, &index));
-#endif
-
     // Dispense with custom behavior of exotic native objects first.
     if (obj->is<ArrayObject>()) {
         // Array's length property is non-configurable, so we shouldn't
@@ -2059,7 +2053,35 @@ DefineNonexistentProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
                 return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
             }
         }
-    }  else if (obj->is<ArgumentsObject>()) {
+    } else if (obj->is<TypedArrayObject>()) {
+        // 9.4.5.5 step 2. Indexed properties of typed arrays are special.
+        uint64_t index;
+        if (IsTypedArrayIndex(id, &index)) {
+            // This method is only called for non-existent properties, which
+            // means any absent indexed property must be out of range.
+            MOZ_ASSERT(index >= obj->as<TypedArrayObject>().length());
+
+            // Steps 1-2 are enforced by the caller.
+
+            // Step 3.
+            // We still need to call ToNumber, because of its possible side
+            // effects.
+            double d;
+            if (!ToNumber(cx, v, &d)) {
+                return false;
+            }
+
+            // Steps 4-5.
+            // ToNumber may have detached the array buffer.
+            if (obj->as<TypedArrayObject>().hasDetachedBuffer()) {
+                return result.failSoft(JSMSG_TYPED_ARRAY_DETACHED);
+            }
+
+            // Steps 6-9.
+            // We (wrongly) ignore out of range defines.
+            return result.failSoft(JSMSG_BAD_INDEX);
+        }
+    } else if (obj->is<ArgumentsObject>()) {
         // If this method is called with either |length| or |@@iterator|, the
         // property was previously deleted and hence should already be marked
         // as overridden.
@@ -2105,6 +2127,48 @@ DefineNonexistentProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
     }
 
     return result.succeed();
+}
+
+bool
+js::AddOrUpdateSparseElementHelper(JSContext* cx, HandleArrayObject obj, int32_t int_id,
+                                   HandleValue v, bool strict)
+{
+    MOZ_ASSERT(INT_FITS_IN_JSID(int_id));
+    RootedId id(cx, INT_TO_JSID(int_id));
+
+    // This helper doesn't handle the case where the index may be in the dense elements
+    MOZ_ASSERT(int_id >= 0);
+    MOZ_ASSERT(uint32_t(int_id) >= obj->getDenseInitializedLength());
+
+    // First decide if this is an add or an update. Because the IC guards have
+    // already ensured this exists exterior to the dense array range, and the
+    // prototype checks have ensured there are no indexes on the prototype, we
+    // can use the shape lineage to find the element if it exists:
+    RootedShape shape(cx, obj->lastProperty()->search(cx, id));
+
+    // If we didn't find the shape, we're on the add path: delegate to
+    // AddSparseElement:
+    if (shape == nullptr) {
+        Rooted<PropertyDescriptor> desc(cx);
+        desc.setDataDescriptor(v, JSPROP_ENUMERATE);
+        desc.assertComplete();
+
+        return AddOrChangeProperty<IsAddOrChange::Add>(cx, obj, id, desc);
+    }
+
+    // At this point we're updating a property: See SetExistingProperty
+    if (shape->writable() && shape->isDataProperty()) {
+        // While all JSID_INT properties use a single TI entry,
+        // nothing yet has inspected the updated value so we *must* use setSlotWithType().
+        obj->setSlotWithType(cx, shape, v, /* overwriting = */ true);
+        return true;
+    }
+
+    // We don't know exactly what this object looks like, hit the slowpath.
+    RootedValue receiver(cx, ObjectValue(*obj));
+    JS::ObjectOpResult result;
+    return SetProperty(cx, obj, id, v, receiver, result) &&
+           result.checkStrictErrorOrWarning(cx, obj, id, strict);
 }
 
 
@@ -2492,6 +2556,32 @@ GeneralizedGetProperty(JSContext* cx, JSObject* obj, jsid id, const Value& recei
     return GetPropertyNoGC(cx, obj, receiver, id, vp.address());
 }
 
+bool
+js::GetSparseElementHelper(JSContext* cx, HandleArrayObject obj, int32_t int_id,
+                           MutableHandleValue result)
+{
+    // Callers should have ensured that this object has a static prototype.
+    MOZ_ASSERT(obj->hasStaticPrototype());
+
+    // Indexed properties can not exist on the prototype chain.
+    MOZ_ASSERT_IF(obj->staticPrototype() != nullptr,
+                  !ObjectMayHaveExtraIndexedProperties(obj->staticPrototype()));
+
+    MOZ_ASSERT(INT_FITS_IN_JSID(int_id));
+    RootedId id(cx, INT_TO_JSID(int_id));
+
+    Shape* rawShape = obj->lastProperty()->search(cx, id);
+    if (!rawShape) {
+        // Property not found, return directly.
+        result.setUndefined();
+        return true;
+    }
+
+    RootedValue receiver(cx, ObjectValue(*obj));
+    RootedShape shape(cx, rawShape);
+    return GetExistingProperty<CanGC>(cx, receiver, obj, shape, result);
+}
+
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
 NativeGetPropertyInline(JSContext* cx,
@@ -2565,8 +2655,27 @@ js::NativeGetProperty(JSContext* cx, HandleNativeObject obj, HandleValue receive
 bool
 js::NativeGetPropertyNoGC(JSContext* cx, NativeObject* obj, const Value& receiver, jsid id, Value* vp)
 {
-    AutoAssertNoException noexc(cx);
+    AutoAssertNoPendingException noexc(cx);
     return NativeGetPropertyInline<NoGC>(cx, obj, receiver, id, NotNameLookup, vp);
+}
+
+bool
+js::NativeGetElement(JSContext* cx, HandleNativeObject obj, HandleValue receiver,
+                     int32_t index, MutableHandleValue vp)
+{
+    RootedId id(cx);
+
+    if (MOZ_LIKELY(index >=0)) {
+        if (!IndexToId(cx, index, &id)) {
+            return false;
+        }
+    } else {
+        RootedValue indexVal(cx, Int32Value(index));
+        if (!ValueToId<CanGC>(cx, indexVal, &id)) {
+            return false;
+        }
+    }
+    return NativeGetProperty(cx, obj, receiver, id, vp);
 }
 
 bool
@@ -2852,8 +2961,6 @@ SetExistingProperty(JSContext* cx, HandleId id, HandleValue v, HandleValue recei
 {
     // Step 5 for dense elements.
     if (prop.isDenseOrTypedArrayElement()) {
-        MOZ_ASSERT(!pobj->is<TypedArrayObject>());
-
         // Step 5.a.
         if (pobj->denseElementsAreFrozen()) {
             return result.fail(JSMSG_READ_ONLY);
@@ -2861,7 +2968,14 @@ SetExistingProperty(JSContext* cx, HandleId id, HandleValue v, HandleValue recei
 
         // Pure optimization for the common case:
         if (receiver.isObject() && pobj == &receiver.toObject()) {
-            return SetDenseElement(cx, pobj, JSID_TO_INT(id), v, result);
+            uint32_t index = JSID_TO_INT(id);
+
+            if (pobj->is<TypedArrayObject>()) {
+                Rooted<TypedArrayObject*> tobj(cx, &pobj->as<TypedArrayObject>());
+                return SetTypedArrayElement(cx, tobj, index, v, result);
+            }
+
+            return SetDenseElement(cx, pobj, index, v, result);
         }
 
         // Steps 5.b-f.
@@ -2925,17 +3039,6 @@ js::NativeSetProperty(JSContext* cx, HandleNativeObject obj, HandleId id, Handle
         bool done;
         if (!LookupOwnPropertyInline<CanGC>(cx, pobj, id, &prop, &done)) {
             return false;
-        }
-
-        if (pobj->is<TypedArrayObject>()) {
-            uint64_t index;
-            if (IsTypedArrayIndex(id, &index)) {
-                Rooted<TypedArrayObject*> tobj(cx, &pobj->as<TypedArrayObject>());
-                return SetTypedArrayElement(cx, tobj, index, v, result);
-            }
-
-            // This case should have been handled.
-            MOZ_ASSERT(!prop.isDenseOrTypedArrayElement());
         }
 
         if (prop) {

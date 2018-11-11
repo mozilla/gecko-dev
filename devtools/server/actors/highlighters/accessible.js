@@ -5,7 +5,6 @@
 "use strict";
 
 const { AutoRefreshHighlighter } = require("./auto-refresh");
-const { getBounds, Infobar } = require("./utils/accessibility");
 const {
   CanvasFrameAnonymousContentHelper,
   createNode,
@@ -14,6 +13,9 @@ const {
 } = require("./utils/markup");
 const { TEXT_NODE } = require("devtools/shared/dom-node-constants");
 const { setIgnoreLayoutChanges } = require("devtools/shared/layout/utils");
+
+loader.lazyRequireGetter(this, "getBounds", "devtools/server/actors/highlighters/utils/accessibility", true);
+loader.lazyRequireGetter(this, "Infobar", "devtools/server/actors/highlighters/utils/accessibility", true);
 
 /**
  * The AccessibleHighlighter draws the bounds of an accessible object.
@@ -85,8 +87,8 @@ class AccessibleHighlighter extends AutoRefreshHighlighter {
     const container = createNode(this.win, {
       attributes: {
         "class": "highlighter-container",
-        "aria-hidden": "true"
-      }
+        "aria-hidden": "true",
+      },
     });
 
     const root = createNode(this.win, {
@@ -95,7 +97,7 @@ class AccessibleHighlighter extends AutoRefreshHighlighter {
         "id": "root",
         "class": "root",
       },
-      prefix: this.ID_CLASS_PREFIX
+      prefix: this.ID_CLASS_PREFIX,
     });
 
     // Build the SVG element.
@@ -108,7 +110,7 @@ class AccessibleHighlighter extends AutoRefreshHighlighter {
         "height": "100%",
         "hidden": "true",
       },
-      prefix: this.ID_CLASS_PREFIX
+      prefix: this.ID_CLASS_PREFIX,
     });
 
     createSVGNode(this.win, {
@@ -118,7 +120,7 @@ class AccessibleHighlighter extends AutoRefreshHighlighter {
         "class": "bounds",
         "id": "bounds",
       },
-      prefix: this.ID_CLASS_PREFIX
+      prefix: this.ID_CLASS_PREFIX,
     });
 
     // Build the accessible's infobar markup.

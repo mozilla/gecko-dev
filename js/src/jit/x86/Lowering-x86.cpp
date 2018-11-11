@@ -163,25 +163,6 @@ LIRGenerator::visitReturn(MReturn* ret)
 }
 
 void
-LIRGeneratorX86::defineUntypedPhi(MPhi* phi, size_t lirIndex)
-{
-    LPhi* type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi* payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
-
-    uint32_t typeVreg = getVirtualRegister();
-
-    phi->setVirtualRegister(typeVreg);
-
-    uint32_t payloadVreg = getVirtualRegister();
-    MOZ_ASSERT(typeVreg + 1 == payloadVreg);
-
-    type->setDef(0, LDefinition(typeVreg, LDefinition::TYPE));
-    payload->setDef(0, LDefinition(payloadVreg, LDefinition::PAYLOAD));
-    annotate(type);
-    annotate(payload);
-}
-
-void
 LIRGeneratorX86::lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
     MDefinition* operand = phi->getOperand(inputPosition);
@@ -397,76 +378,6 @@ LIRGenerator::visitWasmStore(MWasmStore* ins)
     }
 
     auto* lir = new(alloc()) LWasmStore(baseAlloc, valueAlloc, useRegisterAtStart(memoryBase));
-    add(lir, ins);
-}
-
-void
-LIRGenerator::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins)
-{
-    MDefinition* base = ins->base();
-    MOZ_ASSERT(base->type() == MIRType::Int32);
-
-    MDefinition* boundsCheckLimit = ins->boundsCheckLimit();
-    MOZ_ASSERT_IF(ins->needsBoundsCheck(), boundsCheckLimit->type() == MIRType::Int32);
-
-    MDefinition* memoryBase = ins->memoryBase();
-    MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-
-    // For simplicity, require a register if we're going to emit a bounds-check
-    // branch, so that we don't have special cases for constants.
-    LAllocation baseAlloc = ins->needsBoundsCheck()
-                            ? useRegisterAtStart(base)
-                            : useRegisterOrZeroAtStart(base);
-    LAllocation limitAlloc = ins->needsBoundsCheck()
-                           ? useRegisterAtStart(boundsCheckLimit)
-                           : LAllocation();
-
-    auto* lir = new(alloc()) LAsmJSLoadHeap(baseAlloc, limitAlloc, useRegisterAtStart(memoryBase));
-    define(lir, ins);
-}
-
-void
-LIRGenerator::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins)
-{
-    MDefinition* base = ins->base();
-    MOZ_ASSERT(base->type() == MIRType::Int32);
-
-    MDefinition* boundsCheckLimit = ins->boundsCheckLimit();
-    MOZ_ASSERT_IF(ins->needsBoundsCheck(), boundsCheckLimit->type() == MIRType::Int32);
-
-    MDefinition* memoryBase = ins->memoryBase();
-    MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-
-    // For simplicity, require a register if we're going to emit a bounds-check
-    // branch, so that we don't have special cases for constants.
-    LAllocation baseAlloc = ins->needsBoundsCheck()
-                            ? useRegisterAtStart(base)
-                            : useRegisterOrZeroAtStart(base);
-    LAllocation limitAlloc = ins->needsBoundsCheck()
-                           ? useRegisterAtStart(boundsCheckLimit)
-                           : LAllocation();
-
-    LAsmJSStoreHeap* lir = nullptr;
-    switch (ins->access().type()) {
-      case Scalar::Int8: case Scalar::Uint8:
-        // See comment for LIRGeneratorX86::useByteOpRegister.
-        lir = new(alloc()) LAsmJSStoreHeap(baseAlloc, useFixed(ins->value(), eax),
-                                           limitAlloc, useRegisterAtStart(memoryBase));
-        break;
-      case Scalar::Int16: case Scalar::Uint16:
-      case Scalar::Int32: case Scalar::Uint32:
-      case Scalar::Float32: case Scalar::Float64:
-        // For now, don't allow constant values. The immediate operand affects
-        // instruction layout which affects patching.
-        lir = new (alloc()) LAsmJSStoreHeap(baseAlloc, useRegisterAtStart(ins->value()),
-                                            limitAlloc, useRegisterAtStart(memoryBase));
-        break;
-      case Scalar::Int64:
-        MOZ_CRASH("NYI");
-      case Scalar::Uint8Clamped:
-      case Scalar::MaxTypedArrayViewType:
-        MOZ_CRASH("unexpected array type");
-    }
     add(lir, ins);
 }
 

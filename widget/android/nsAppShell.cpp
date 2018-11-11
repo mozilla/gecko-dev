@@ -22,7 +22,6 @@
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
 #include "nsISpeculativeConnect.h"
-#include "nsITabChild.h"
 #include "nsIURIFixup.h"
 #include "nsCategoryManagerUtils.h"
 #include "nsCDefaultURIFixup.h"
@@ -71,6 +70,7 @@
 #include "fennec/Telemetry.h"
 #include "fennec/ThumbnailHelper.h"
 #include "ScreenHelperAndroid.h"
+#include "WebExecutorSupport.h"
 
 #ifdef DEBUG_ANDROID_EVENTS
 #define EVLOG(args...)  ALOG(args)
@@ -433,6 +433,7 @@ nsAppShell::nsAppShell()
         mozilla::GeckoScreenOrientation::Init();
         mozilla::GeckoSystemStateListener::Init();
         mozilla::PrefsHelper::Init();
+        mozilla::widget::WebExecutorSupport::Init();
         nsWindow::InitNatives();
 
         if (jni::IsFennec()) {
@@ -551,6 +552,7 @@ nsAppShell::Init()
             obsServ->AddObserver(this, "chrome-document-loaded", false);
         } else {
             obsServ->AddObserver(this, "content-document-global-created", false);
+            obsServ->AddObserver(this, "geckoview-content-global-transferred", false);
         }
     }
 
@@ -676,38 +678,15 @@ nsAppShell::Observe(nsISupports* aSubject,
                 nsPIDOMWindowOuter::From(domWindow));
         NS_ENSURE_TRUE(domWidget, NS_OK);
 
-        dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
-        dom::TabChild* tabChild = domWidget->GetOwningTabChild();
-        RefPtr<widget::PuppetWidget> widget(tabChild->WebWidget());
-        NS_ENSURE_TRUE(contentChild && tabChild && widget, NS_OK);
+        widget::GeckoEditableSupport::SetOnTabChild(
+                domWidget->GetOwningTabChild());
 
-        widget::TextEventDispatcherListener* listener =
-                widget->GetNativeTextEventDispatcherListener();
-        if (listener && listener !=
-                static_cast<widget::TextEventDispatcherListener*>(widget)) {
-            // We already set a listener before.
-            return NS_OK;
-        }
-
-        // Get the content/tab ID in order to get the correct
-        // IGeckoEditableParent object, which GeckoEditableChild uses to
-        // communicate with the parent process.
-        const uint64_t contentId = contentChild->GetID();
-        const uint64_t tabId = tabChild->GetTabId();
-        NS_ENSURE_TRUE(contentId && tabId, NS_OK);
-
-        auto editableParent = java::GeckoServiceChildProcess::GetEditableParent(
-                contentId, tabId);
-        NS_ENSURE_TRUE(editableParent, NS_OK);
-
-        auto editableChild = java::GeckoEditableChild::New(editableParent);
-        NS_ENSURE_TRUE(editableChild, NS_OK);
-
-        RefPtr<widget::GeckoEditableSupport> editableSupport =
-                new widget::GeckoEditableSupport(editableChild);
-
-        // Tell PuppetWidget to use our listener for IME operations.
-        widget->SetNativeTextEventDispatcherListener(editableSupport);
+    } else if (!strcmp(aTopic, "geckoview-content-global-transferred")) {
+        // We're transferring to a new GeckoEditableParent, so notify the
+        // existing GeckoEditableChild instance associated with the docshell.
+        nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aSubject);
+        widget::GeckoEditableSupport::SetOnTabChild(
+                dom::TabChild::GetFrom(docShell));
     }
 
     if (removeObserver) {
@@ -747,6 +726,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
                                 IDLE);
             mozilla::BackgroundHangMonitor().NotifyWait();
 
+            AUTO_PROFILER_THREAD_SLEEP;
             curEvent = mEventQueue.Pop(/* mayWait */ true);
         }
     }

@@ -61,7 +61,7 @@ function promiseNewEngine(basename, options = {}) {
       onInitComplete() {
         let url = getRootDirectory(options.testPath || gTestPath) + basename;
         let current = Services.search.currentEngine;
-        Services.search.addEngine(url, null, options.iconURL || "", false, {
+        Services.search.addEngine(url, options.iconURL || "", false, {
           onSuccess(engine) {
             info("Search engine added: " + basename);
             if (setAsCurrent) {
@@ -188,8 +188,7 @@ function getOneOffs() {
     document.getAnonymousElementByAttribute(searchPopup, "anonid",
                                             "search-one-off-buttons");
   let oneOff =
-    document.getAnonymousElementByAttribute(oneOffsContainer, "anonid",
-                                            "search-panel-one-offs");
+    oneOffsContainer.querySelector(".search-panel-one-offs");
   for (oneOff = oneOff.firstChild; oneOff; oneOff = oneOff.nextSibling) {
     if (oneOff.nodeType == Node.ELEMENT_NODE) {
       if (oneOff.classList.contains("dummy") ||

@@ -10,7 +10,6 @@ Test the payment-dialog custom element
   <script type="application/javascript" src="/tests/SimpleTest/AddTask.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <script src="payments_common.js"></script>
-  <script src="../../res/vendor/custom-elements.min.js"></script>
   <script src="../../res/unprivileged-fallbacks.js"></script>
   <script src="autofillEditForms.js"></script>
 
@@ -20,7 +19,8 @@ Test the payment-dialog custom element
 </head>
 <body>
   <p id="display" style="height: 100vh; margin: 0;">
-    <iframe id="templateFrame" src="../../res/paymentRequest.xhtml" width="0" height="0"
+    <iframe id="templateFrame" src="paymentRequest.xhtml" width="0" height="0"
+            sandbox="allow-same-origin"
             style="float: left;"></iframe>
   </p>
 <div id="content" style="display: none">
@@ -118,7 +118,7 @@ async function setup({shippingRequired, payerRequired}) {
 
   // Fill the security code input so it doesn't interfere with checking the pay
   // button state for dropdown changes.
-  el1._paymentMethodPicker.securityCodeInput.select();
+  el1._paymentMethodPicker.securityCodeInput.querySelector("input").select();
   sendString("123");
   await asyncElementRendered();
 }
@@ -235,14 +235,14 @@ add_task(async function test_securityCodeRequired() {
   selectFirstItemOfPicker(picker);
   await stateChangedPromise;
 
-  picker.securityCodeInput.select();
+  picker.securityCodeInput.querySelector("input").select();
   stateChangedPromise = promiseStateChange(el1.requestStore);
   synthesizeKey("VK_DELETE");
   await stateChangedPromise;
 
   ok(payButton.disabled, "Button is disabled when CVV is empty");
 
-  picker.securityCodeInput.select();
+  picker.securityCodeInput.querySelector("input").select();
   stateChangedPromise = promiseStateChange(el1.requestStore);
   sendString("123");
   await stateChangedPromise;

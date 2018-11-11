@@ -18,6 +18,9 @@
     { 0xbf, 0xe0, 0xdf, 0x85, 0xe6, 0x56, 0x85, 0xac } }
 
 namespace mozilla {
+
+class WorkletImpl;
+
 namespace dom {
 
 class Console;
@@ -53,11 +56,13 @@ public:
   already_AddRefed<Console>
   GetConsole(JSContext* aCx, ErrorResult& aRv);
 
+  virtual WorkletImpl* Impl() const = 0;
+
   void
   Dump(const Optional<nsAString>& aString) const;
 
 protected:
-  ~WorkletGlobalScope() = default;
+  ~WorkletGlobalScope();;
 
 private:
   RefPtr<Console> mConsole;

@@ -17,7 +17,7 @@ add_task(async function() {
 
   const { panel } = await initPerformanceInNewTab({
     url: SIMPLE_URL,
-    win: window
+    win: window,
   });
 
   const { EVENTS, PerformanceController } = panel.panelWin;
@@ -44,6 +44,8 @@ add_task(async function() {
 function checkResults() {
   // For help generating these tests use generateTelemetryTests("DEVTOOLS_PERFTOOLS_")
   // here.
-  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_IMPORT_FLAG", "", [0, 1, 0], "array");
-  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_EXPORT_FLAG", "", [0, 1, 0], "array");
+  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_IMPORT_FLAG", "", {0: 0, 1: 1, 2: 0},
+    "array");
+  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_EXPORT_FLAG", "", {0: 0, 1: 1, 2: 0},
+    "array");
 }

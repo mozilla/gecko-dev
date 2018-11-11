@@ -8,6 +8,7 @@
 #define mozilla_dom_HTMLIFrameElement_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/FeaturePolicy.h"
 #include "nsGenericHTMLFrameElement.h"
 #include "nsDOMTokenList.h"
 
@@ -23,8 +24,9 @@ public:
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLIFrameElement, iframe)
 
   // nsISupports
-  NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLIFrameElement,
-                                       nsGenericHTMLFrameElement)
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLIFrameElement,
+                                           nsGenericHTMLFrameElement)
 
   // Element
   virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override
@@ -33,6 +35,8 @@ public:
   }
 
   // nsIContent
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent) override;
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsAtom* aAttribute,
                                 const nsAString& aValue,
@@ -43,7 +47,7 @@ public:
 
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  uint32_t GetSandboxFlags();
+  uint32_t GetSandboxFlags() const;
 
   // Web IDL binding methods
   void GetSrc(nsString& aSrc) const
@@ -115,6 +119,14 @@ public:
   void SetAlign(const nsAString& aAlign, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
+  }
+  void GetAllow(DOMString& aAllow)
+  {
+    GetHTMLAttr(nsGkAtoms::allow, aAllow);
+  }
+  void SetAllow(const nsAString& aAllow, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::allow, aAllow, aError);
   }
   void GetScrolling(DOMString& aScrolling)
   {
@@ -188,6 +200,9 @@ public:
   bool FullscreenFlag() const { return mFullscreenFlag; }
   void SetFullscreenFlag(bool aValue) { mFullscreenFlag = aValue; }
 
+  FeaturePolicy*
+  Policy() const;
+
 protected:
   virtual ~HTMLIFrameElement();
 
@@ -208,6 +223,15 @@ private:
 
   static const DOMTokenListSupportedToken sSupportedSandboxTokens[];
 
+  void RefreshFeaturePolicy(bool aParseAllowAttribute);
+
+  // If this iframe has a 'srcdoc' attribute, the document's origin will be
+  // returned. Otherwise, if this iframe has a 'src' attribute, the origin will
+  // be the parsing of its value as URL. If the URL is invalid, or 'src'
+  // attribute doesn't exist, the origin will be the document's origin.
+  already_AddRefed<nsIPrincipal>
+  GetFeaturePolicyDefaultOrigin() const;
+
   /**
    * This function is called by AfterSetAttr and OnAttrSetButNotChanged.
    * This function will be called by AfterSetAttr whether the attribute is being
@@ -218,6 +242,8 @@ private:
    * @param aNotify Whether we plan to notify document observers.
    */
   void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName, bool aNotify);
+
+  RefPtr<mozilla::dom::FeaturePolicy> mFeaturePolicy;
 };
 
 } // namespace dom

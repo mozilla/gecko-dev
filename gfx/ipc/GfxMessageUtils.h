@@ -8,7 +8,6 @@
 #define __GFXMESSAGEUTILS_H__
 
 #include "FilterSupport.h"
-#include "FrameMetrics.h"
 #include "ImageTypes.h"
 #include "RegionBuilder.h"
 #include "base/process_util.h"
@@ -20,6 +19,7 @@
 #include "gfxTelemetry.h"
 #include "gfxTypes.h"
 #include "ipc/IPCMessageUtils.h"
+#include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/gfx/Matrix.h"
 #include "nsRect.h"
 #include "nsRegion.h"
@@ -1276,6 +1276,23 @@ struct ParamTraits<mozilla::Array<T, Length>>
       }
     }
     return true;
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::gfx::PaintFragment>
+{
+  typedef mozilla::gfx::PaintFragment paramType;
+  static void Write(Message* aMsg, paramType& aParam) {
+    WriteParam(aMsg, aParam.mSize);
+    WriteParam(aMsg, aParam.mRecording);
+    WriteParam(aMsg, aParam.mDependencies);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult) {
+    return ReadParam(aMsg, aIter, &aResult->mSize) &&
+           ReadParam(aMsg, aIter, &aResult->mRecording) &&
+           ReadParam(aMsg, aIter, &aResult->mDependencies);
   }
 };
 

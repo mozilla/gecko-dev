@@ -223,6 +223,9 @@ if CONFIG['MOZ_SYSTEM_JPEG']:
 if CONFIG['MOZ_SYSTEM_PNG']:
     OS_LIBS += CONFIG['MOZ_PNG_LIBS']
 
+if CONFIG['MOZ_SYSTEM_WEBP']:
+    OS_LIBS += CONFIG['MOZ_WEBP_LIBS']
+
 if CONFIG['MOZ_SYSTEM_LIBEVENT']:
     OS_LIBS += CONFIG['MOZ_LIBEVENT_LIBS']
 
@@ -314,6 +317,12 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'dxguid',
         'dhcpcsvc',
     ]
+
+    if CONFIG['CC_TYPE'] in ('msvc', 'clang-cl'):
+        OS_LIBS += [
+            'runtimeobject',
+        ]
+
     if CONFIG['ACCESSIBILITY']:
         OS_LIBS += [
             'oleacc',

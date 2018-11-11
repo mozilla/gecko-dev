@@ -415,15 +415,11 @@ get_full_path(const NS_tchar *relpath)
  * return pointer to the location within fullpath where the relative path starts
  *        or fullpath itself if it already looks relative.
  */
+#ifndef XP_WIN
 static const NS_tchar*
 get_relative_path(const NS_tchar *fullpath)
 {
-  // If the path isn't absolute, just return it as-is.
-#ifdef XP_WIN
-  if (fullpath[1] != ':' && fullpath[2] != '\\') {
-#else
   if (fullpath[0] != '/') {
-#endif
     return fullpath;
   }
 
@@ -436,6 +432,7 @@ get_relative_path(const NS_tchar *fullpath)
 
   return fullpath + NS_tstrlen(prefix) + 1;
 }
+#endif
 
 /**
  * Gets the platform specific path and performs simple checks to the path. If
@@ -2052,7 +2049,7 @@ LaunchWinPostProcess(const WCHAR *installationDir,
   CopyFileW(slogFile, dlogFile, false);
 
   STARTUPINFOW si = {sizeof(si), 0};
-  si.lpDesktop = L"";
+  si.lpDesktop = const_cast<LPWSTR>(L""); // -Wwritable-strings
   PROCESS_INFORMATION pi = {0};
 
   bool ok = CreateProcessW(exefullpath,
@@ -2114,7 +2111,7 @@ LaunchCallbackApp(const NS_tchar *workingDir,
 }
 
 static bool
-WriteStatusFile(const char* aStatus)
+WriteToFile(const NS_tchar* aFilename, const char* aStatus)
 {
   NS_tchar filename[MAXPATHLEN] = {NS_T('\0')};
 #if defined(XP_WIN)
@@ -2125,7 +2122,7 @@ WriteStatusFile(const char* aStatus)
   }
 #else
   NS_tsnprintf(filename, sizeof(filename)/sizeof(filename[0]),
-               NS_T("%s/update.status"), gPatchDirPath);
+               NS_T("%s/%s"), gPatchDirPath, aFilename);
 #endif
 
   // Make sure that the directory for the update status file exists
@@ -2149,13 +2146,19 @@ WriteStatusFile(const char* aStatus)
 #if defined(XP_WIN)
   NS_tchar dstfilename[MAXPATHLEN] = {NS_T('\0')};
   NS_tsnprintf(dstfilename, sizeof(dstfilename)/sizeof(dstfilename[0]),
-               NS_T("%s\\update.status"), gPatchDirPath);
+               NS_T("%s\\%s"), gPatchDirPath, aFilename);
   if (MoveFileExW(filename, dstfilename, MOVEFILE_REPLACE_EXISTING) == 0) {
     return false;
   }
 #endif
 
   return true;
+}
+
+static bool
+WriteStatusFile(const char* aStatus)
+{
+  return WriteToFile(NS_T("update.status"), aStatus);
 }
 
 static void
@@ -2565,7 +2568,6 @@ UpdateThreadFunc(void *param)
         LOG(("Couldn't set access/modification time on application bundle."));
       }
 #endif
-
       LOG(("succeeded"));
     }
     WriteStatusFile(rv);

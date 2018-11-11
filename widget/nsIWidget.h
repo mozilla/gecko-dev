@@ -23,6 +23,8 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/LayersTypes.h"
+#include "mozilla/layers/ScrollableLayerGuid.h"
+#include "mozilla/layers/ZoomConstraints.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/gfx/Point.h"
@@ -30,7 +32,6 @@
 #include "nsDataHashtable.h"
 #include "nsIObserver.h"
 #include "nsIWidgetListener.h"
-#include "FrameMetrics.h"
 #include "Units.h"
 
 // forward declarations
@@ -59,11 +60,11 @@ namespace layers {
 class AsyncDragMetrics;
 class Compositor;
 class CompositorBridgeChild;
+struct FrameMetrics;
 class LayerManager;
 class LayerManagerComposite;
 class PLayerTransactionChild;
 class WebRenderBridgeChild;
-struct ScrollableLayerGuid;
 } // namespace layers
 namespace gfx {
 class DrawTarget;
@@ -576,6 +577,13 @@ class nsIWidget : public nsISupports
      * potentially multi-screen, mixed-resolution desktop.
      */
     virtual mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() = 0;
+
+    /**
+     * Return the scaling factor between device pixels and the platform-
+     * dependent "desktop pixels" by looking up the screen by the position
+     * of the widget.
+     */
+    virtual mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScaleByScreen() = 0;
 
     /**
      * Return the default scale factor for the window. This is the
@@ -2052,7 +2060,7 @@ public:
     virtual int32_t RoundsWidgetCoordinatesTo() { return 1; }
 
     virtual void UpdateZoomConstraints(const uint32_t& aPresShellId,
-                                       const FrameMetrics::ViewID& aViewId,
+                                       const ScrollableLayerGuid::ViewID& aViewId,
                                        const mozilla::Maybe<ZoomConstraints>& aConstraints) {};
 
     /**
@@ -2070,7 +2078,7 @@ public:
       GetNativeTextEventDispatcherListener() = 0;
 
     virtual void ZoomToRect(const uint32_t& aPresShellId,
-                            const FrameMetrics::ViewID& aViewId,
+                            const ScrollableLayerGuid::ViewID& aViewId,
                             const CSSRect& aRect,
                             const uint32_t& aFlags) = 0;
 

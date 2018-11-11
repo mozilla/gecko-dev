@@ -1928,17 +1928,6 @@ VARIABLES = {
         chrome.manifest.
         """),
 
-    'NO_JS_MANIFEST': (bool, bool,
-        """Explicitly disclaims responsibility for manifest listing in EXTRA_COMPONENTS.
-
-        Normally, if you have .js files listed in ``EXTRA_COMPONENTS`` or
-        ``EXTRA_PP_COMPONENTS``, you are expected to have a corresponding
-        .manifest file to go with those .js files.  Setting ``NO_JS_MANIFEST``
-        indicates that the relevant .manifest file and entries for those .js
-        files are elsehwere (jar.mn, for instance) and this state of affairs
-        is OK.
-        """),
-
     'GYP_DIRS': (StrictOrderingOnAppendListWithFlagsFactory({
             'variables': dict,
             'input': unicode,
@@ -1986,6 +1975,7 @@ VARIABLES = {
             'sandbox_vars': dict,
             'non_unified_sources': StrictOrderingOnAppendList,
             'mozilla_flags': list,
+            'gn_target': unicode,
         }), list,
         """List of dirs containing gn files describing targets to build. Attributes:
             - variables, a dictionary containing variables and values to pass
@@ -1997,6 +1987,7 @@ VARIABLES = {
               unification.
             - mozilla_flags, a set of flags that if present in the gn config
               will be mirrored to the resulting mozbuild configuration.
+            - gn_target, the name of the target to build.
         """),
 
     'SPHINX_TREES': (dict, dict,

@@ -436,17 +436,6 @@
           if (this.mControl.getAttribute("remote") != "true")
             return;
 
-          if (this.mControl.mAddon.eula) {
-            var data = {
-              addon: this.mControl.mAddon,
-              accepted: false,
-            };
-            window.openDialog("chrome://mozapps/content/extensions/eula.xul", "_blank",
-                              "chrome,dialog,modal,centerscreen,resizable=no", data);
-            if (!data.accepted)
-              return;
-          }
-
           delete this.mControl.mAddon;
           this.mControl.mInstall = this.mInstall;
           this.mControl.setAttribute("status", "installing");
@@ -578,7 +567,7 @@
   <!-- Addon - generic - A normal addon item, or an update to one -->
   <binding id="addon-generic"
            extends="chrome://mozapps/content/extensions/extensions.xml#addon-base">
-    <content>
+    <content tooltiptext="&addon.details.tooltip;">
       <xul:hbox anonid="warning-container"
                 class="warning">
         <xul:image class="warning-icon"/>
@@ -605,6 +594,8 @@
         <xul:spacer flex="5000"/> <!-- Necessary to allow the message to wrap -->
       </xul:hbox>
 
+      <xul:image class="card-heading-image" anonid="theme-screenshot" hidden="true"/>
+
       <xul:hbox class="content-container" align="center">
         <xul:vbox class="icon-container">
           <xul:image anonid="icon" class="icon"/>
@@ -613,7 +604,7 @@
           <xul:hbox class="basicinfo-container">
               <xul:hbox class="name-container">
                 <xul:label anonid="name" class="name" crop="end" flex="1"
-                           tooltip="addonitem-tooltip" xbl:inherits="value=name"/>
+                           tooltip="addonitem-tooltip" xbl:inherits="xbl:text=name"/>
                 <xul:label anonid="legacy" class="legacy-warning text-link" value="&addon.legacy.label;"/>
                 <xul:label class="disabled-postfix" value="&addon.disabled.postfix;"/>
                 <xul:label class="update-postfix" value="&addon.update.postfix;"/>
@@ -627,19 +618,8 @@
             <xul:vbox class="description-outer-container" flex="1">
               <xul:hbox class="description-container">
                 <xul:label anonid="description" class="description" crop="end" flex="1"/>
-                <xul:button anonid="details-btn" class="details button-link"
-                            label="&addon.details.label;"
-                            tooltiptext="&addon.details.tooltip;"
-                            oncommand="document.getBindingParent(this).showInDetailView();"/>
                 <xul:spacer flex="5000"/> <!-- Necessary to make the description crop -->
               </xul:hbox>
-              <xul:vbox anonid="relnotes-container" class="relnotes-container">
-                <xul:label class="relnotes-header" value="&addon.releaseNotes.label;"/>
-                <xul:label anonid="relnotes-loading" value="&addon.loadingReleaseNotes.label;"/>
-                <xul:label anonid="relnotes-error" hidden="true"
-                           value="&addon.errorLoadingReleaseNotes.label;"/>
-                <xul:vbox anonid="relnotes" class="relnotes"/>
-              </xul:vbox>
               <xul:hbox class="relnotes-toggle-container">
                 <xul:button anonid="relnotes-toggle-btn" class="relnotes-toggle"
                             hidden="true" label="&cmd.showReleaseNotes.label;"
@@ -650,6 +630,13 @@
                             hidetooltip="&cmd.hideReleaseNotes.tooltip;"
                             oncommand="document.getBindingParent(this).toggleReleaseNotes();"/>
               </xul:hbox>
+              <xul:vbox anonid="relnotes-container" class="relnotes-container">
+                <xul:label class="relnotes-header" value="&addon.releaseNotes.label;"/>
+                <xul:label anonid="relnotes-loading" value="&addon.loadingReleaseNotes.label;"/>
+                <xul:label anonid="relnotes-error" hidden="true"
+                           value="&addon.errorLoadingReleaseNotes.label;"/>
+                <xul:vbox anonid="relnotes" class="relnotes"/>
+              </xul:vbox>
             </xul:vbox>
           </xul:hbox>
         </xul:vbox>
@@ -676,7 +663,7 @@
             <xul:hbox anonid="install-status" class="install-status"
                       hidden="true"/>
           </xul:hbox>
-          <xul:hbox anonid="control-container" class="control-container">
+          <xul:hbox anonid="control-container" class="control-container" flex="1">
             <xul:button anonid="preferences-btn"
                         class="addon-control preferences"
 #ifdef XP_WIN
@@ -701,6 +688,7 @@
                         oncommand="document.getBindingParent(this).uninstall();"/>
             <xul:menulist anonid="state-menulist"
                           class="addon-control state"
+                          flex="1"
                           tooltiptext="&cmd.stateMenu.tooltip;">
               <xul:menupopup>
                 <xul:menuitem anonid="ask-to-activate-menuitem"
@@ -913,7 +901,7 @@
 
           this.setAttribute("name", aAddon.name);
 
-          var iconURL = AddonManager.getPreferredIconURL(aAddon, 32, window);
+          var iconURL = AddonManager.getPreferredIconURL(aAddon, 24, window);
           if (iconURL)
             this._icon.src = iconURL;
           else
@@ -1505,18 +1493,11 @@
 
     <handlers>
       <handler event="click" button="0"><![CDATA[
-        switch (event.detail) {
-        case 1:
-          // Prevent double-click where the UI changes on the first click
-          this._lastClickTarget = event.originalTarget;
-          break;
-        case 2:
-          if (event.originalTarget.localName != "button" &&
-              !event.originalTarget.classList.contains("text-link") &&
-              event.originalTarget == this._lastClickTarget) {
-            this.showInDetailView();
-          }
-          break;
+        if (!["button", "checkbox", "menulist", "menuitem"].includes(event.originalTarget.localName) &&
+            !event.originalTarget.classList.contains("text-link") &&
+            // Treat the relnotes container as embedded text instead of a click target.
+            !event.originalTarget.closest(".relnotes-container")) {
+          this.showInDetailView();
         }
       ]]></handler>
     </handlers>

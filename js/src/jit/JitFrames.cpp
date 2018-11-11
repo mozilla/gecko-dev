@@ -35,6 +35,7 @@
 #include "vm/TraceLogging.h"
 #include "vm/TypeInference.h"
 #include "wasm/WasmBuiltins.h"
+#include "wasm/WasmInstance.h"
 
 #include "gc/Nursery-inl.h"
 #include "jit/JSJitFrameIter-inl.h"
@@ -234,7 +235,7 @@ HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromEx
             }
 
             MOZ_ASSERT_IF(tn->kind == JSTRY_FOR_IN,
-                          JSOp(*(script->main() + tn->start + tn->length)) == JSOP_ENDITER);
+                          JSOp(*(script->offsetToPC(tn->start + tn->length))) == JSOP_ENDITER);
             CloseLiveIteratorIon(cx, frame, tn);
             break;
 
@@ -262,7 +263,7 @@ HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromEx
                 script->resetWarmUpCounter();
 
                 // Bailout at the start of the catch block.
-                jsbytecode* catchPC = script->main() + tn->start + tn->length;
+                jsbytecode* catchPC = script->offsetToPC(tn->start + tn->length);
                 ExceptionBailoutInfo excInfo(frame.frameNo(), catchPC, tn->stackDepth);
                 uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, excInfo, overrecursed);
                 if (retval == BAILOUT_RETURN_OK) {
@@ -329,7 +330,7 @@ SettleOnTryNote(JSContext* cx, const JSTryNote* tn, const JSJitFrameIter& frame,
     BaselineFrameAndStackPointersFromTryNote(tn, frame, &rfe->framePointer, &rfe->stackPointer);
 
     // Compute the pc.
-    *pc = script->main() + tn->start + tn->length;
+    *pc = script->offsetToPC(tn->start + tn->length);
 }
 
 struct AutoBaselineHandlingException
@@ -439,8 +440,10 @@ ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame, EnvironmentI
             script->resetWarmUpCounter();
 
             // Resume at the start of the catch block.
+            PCMappingSlotInfo slotInfo;
             rfe->kind = ResumeFromException::RESUME_CATCH;
-            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc);
+            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc, &slotInfo);
+            MOZ_ASSERT(slotInfo.isStackSynced());
             return true;
           }
 
@@ -450,9 +453,11 @@ ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame, EnvironmentI
                 break;
             }
 
+            PCMappingSlotInfo slotInfo;
             SettleOnTryNote(cx, tn, frame, ei, rfe, pc);
             rfe->kind = ResumeFromException::RESUME_FINALLY;
-            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc);
+            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc, &slotInfo);
+            MOZ_ASSERT(slotInfo.isStackSynced());
             // Drop the exception instead of leaking cross compartment data.
             if (!cx->getPendingException(MutableHandleValue::fromMarkedLocation(&rfe->exception))) {
                 rfe->exception = UndefinedValue();

@@ -10,7 +10,6 @@ const Services = require("Services");
 const { gDevTools } = require("devtools/client/framework/devtools");
 const { getColor } = require("devtools/client/shared/theme");
 const { createFactory, createElement } = require("devtools/client/shared/vendor/react");
-const { getCssProperties } = require("devtools/shared/fronts/css-properties");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 const { debounce } = require("devtools/shared/debounce");
 const { ELEMENT_STYLE } = require("devtools/shared/specs/styles");
@@ -62,7 +61,7 @@ const HISTOGRAM_FONT_TYPE_DISPLAYED = "DEVTOOLS_FONTEDITOR_FONT_TYPE_DISPLAYED";
 
 class FontInspector {
   constructor(inspector, window) {
-    this.cssProperties = getCssProperties(inspector.toolbox);
+    this.cssProperties = inspector.cssProperties;
     this.document = window.document;
     this.inspector = inspector;
     // Set of unique keyword values supported by designated font properties.
@@ -374,7 +373,7 @@ class FontInspector {
       "font-size",
       "font-weight",
       "font-stretch",
-      "line-height"
+      "line-height",
     ].reduce((acc, property) => {
       return acc.concat(this.cssProperties.getValues(property));
     }, []);
@@ -843,7 +842,7 @@ class FontInspector {
     try {
       // Get computed styles for the selected node, but filter by CSS font properties.
       this.nodeComputedStyle = await this.pageStyle.getComputed(node, {
-        filterProperties: FONT_PROPERTIES
+        filterProperties: FONT_PROPERTIES,
       });
     } catch (e) {
       // Because getComputed is async, there is a chance the font editor was
@@ -920,7 +919,7 @@ class FontInspector {
     const options = {
       includePreviews: true,
       previewText,
-      previewFillStyle: getColor("body-color")
+      previewFillStyle: getColor("body-color"),
     };
 
     // Add the includeVariations argument into the option to get font variation data.

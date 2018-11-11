@@ -52,6 +52,9 @@ EXPORTS.mozilla.net += [
     'PHttpChannelParams.h',
     'PSpdyPush.h',
     'TimingStruct.h',
+    'TrackingDummyChannel.h',
+    'TrackingDummyChannelChild.h',
+    'TrackingDummyChannelParent.h',
 ]
 
 SOURCES += [
@@ -66,6 +69,7 @@ UNIFIED_SOURCES += [
     'BackgroundChannelRegistrar.cpp',
     'CacheControlParser.cpp',
     'ConnectionDiagnostics.cpp',
+    'DelayHttpChannelQueue.cpp',
     'Http2Compression.cpp',
     'Http2Push.cpp',
     'Http2Session.cpp',
@@ -100,6 +104,9 @@ UNIFIED_SOURCES += [
     'nsServerTiming.cpp',
     'NullHttpChannel.cpp',
     'NullHttpTransaction.cpp',
+    'TrackingDummyChannel.cpp',
+    'TrackingDummyChannelChild.cpp',
+    'TrackingDummyChannelParent.cpp',
     'TunnelUtils.cpp',
 ]
 
@@ -112,6 +119,7 @@ IPDL_SOURCES += [
     'PAltDataOutputStream.ipdl',
     'PHttpBackgroundChannel.ipdl',
     'PHttpChannel.ipdl',
+    'PTrackingDummyChannel.ipdl',
 ]
 
 EXTRA_JS_MODULES += [
@@ -125,9 +133,9 @@ FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
     '/dom/base',
+    '/extensions/auth',
     '/netwerk/base',
     '/netwerk/cookie',
-    '/security/pkix/include',
 ]
 
 EXTRA_COMPONENTS += [

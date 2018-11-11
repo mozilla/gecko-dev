@@ -188,20 +188,15 @@ function getDateTimeFormatInternals(obj) {
 /**
  * 12.1.10 UnwrapDateTimeFormat( dtf )
  */
-function UnwrapDateTimeFormat(dtf, methodName) {
-    // Step 1 (not applicable in our implementation).
-
-    // Step 2.
-    if (IsObject(dtf) && (GuardToDateTimeFormat(dtf)) === null && dtf instanceof GetDateTimeFormatConstructor())
+function UnwrapDateTimeFormat(dtf) {
+    // Steps 2 and 4 (error handling moved to caller).
+    if (IsObject(dtf) &&
+        GuardToDateTimeFormat(dtf) === null &&
+        !IsWrappedDateTimeFormat(dtf) &&
+        dtf instanceof GetDateTimeFormatConstructor())
+    {
         dtf = dtf[intlFallbackSymbol()];
-
-    // Step 3.
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "DateTimeFormat", methodName,
-                       "DateTimeFormat");
     }
-
-    // Step 4.
     return dtf;
 }
 
@@ -754,7 +749,7 @@ var dateTimeFormatInternalProperties = {
         addSpecialMissingLanguageTags(locales);
         return (this._availableLocales = locales);
     },
-    relevantExtensionKeys: ["ca", "nu", "hc"]
+    relevantExtensionKeys: ["ca", "nu", "hc"],
 };
 
 function dateTimeFormatLocaleData() {
@@ -769,8 +764,8 @@ function dateTimeFormatLocaleData() {
             nu: intl_numberingSystem,
             hc: () => {
                 return null;
-            }
-        }
+            },
+        },
     };
 }
 
@@ -803,7 +798,12 @@ function dateTimeFormatFormatToBind(date) {
  */
 function Intl_DateTimeFormat_format_get() {
     // Steps 1-3.
-    var dtf = UnwrapDateTimeFormat(this, "format");
+    var thisArg = UnwrapDateTimeFormat(this);
+    var dtf = thisArg;
+    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(CallDateTimeFormatMethodIfWrapped, thisArg,
+                            "Intl_DateTimeFormat_format_get");
+    }
 
     var internals = getDateTimeFormatInternals(dtf);
 
@@ -831,9 +831,9 @@ function Intl_DateTimeFormat_formatToParts(date) {
     var dtf = this;
 
     // Steps 2-3.
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) == null) {
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "DateTimeFormat", "formatToParts",
-                       "DateTimeFormat");
+    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(CallDateTimeFormatMethodIfWrapped, this, date,
+                            "Intl_DateTimeFormat_formatToParts");
     }
 
     // Ensure the DateTimeFormat internals are resolved.
@@ -853,7 +853,12 @@ function Intl_DateTimeFormat_formatToParts(date) {
  */
 function Intl_DateTimeFormat_resolvedOptions() {
     // Steps 1-3.
-    var dtf = UnwrapDateTimeFormat(this, "resolvedOptions");
+    var thisArg = UnwrapDateTimeFormat(this);
+    var dtf = thisArg;
+    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(CallDateTimeFormatMethodIfWrapped, thisArg,
+                            "Intl_DateTimeFormat_resolvedOptions");
+    }
 
     var internals = getDateTimeFormatInternals(dtf);
 
@@ -880,27 +885,7 @@ function Intl_DateTimeFormat_resolvedOptions() {
     return result;
 }
 
-// Table mapping ICU pattern characters back to the corresponding date-time
-// components of DateTimeFormat. See
-// http://unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
-var icuPatternCharToComponent = {
-    E: "weekday",
-    G: "era",
-    y: "year",
-    M: "month",
-    L: "month",
-    d: "day",
-    h: "hour",
-    H: "hour",
-    k: "hour",
-    K: "hour",
-    m: "minute",
-    s: "second",
-    z: "timeZoneName",
-    v: "timeZoneName",
-    V: "timeZoneName"
-};
-
+/* eslint-disable complexity */
 /**
  * Maps an ICU pattern string to a corresponding set of date-time components
  * and their values, and adds properties for these components to the result
@@ -910,6 +895,8 @@ var icuPatternCharToComponent = {
  */
 function resolveICUPattern(pattern, result) {
     assert(IsObject(result), "resolveICUPattern");
+
+    var hourCycle, weekday, era, year, month, day, hour, minute, second, timeZoneName;
     var i = 0;
     while (i < pattern.length) {
         var c = pattern[i++];
@@ -923,6 +910,7 @@ function resolveICUPattern(pattern, result) {
                 i++;
                 count++;
             }
+
             var value;
             switch (c) {
             // "text" cases
@@ -969,26 +957,88 @@ function resolveICUPattern(pattern, result) {
             default:
                 // skip other pattern characters and literal text
             }
-            if (hasOwn(c, icuPatternCharToComponent))
-                _DefineDataProperty(result, icuPatternCharToComponent[c], value);
+
+            // Map ICU pattern characters back to the corresponding date-time
+            // components of DateTimeFormat. See
+            // http://unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
             switch (c) {
-            case "h":
-                _DefineDataProperty(result, "hourCycle", "h12");
-                _DefineDataProperty(result, "hour12", true);
+            case "E":
+                weekday = value;
                 break;
-            case "K":
-                _DefineDataProperty(result, "hourCycle", "h11");
-                _DefineDataProperty(result, "hour12", true);
+            case "G":
+                era = value;
+                break;
+            case "y":
+                year = value;
+                break;
+            case "M":
+            case "L":
+                month = value;
+                break;
+            case "d":
+                day = value;
+                break;
+            case "h":
+                hourCycle = "h12";
+                hour = value;
                 break;
             case "H":
-                _DefineDataProperty(result, "hourCycle", "h23");
-                _DefineDataProperty(result, "hour12", false);
+                hourCycle = "h23";
+                hour = value;
                 break;
             case "k":
-                _DefineDataProperty(result, "hourCycle", "h24");
-                _DefineDataProperty(result, "hour12", false);
+                hourCycle = "h24";
+                hour = value;
+                break;
+            case "K":
+                hourCycle = "h11";
+                hour = value;
+                break;
+            case "m":
+                minute = value;
+                break;
+            case "s":
+                second = value;
+                break;
+            case "z":
+            case "v":
+            case "V":
+                timeZoneName = value;
                 break;
             }
         }
     }
+
+    if (hourCycle) {
+        _DefineDataProperty(result, "hourCycle", hourCycle);
+        _DefineDataProperty(result, "hour12", hourCycle === "h11" || hourCycle === "h12");
+    }
+    if (weekday) {
+        _DefineDataProperty(result, "weekday", weekday);
+    }
+    if (era) {
+        _DefineDataProperty(result, "era", era);
+    }
+    if (year) {
+        _DefineDataProperty(result, "year", year);
+    }
+    if (month) {
+        _DefineDataProperty(result, "month", month);
+    }
+    if (day) {
+        _DefineDataProperty(result, "day", day);
+    }
+    if (hour) {
+        _DefineDataProperty(result, "hour", hour);
+    }
+    if (minute) {
+        _DefineDataProperty(result, "minute", minute);
+    }
+    if (second) {
+        _DefineDataProperty(result, "second", second);
+    }
+    if (timeZoneName) {
+        _DefineDataProperty(result, "timeZoneName", timeZoneName);
+    }
 }
+/* eslint-enable complexity */

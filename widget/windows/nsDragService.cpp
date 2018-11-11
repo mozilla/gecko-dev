@@ -171,7 +171,7 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
   // Try and get source URI of the items that are being dragged
   nsIURI *uri = nullptr;
 
-  nsCOMPtr<nsIDocument> doc(do_QueryInterface(mSourceDocument));
+  nsCOMPtr<nsIDocument> doc(mSourceDocument);
   if (doc) {
     uri = doc->GetDocumentURI();
   }
@@ -198,9 +198,6 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
       nsCOMPtr<nsITransferable> trans =
           do_QueryElementAt(anArrayTransferables, i);
       if (trans) {
-        // set the requestingPrincipal on the transferable
-        trans->SetRequestingPrincipal(mSourceNode->NodePrincipal());
-        trans->SetContentPolicyType(mContentPolicyType);
         RefPtr<IDataObject> dataObj;
         rv = nsClipboard::CreateNativeDataObject(trans,
                                                  getter_AddRefs(dataObj), uri);
@@ -217,9 +214,6 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
     nsCOMPtr<nsITransferable> trans =
         do_QueryElementAt(anArrayTransferables, 0);
     if (trans) {
-      // set the requestingPrincipal on the transferable
-      trans->SetRequestingPrincipal(mSourceNode->NodePrincipal());
-      trans->SetContentPolicyType(mContentPolicyType);
       rv = nsClipboard::CreateNativeDataObject(trans,
                                                getter_AddRefs(itemToDrag),
                                                uri);

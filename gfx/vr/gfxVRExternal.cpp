@@ -136,6 +136,11 @@ VRDisplayExternal::StartPresentation()
   if (mDisplayInfo.mDisplayState.mReportsDroppedFrames) {
     mTelemetry.mLastDroppedFrameCount = mDisplayInfo.mDisplayState.mDroppedFrameCount;
   }
+
+#if defined(MOZ_WIDGET_ANDROID)
+  mLastSubmittedFrameId = 0;
+  mLastStartedFrame = 0;
+#endif
 }
 
 void
@@ -212,16 +217,11 @@ VRDisplayExternal::PopulateLayerTexture(const layers::SurfaceDescriptor& aTextur
     }
 #elif defined(XP_MACOSX)
     case SurfaceDescriptor::TSurfaceDescriptorMacIOSurface: {
+      // MacIOSurface ptr can't be fetched or used at different threads.
+      // Both of fetching and using this MacIOSurface are at the VRService thread.
       const auto& desc = aTexture.get_SurfaceDescriptorMacIOSurface();
-      RefPtr<MacIOSurface> surf = MacIOSurface::LookupSurface(desc.surfaceId(),
-                                                              desc.scaleFactor(),
-                                                              !desc.isOpaque());
-      if (!surf) {
-        NS_WARNING("VRDisplayHost::SubmitFrame failed to get a MacIOSurface");
-        return false;
-      }
       *aTextureType = VRLayerTextureType::LayerTextureType_MacIOSurface;
-      *aTextureHandle = (void *)surf->GetIOSurfacePtr();
+      *aTextureHandle = desc.surfaceId();
       return true;
     }
 #elif defined(MOZ_WIDGET_ANDROID)
@@ -460,10 +460,10 @@ VRSystemManagerExternal::VRSystemManagerExternal(VRExternalShmem* aAPIShmem /* =
 #elif defined(XP_WIN)
   mShmemFile = NULL;
 #elif defined(MOZ_WIDGET_ANDROID)
-  mDoShutdown = false;
   mExternalStructFailed = false;
   mEnumerationCompleted = false;
 #endif
+  mDoShutdown = false;
 
   if (!aAPIShmem) {
     OpenShmem();
@@ -572,17 +572,9 @@ VRSystemManagerExternal::OpenShmem()
 void
 VRSystemManagerExternal::CheckForShutdown()
 {
-#if defined(MOZ_WIDGET_ANDROID)
   if (mDoShutdown) {
     Shutdown();
   }
-#else
-  if (mExternalShmem) {
-    if (mExternalShmem->generationA == -1 && mExternalShmem->generationB == -1) {
-      Shutdown();
-    }
-  }
-#endif // defined(MOZ_WIDGET_ANDROID)
 }
 
 void
@@ -650,9 +642,7 @@ VRSystemManagerExternal::Shutdown()
     mDisplay = nullptr;
   }
   CloseShmem();
-#if defined(MOZ_WIDGET_ANDROID)
   mDoShutdown = false;
-#endif
 }
 
 void
@@ -702,6 +692,13 @@ bool
 VRSystemManagerExternal::ShouldInhibitEnumeration()
 {
   if (VRSystemManager::ShouldInhibitEnumeration()) {
+    return true;
+  }
+  if (!mEarliestRestartTime.IsNull() && mEarliestRestartTime > TimeStamp::Now()) {
+    // When the VR Service shuts down it informs us of how long we
+    // must wait until we can re-start it.
+    // We must wait until mEarliestRestartTime before attempting
+    // to enumerate again.
     return true;
   }
   if (mDisplay) {
@@ -781,7 +778,6 @@ VRSystemManagerExternal::ScanForControllers()
 {
   // Controller updates are handled in VRDisplayClient for
   // VRSystemManagerExternal
-  return;
 }
 
 void
@@ -789,7 +785,6 @@ VRSystemManagerExternal::HandleInput()
 {
   // Controller updates are handled in VRDisplayClient for
   // VRSystemManagerExternal
-  return;
 }
 
 void
@@ -825,7 +820,13 @@ VRSystemManagerExternal::PullState(VRDisplayState* aDisplayState,
           memcpy(aControllerState, (void*)&(mExternalShmem->state.controllerState), sizeof(VRControllerState) * kVRControllerMaxCount);
         }
         mEnumerationCompleted = mExternalShmem->state.enumerationCompleted;
-        mDoShutdown = aDisplayState->shutdown;
+        if (aDisplayState->shutdown) {
+          mDoShutdown = true;
+          TimeStamp now = TimeStamp::Now();
+          if (!mEarliestRestartTime.IsNull() && mEarliestRestartTime < now) {
+            mEarliestRestartTime = now + TimeDuration::FromMilliseconds((double)aDisplayState->mMinRestartInterval);
+          }
+        }
         if (!aWaitCondition || aWaitCondition()) {
           done = true;
           break;
@@ -861,6 +862,13 @@ VRSystemManagerExternal::PullState(VRDisplayState* aDisplayState,
       if (aControllerState) {
         memcpy(aControllerState, (void*)&(mExternalShmem->state.controllerState), sizeof(VRControllerState) * kVRControllerMaxCount);
       }
+      if (aDisplayState->shutdown) {
+        mDoShutdown = true;
+        TimeStamp now = TimeStamp::Now();
+        if (!mEarliestRestartTime.IsNull() && mEarliestRestartTime < now) {
+          mEarliestRestartTime = now + TimeDuration::FromMilliseconds((double)aDisplayState->mMinRestartInterval);
+        }
+      }
       success = true;
     }
   }
@@ -868,7 +876,6 @@ VRSystemManagerExternal::PullState(VRDisplayState* aDisplayState,
   return success;
 }
 #endif // defined(MOZ_WIDGET_ANDROID)
-
 
 void
 VRSystemManagerExternal::PushState(VRBrowserState* aBrowserState, bool aNotifyCond)

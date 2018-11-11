@@ -251,7 +251,7 @@ def main(argv):
 
     # Exclude tests when code coverage is enabled.
     # This part is equivalent to:
-    # skip-if = coverage
+    # skip-if = ccov
     if os.getenv('GCOV_PREFIX') is not None:
         # JSVM errors.
         options.exclude += [os.path.join('basic', 'functionnames.js')]           # Bug 1369783
@@ -375,9 +375,13 @@ def main(argv):
             debug_cmd = options.debugger.split()
 
         with change_env(test_environment):
-            subprocess.call(debug_cmd + tc.command(prefix, jittests.LIB_DIR, jittests.MODULE_DIR))
             if options.debugger == 'rr':
-                subprocess.call(['rr', 'replay'])
+                subprocess.call(debug_cmd +
+                                tc.command(prefix, jittests.LIB_DIR, jittests.MODULE_DIR))
+                os.execvp('rr', ['rr', 'replay'])
+            else:
+                os.execvp(debug_cmd[0], debug_cmd +
+                          tc.command(prefix, jittests.LIB_DIR, jittests.MODULE_DIR))
         sys.exit()
 
     try:

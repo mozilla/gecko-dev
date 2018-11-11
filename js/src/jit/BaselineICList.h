@@ -61,8 +61,6 @@ namespace jit {
                                                  \
     _(SetProp_Fallback)                          \
                                                  \
-    _(TableSwitch)                               \
-                                                 \
     _(GetIterator_Fallback)                      \
     _(IteratorMore_Fallback)                     \
     _(IteratorMore_Native)                       \
@@ -80,9 +78,6 @@ namespace jit {
     _(Compare_Fallback)                          \
                                                  \
     _(GetProp_Fallback)                          \
-                                                 \
-    _(RetSub_Fallback)                           \
-    _(RetSub_Resume)                             \
                                                  \
     _(CacheIR_Regular)                           \
     _(CacheIR_Monitored)                         \

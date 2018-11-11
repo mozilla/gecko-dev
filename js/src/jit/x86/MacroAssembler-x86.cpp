@@ -302,6 +302,7 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
     }
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // ABI function calls.
@@ -623,26 +624,6 @@ MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value, MIRType value
                                   const BaseObjectElementIndex& dest, MIRType slotType);
 
 // wasm specific methods, used in both the wasm baseline compiler and ion.
-
-void
-MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Register boundsCheckLimit, Label* label)
-{
-    cmp32(index, boundsCheckLimit);
-    j(cond, label);
-    if (JitOptions.spectreIndexMasking) {
-        cmovCCl(cond, Operand(boundsCheckLimit), index);
-    }
-}
-
-void
-MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCheckLimit, Label* label)
-{
-    cmp32(index, Operand(boundsCheckLimit));
-    j(cond, label);
-    if (JitOptions.spectreIndexMasking) {
-        cmovCCl(cond, Operand(boundsCheckLimit), index);
-    }
-}
 
 void
 MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access, Operand srcAddr, AnyRegister out)
@@ -1007,29 +988,24 @@ void
 MacroAssembler::wasmTruncateDoubleToInt64(FloatRegister input, Register64 output, bool isSaturating,
                                           Label* oolEntry, Label* oolRejoin, FloatRegister tempReg)
 {
-    Label fail, convert;
+    Label ok;
     Register temp = output.high;
 
-    // Make sure input fits in (u)int64.
-    reserveStack(2 * sizeof(int32_t));
-    storeDouble(input, Operand(esp, 0));
-    branchDoubleNotInInt64Range(Address(esp, 0), temp, &fail);
-    jump(&convert);
-
-    // Handle failure in ool.
-    bind(&fail);
-    freeStack(2 * sizeof(int32_t));
-    jump(oolEntry);
-    bind(oolRejoin);
     reserveStack(2 * sizeof(int32_t));
     storeDouble(input, Operand(esp, 0));
 
-    // Convert the double/float to int64.
-    bind(&convert);
     truncateDoubleToInt64(Address(esp, 0), Address(esp, 0), temp);
-
-    // Load value into int64 register.
     load64(Address(esp, 0), output);
+
+    cmpl(Imm32(0), Operand(esp, 0));
+    j(Assembler::NotEqual, &ok);
+
+    cmpl(Imm32(1), Operand(esp, 4));
+    j(Assembler::Overflow, oolEntry);
+
+    bind(&ok);
+    bind(oolRejoin);
+
     freeStack(2 * sizeof(int32_t));
 }
 
@@ -1038,29 +1014,24 @@ MacroAssembler::wasmTruncateFloat32ToInt64(FloatRegister input, Register64 outpu
                                            bool isSaturating,
                                            Label* oolEntry, Label* oolRejoin, FloatRegister tempReg)
 {
-    Label fail, convert;
+    Label ok;
     Register temp = output.high;
 
-    // Make sure input fits in (u)int64.
-    reserveStack(2 * sizeof(int32_t));
-    storeFloat32(input, Operand(esp, 0));
-    branchFloat32NotInInt64Range(Address(esp, 0), temp, &fail);
-    jump(&convert);
-
-    // Handle failure in ool.
-    bind(&fail);
-    freeStack(2 * sizeof(int32_t));
-    jump(oolEntry);
-    bind(oolRejoin);
     reserveStack(2 * sizeof(int32_t));
     storeFloat32(input, Operand(esp, 0));
 
-    // Convert the double/float to int64.
-    bind(&convert);
     truncateFloat32ToInt64(Address(esp, 0), Address(esp, 0), temp);
-
-    // Load value into int64 register.
     load64(Address(esp, 0), output);
+
+    cmpl(Imm32(0), Operand(esp, 0));
+    j(Assembler::NotEqual, &ok);
+
+    cmpl(Imm32(1), Operand(esp, 4));
+    j(Assembler::Overflow, oolEntry);
+
+    bind(&ok);
+    bind(oolRejoin);
+
     freeStack(2 * sizeof(int32_t));
 }
 
@@ -1072,27 +1043,37 @@ MacroAssembler::wasmTruncateDoubleToUInt64(FloatRegister input, Register64 outpu
     Label fail, convert;
     Register temp = output.high;
 
-    // Make sure input fits in (u)int64.
+    // Make sure input fits in uint64.
     reserveStack(2 * sizeof(int32_t));
     storeDouble(input, Operand(esp, 0));
     branchDoubleNotInUInt64Range(Address(esp, 0), temp, &fail);
+    size_t stackBeforeBranch = framePushed();
     jump(&convert);
 
-    // Handle failure in ool.
     bind(&fail);
     freeStack(2 * sizeof(int32_t));
     jump(oolEntry);
-    bind(oolRejoin);
-    reserveStack(2 * sizeof(int32_t));
-    storeDouble(input, Operand(esp, 0));
+    if (isSaturating) {
+        // The OOL path computes the right values.
+        setFramePushed(stackBeforeBranch);
+    } else {
+        // The OOL path just checks the input values.
+        bind(oolRejoin);
+        reserveStack(2 * sizeof(int32_t));
+        storeDouble(input, Operand(esp, 0));
+    }
 
-    // Convert the double/float to int64.
+    // Convert the double/float to uint64.
     bind(&convert);
     truncateDoubleToUInt64(Address(esp, 0), Address(esp, 0), temp, tempReg);
 
     // Load value into int64 register.
     load64(Address(esp, 0), output);
     freeStack(2 * sizeof(int32_t));
+
+    if (isSaturating) {
+        bind(oolRejoin);
+    }
 }
 
 void
@@ -1103,41 +1084,41 @@ MacroAssembler::wasmTruncateFloat32ToUInt64(FloatRegister input, Register64 outp
     Label fail, convert;
     Register temp = output.high;
 
-    // Make sure input fits in (u)int64.
+    // Make sure input fits in uint64.
     reserveStack(2 * sizeof(int32_t));
     storeFloat32(input, Operand(esp, 0));
     branchFloat32NotInUInt64Range(Address(esp, 0), temp, &fail);
+    size_t stackBeforeBranch = framePushed();
     jump(&convert);
 
-    // Handle failure in ool.
     bind(&fail);
     freeStack(2 * sizeof(int32_t));
     jump(oolEntry);
-    bind(oolRejoin);
-    reserveStack(2 * sizeof(int32_t));
-    storeFloat32(input, Operand(esp, 0));
+    if (isSaturating) {
+        // The OOL path computes the right values.
+        setFramePushed(stackBeforeBranch);
+    } else {
+        // The OOL path just checks the input values.
+        bind(oolRejoin);
+        reserveStack(2 * sizeof(int32_t));
+        storeFloat32(input, Operand(esp, 0));
+    }
 
-    // Convert the double/float to int64.
+    // Convert the float to uint64.
     bind(&convert);
     truncateFloat32ToUInt64(Address(esp, 0), Address(esp, 0), temp, tempReg);
 
     // Load value into int64 register.
     load64(Address(esp, 0), output);
     freeStack(2 * sizeof(int32_t));
-}
 
+    if (isSaturating) {
+        bind(oolRejoin);
+    }
+}
 
 // ========================================================================
 // Convert floating point.
-
-// vpunpckldq requires 16-byte boundary for memory operand.
-// See convertUInt64ToDouble for the details.
-MOZ_ALIGNED_DECL(static const uint64_t, 16) TO_DOUBLE[4] = {
-    0x4530000043300000LL,
-    0x0LL,
-    0x4330000000000000LL,
-    0x4530000000000000LL
-};
 
 bool
 MacroAssembler::convertUInt64ToDoubleNeedsTemp()
@@ -1197,8 +1178,16 @@ MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest, Regist
     // here, each 64-bit part of dest represents following double:
     //   HI(dest) = 0x 1.00000HHHHHHHH * 2**84 == 2**84 + 0x HHHHHHHH 00000000
     //   LO(dest) = 0x 1.00000LLLLLLLL * 2**52 == 2**52 + 0x 00000000 LLLLLLLL
-    movePtr(ImmWord((uintptr_t)TO_DOUBLE), temp);
-    vpunpckldq(Operand(temp, 0), dest128, dest128);
+    // See convertUInt64ToDouble for the details.
+    static const int32_t CST1[4] = {
+        0x43300000,
+        0x45300000,
+        0x0,
+        0x0,
+    };
+
+    loadConstantSimd128Int(SimdConstant::CreateX4(CST1), ScratchSimd128Reg);
+    vpunpckldq(ScratchSimd128Reg, dest128, dest128);
 
     // Subtract a constant C2 from dest, for each 64-bit part:
     //   C2       = 0x 45300000 00000000  43300000 00000000
@@ -1208,7 +1197,15 @@ MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest, Regist
     // after the operation each 64-bit part of dest represents following:
     //   HI(dest) = double(0x HHHHHHHH 00000000)
     //   LO(dest) = double(0x 00000000 LLLLLLLL)
-    vsubpd(Operand(temp, sizeof(uint64_t) * 2), dest128, dest128);
+    static const int32_t CST2[4] = {
+        0x0,
+        0x43300000,
+        0x0,
+        0x45300000,
+    };
+
+    loadConstantSimd128Int(SimdConstant::CreateX4(CST2), ScratchSimd128Reg);
+    vsubpd(ScratchSimd128Reg, dest128, dest128);
 
     // Add HI(dest) and LO(dest) in double and store it into LO(dest),
     //   LO(dest) = double(0x HHHHHHHH 00000000) + double(0x 00000000 LLLLLLLL)
@@ -1285,4 +1282,5 @@ MacroAssembler::convertInt64ToFloat32(Register64 input, FloatRegister output)
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 

@@ -48,6 +48,31 @@ namespace dom {
 
 namespace {
 
+void
+GetBlobURISpecFromChannel(nsIRequest* aRequest, nsCString& aBlobURISpec)
+{
+  MOZ_ASSERT(aRequest);
+
+  aBlobURISpec.SetIsVoid(true);
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  if (!channel) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = channel->GetURI(getter_AddRefs(uri));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (!dom::IsBlobURI(uri)) {
+    return;
+  }
+
+  uri->GetSpec(aBlobURISpec);
+}
+
 bool
 ShouldCheckSRI(const InternalRequest* const aRequest,
                const InternalResponse* const aResponse)
@@ -514,7 +539,7 @@ FetchDriver::HttpFetch(const nsACString& aPreferredAlternativeDataType)
   MOZ_ASSERT(mLoadGroup);
   nsCOMPtr<nsIChannel> chan;
 
-  nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL |
+  nsLoadFlags loadFlags = nsIRequest::LOAD_BACKGROUND |
     bypassFlag | nsIChannel::LOAD_CLASSIFY_URI;
   if (mDocument) {
     MOZ_ASSERT(mDocument->NodePrincipal() == mPrincipal);
@@ -554,6 +579,16 @@ FetchDriver::HttpFetch(const nsACString& aPreferredAlternativeDataType)
                        ios);
   }
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (mCSPEventListener) {
+    nsCOMPtr<nsILoadInfo> loadInfo = chan->GetLoadInfo();
+    if (NS_WARN_IF(!loadInfo)) {
+      return NS_ERROR_UNEXPECTED;
+    }
+
+    rv = loadInfo->SetCspEventListener(mCSPEventListener);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   // Insert ourselves into the notification callbacks chain so we can set
   // headers on redirects.
@@ -709,7 +744,7 @@ FetchDriver::HttpFetch(const nsACString& aPreferredAlternativeDataType)
   if (!aPreferredAlternativeDataType.IsEmpty()) {
     nsCOMPtr<nsICacheInfoChannel> cic = do_QueryInterface(chan);
     if (cic) {
-      cic->PreferAlternativeDataType(aPreferredAlternativeDataType);
+      cic->PreferAlternativeDataType(aPreferredAlternativeDataType, EmptyCString());
       MOZ_ASSERT(!mAltDataListener);
       mAltDataListener =
         new AlternativeDataStreamListener(this, chan, aPreferredAlternativeDataType);
@@ -962,6 +997,14 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
       file->GetPath(path);
       response->SetBodyLocalPath(path);
     }
+  } else {
+    // If the request is a blob URI, then remember that URI so that we
+    // can later just use that blob instance instead of cloning it.
+    nsCString blobURISpec;
+    GetBlobURISpecFromChannel(aRequest, blobURISpec);
+    if (!blobURISpec.IsVoid()) {
+      response->SetBodyBlobURISpec(blobURISpec);
+    }
   }
 
   response->InitChannelInfo(channel);
@@ -1188,7 +1231,7 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest,
   if (NS_FAILED(aStatusCode) || !mObserver) {
     nsCOMPtr<nsIAsyncOutputStream> outputStream = do_QueryInterface(mPipeOutputStream);
     if (outputStream) {
-      outputStream->CloseWithStatus(NS_BINDING_FAILED);
+      outputStream->CloseWithStatus(NS_FAILED(aStatusCode) ? aStatusCode : NS_BINDING_FAILED);
     }
     if (altDataListener) {
       altDataListener->Cancel();
@@ -1383,6 +1426,13 @@ FetchDriver::SetDocument(nsIDocument* aDocument)
 }
 
 void
+FetchDriver::SetCSPEventListener(nsICSPEventListener* aCSPEventListener)
+{
+  MOZ_ASSERT(!mFetchCalled);
+  mCSPEventListener = aCSPEventListener;
+}
+
+void
 FetchDriver::SetClientInfo(const ClientInfo& aClientInfo)
 {
   MOZ_ASSERT(!mFetchCalled);
@@ -1431,7 +1481,7 @@ FetchDriver::SetRequestHeaders(nsIHttpChannel* aChannel) const
     nsAutoString origin;
     if (NS_SUCCEEDED(nsContentUtils::GetUTFOrigin(mPrincipal, origin))) {
       DebugOnly<nsresult> rv =
-        aChannel->SetRequestHeader(NS_LITERAL_CSTRING("origin"),
+        aChannel->SetRequestHeader(nsDependentCString(net::nsHttp::Origin),
                                    NS_ConvertUTF16toUTF8(origin),
                                    false /* merge */);
       MOZ_ASSERT(NS_SUCCEEDED(rv));

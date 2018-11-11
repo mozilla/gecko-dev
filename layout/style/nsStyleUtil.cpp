@@ -209,9 +209,6 @@ nsStyleUtil::AppendAngleValue(const nsStyleCoord& aAngle, nsAString& aResult)
   // Append unit.
   switch (aAngle.GetUnit()) {
     case eStyleUnit_Degree: aResult.AppendLiteral("deg");  break;
-    case eStyleUnit_Grad:   aResult.AppendLiteral("grad"); break;
-    case eStyleUnit_Radian: aResult.AppendLiteral("rad");  break;
-    case eStyleUnit_Turn:   aResult.AppendLiteral("turn"); break;
     default: MOZ_ASSERT_UNREACHABLE("unrecognized angle unit");
   }
 }
@@ -274,74 +271,6 @@ nsStyleUtil::AppendPaintOrderValue(uint8_t aValue,
         MOZ_ASSERT_UNREACHABLE("unexpected paint-order component value");
     }
     aValue >>= NS_STYLE_PAINT_ORDER_BITWIDTH;
-  }
-}
-
-/* static */ void
-nsStyleUtil::AppendStepsTimingFunction(nsTimingFunction::Type aType,
-                                       uint32_t aSteps,
-                                       nsAString& aResult)
-{
-  MOZ_ASSERT(aType == nsTimingFunction::Type::StepStart ||
-             aType == nsTimingFunction::Type::StepEnd);
-
-  aResult.AppendLiteral("steps(");
-  aResult.AppendInt(aSteps);
-  if (aType == nsTimingFunction::Type::StepStart) {
-    aResult.AppendLiteral(", start)");
-  } else {
-    aResult.AppendLiteral(")");
-  }
-}
-
-/* static */ void
-nsStyleUtil::AppendFramesTimingFunction(uint32_t aFrames,
-                                        nsAString& aResult)
-{
-  aResult.AppendLiteral("frames(");
-  aResult.AppendInt(aFrames);
-  aResult.AppendLiteral(")");
-}
-
-/* static */ void
-nsStyleUtil::AppendCubicBezierTimingFunction(float aX1, float aY1,
-                                             float aX2, float aY2,
-                                             nsAString& aResult)
-{
-  // set the value from the cubic-bezier control points
-  // (We could try to regenerate the keywords if we want.)
-  aResult.AppendLiteral("cubic-bezier(");
-  aResult.AppendFloat(aX1);
-  aResult.AppendLiteral(", ");
-  aResult.AppendFloat(aY1);
-  aResult.AppendLiteral(", ");
-  aResult.AppendFloat(aX2);
-  aResult.AppendLiteral(", ");
-  aResult.AppendFloat(aY2);
-  aResult.Append(')');
-}
-
-/* static */ void
-nsStyleUtil::AppendCubicBezierKeywordTimingFunction(
-    nsTimingFunction::Type aType,
-    nsAString& aResult)
-{
-  switch (aType) {
-    case nsTimingFunction::Type::Ease:
-    case nsTimingFunction::Type::Linear:
-    case nsTimingFunction::Type::EaseIn:
-    case nsTimingFunction::Type::EaseOut:
-    case nsTimingFunction::Type::EaseInOut: {
-      nsCSSKeyword keyword = nsCSSProps::ValueToKeywordEnum(
-          static_cast<int32_t>(aType),
-          nsCSSProps::kTransitionTimingFunctionKTable);
-      AppendASCIItoUTF16(nsCSSKeywords::GetStringValue(keyword),
-                         aResult);
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("unexpected aType");
-      break;
   }
 }
 
@@ -486,7 +415,8 @@ nsStyleUtil::CSPAllowsInlineStyle(Element* aElement,
   rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_STYLESHEET,
                             nonce,
                             false, // aParserCreated only applies to scripts
-                            aElement, aStyleText, aLineNumber, aColumnNumber,
+                            aElement, nullptr, // nsICSPEventListener
+                            aStyleText, aLineNumber, aColumnNumber,
                             &allowInlineStyle);
   NS_ENSURE_SUCCESS(rv, false);
 

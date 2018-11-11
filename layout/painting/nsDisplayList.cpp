@@ -23,6 +23,7 @@
 #include "mozilla/dom/Selection.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/PLayerTransaction.h"
+#include "mozilla/ShapeUtils.h"
 #include "nsCSSRendering.h"
 #include "nsCSSRenderingGradients.h"
 #include "nsISelectionController.h"
@@ -105,7 +106,7 @@ using namespace mozilla::dom;
 using namespace mozilla::layout;
 using namespace mozilla::gfx;
 
-typedef FrameMetrics::ViewID ViewID;
+typedef ScrollableLayerGuid::ViewID ViewID;
 typedef nsStyleTransformMatrix::TransformReferenceBox TransformReferenceBox;
 
 #ifdef DEBUG
@@ -367,18 +368,16 @@ AddTransformFunctions(const nsCSSValueList* aList,
         break;
       }
       case eCSSKeyword_interpolatematrix: {
-        bool dummy;
         Matrix4x4 matrix;
         nsStyleTransformMatrix::ProcessInterpolateMatrix(
-          matrix, array, aRefBox, &dummy);
+          matrix, array, aRefBox);
         aFunctions.AppendElement(TransformMatrix(matrix));
         break;
       }
       case eCSSKeyword_accumulatematrix: {
-        bool dummy;
         Matrix4x4 matrix;
         nsStyleTransformMatrix::ProcessAccumulateMatrix(
-          matrix, array, aRefBox, &dummy);
+          matrix, array, aRefBox);
         aFunctions.AppendElement(TransformMatrix(matrix));
         break;
       }
@@ -419,12 +418,8 @@ ToTimingFunction(const Maybe<ComputedTimingFunction>& aCTF)
       spline->X1(), spline->Y1(), spline->X2(), spline->Y2()));
   }
 
-  if (aCTF->GetType() == nsTimingFunction::Type::Frames) {
-    return TimingFunction(FramesFunction(aCTF->GetFrames()));
-  }
-
-  uint32_t type = aCTF->GetType() == nsTimingFunction::Type::StepStart ? 1 : 2;
-  return TimingFunction(StepFunction(aCTF->GetSteps(), type));
+  return TimingFunction(StepFunction(
+    aCTF->GetSteps().mSteps, static_cast<uint8_t>(aCTF->GetSteps().mPos)));
 }
 
 static void
@@ -447,13 +442,10 @@ SetAnimatable(nsCSSPropertyID aProperty,
       break;
     case eCSSProperty_transform: {
       aAnimatable = InfallibleTArray<TransformFunction>();
-      if (aAnimationValue.mServo) {
-        RefPtr<nsCSSValueSharedList> list;
-        Servo_AnimationValue_GetTransform(aAnimationValue.mServo, &list);
-        AddTransformFunctions(list, aFrame, aRefBox, aAnimatable);
-      } else {
-        MOZ_CRASH("old style system disabled");
-      }
+      MOZ_ASSERT(aAnimationValue.mServo);
+      RefPtr<nsCSSValueSharedList> list;
+      Servo_AnimationValue_GetTransform(aAnimationValue.mServo, &list);
+      AddTransformFunctions(list, aFrame, aRefBox, aAnimatable);
       break;
     }
     default:
@@ -957,13 +949,65 @@ nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter::InsertScrollFrame(
   mUsed = true;
 }
 
+/* static */ nsRect
+nsDisplayListBuilder::OutOfFlowDisplayData::ComputeVisibleRectForFrame(
+    nsDisplayListBuilder* aBuilder,
+    nsIFrame* aFrame,
+    const nsRect& aVisibleRect,
+    const nsRect& aDirtyRect,
+    nsRect* aOutDirtyRect)
+{
+  nsRect visible = aVisibleRect;
+  nsRect dirtyRectRelativeToDirtyFrame = aDirtyRect;
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(aFrame) &&
+      aBuilder->IsPaintingToWindow()) {
+    // We want to ensure that fixed position elements are visible when
+    // being async scrolled, so we paint them at the size of the larger
+    // viewport.
+    dirtyRectRelativeToDirtyFrame =
+      nsRect(nsPoint(0, 0), aFrame->GetParent()->GetSize());
+
+    nsIPresShell* ps = aFrame->PresShell();
+    if (ps->IsVisualViewportSizeSet() &&
+        dirtyRectRelativeToDirtyFrame.Size() <
+          ps->GetVisualViewportSize()) {
+      dirtyRectRelativeToDirtyFrame.SizeTo(ps->GetVisualViewportSize());
+    }
+
+    visible = dirtyRectRelativeToDirtyFrame;
+  }
+#endif
+
+  *aOutDirtyRect = dirtyRectRelativeToDirtyFrame - aFrame->GetPosition();
+  visible -= aFrame->GetPosition();
+
+  nsRect overflowRect = aFrame->GetVisualOverflowRect();
+
+  if (aFrame->IsTransformed() &&
+      mozilla::EffectCompositor::HasAnimationsForCompositor(
+        aFrame, eCSSProperty_transform)) {
+    /**
+     * Add a fuzz factor to the overflow rectangle so that elements only
+     * just out of view are pulled into the display list, so they can be
+     * prerendered if necessary.
+     */
+    overflowRect.Inflate(nsPresContext::CSSPixelsToAppUnits(32));
+  }
+
+  visible.IntersectRect(visible, overflowRect);
+  aOutDirtyRect->IntersectRect(*aOutDirtyRect, overflowRect);
+
+  return visible;
+}
+
 nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
                                            nsDisplayListBuilderMode aMode,
                                            bool aBuildCaret,
                                            bool aRetainingDisplayList)
   : mReferenceFrame(aReferenceFrame)
   , mIgnoreScrollFrame(nullptr)
-  , mCompositorHitTestInfo(nullptr)
   , mCurrentTableItem(nullptr)
   , mCurrentActiveScrolledRoot(nullptr)
   , mCurrentContainerASR(nullptr)
@@ -981,8 +1025,8 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
   , mFirstClipChainToDestroy(nullptr)
   , mActiveScrolledRootForRootScrollframe(nullptr)
   , mMode(aMode)
-  , mCurrentScrollParentId(FrameMetrics::NULL_SCROLL_ID)
-  , mCurrentScrollbarTarget(FrameMetrics::NULL_SCROLL_ID)
+  , mCurrentScrollParentId(ScrollableLayerGuid::NULL_SCROLL_ID)
+  , mCurrentScrollbarTarget(ScrollableLayerGuid::NULL_SCROLL_ID)
   , mSVGEffectsBuildingDepth(0)
   , mFilterASR(nullptr)
   , mContainsBlendMode(false)
@@ -1018,12 +1062,13 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
   , mInInvalidSubtree(false)
   , mDisablePartialUpdates(false)
   , mPartialBuildFailed(false)
+  , mIsInActiveDocShell(false)
+  , mHitTestArea()
+  , mHitTestInfo(CompositorHitTestInvisibleToHit)
 {
   MOZ_COUNT_CTOR(nsDisplayListBuilder);
 
   mBuildCompositorHitTestInfo = mAsyncPanZoomEnabled && IsForPainting();
-
-  mLessEventRegionItems = gfxPrefs::LessEventRegionItems();
 
   nsPresContext* pc = aReferenceFrame->PresContext();
   nsIPresShell* shell = pc->PresShell();
@@ -1065,8 +1110,6 @@ nsDisplayListBuilder::EndFrame()
   FreeClipChains();
   FreeTemporaryItems();
   nsCSSRendering::EndFrameTreesLocked();
-
-  MOZ_ASSERT(!mCompositorHitTestInfo);
 }
 
 void
@@ -2046,46 +2089,42 @@ nsDisplayListBuilder::GetWindowDraggingRegion() const
 }
 
 /**
- * Removes modified frames and rects from |aRegion|.
+ * Removes modified frames and rects from this WeakFrameRegion.
  */
-static void
-RemoveModifiedFramesAndRects(nsDisplayListBuilder::WeakFrameRegion& aRegion)
+void
+nsDisplayListBuilder::WeakFrameRegion::RemoveModifiedFramesAndRects()
 {
-  std::vector<WeakFrame>& frames = aRegion.mFrames;
-  nsTArray<pixman_box32_t>& rects = aRegion.mRects;
-
-  MOZ_ASSERT(frames.size() == rects.Length());
+  MOZ_ASSERT(mFrames.Length() == mRects.Length());
 
   uint32_t i = 0;
-  uint32_t length = frames.size();
+  uint32_t length = mFrames.Length();
 
   while (i < length) {
-    WeakFrame& frame = frames[i];
+    auto& wrapper = mFrames[i];
 
-    if (!frame.IsAlive() || frame->IsFrameModified()) {
-      // To avoid O(n) shifts in the array, move the last element of the array
-      // to the current position and decrease the array length. Moving WeakFrame
-      // inside of the array causes a new WeakFrame to be created and registered
-      // with PresShell. We could avoid this by, for example, using a wrapper
-      // class for WeakFrame, or by storing raw  WeakFrame pointers.
-      frames[i] = frames[length - 1];
-      rects[i] = rects[length - 1];
+    if (!wrapper.mWeakFrame->IsAlive() ||
+        wrapper.mWeakFrame->GetFrame()->IsFrameModified()) {
+      // To avoid multiple O(n) shifts in the array, move the last element of
+      // the array to the current position and decrease the array length.
+      mFrameSet.RemoveEntry(wrapper.mFrame);
+      mFrames[i] = std::move(mFrames[length - 1]);
+      mRects[i] = std::move(mRects[length - 1]);
       length--;
     } else {
       i++;
     }
   }
 
-  frames.resize(length);
-  rects.TruncateLength(length);
+  mFrames.TruncateLength(length);
+  mRects.TruncateLength(length);
 }
 
 void
 nsDisplayListBuilder::RemoveModifiedWindowRegions()
 {
-  RemoveModifiedFramesAndRects(mRetainedWindowDraggingRegion);
-  RemoveModifiedFramesAndRects(mRetainedWindowNoDraggingRegion);
-  RemoveModifiedFramesAndRects(mWindowExcludeGlassRegion);
+  mRetainedWindowDraggingRegion.RemoveModifiedFramesAndRects();
+  mRetainedWindowNoDraggingRegion.RemoveModifiedFramesAndRects();
+  mWindowExcludeGlassRegion.RemoveModifiedFramesAndRects();
 }
 
 void
@@ -2265,31 +2304,6 @@ nsDisplayListBuilder::AppendNewScrollInfoItemForHoisting(
   mScrollInfoItemsForHoisting->AppendToTop(aScrollInfoItem);
 }
 
-static nsRect
-GetFrameArea(const nsDisplayListBuilder* aBuilder, const nsIFrame* aFrame)
-{
-  nsRect area;
-
-  nsIScrollableFrame* scrollFrame =
-    nsLayoutUtils::GetScrollableFrameFor(aFrame);
-  if (scrollFrame) {
-    // If the frame is content of a scrollframe, then we need to pick up the
-    // area corresponding to the overflow rect as well. Otherwise the parts of
-    // the overflow that are not occupied by descendants get skipped and the
-    // APZ code sends touch events to the content underneath instead.
-    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1127773#c15.
-    area = aFrame->GetScrollableOverflowRect();
-  } else {
-    area = nsRect(nsPoint(0, 0), aFrame->GetSize());
-  }
-
-  if (!area.IsEmpty()) {
-    return area + aBuilder->ToReferenceFrame(aFrame);
-  }
-
-  return area;
-}
-
 void
 nsDisplayListBuilder::BuildCompositorHitTestInfoIfNeeded(nsIFrame* aFrame,
                                                          nsDisplayList* aList,
@@ -2302,43 +2316,23 @@ nsDisplayListBuilder::BuildCompositorHitTestInfoIfNeeded(nsIFrame* aFrame,
     return;
   }
 
-  CompositorHitTestInfo info = aFrame->GetCompositorHitTestInfo(this);
-  if (!ShouldBuildCompositorHitTestInfo(aFrame, info, aBuildNew)) {
-    // Either the parent hit test info can be reused, or this frame has no hit
-    // test flags set.
+  const CompositorHitTestInfo info = aFrame->GetCompositorHitTestInfo(this);
+  if (info == CompositorHitTestInvisibleToHit) {
     return;
   }
 
-  nsDisplayCompositorHitTestInfo* item =
-    MakeDisplayItem<nsDisplayCompositorHitTestInfo>(this, aFrame, info);
+  const nsRect area = aFrame->GetCompositorHitTestArea(this);
+  if (!aBuildNew &&
+      GetHitTestInfo() == info &&
+      GetHitTestArea().Contains(area)) {
+    return;
+  }
 
-  SetCompositorHitTestInfo(item);
+  auto* item = MakeDisplayItem<nsDisplayCompositorHitTestInfo>(
+    this, aFrame, info, 0, Some(area));
+
+  SetCompositorHitTestInfo(area, info);
   aList->AppendToTop(item);
-}
-
-bool
-nsDisplayListBuilder::ShouldBuildCompositorHitTestInfo(
-  const nsIFrame* aFrame,
-  const CompositorHitTestInfo& aInfo,
-  const bool aBuildNew) const
-{
-  MOZ_ASSERT(mBuildCompositorHitTestInfo);
-
-  if (aInfo == CompositorHitTestInvisibleToHit) {
-    return false;
-  }
-
-  if (!mCompositorHitTestInfo || !mLessEventRegionItems || aBuildNew) {
-    return true;
-  }
-
-  if (mCompositorHitTestInfo->HitTestInfo() != aInfo) {
-    // Hit test flags are different.
-    return true;
-  }
-
-  // Create a new item if the parent does not contain the child completely.
-  return !mCompositorHitTestInfo->Area().Contains(GetFrameArea(this, aFrame));
 }
 
 void
@@ -2561,7 +2555,10 @@ nsDisplayList::BuildLayers(nsDisplayListBuilder* aBuilder,
 
   RefPtr<ContainerLayer> root;
   {
-    AUTO_PROFILER_TRACING("Paint", "LayerBuilding");
+#ifdef MOZ_GECKO_PROFILER
+    nsCOMPtr<nsIDocShell> docShell = presContext->GetDocShell();
+    AUTO_PROFILER_TRACING_DOCSHELL("Paint", "LayerBuilding", docShell);
+#endif
 
     if (XRE_IsContentProcess() && gfxPrefs::AlwaysPaint()) {
       FrameLayerBuilder::InvalidateAllLayers(aLayerManager);
@@ -2609,7 +2606,7 @@ nsDisplayList::BuildLayers(nsDisplayListBuilder* aBuilder,
     root->SetScaleToResolution(presShell->ScaleToResolution(),
                                containerParameters.mXScale);
 
-    auto callback = [root](FrameMetrics::ViewID aScrollId) -> bool {
+    auto callback = [root](ScrollableLayerGuid::ViewID aScrollId) -> bool {
       return nsLayoutUtils::ContainsMetricsWithId(root, aScrollId);
     };
     if (Maybe<ScrollMetadata> rootMetadata = nsLayoutUtils::GetRootMetadata(
@@ -5288,11 +5285,10 @@ nsDisplayEventReceiver::CreateWebRenderCommands(
 nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
   nsDisplayListBuilder* aBuilder,
   nsIFrame* aFrame,
-  mozilla::gfx::CompositorHitTestInfo aHitTestInfo,
+  const mozilla::gfx::CompositorHitTestInfo& aHitTestFlags,
   uint32_t aIndex,
   const mozilla::Maybe<nsRect>& aArea)
-  : nsDisplayEventReceiver(aBuilder, aFrame)
-  , mHitTestInfo(aHitTestInfo)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
   , mIndex(aIndex)
   , mAppUnitsPerDevPixel(mFrame->PresContext()->AppUnitsPerDevPixel())
 {
@@ -5301,20 +5297,39 @@ nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
   // compositor hit-test info or if the computed hit info indicated the
   // frame is invisible to hit-testing
   MOZ_ASSERT(aBuilder->BuildCompositorHitTestInfo());
-  MOZ_ASSERT(mHitTestInfo != CompositorHitTestInvisibleToHit);
+  MOZ_ASSERT(aHitTestFlags != CompositorHitTestInvisibleToHit);
 
+  const nsRect& area = aArea.isSome()
+                     ? *aArea
+                     : aFrame->GetCompositorHitTestArea(aBuilder);
+
+  SetHitTestInfo(area, aHitTestFlags);
+  InitializeScrollTarget(aBuilder);
+}
+
+nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
+  nsDisplayListBuilder* aBuilder,
+  nsIFrame* aFrame,
+  mozilla::UniquePtr<HitTestInfo>&& aHitTestInfo)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
+  , mIndex(0)
+  , mAppUnitsPerDevPixel(mFrame->PresContext()->AppUnitsPerDevPixel())
+{
+  MOZ_COUNT_CTOR(nsDisplayCompositorHitTestInfo);
+  SetHitTestInfo(std::move(aHitTestInfo));
+  InitializeScrollTarget(aBuilder);
+}
+
+void
+nsDisplayCompositorHitTestInfo::InitializeScrollTarget(
+  nsDisplayListBuilder* aBuilder)
+{
   if (aBuilder->GetCurrentScrollbarDirection().isSome()) {
     // In the case of scrollbar frames, we use the scrollbar's target
     // scrollframe instead of the scrollframe with which the scrollbar actually
     // moves.
-    MOZ_ASSERT(mHitTestInfo.contains(CompositorHitTestFlags::eScrollbar));
-    mScrollTarget = Some(aBuilder->GetCurrentScrollbarTarget());
-  }
-
-  if (aArea.isSome()) {
-    mArea = *aArea;
-  } else {
-    mArea = GetFrameArea(aBuilder, aFrame);
+    MOZ_ASSERT(HitTestFlags().contains(CompositorHitTestFlags::eScrollbar));
+    mScrollTarget = mozilla::Some(aBuilder->GetCurrentScrollbarTarget());
   }
 }
 
@@ -5326,7 +5341,7 @@ nsDisplayCompositorHitTestInfo::CreateWebRenderCommands(
   mozilla::layers::WebRenderLayerManager* aManager,
   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (mArea.IsEmpty()) {
+  if (HitTestArea().IsEmpty()) {
     return true;
   }
 
@@ -5335,10 +5350,10 @@ nsDisplayCompositorHitTestInfo::CreateWebRenderCommands(
   // we don't need to do it as often, and so that we can do it for other
   // display item types as well (reducing the need for as many instances of
   // this display item).
-  FrameMetrics::ViewID scrollId =
-    mScrollTarget.valueOrFrom([&]() -> FrameMetrics::ViewID {
+  ScrollableLayerGuid::ViewID scrollId =
+    mScrollTarget.valueOrFrom([&]() -> ScrollableLayerGuid::ViewID {
       const ActiveScrolledRoot* asr = GetActiveScrolledRoot();
-      Maybe<FrameMetrics::ViewID> fixedTarget =
+      Maybe<ScrollableLayerGuid::ViewID> fixedTarget =
         aBuilder.GetContainingFixedPosScrollTarget(asr);
       if (fixedTarget) {
         return *fixedTarget;
@@ -5346,14 +5361,14 @@ nsDisplayCompositorHitTestInfo::CreateWebRenderCommands(
       if (asr) {
         return asr->GetViewId();
       }
-      return FrameMetrics::NULL_SCROLL_ID;
+      return ScrollableLayerGuid::NULL_SCROLL_ID;
     });
 
   // Insert a transparent rectangle with the hit-test info
-  aBuilder.SetHitTestInfo(scrollId, mHitTestInfo);
+  aBuilder.SetHitTestInfo(scrollId, HitTestFlags());
 
   const LayoutDeviceRect devRect =
-    LayoutDeviceRect::FromAppUnits(mArea, mAppUnitsPerDevPixel);
+    LayoutDeviceRect::FromAppUnits(HitTestArea(), mAppUnitsPerDevPixel);
 
   const wr::LayoutRect rect = wr::ToRoundedLayoutRect(devRect);
 
@@ -5362,13 +5377,6 @@ nsDisplayCompositorHitTestInfo::CreateWebRenderCommands(
   aBuilder.ClearHitTestInfo();
 
   return true;
-}
-
-void
-nsDisplayCompositorHitTestInfo::WriteDebugInfo(std::stringstream& aStream)
-{
-  aStream << nsPrintfCString(" (hitTestInfo 0x%x)", mHitTestInfo.serialize()).get();
-  AppendToString(aStream, mArea, " hitTestArea");
 }
 
 uint32_t
@@ -5996,7 +6004,7 @@ nsDisplayWrapList::nsDisplayWrapList(
   bool aClearClipChain,
   uint32_t aIndex,
   bool aAnonymous)
-  : nsDisplayItem(aBuilder, aFrame, aActiveScrolledRoot, aAnonymous)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame, aActiveScrolledRoot, aAnonymous)
   , mFrameActiveScrolledRoot(aBuilder->CurrentActiveScrolledRoot())
   , mOverrideZIndex(0)
   , mIndex(aIndex)
@@ -6043,10 +6051,10 @@ nsDisplayWrapList::nsDisplayWrapList(nsDisplayListBuilder* aBuilder,
                                      nsIFrame* aFrame,
                                      nsDisplayItem* aItem,
                                      bool aAnonymous)
-  : nsDisplayItem(aBuilder,
-                  aFrame,
-                  aBuilder->CurrentActiveScrolledRoot(),
-                  aAnonymous)
+  : nsDisplayHitTestInfoItem(aBuilder,
+                             aFrame,
+                             aBuilder->CurrentActiveScrolledRoot(),
+                             aAnonymous)
   , mOverrideZIndex(0)
   , mIndex(0)
   , mHasZIndexOverride(false)
@@ -6543,6 +6551,30 @@ nsDisplayOpacity::ApplyOpacityToChildren(nsDisplayListBuilder* aBuilder)
   return true;
 }
 
+/**
+ * Returns true if this nsDisplayOpacity contains only a filter or a mask item
+ * that has the same frame as the opacity item. In this case the opacity item
+ * can be optimized away.
+ */
+bool
+nsDisplayOpacity::IsEffectsWrapper() const
+{
+  if (mList.Count() != 1) {
+    return false;
+  }
+
+  const nsDisplayItem* item = mList.GetBottom();
+
+  if (item->Frame() != mFrame) {
+    // The effect item needs to have the same frame as the opacity item.
+    return false;
+  }
+
+  const DisplayItemType type = item->GetType();
+  return type == DisplayItemType::TYPE_MASK ||
+         type == DisplayItemType::TYPE_FILTER;
+}
+
 bool
 nsDisplayOpacity::ShouldFlattenAway(nsDisplayListBuilder* aBuilder)
 {
@@ -6563,6 +6595,13 @@ nsDisplayOpacity::ShouldFlattenAway(nsDisplayListBuilder* aBuilder)
 
   if (mList.IsEmpty()) {
     return false;
+  }
+
+  if (IsEffectsWrapper()) {
+    MOZ_ASSERT(nsSVGIntegrationUtils::UsingEffectsForFrame(mFrame));
+    static_cast<nsDisplayEffectsBase*>(mList.GetBottom())->SetHandleOpacity();
+    mChildOpacityState = ChildOpacityState::Applied;
+    return true;
   }
 
   // Return true if we successfully applied opacity to child items, or if
@@ -6672,6 +6711,7 @@ nsDisplayOpacity::CreateWebRenderCommands(
 
   nsTArray<mozilla::wr::WrFilterOp> filters;
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            filters,
                            LayoutDeviceRect(),
@@ -6725,6 +6765,7 @@ nsDisplayBlendMode::CreateWebRenderCommands(
 {
   nsTArray<mozilla::wr::WrFilterOp> filters;
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            filters,
                            LayoutDeviceRect(),
@@ -6876,7 +6917,7 @@ nsDisplayBlendContainer::CreateWebRenderCommands(
   mozilla::layers::WebRenderLayerManager* aManager,
   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  StackingContextHelper sc(aSc, aBuilder);
+  StackingContextHelper sc(aSc, GetActiveScrolledRoot(), aBuilder);
 
   return nsDisplayWrapList::CreateWebRenderCommands(
     aBuilder, aResources, sc, aManager, aDisplayListBuilder);
@@ -7016,6 +7057,7 @@ nsDisplayOwnLayer::CreateWebRenderCommands(
   prop.effect_type = wr::WrAnimationType::Transform;
 
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            nsTArray<wr::WrFilterOp>(),
                            LayoutDeviceRect(),
@@ -7040,6 +7082,12 @@ nsDisplayOwnLayer::UpdateScrollData(
       aLayerData->SetScrollbarData(mScrollbarData);
       if (IsScrollThumbLayer()) {
         aLayerData->SetScrollbarAnimationId(mWrAnimationId);
+        LayoutDeviceRect bounds = LayoutDeviceIntRect::FromAppUnits(
+            mBounds, mFrame->PresContext()->AppUnitsPerDevPixel());
+        // Assume a resolution of 1.0 for now because this is a WebRender codepath
+        // and we don't really handle resolution on the Gecko side
+        LayerIntRect layerBounds = RoundedOut(bounds * LayoutDeviceToLayerScale(1.0f));
+        aLayerData->SetVisibleRegion(LayerIntRegion(layerBounds));
       }
     }
   }
@@ -7147,7 +7195,7 @@ nsDisplaySubDocument::ComputeScrollMetadata(
   nsRect viewport = mFrame->GetRect() - mFrame->GetPosition() +
                     mFrame->GetOffsetToCrossDoc(ReferenceFrame());
 
-  return MakeUnique<ScrollMetadata>(
+  UniquePtr<ScrollMetadata> metadata = MakeUnique<ScrollMetadata>(
     nsLayoutUtils::ComputeScrollMetadata(mFrame,
                                          rootScrollFrame,
                                          rootScrollFrame->GetContent(),
@@ -7157,7 +7205,13 @@ nsDisplaySubDocument::ComputeScrollMetadata(
                                          viewport,
                                          Nothing(),
                                          isRootContentDocument,
-                                         params));
+                                         Some(params)));
+  nsIScrollableFrame* scrollableFrame = rootScrollFrame->GetScrollTargetFrame();
+  if (scrollableFrame) {
+    scrollableFrame->NotifyApzTransaction();
+  }
+
+  return metadata;
 }
 
 static bool
@@ -7772,7 +7826,7 @@ nsDisplayStickyPosition::CreateWebRenderCommands(
   }
 
   {
-    StackingContextHelper sc(aSc, aBuilder);
+    StackingContextHelper sc(aSc, GetActiveScrolledRoot(), aBuilder);
     nsDisplayWrapList::CreateWebRenderCommands(
       aBuilder, aResources, sc, aManager, aDisplayListBuilder);
   }
@@ -7848,8 +7902,12 @@ nsDisplayScrollInfoLayer::ComputeScrollMetadata(
                                          viewport,
                                          Nothing(),
                                          false,
-                                         aContainerParameters);
+                                         Some(aContainerParameters));
   metadata.GetMetrics().SetIsScrollInfoLayer(true);
+  nsIScrollableFrame* scrollableFrame = mScrollFrame->GetScrollTargetFrame();
+  if (scrollableFrame) {
+    scrollableFrame->NotifyApzTransaction();
+  }
 
   return UniquePtr<ScrollMetadata>(new ScrollMetadata(metadata));
 }
@@ -7977,7 +8035,7 @@ nsDisplayTransform::nsDisplayTransform(
   const nsRect& aChildrenBuildingRect,
   ComputeTransformFunction aTransformGetter,
   uint32_t aIndex)
-  : nsDisplayItem(aBuilder, aFrame)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
   , mStoredList(aBuilder, aFrame, aList)
   , mTransformGetter(aTransformGetter)
   , mAnimatedGeometryRootForChildren(mAnimatedGeometryRoot)
@@ -8046,7 +8104,7 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder,
                                        const nsRect& aChildrenBuildingRect,
                                        uint32_t aIndex,
                                        bool aAllowAsyncAnimation)
-  : nsDisplayItem(aBuilder, aFrame)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
   , mStoredList(aBuilder, aFrame, aList)
   , mTransformGetter(nullptr)
   , mAnimatedGeometryRootForChildren(mAnimatedGeometryRoot)
@@ -8071,7 +8129,7 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder,
                                        const nsRect& aChildrenBuildingRect,
                                        const Matrix4x4& aTransform,
                                        uint32_t aIndex)
-  : nsDisplayItem(aBuilder, aFrame)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
   , mStoredList(aBuilder, aFrame, aList)
   , mTransform(Some(aTransform))
   , mTransformGetter(nullptr)
@@ -8316,7 +8374,6 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(
   }
 
   /* Get the matrix, then change its basis to factor in the origin. */
-  bool dummyBool;
   Matrix4x4 result;
   // Call IsSVGTransformed() regardless of the value of
   // disp->mSpecifiedTransform, since we still need any
@@ -8335,8 +8392,7 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(
       aProperties.mMotion,
       aProperties.mTransformList ? aProperties.mTransformList->mHead : nullptr,
       refBox,
-      aAppUnitsPerPixel,
-      &dummyBool);
+      aAppUnitsPerPixel);
   } else if (hasSVGTransforms) {
     // Correct the translation components for zoom:
     float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
@@ -8755,6 +8811,7 @@ nsDisplayTransform::CreateWebRenderCommands(
     ActiveLayerTracker::IsStyleMaybeAnimated(Frame(), eCSSProperty_transform);
 
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            filters,
                            LayoutDeviceRect(position, LayoutDeviceSize()),
@@ -9286,7 +9343,7 @@ nsDisplayTransform::WriteDebugInfo(std::stringstream& aStream)
 nsDisplayPerspective::nsDisplayPerspective(nsDisplayListBuilder* aBuilder,
                                            nsIFrame* aFrame,
                                            nsDisplayList* aList)
-  : nsDisplayItem(aBuilder, aFrame)
+  : nsDisplayHitTestInfoItem(aBuilder, aFrame)
   , mList(aBuilder, aFrame, aList, true)
 {
   MOZ_ASSERT(mList.GetChildren()->Count() == 1);
@@ -9404,6 +9461,7 @@ nsDisplayPerspective::CreateWebRenderCommands(
 
   nsTArray<mozilla::wr::WrFilterOp> filters;
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            filters,
                            LayoutDeviceRect(),
@@ -9449,7 +9507,6 @@ nsDisplayEffectsBase::nsDisplayEffectsBase(
   nsDisplayListBuilder* aBuilder,
   nsIFrame* aFrame,
   nsDisplayList* aList,
-  bool aHandleOpacity,
   const ActiveScrolledRoot* aActiveScrolledRoot,
   bool aClearClipChain)
   : nsDisplayWrapList(aBuilder,
@@ -9457,17 +9514,16 @@ nsDisplayEffectsBase::nsDisplayEffectsBase(
                       aList,
                       aActiveScrolledRoot,
                       aClearClipChain)
-  , mHandleOpacity(aHandleOpacity)
+  , mHandleOpacity(false)
 {
   MOZ_COUNT_CTOR(nsDisplayEffectsBase);
 }
 
 nsDisplayEffectsBase::nsDisplayEffectsBase(nsDisplayListBuilder* aBuilder,
                                            nsIFrame* aFrame,
-                                           nsDisplayList* aList,
-                                           bool aHandleOpacity)
+                                           nsDisplayList* aList)
   : nsDisplayWrapList(aBuilder, aFrame, aList)
-  , mHandleOpacity(aHandleOpacity)
+  , mHandleOpacity(false)
 {
   MOZ_COUNT_CTOR(nsDisplayEffectsBase);
 }
@@ -9516,7 +9572,9 @@ nsDisplayEffectsBase::ComputeInvalidationRegion(
   nsRect bounds = GetBounds(aBuilder, &snap);
   if (geometry->mFrameOffsetToReferenceFrame != ToReferenceFrame() ||
       geometry->mUserSpaceOffset != UserSpaceOffset() ||
-      !geometry->mBBox.IsEqualInterior(BBoxInUserSpace())) {
+      !geometry->mBBox.IsEqualInterior(BBoxInUserSpace()) ||
+      geometry->mOpacity != mFrame->StyleEffects()->mOpacity ||
+      geometry->mHandleOpacity != ShouldHandleOpacity()) {
     // Filter and mask output can depend on the location of the frame's user
     // space and on the frame's BBox. We need to invalidate if either of these
     // change relative to the reference frame.
@@ -9572,9 +9630,9 @@ ComputeMaskGeometry(PaintFramesParams& aParams)
 
   const nsStyleSVGReset* svgReset = firstFrame->StyleSVGReset();
 
-  SVGObserverUtils::EffectProperties effectProperties =
-    SVGObserverUtils::GetEffectProperties(firstFrame);
-  nsTArray<nsSVGMaskFrame*> maskFrames = effectProperties.GetMaskFrames();
+  nsTArray<nsSVGMaskFrame*> maskFrames;
+  // XXX check return value?
+  SVGObserverUtils::GetAndObserveMasks(firstFrame, &maskFrames);
 
   if (maskFrames.Length() == 0) {
     return;
@@ -9637,12 +9695,10 @@ nsDisplayMasksAndClipPaths::nsDisplayMasksAndClipPaths(
                               nsDisplayListBuilder* aBuilder,
                               nsIFrame* aFrame,
                               nsDisplayList* aList,
-                              bool aHandleOpacity,
                               const ActiveScrolledRoot* aActiveScrolledRoot)
   : nsDisplayEffectsBase(aBuilder,
                          aFrame,
                          aList,
-                         aHandleOpacity,
                          aActiveScrolledRoot,
                          true)
 {
@@ -9715,11 +9771,11 @@ nsDisplayMasksAndClipPaths::IsValidMask() {
 
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  SVGObserverUtils::EffectProperties effectProperties =
-    SVGObserverUtils::GetEffectProperties(firstFrame);
 
-  if (effectProperties.HasInvalidClipPath() ||
-      effectProperties.HasInvalidMask()) {
+  if (SVGObserverUtils::GetAndObserveClipPath(firstFrame, nullptr) ==
+        SVGObserverUtils::eHasRefsSomeInvalid ||
+      SVGObserverUtils::GetAndObserveMasks(firstFrame, nullptr) ==
+        SVGObserverUtils::eHasRefsSomeInvalid) {
     return false;
   }
 
@@ -9797,6 +9853,10 @@ nsDisplayMasksAndClipPaths::GetLayerState(nsDisplayListBuilder* aBuilder,
 bool
 nsDisplayMasksAndClipPaths::CanPaintOnMaskLayer(LayerManager* aManager)
 {
+  if (!aManager->IsWidgetLayerManager()) {
+    return false;
+  }
+
   if (!nsSVGIntegrationUtils::IsMaskResourceReady(mFrame)) {
     return false;
   }
@@ -9839,11 +9899,6 @@ nsDisplayMasksAndClipPaths::ComputeInvalidationRegion(
     static_cast<const nsDisplayMasksAndClipPathsGeometry*>(aGeometry);
   bool snap;
   nsRect bounds = GetBounds(aBuilder, &snap);
-
-  if (mFrame->StyleEffects()->mOpacity != geometry->mOpacity ||
-      mHandleOpacity != geometry->mHandleOpacity) {
-    aInvalidRegion->Or(*aInvalidRegion, bounds);
-  }
 
   if (mDestRects.Length() != geometry->mDestRects.Length()) {
     aInvalidRegion->Or(bounds, geometry->mBounds);
@@ -9943,6 +9998,125 @@ nsDisplayMasksAndClipPaths::PaintWithContentsPaintCallback(
   nsDisplayMasksAndClipPathsGeometry::UpdateDrawResult(this, imgParams.result);
 }
 
+static Maybe<wr::WrClipId>
+CreateSimpleClipRegion(const nsDisplayMasksAndClipPaths& aDisplayItem,
+                       wr::DisplayListBuilder& aBuilder)
+{
+  nsIFrame* frame = aDisplayItem.Frame();
+  auto* style = frame->StyleSVGReset();
+  MOZ_ASSERT(style->HasClipPath() || style->HasMask());
+  if (style->HasMask()) {
+    return Nothing();
+  }
+
+  const auto& clipPath = style->mClipPath;
+  if (clipPath.GetType() != StyleShapeSourceType::Shape) {
+    return Nothing();
+  }
+
+  const auto& shape = clipPath.BasicShape();
+  if (shape.GetShapeType() == StyleBasicShapeType::Polygon) {
+    return Nothing();
+  }
+
+  auto appUnitsPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
+  const nsRect refBox =
+    nsLayoutUtils::ComputeGeometryBox(frame, clipPath.GetReferenceBox());
+
+  AutoTArray<wr::ComplexClipRegion, 1> clipRegions;
+
+  wr::LayoutRect rect;
+  switch (shape.GetShapeType()) {
+    case StyleBasicShapeType::Inset: {
+      const nsRect insetRect =
+        ShapeUtils::ComputeInsetRect(shape, refBox) + aDisplayItem.ToReferenceFrame();
+
+      nscoord radii[8] = { 0 };
+
+      if (ShapeUtils::ComputeInsetRadii(shape, insetRect, refBox, radii)) {
+        clipRegions.AppendElement(wr::ToComplexClipRegion(
+          insetRect, radii, appUnitsPerDevPixel));
+      }
+
+      rect = wr::ToRoundedLayoutRect(
+        LayoutDeviceRect::FromAppUnits(insetRect, appUnitsPerDevPixel));
+      break;
+    }
+    case StyleBasicShapeType::Ellipse:
+    case StyleBasicShapeType::Circle: {
+      nsPoint center = ShapeUtils::ComputeCircleOrEllipseCenter(shape, refBox);
+
+      nsSize radii;
+      if (shape.GetShapeType() == StyleBasicShapeType::Ellipse) {
+        radii = ShapeUtils::ComputeEllipseRadii(shape, center, refBox);
+      } else {
+        nscoord radius = ShapeUtils::ComputeCircleRadius(shape, center, refBox);
+        radii = { radius, radius };
+      }
+
+      nsRect ellipseRect(
+        aDisplayItem.ToReferenceFrame() + center - nsPoint(radii.width, radii.height),
+        radii * 2);
+
+      nscoord ellipseRadii[8];
+      NS_FOR_CSS_HALF_CORNERS(corner) {
+        ellipseRadii[corner] = HalfCornerIsX(corner) ? radii.width : radii.height;
+      }
+
+      clipRegions.AppendElement(wr::ToComplexClipRegion(
+          ellipseRect, ellipseRadii, appUnitsPerDevPixel));
+
+      rect = wr::ToRoundedLayoutRect(
+        LayoutDeviceRect::FromAppUnits(ellipseRect, appUnitsPerDevPixel));
+      break;
+    }
+    default:
+      // Please don't add more exceptions, try to find a way to define the clip
+      // without using a mask image.
+      //
+      // And if you _really really_ need to add an exception, add it to where
+      // the polygon check is.
+      MOZ_ASSERT_UNREACHABLE("Unhandled shape id?");
+      return Nothing();
+  }
+  wr::WrClipId clipId =
+    aBuilder.DefineClip(Nothing(), rect, &clipRegions, nullptr);
+  return Some(clipId);
+}
+
+enum class HandleOpacity
+{
+  No,
+  Yes,
+};
+
+static Maybe<Pair<wr::WrClipId, HandleOpacity>>
+CreateWRClipPathAndMasks(nsDisplayMasksAndClipPaths* aDisplayItem,
+                         const LayoutDeviceRect& aBounds,
+                         wr::IpcResourceUpdateQueue& aResources,
+                         wr::DisplayListBuilder& aBuilder,
+                         const StackingContextHelper& aSc,
+                         layers::WebRenderLayerManager* aManager,
+                         nsDisplayListBuilder* aDisplayListBuilder)
+{
+  if (auto clip = CreateSimpleClipRegion(*aDisplayItem, aBuilder)) {
+    return Some(MakePair(*clip, HandleOpacity::Yes));
+  }
+
+  Maybe<wr::WrImageMask> mask = aManager->CommandBuilder().BuildWrMaskImage(
+    aDisplayItem, aBuilder, aResources, aSc, aDisplayListBuilder, aBounds);
+  if (!mask) {
+    return Nothing();
+  }
+
+  wr::WrClipId clipId =
+    aBuilder.DefineClip(Nothing(),
+                        wr::ToRoundedLayoutRect(aBounds),
+                        nullptr,
+                        mask.ptr());
+
+  return Some(MakePair(clipId, HandleOpacity::No));
+}
 
 bool
 nsDisplayMasksAndClipPaths::CreateWebRenderCommands(
@@ -9953,33 +10127,38 @@ nsDisplayMasksAndClipPaths::CreateWebRenderCommands(
   nsDisplayListBuilder* aDisplayListBuilder)
 {
   bool snap;
-  float appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+  auto appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   nsRect displayBounds = GetBounds(aDisplayListBuilder, &snap);
   LayoutDeviceRect bounds =
     LayoutDeviceRect::FromAppUnits(displayBounds, appUnitsPerDevPixel);
 
-  Maybe<wr::WrImageMask> mask = aManager->CommandBuilder().BuildWrMaskImage(
-    this, aBuilder, aResources, aSc, aDisplayListBuilder, bounds);
+  Maybe<Pair<wr::WrClipId, HandleOpacity>> clip =
+    CreateWRClipPathAndMasks(
+      this, bounds, aResources, aBuilder, aSc, aManager, aDisplayListBuilder);
+
   Maybe<StackingContextHelper> layer;
   const StackingContextHelper* sc = &aSc;
-  if (mask) {
-    auto layoutBounds = wr::ToRoundedLayoutRect(bounds);
-    wr::WrClipId clipId =
-      aBuilder.DefineClip(Nothing(), layoutBounds, nullptr, mask.ptr());
-
+  if (clip) {
     // Create a new stacking context to attach the mask to, ensuring the mask is
     // applied to the aggregate, and not the individual elements.
 
     // The stacking context shouldn't have any offset.
     bounds.MoveTo(0, 0);
 
+    wr::WrClipId clipId = clip->first();
+
+    Maybe<float> opacity = clip->second() == HandleOpacity::Yes
+      ? Some(mFrame->StyleEffects()->mOpacity)
+      : Nothing();
+
     layer.emplace(aSc,
+                  GetActiveScrolledRoot(),
                   aBuilder,
                   /*aFilters: */ nsTArray<wr::WrFilterOp>(),
                   /*aBounds: */ bounds,
                   /*aBoundTransform: */ nullptr,
                   /*aAnimation: */ nullptr,
-                  /*aOpacity: */ nullptr,
+                  /*aOpacity: */ opacity.ptrOr(nullptr),
                   /*aTransform: */ nullptr,
                   /*aPerspective: */ nullptr,
                   /*aMixBlendMode: */ gfx::CompositionOp::OP_OVER,
@@ -9997,7 +10176,7 @@ nsDisplayMasksAndClipPaths::CreateWebRenderCommands(
   nsDisplayEffectsBase::CreateWebRenderCommands(
     aBuilder, aResources, *sc, aManager, aDisplayListBuilder);
 
-  if (mask) {
+  if (clip) {
     aManager->CommandBuilder().PopOverrideForASR(GetActiveScrolledRoot());
   }
 
@@ -10034,15 +10213,15 @@ nsDisplayMasksAndClipPaths::PrintEffects(nsACString& aTo)
 {
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  SVGObserverUtils::EffectProperties effectProperties =
-    SVGObserverUtils::GetEffectProperties(firstFrame);
-  nsSVGClipPathFrame* clipPathFrame = effectProperties.GetClipPathFrame();
   bool first = true;
   aTo += " effects=(";
-  if (mFrame->StyleEffects()->mOpacity != 1.0f && mHandleOpacity) {
+  if (mHandleOpacity) {
     first = false;
     aTo += nsPrintfCString("opacity(%f)", mFrame->StyleEffects()->mOpacity);
   }
+  nsSVGClipPathFrame* clipPathFrame;
+  // XXX Check return value?
+  SVGObserverUtils::GetAndObserveClipPath(firstFrame, &clipPathFrame);
   if (clipPathFrame) {
     if (!first) {
       aTo += ", ";
@@ -10050,9 +10229,7 @@ nsDisplayMasksAndClipPaths::PrintEffects(nsACString& aTo)
     aTo += nsPrintfCString(
       "clip(%s)", clipPathFrame->IsTrivial() ? "trivial" : "non-trivial");
     first = false;
-  }
-  const nsStyleSVGReset* style = mFrame->StyleSVGReset();
-  if (style->HasClipPath() && !clipPathFrame) {
+  } else if (mFrame->StyleSVGReset()->HasClipPath()) {
     if (!first) {
       aTo += ", ";
     }
@@ -10060,7 +10237,9 @@ nsDisplayMasksAndClipPaths::PrintEffects(nsACString& aTo)
     first = false;
   }
 
-  nsTArray<nsSVGMaskFrame*> masks = effectProperties.GetMaskFrames();
+  nsTArray<nsSVGMaskFrame*> masks;
+  // XXX check return value?
+  SVGObserverUtils::GetAndObserveMasks(firstFrame, &masks);
   if (!masks.IsEmpty() && masks[0]) {
     if (!first) {
       aTo += ", ";
@@ -10073,9 +10252,8 @@ nsDisplayMasksAndClipPaths::PrintEffects(nsACString& aTo)
 
 nsDisplayFilters::nsDisplayFilters(nsDisplayListBuilder* aBuilder,
                                    nsIFrame* aFrame,
-                                   nsDisplayList* aList,
-                                   bool aHandleOpacity)
-  : nsDisplayEffectsBase(aBuilder, aFrame, aList, aHandleOpacity)
+                                   nsDisplayList* aList)
+  : nsDisplayEffectsBase(aBuilder, aFrame, aList)
   , mEffectsBounds(aFrame->GetVisualOverflowRectRelativeToSelf())
 {
   MOZ_COUNT_CTOR(nsDisplayFilters);
@@ -10194,16 +10372,10 @@ ClampStdDeviation(float aStdDeviation)
 }
 
 bool
-nsDisplayFilters::CreateWebRenderCommands(
-  mozilla::wr::DisplayListBuilder& aBuilder,
-  mozilla::wr::IpcResourceUpdateQueue& aResources,
-  const StackingContextHelper& aSc,
-  mozilla::layers::WebRenderLayerManager* aManager,
-  nsDisplayListBuilder* aDisplayListBuilder)
+nsDisplayFilters::CreateWebRenderCSSFilters(nsTArray<mozilla::wr::WrFilterOp>& wrFilters)
 {
-  // All CSS filters are supported by WebRender. SVG filters are not supported,
-  // those use NS_STYLE_FILTER_URL.
-  nsTArray<mozilla::wr::WrFilterOp> wrFilters;
+  // All CSS filters are supported by WebRender. SVG filters are not fully supported,
+  // those use NS_STYLE_FILTER_URL and are handled separately.
   const nsTArray<nsStyleFilter>& filters = mFrame->StyleEffects()->mFilters;
   for (const nsStyleFilter& filter : filters) {
     switch (filter.GetType()) {
@@ -10276,19 +10448,42 @@ nsDisplayFilters::CreateWebRenderCommands(
     }
   }
 
+  return true;
+}
+
+bool
+nsDisplayFilters::CreateWebRenderCommands(
+  mozilla::wr::DisplayListBuilder& aBuilder,
+  mozilla::wr::IpcResourceUpdateQueue& aResources,
+  const StackingContextHelper& aSc,
+  mozilla::layers::WebRenderLayerManager* aManager,
+  nsDisplayListBuilder* aDisplayListBuilder)
+{
   bool snap;
   float auPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   nsRect displayBounds = GetBounds(aDisplayListBuilder, &snap);
-  auto bounds = LayoutDeviceRect::FromAppUnits(displayBounds, auPerDevPixel);
-  // NOTE(emilio): this clip is going to be intersected with the clip that's
-  // currently on the clip stack for this item.
-  //
-  // FIXME(emilio, bug 1486557): clipping to "bounds" isn't really necessary.
+  auto postFilterBounds = LayoutDeviceIntRect::Round(
+    LayoutDeviceRect::FromAppUnits(displayBounds, auPerDevPixel)
+  );
+  auto preFilterBounds = LayoutDeviceIntRect::Round(
+    LayoutDeviceRect::FromAppUnits(mBounds, auPerDevPixel)
+  );
+
+  nsTArray<mozilla::wr::WrFilterOp> wrFilters;
+  if (!CreateWebRenderCSSFilters(wrFilters) &&
+      !nsSVGIntegrationUtils::BuildWebRenderFilters(mFrame,
+                                                    preFilterBounds,
+                                                    wrFilters,
+                                                    postFilterBounds)) {
+    return false;
+  }
+
   wr::WrClipId clipId =
-    aBuilder.DefineClip(Nothing(), wr::ToRoundedLayoutRect(bounds));
+    aBuilder.DefineClip(Nothing(), wr::ToLayoutRect(postFilterBounds));
 
   float opacity = mFrame->StyleEffects()->mOpacity;
   StackingContextHelper sc(aSc,
+                           GetActiveScrolledRoot(),
                            aBuilder,
                            wrFilters,
                            LayoutDeviceRect(),
@@ -10324,7 +10519,7 @@ nsDisplayFilters::PrintEffects(nsACString& aTo)
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
   bool first = true;
   aTo += " effects=(";
-  if (mFrame->StyleEffects()->mOpacity != 1.0f && mHandleOpacity) {
+  if (mHandleOpacity) {
     first = false;
     aTo += nsPrintfCString("opacity(%f)", mFrame->StyleEffects()->mOpacity);
   }

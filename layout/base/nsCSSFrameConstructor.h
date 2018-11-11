@@ -33,7 +33,7 @@ struct nsGenConInitializer;
 class nsContainerFrame;
 class nsFirstLineFrame;
 class nsFirstLetterFrame;
-class nsICSSAnonBoxPseudo;
+class nsCSSAnonBoxPseudoStaticAtom;
 class nsIDocument;
 class nsPageContentFrame;
 struct PendingBinding;
@@ -742,7 +742,7 @@ private:
     FrameFullConstructor mFullConstructor;
     // For cases when FCDATA_CREATE_BLOCK_WRAPPER_FOR_ALL_KIDS is set, the
     // anonymous box type to use for that wrapper.
-    nsICSSAnonBoxPseudo * const * const mAnonBoxPseudo;
+    nsCSSAnonBoxPseudoStaticAtom* const mAnonBoxPseudo;
   };
 
   /* Structure representing a mapping of an atom to a FrameConstructionData.
@@ -750,9 +750,7 @@ private:
      stored somewhere that this struct can point to (that is, a static
      nsAtom*) and that it's allocated before the struct is ever used. */
   struct FrameConstructionDataByTag {
-    // Pointer to nsStaticAtom* is used because we want to initialize this
-    // statically, so before our atom tables are set up.
-    const nsStaticAtom * const * const mTag;
+    const nsStaticAtom* const mTag;
     const FrameConstructionData mData;
   };
 
@@ -783,7 +781,7 @@ private:
      for a table pseudo-frame */
   struct PseudoParentData {
     const FrameConstructionData mFCData;
-    nsICSSAnonBoxPseudo * const * const mPseudoType;
+    nsCSSAnonBoxPseudoStaticAtom* const mPseudoType;
   };
   /* Array of such structures that we use to properly construct table
      pseudo-frames as needed */
@@ -1588,7 +1586,7 @@ private:
                                   nsFrameItems&            aFrameItems,
                                   ContainerFrameCreationFunc aConstructor,
                                   ContainerFrameCreationFunc aInnerConstructor,
-                                  nsICSSAnonBoxPseudo*     aInnerPseudo,
+                                  nsCSSAnonBoxPseudoStaticAtom* aInnerPseudo,
                                   bool                     aCandidateRootFrame);
 
   /**
@@ -1844,6 +1842,9 @@ private:
   // initializes aBlockFrame.
   //
   // @return the new ColumnSetFrame if needed; otherwise aBlockFrame.
+  //
+  // FIXME (Bug 1489295): Callers using this function to create multi-column
+  // hierarchy should be revised to support column-span.
   nsContainerFrame* InitAndWrapInColumnSetFrameIfNeeded(
     nsFrameConstructorState& aState,
     nsIContent* aContent,
@@ -1878,6 +1879,79 @@ private:
                       PendingBinding*          aPendingBinding);
 
   void CreateBulletFrameForListItemIfNeeded(nsBlockFrame* aBlockFrame);
+
+  // Build the initial column hierarchy around aColumnContent. This function
+  // should be called before constructing aColumnContent's children.
+  //
+  // Before calling FinishBuildingColumns(), we need to create column-span
+  // siblings for aColumnContent's children. Caller can use helpers
+  // MayNeedToCreateColumnSpanSiblings() and CreateColumnSpanSiblings() to
+  // check whether column-span siblings might need to be created and to do
+  // the actual work of creating them if they're needed.
+  //
+  // @param aColumnContent the block that we're wrapping in a ColumnSet. On
+  //        entry to this function it has aComputedStyle as its style. After
+  //        this function returns, aColumnContent has a ::-moz-column-content
+  //        anonymous box style.
+  // @param aParentFrame the parent frame we want to use for the
+  //        ColumnSetWrapperFrame (which would have been the parent of
+  //        aColumnContent if we were not creating a column hierarchy).
+  // @param aContent is the content of the aColumnContent.
+  // @return the outermost ColumnSetWrapperFrame (or ColumnSetFrame if
+  //         "column-span" is disabled).
+  //
+  // Bug 1499281: We can change the return type to ColumnSetWrapperFrame
+  // once "layout.css.column-span.enabled" is removed.
+  nsContainerFrame* BeginBuildingColumns(nsFrameConstructorState& aState,
+                                         nsIContent* aContent,
+                                         nsContainerFrame* aParentFrame,
+                                         nsContainerFrame* aColumnContent,
+                                         ComputedStyle* aComputedStyle);
+
+  // Complete building the column hierarchy by first wrapping each
+  // non-column-span child in aChildList in a ColumnSetFrame (skipping
+  // column-span children), and reparenting them to have aColumnSetWrapper
+  // as their parent.
+  //
+  // @param aColumnSetWrapper is the frame returned by
+  //        BeginBuildingColumns(), and is the grandparent of aColumnContent.
+  // @param aColumnContent is the block frame passed into
+  //        BeginBuildingColumns()
+  // @param aColumnContentSiblings contains the aColumnContent's siblings, which
+  //        are the column spanners and aColumnContent's continuations returned
+  //        by CreateColumnSpanSiblings(). It'll become empty after this call.
+  //
+  // Note: No need to call this function if "column-span" is disabled.
+  void FinishBuildingColumns(nsFrameConstructorState& aState,
+                             nsContainerFrame* aColumnSetWrapper,
+                             nsContainerFrame* aColumnContent,
+                             nsFrameList& aColumnContentSiblings);
+
+  // Return whether aBlockFrame's children in aChildList, which might
+  // contain column-span, may need to be wrapped in
+  // ::moz-column-span-wrapper and promoted as aBlockFrame's siblings.
+  //
+  // @param aBlockFrame is the parent of the frames in aChildList.
+  //
+  // Note: This a check without actually looking into each frame in the
+  // child list, so it may return false positive.
+  bool MayNeedToCreateColumnSpanSiblings(nsContainerFrame* aBlockFrame,
+                                         const nsFrameList& aChildList);
+
+  // Wrap consecutive runs of column-span kids and runs of non-column-span
+  // kids in blocks for aInitialBlock's children.
+  //
+  // @param aInitialBlock is the parent of those frames in aChildList.
+  // @param aChildList must begin with a column-span kid. It becomes empty
+  //        after this call.
+  // @param aPositionedFrame if non-null, it's the frame whose style is making
+  //        aInitialBlock an abs-pos container.
+  //
+  // Return those wrapping blocks in nsFrameItems.
+  nsFrameItems CreateColumnSpanSiblings(nsFrameConstructorState& aState,
+                                        nsContainerFrame* aInitialBlock,
+                                        nsFrameList& aChildList,
+                                        nsIFrame* aPositionedFrame);
 
   nsIFrame* ConstructInline(nsFrameConstructorState& aState,
                             FrameConstructionItem&   aItem,

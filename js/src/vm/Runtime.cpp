@@ -176,12 +176,11 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
                                : js::StackFormat::SpiderMonkey),
     wasmInstances(mutexid::WasmRuntimeInstances),
     moduleResolveHook(),
-    moduleMetadataHook()
+    moduleMetadataHook(),
+    moduleDynamicImportHook()
 {
     JS_COUNT_CTOR(JSRuntime);
     liveRuntimesCount++;
-
-    lcovOutput().init();
 }
 
 JSRuntime::~JSRuntime()
@@ -663,7 +662,8 @@ JSRuntime::enqueuePromiseJob(JSContext* cx, HandleFunction job, HandleObject pro
             allocationSite = JS::GetPromiseAllocationSite(unwrappedPromise);
         }
     }
-    return cx->enqueuePromiseJobCallback(cx, job, allocationSite, incumbentGlobal, data);
+    return cx->enqueuePromiseJobCallback(cx, promise, job, allocationSite,
+                                         incumbentGlobal, data);
 }
 
 void

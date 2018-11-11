@@ -158,12 +158,12 @@ class MozSearchbar extends MozXULElement {
   }
 
   set currentEngine(val) {
-    Services.search.currentEngine = val;
+    Services.search.defaultEngine = val;
     return val;
   }
 
   get currentEngine() {
-    var currentEngine = Services.search.currentEngine;
+    var currentEngine = Services.search.defaultEngine;
     // Return a dummy engine if there is no currentEngine
     return currentEngine || { name: "", uri: null };
   }
@@ -273,7 +273,7 @@ class MozSearchbar extends MozXULElement {
     } else {
       var newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
       if (((aEvent instanceof KeyboardEvent && aEvent.altKey) ^ newTabPref) &&
-        !isTabEmpty(gBrowser.selectedTab)) {
+        !gBrowser.selectedTab.isEmpty) {
         where = "tab";
       }
       if ((aEvent instanceof MouseEvent) &&
@@ -404,7 +404,11 @@ class MozSearchbar extends MozXULElement {
       this.select();
     });
 
-    this.addEventListener("DOMMouseScroll", (event) => { this.selectEngine(event, (event.detail > 0)); }, true);
+    this.addEventListener("DOMMouseScroll", (event) => {
+      if (event.getModifierState("Accel")) {
+        this.selectEngine(event, event.detail > 0);
+      }
+    }, true);
 
     this.addEventListener("input", (event) => { this.updateGoButtonVisibility(); });
 

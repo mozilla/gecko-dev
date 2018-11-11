@@ -75,7 +75,7 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "Népszerű témák:",
   "pocket_read_even_more": "További történetek",
   "pocket_more_reccommendations": "További javaslatok",
-  "pocket_learn_more": "További tudnivalók",
+  "pocket_how_it_works": "Hogyan működik",
   "pocket_cta_button": "Pocket beszerzése",
   "pocket_cta_text": "Mentse az Ön által kedvelt történeteket a Pocketbe, és töltse fel elméjét lebilincselő olvasnivalókkal.",
   "highlights_empty_state": "Kezdjen el böngészni, és itt fognak megjelenni azok a nagyszerű cikkek, videók és más lapok, amelyeket nemrég meglátogatott vagy könyvjelzőzött.",
@@ -89,7 +89,7 @@ window.gActivityStreamStrings = {
   "section_menu_action_collapse_section": "Szakasz összecsukása",
   "section_menu_action_expand_section": "Szakasz lenyitása",
   "section_menu_action_manage_section": "Szakasz kezelése",
-  "section_menu_action_manage_webext": "Kiterjesztés kezelése",
+  "section_menu_action_manage_webext": "Kiegészítő kezelése",
   "section_menu_action_add_topsite": "Hozzáadás a népszerű oldalakhoz",
   "section_menu_action_add_search_engine": "Keresőszolgáltatás hozzáadása",
   "section_menu_action_move_up": "Mozgatás felfelé",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "Felhasználási feltételeket",
   "firstrun_privacy_notice": "Adatvédelmi nyilatkozatot",
   "firstrun_continue_to_login": "Folytatás",
-  "firstrun_skip_login": "Lépés kihagyása"
+  "firstrun_skip_login": "Lépés kihagyása",
+  "context_menu_title": "Menü megnyitása",
+  "pocket_learn_more": "További tudnivalók"
 };

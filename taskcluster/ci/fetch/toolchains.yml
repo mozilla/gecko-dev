@@ -173,10 +173,20 @@ mpfr-3.1.5:
       sig-url: "{url}.asc"
       key-path: build/unix/build-gcc/07F3DBBECC1A39605078094D980C197698C3739D.key
 
-grcov-win-x86_64:
+wix-3.1.1:
+  description: wix 3.1.1 binary release
+  # WIX doesn't use a wrapping toplevel DIR, so we should really repackage it when
+  # Bug 1479533 and related code is ready.
+  fetch:
+    type: static-url
+    url: https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip
+    sha256: 37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d
+    size: 34358269
+
+grcov-osx-x86_64:
   description: grcov binary release
   fetch:
     type: static-url
-    url: https://github.com/mozilla/grcov/releases/download/v0.2.3/grcov-win-x86_64.tar.bz2
-    sha256: baede397959ec6f5e0c9630c8e9e1e59ebe723ec95acea9bb204511a886e0f2f
-    size: 1009309
+    url: https://github.com/mozilla/grcov/releases/download/v0.3.2/grcov-osx-x86_64.tar.bz2
+    sha256: 6a810f782efb207234ef418ab136edd1c0ffa61aa84d8c4545042a6fa3b9dd13
+    size: 915948

@@ -39,9 +39,11 @@ function ConsoleApiCall(props) {
     serviceContainer,
     timestampsVisible,
     repeat,
+    isPaused,
   } = props;
   const {
     id: messageId,
+    executionPoint,
     indent,
     source,
     type,
@@ -72,7 +74,7 @@ function ConsoleApiCall(props) {
 
     messageBody = [
       dom.span({className: "cm-variable"}, "console.trace()"),
-      ...traceParametersBody
+      ...traceParametersBody,
     ];
   } else if (type === "assert") {
     const reps = formatReps(messageBodyConfig);
@@ -84,7 +86,7 @@ function ConsoleApiCall(props) {
     messageBody = formatReps(messageBodyConfig);
     if (prefix) {
       messageBody.unshift(dom.span({
-        className: "console-message-prefix"
+        className: "console-message-prefix",
       }, `${prefix}: `));
     }
   } else {
@@ -113,6 +115,8 @@ function ConsoleApiCall(props) {
 
   return Message({
     messageId,
+    executionPoint,
+    isPaused,
     open,
     collapsible,
     collapseTitle,

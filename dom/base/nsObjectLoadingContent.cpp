@@ -1612,7 +1612,10 @@ nsObjectLoadingContent::UpdateObjectParameters()
   thisElement->GetAttr(kNameSpaceID_None, nsGkAtoms::type, rawTypeAttr);
   if (!rawTypeAttr.IsEmpty()) {
     typeAttr = rawTypeAttr;
-    CopyUTF16toUTF8(rawTypeAttr, newMime);
+    nsAutoString params;
+    nsAutoString mime;
+    nsContentUtils::SplitMimeType(rawTypeAttr, mime, params);
+    CopyUTF16toUTF8(mime, newMime);
   }
 
   // If we failed to build a valid URI, use the document's base URI
@@ -2296,7 +2299,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
       handlerURI->GetSpec(spec);
       LOG(("OBJLC [%p]: Loading fake plugin handler (%s)", this, spec.get()));
 
-      rv = mFrameLoader->LoadURI(handlerURI, false);
+      rv = mFrameLoader->LoadURI(handlerURI,
+                                 thisContent->AsElement()->NodePrincipal(), false);
       if (NS_FAILED(rv)) {
         LOG(("OBJLC [%p]: LoadURI() failed for fake handler", this));
         mFrameLoader->Destroy();

@@ -145,6 +145,9 @@ export class _CollapsibleSection extends React.PureComponent {
                 {this.renderIcon()}
                 {getFormattedMessage(title)}
               </span>
+              <span className="click-target" onClick={this.onHeaderClick}>
+                {isCollapsible && <span className={`collapsible-arrow icon ${collapsed ? "icon-arrowhead-forward-small" : "icon-arrowhead-down-small"}`} />}
+              </span>
               <span>
                 {learnMore &&
                   <span className="learn-more-link">
@@ -154,14 +157,12 @@ export class _CollapsibleSection extends React.PureComponent {
                   </span>
                 }
               </span>
-              <span className="click-target" onClick={this.onHeaderClick}>
-                {isCollapsible && <span className={`collapsible-arrow icon ${collapsed ? "icon-arrowhead-forward-small" : "icon-arrowhead-down-small"}`} />}
-              </span>
             </span>
           </h3>
           <div>
             <button
               className="context-menu-button icon"
+              title={this.props.intl.formatMessage({id: "context_menu_title"})}
               onClick={this.onMenuButtonClick}
               onMouseEnter={this.onMenuButtonMouseEnter}
               onMouseLeave={this.onMenuButtonMouseLeave}>

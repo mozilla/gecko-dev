@@ -9,10 +9,10 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/GeckoViewUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  Services: "resource://gre/modules/Services.jsm"
+  Services: "resource://gre/modules/Services.jsm",
 });
 
-GeckoViewUtils.initLogging("GeckoViewConsole", this);
+GeckoViewUtils.initLogging("Console", this);
 
 const LOG_EVENT_TOPIC = "console-api-log-event";
 
@@ -136,5 +136,5 @@ var GeckoViewConsole = {
       aSourceURL = aSourceURL.substring(slashIndex + 1);
 
     return aSourceURL;
-  }
+  },
 };

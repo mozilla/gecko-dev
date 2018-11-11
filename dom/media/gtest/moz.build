@@ -9,7 +9,8 @@ include('/media/webrtc/webrtc.mozbuild')
 
 LOCAL_INCLUDES += [
     '/media/webrtc/signaling/src/common',
-    '/media/webrtc/trunk'
+    '/media/webrtc/trunk',
+    '/media/webrtc/trunk/webrtc'
 ]
 
 UNIFIED_SOURCES += [
@@ -33,6 +34,7 @@ UNIFIED_SOURCES += [
     'TestMediaMIMETypes.cpp',
     'TestMP3Demuxer.cpp',
     'TestMP4Demuxer.cpp',
+    'TestOpusParser.cpp',
     'TestRust.cpp',
     'TestVideoSegment.cpp',
     'TestVideoUtils.cpp',
@@ -85,7 +87,6 @@ LOCAL_INCLUDES += [
     '/dom/media/platforms',
     '/dom/media/platforms/agnostic',
     '/security/certverifier',
-    '/security/pkix/include',
 ]
 
 FINAL_LIBRARY = 'xul-gtest'

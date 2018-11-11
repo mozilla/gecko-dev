@@ -10,11 +10,19 @@
   --lwt-additional-images: none;
   --lwt-background-alignment: right top;
   --lwt-background-tiling: no-repeat;
+
+  --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
+  --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
+  --toolbar-color: var(--toolbar-non-lwt-textcolor);
 }
 
 :root:-moz-lwtheme {
-  background-color: var(--lwt-accent-color) !important;
-  color: var(--lwt-text-color) !important;
+  --toolbar-bgcolor: rgba(255,255,255,.4);
+  --toolbar-bgimage: none;
+  --toolbar-color: var(--lwt-text-color, inherit);
+
+  background-color: var(--lwt-accent-color);
+  color: var(--lwt-text-color);
 }
 
 :root:-moz-lwtheme[lwtheme-image] {
@@ -24,7 +32,7 @@
 }
 
 :root:-moz-lwtheme:-moz-window-inactive {
-  background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color)) !important;
+  background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color));
 }
 
 /* Set additional backgrounds alignment relative to toolbox */
@@ -51,12 +59,8 @@
   -moz-binding: url("chrome://browser/content/search/search.xml#searchbar-textbox");
 }
 
-.search-one-offs {
-  -moz-binding: url("chrome://browser/content/search/search.xml#search-one-offs");
-}
-
-.search-setting-button[compact=true],
-.search-setting-button-compact:not([compact=true]) {
+.search-one-offs[compact=true] .search-setting-button,
+.search-one-offs:not([compact=true]) .search-setting-button-compact {
   display: none;
 }
 
@@ -70,15 +74,24 @@ toolbar[customizable="true"] {
   -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar");
 }
 
-%ifdef XP_MACOSX
-#toolbar-menubar {
-  -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar-menubar-stub");
+%ifdef MENUBAR_CAN_AUTOHIDE
+#toolbar-menubar[autohide="true"] {
+  overflow: hidden;
+}
+
+#toolbar-menubar[autohide="true"][inactive="true"]:not([customizing="true"]) {
+  min-height: 0 !important;
+  height: 0 !important;
+  -moz-appearance: none !important;
 }
 %endif
 
-#toolbar-menubar[autohide="true"] {
-  -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar-menubar-autohide");
+%ifdef XP_MACOSX
+#toolbar-menubar {
+  -moz-binding: none;
+  visibility: collapse;
 }
+%endif
 
 panelmultiview {
   -moz-box-align: start;
@@ -141,7 +154,7 @@ panelview[mainview] > .panel-header {
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow="true"]) ~ #new-tab-button,
 #tabbrowser-tabs[overflow="true"] > .tabbrowser-arrowscrollbox > .tabs-newtab-button,
 #tabbrowser-tabs:not([hasadjacentnewtabbutton]) > .tabbrowser-arrowscrollbox > .tabs-newtab-button,
-#TabsToolbar[customizing="true"] > #tabbrowser-tabs > .tabbrowser-arrowscrollbox > .tabs-newtab-button {
+#TabsToolbar[customizing="true"] #tabbrowser-tabs > .tabbrowser-arrowscrollbox > .tabs-newtab-button {
   visibility: collapse;
 }
 
@@ -216,23 +229,28 @@ panelview[mainview] > .panel-header {
   pointer-events: none; /* avoid blocking dragover events on scroll buttons */
 }
 
+.tabbrowser-tab[tab-grouping],
 .tabbrowser-tab[tabdrop-samewindow],
 #tabbrowser-tabs[movingtab] > .tabbrowser-tab[fadein]:not([selected]):not([multiselected]) {
   transition: transform 200ms var(--animation-easing-function);
 }
 
+.tabbrowser-tab[tab-grouping][multiselected]:not([selected]) {
+  z-index: 2;
+}
+
 /* The next 3 rules allow dragging tabs slightly outside of the tabstrip
  * to make it easier to drag tabs. */
-#TabsToolbar[movingtab] {
+#navigator-toolbox[movingtab] > #titlebar > #TabsToolbar {
   padding-bottom: 15px;
 }
 
-#TabsToolbar[movingtab] > #tabbrowser-tabs {
+#navigator-toolbox[movingtab] #tabbrowser-tabs {
   padding-bottom: 15px;
   margin-bottom: -15px;
 }
 
-#TabsToolbar[movingtab] + #nav-bar {
+#navigator-toolbox[movingtab] > #nav-bar {
   margin-top: -15px;
   pointer-events: none;
 }
@@ -269,32 +287,40 @@ window:not([chromehidden~="toolbar"]) #nav-bar[nonemptyoverflow] > .overflow-but
 
 
 %ifdef MENUBAR_CAN_AUTOHIDE
-#toolbar-menubar:not([autohide=true]) + #TabsToolbar > .titlebar-placeholder,
+#toolbar-menubar:not([autohide=true]) + #TabsToolbar > .titlebar-item,
+#toolbar-menubar:not([autohide=true]) + #TabsToolbar .titlebar-spacer,
 %endif
 %ifndef MOZ_WIDGET_COCOA
-#main-window:not([sizemode=normal]) .titlebar-placeholder[type="pre-tabs"],
+#main-window:not([sizemode=normal]) .titlebar-spacer[type="pre-tabs"],
 %endif
-#main-window:not([chromemargin]) > #titlebar,
-#main-window[inFullscreen] > #titlebar,
-#main-window[inFullscreen] .titlebar-placeholder,
-#main-window:not([tabsintitlebar]) .titlebar-placeholder {
+#main-window:not([chromemargin]) .titlebar-buttonbox-container,
+#main-window[inFullscreen] .titlebar-buttonbox-container,
+#main-window[inFullscreen] .titlebar-spacer,
+#main-window:not([tabsintitlebar]) .titlebar-spacer {
   display: none;
 }
+
+%ifdef MENUBAR_CAN_AUTOHIDE
+#toolbar-menubar[autohide=true]:not([inactive]) + #TabsToolbar > .titlebar-buttonbox-container {
+  visibility: hidden;
+}
+%endif
 
 #titlebar {
   -moz-window-dragging: drag;
 }
 
-#titlebar-spacer {
-  pointer-events: none;
-}
-
-#main-window[tabsintitlebar] #titlebar-buttonbox {
+#main-window[tabsintitlebar] .titlebar-buttonbox {
   position: relative;
 }
 
-#titlebar-buttonbox {
+#main-window:not([tabsintitlebar]) .titlebar-buttonbox {
+  display: none;
+}
+
+.titlebar-buttonbox {
   -moz-appearance: -moz-window-button-box;
+  position: relative;
 }
 
 #personal-bookmarks {
@@ -305,23 +331,27 @@ toolbarpaletteitem {
   -moz-window-dragging: no-drag;
 }
 
+.titlebar-buttonbox-container {
+  -moz-box-ordinal-group: 1000;
+}
+
 %ifdef XP_MACOSX
 #titlebar-fullscreen-button {
   -moz-appearance: -moz-mac-fullscreen-button;
 }
 
-/* Fullscreen and caption buttons don't move with RTL on OS X so override the automatic ordering. */
-#titlebar-secondary-buttonbox:-moz-locale-dir(ltr),
-#titlebar-buttonbox-container:-moz-locale-dir(rtl),
-.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(ltr),
-.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(rtl) {
+/**
+ * On macOS, the window caption buttons are on the left side of the window titlebar,
+ * even when using the RTL UI direction. Similarly, the fullscreen button is on the
+ * right side of the window titlebar, even when using the RTL UI direction. These
+ * next rules enforce that ordering.
+ */
+#titlebar-secondary-buttonbox:-moz-locale-dir(ltr) {
   -moz-box-ordinal-group: 1000;
 }
 
 #titlebar-secondary-buttonbox:-moz-locale-dir(rtl),
-#titlebar-buttonbox-container:-moz-locale-dir(ltr),
-.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(ltr),
-.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(rtl) {
+.titlebar-buttonbox-container:-moz-locale-dir(ltr) {
   -moz-box-ordinal-group: 0;
 }
 %endif
@@ -342,8 +372,7 @@ toolbarpaletteitem {
 #main-window[inFullscreen][inDOMFullscreen] #sidebar-box,
 #main-window[inFullscreen][inDOMFullscreen] #sidebar-splitter,
 #main-window[inFullscreen]:not([OSXLionFullscreen]) toolbar:not([fullscreentoolbar=true]),
-#main-window[inFullscreen] #global-notificationbox,
-#main-window[inFullscreen] #high-priority-global-notificationbox {
+#main-window[inFullscreen] .global-notificationbox {
   visibility: collapse;
 }
 
@@ -482,10 +511,6 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 /* Ensure stop-button and reload-button are displayed correctly when in the overflow menu */
 .widget-overflow-list > #stop-reload-button > .toolbarbutton-1 {
   -moz-box-flex: 1;
-}
-
-#PanelUI-feeds > .feed-toolbarbutton:-moz-locale-dir(rtl) {
-  direction: rtl;
 }
 
 #appMenu_historyMenu > .bookmark-item,
@@ -638,9 +663,12 @@ html|input.urlbar-input {
   display: none;
 }
 
-/* Only show the "Search with" label on hover or selection. */
-#PopupAutoCompleteRichResult > richlistbox > richlistitem:not([selected]):not(:hover) > .ac-action[actiontype=searchengine],
-#PopupAutoCompleteRichResult > richlistbox > richlistitem:not([selected]):not(:hover) > .ac-separator[actiontype=searchengine] {
+/* Normally we want to show the "Search with Engine" label only on hover or
+   selection, but we also want to show it for "alias offer" results -- that is,
+   non-heuristic search engine results that have an alias and empty query.
+   These results tell the user that they can be used to search. */
+#PopupAutoCompleteRichResult > richlistbox > richlistitem:not([selected]):not(:hover):not(.aliasOffer) > .ac-action[actiontype=searchengine],
+#PopupAutoCompleteRichResult > richlistbox > richlistitem:not([selected]):not(:hover):not(.aliasOffer) > .ac-separator[actiontype=searchengine] {
   display: none;
 }
 

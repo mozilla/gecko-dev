@@ -87,7 +87,7 @@ SOURCES += [
 
 # WebGL Sources
 UNIFIED_SOURCES += [
-    'CacheMap.cpp',
+    'CacheInvalidator.cpp',
     'TexUnpackBlob.cpp',
     'WebGL1Context.cpp',
     'WebGL2Context.cpp',
@@ -115,7 +115,6 @@ UNIFIED_SOURCES += [
     'WebGLContextLossHandler.cpp',
     'WebGLContextState.cpp',
     'WebGLContextTextures.cpp',
-    'WebGLContextUnchecked.cpp',
     'WebGLContextUtils.cpp',
     'WebGLContextValidate.cpp',
     'WebGLContextVertexArray.cpp',
@@ -125,10 +124,11 @@ UNIFIED_SOURCES += [
     'WebGLExtensionColorBufferFloat.cpp',
     'WebGLExtensionColorBufferHalfFloat.cpp',
     'WebGLExtensionCompressedTextureASTC.cpp',
-    'WebGLExtensionCompressedTextureATC.cpp',
+    'WebGLExtensionCompressedTextureBPTC.cpp',
     'WebGLExtensionCompressedTextureES3.cpp',
     'WebGLExtensionCompressedTextureETC1.cpp',
     'WebGLExtensionCompressedTexturePVRTC.cpp',
+    'WebGLExtensionCompressedTextureRGTC.cpp',
     'WebGLExtensionCompressedTextureS3TC.cpp',
     'WebGLExtensionCompressedTextureS3TC_SRGB.cpp',
     'WebGLExtensionDebugRendererInfo.cpp',
@@ -153,7 +153,6 @@ UNIFIED_SOURCES += [
     'WebGLExtensionVertexArray.cpp',
     'WebGLFormats.cpp',
     'WebGLFramebuffer.cpp',
-    'WebGLFramebufferAttachable.cpp',
     'WebGLMemoryTracker.cpp',
     'WebGLObjectModel.cpp',
     'WebGLProgram.cpp',

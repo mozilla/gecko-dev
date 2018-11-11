@@ -54,7 +54,6 @@ ChromeUtils.defineModuleGetter(this, "Task",
 // The implementation of communications
 ChromeUtils.import("resource://gre/modules/PromiseWorker.jsm", this);
 ChromeUtils.import("resource://gre/modules/Services.jsm", this);
-ChromeUtils.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 ChromeUtils.import("resource://gre/modules/AsyncShutdown.jsm", this);
 var Native = ChromeUtils.import("resource://gre/modules/osfile/osfile_native.jsm", {});
 
@@ -86,6 +85,9 @@ for (let [constProp, dirKey] of [
   ["winAppDataDir", "AppData"],
   ["winLocalAppDataDir", "LocalAppData"],
   ["winStartMenuProgsDir", "Progs"],
+  ["tmpDir", "TmpD"],
+  ["homeDir", "Home"],
+  ["macUserLibDir", "ULibDir"],
   ]) {
 
   if (constProp in SharedAll.Constants.Path) {

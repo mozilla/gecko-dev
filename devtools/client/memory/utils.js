@@ -42,9 +42,8 @@ exports.getSnapshotTitle = function(snapshot) {
   }
 
   if (snapshot.imported) {
-    // Strip out the extension if it's the expected ".fxsnapshot.gz"
-    // (".gz" optional)
-    return OS.Path.basename(snapshot.path.replace(/\.fxsnapshot(?:\.gz)?$/, ""));
+    // Strip out the extension if it's the expected ".fxsnapshot"
+    return OS.Path.basename(snapshot.path.replace(/\.fxsnapshot$/, ""));
   }
 
   const date = new Date(snapshot.creationTime / 1000);
@@ -52,7 +51,7 @@ exports.getSnapshotTitle = function(snapshot) {
     year: "2-digit",
     month: "2-digit",
     day: "2-digit",
-    hour12: false
+    hour12: false,
   });
 };
 
@@ -440,7 +439,7 @@ exports.openFilePicker = function({ title, filters, defaultName, mode }) {
           return;
         }
         resolve(fp.file);
-      }
+      },
     });
   });
 };

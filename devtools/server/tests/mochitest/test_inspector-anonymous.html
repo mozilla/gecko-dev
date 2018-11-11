@@ -14,8 +14,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=777674
 "use strict";
 
 window.onload = function() {
-  const {InspectorFront} =
-    require("devtools/shared/fronts/inspector");
   const {DocumentWalker: _documentWalker} =
     require("devtools/server/actors/inspector/document-walker");
 
@@ -24,25 +22,22 @@ window.onload = function() {
   const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
   SpecialPowers.pushPrefEnv({"set": [
-    ["dom.webcomponents.shadowdom.enabled", true]
+    ["dom.webcomponents.shadowdom.enabled", true],
   ]});
   SimpleTest.waitForExplicitFinish();
 
   let gWalker = null;
   let gInspectee = null;
 
-  addTest(function setup() {
+  addTest(async function setup() {
     info("Setting up inspector and walker actors.");
 
     const url = document.getElementById("inspectorContent").href;
-    attachURL(url, function(err, client, tab, doc) {
-      gInspectee = doc;
-      const inspector = InspectorFront(client, tab);
-      promiseDone(inspector.getWalker().then(walker => {
-        ok(walker, "getWalker() should return an actor.");
-        gWalker = walker;
-      }).then(runNextTest));
-    });
+    const { target, doc } = await attachURL(url);
+    gInspectee = doc;
+    const inspector = await target.getInspector();
+    gWalker = inspector.walker;
+    runNextTest();
   });
 
   addAsyncTest(async function testXBLAnonymousInHTMLDocument() {
@@ -82,7 +77,7 @@ window.onload = function() {
         whatToShow: nodeFilterConstants.SHOW_ALL,
         filter: () => {
           return nodeFilterConstants.FILTER_ACCEPT;
-        }
+        },
       }
     );
     const scrollbar = docwalker.lastChild();

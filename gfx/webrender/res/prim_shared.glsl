@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include rect,render_task,resource_cache,snap,transform
+#include rect,render_task,gpu_cache,snap,transform
 
 #define EXTEND_MODE_CLAMP  0
 #define EXTEND_MODE_REPEAT 1
@@ -15,11 +15,8 @@
 #define RASTER_LOCAL            0
 #define RASTER_SCREEN           1
 
-uniform sampler2DArray sCacheA8;
-uniform sampler2DArray sCacheRGBA8;
-
-// An A8 target for standalone tasks that is available to all passes.
-uniform sampler2DArray sSharedCacheA8;
+uniform sampler2DArray sPrevPassAlpha;
+uniform sampler2DArray sPrevPassColor;
 
 vec2 clamp_rect(vec2 pt, RectWithSize rect) {
     return clamp(pt, rect.p0, rect.p0 + rect.size);
@@ -92,11 +89,6 @@ struct VertexInfo {
     vec4 world_pos;
 };
 
-//Note: this function is unsafe for `vi.world_pos.w <= 0.0`
-vec2 snap_device_pos(VertexInfo vi) {
-    return vi.world_pos.xy * uDevicePixelRatio / max(0.0, vi.world_pos.w) + vi.snap_offset;
-}
-
 VertexInfo write_vertex(RectWithSize instance_rect,
                         RectWithSize local_clip_rect,
                         float z,
@@ -114,21 +106,20 @@ VertexInfo write_vertex(RectWithSize instance_rect,
     vec2 snap_offset = compute_snap_offset(
         clamped_local_pos,
         transform.m,
-        snap_rect
+        snap_rect,
+        task.common_data.device_pixel_scale
     );
 
     // Transform the current vertex to world space.
     vec4 world_pos = transform.m * vec4(clamped_local_pos, 0.0, 1.0);
 
     // Convert the world positions to device pixel space.
-    vec2 device_pos = world_pos.xy / world_pos.w * uDevicePixelRatio;
+    vec2 device_pos = world_pos.xy * task.common_data.device_pixel_scale;
 
     // Apply offsets for the render task to get correct screen location.
-    vec2 final_pos = device_pos + snap_offset -
-                     task.content_origin +
-                     task.common_data.task_rect.p0;
+    vec2 final_offset = snap_offset - task.content_origin + task.common_data.task_rect.p0;
 
-    gl_Position = uTransform * vec4(final_pos, z, 1.0);
+    gl_Position = uTransform * vec4(device_pos + final_offset * world_pos.w, z * world_pos.w, world_pos.w);
 
     VertexInfo vi = VertexInfo(
         clamped_local_pos,
@@ -200,7 +191,7 @@ VertexInfo write_transform_vertex(RectWithSize local_segment_rect,
     // Transform the current vertex to the world cpace.
     vec4 world_pos = transform.m * vec4(local_pos, 0.0, 1.0);
     vec4 final_pos = vec4(
-        world_pos.xy * uDevicePixelRatio + task_offset * world_pos.w,
+        world_pos.xy * task.common_data.device_pixel_scale + task_offset * world_pos.w,
         z * world_pos.w,
         world_pos.w
     );
@@ -223,7 +214,7 @@ VertexInfo write_transform_vertex(RectWithSize local_segment_rect,
 }
 
 void write_clip(vec4 world_pos, vec2 snap_offset, ClipArea area) {
-    vec2 uv = world_pos.xy * uDevicePixelRatio +
+    vec2 uv = world_pos.xy * area.common_data.device_pixel_scale +
         world_pos.w * (snap_offset + area.common_data.task_rect.p0 - area.screen_origin);
     vClipMaskUvBounds = vec4(
         area.common_data.task_rect.p0,
@@ -254,7 +245,7 @@ float do_clip() {
     // is still interpolated and becomes a subject of precision-caused
     // fluctuations, see https://bugzilla.mozilla.org/show_bug.cgi?id=1491911
     ivec3 tc = ivec3(mask_uv, vClipMaskUv.z + 0.5);
-    return texelFetch(sCacheA8, tc, 0).r;
+    return texelFetch(sPrevPassAlpha, tc, 0).r;
 }
 
 #ifdef WR_FEATURE_DITHERING
@@ -297,7 +288,7 @@ vec4 sample_gradient(int address, float offset, float gradient_repeat) {
     lut_offset = clamp(lut_offset, 0, 2 * (GRADIENT_ENTRIES + 1));
 
     // Fetch the start and end color.
-    vec4 texels[2] = fetch_from_resource_cache_2(address + lut_offset);
+    vec4 texels[2] = fetch_from_gpu_cache_2(address + lut_offset);
 
     // Finally interpolate and apply dithering
     return dither(mix(texels[0], texels[1], fract(x)));

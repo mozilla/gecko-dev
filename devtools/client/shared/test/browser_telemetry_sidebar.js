@@ -19,9 +19,9 @@ const DATA = [
     object: "inspector",
     value: null,
     extra: {
-      oldpanel: "computedview",
-      newpanel: "animationinspector"
-    }
+      oldpanel: "layoutview",
+      newpanel: "animationinspector",
+    },
   },
   {
     timestamp: null,
@@ -31,8 +31,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "animationinspector",
-      newpanel: "fontinspector"
-    }
+      newpanel: "fontinspector",
+    },
   },
   {
     timestamp: null,
@@ -42,8 +42,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "fontinspector",
-      newpanel: "layoutview"
-    }
+      newpanel: "layoutview",
+    },
   },
   {
     timestamp: null,
@@ -53,8 +53,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "layoutview",
-      newpanel: "computedview"
-    }
+      newpanel: "computedview",
+    },
   },
   {
     timestamp: null,
@@ -64,8 +64,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "computedview",
-      newpanel: "animationinspector"
-    }
+      newpanel: "animationinspector",
+    },
   },
   {
     timestamp: null,
@@ -75,8 +75,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "animationinspector",
-      newpanel: "fontinspector"
-    }
+      newpanel: "fontinspector",
+    },
   },
   {
     timestamp: null,
@@ -86,8 +86,8 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "fontinspector",
-      newpanel: "layoutview"
-    }
+      newpanel: "layoutview",
+    },
   },
   {
     timestamp: null,
@@ -97,9 +97,9 @@ const DATA = [
     value: null,
     extra: {
       oldpanel: "layoutview",
-      newpanel: "computedview"
-    }
-  }
+      newpanel: "computedview",
+    },
+  },
 ];
 
 add_task(async function() {
@@ -121,7 +121,7 @@ add_task(async function() {
   checkResults();
   checkEventTelemetry();
 
-  await gDevTools.closeToolbox(target);
+  await toolbox.destroy();
   gBrowser.removeCurrentTab();
 });
 
@@ -154,11 +154,11 @@ function testSidebar(toolbox) {
 function checkResults() {
   // For help generating these tests use generateTelemetryTests("DEVTOOLS_")
   // here.
-  checkTelemetry("DEVTOOLS_INSPECTOR_OPENED_COUNT", "", [1, 0, 0], "array");
-  checkTelemetry("DEVTOOLS_RULEVIEW_OPENED_COUNT", "", [1, 0, 0], "array");
-  checkTelemetry("DEVTOOLS_COMPUTEDVIEW_OPENED_COUNT", "", [3, 0, 0], "array");
-  checkTelemetry("DEVTOOLS_LAYOUTVIEW_OPENED_COUNT", "", [2, 0, 0], "array");
-  checkTelemetry("DEVTOOLS_FONTINSPECTOR_OPENED_COUNT", "", [2, 0, 0], "array");
+  checkTelemetry("DEVTOOLS_INSPECTOR_OPENED_COUNT", "", {0: 1, 1: 0}, "array");
+  checkTelemetry("DEVTOOLS_RULEVIEW_OPENED_COUNT", "", {0: 1, 1: 0}, "array");
+  checkTelemetry("DEVTOOLS_COMPUTEDVIEW_OPENED_COUNT", "", {0: 2, 1: 0}, "array");
+  checkTelemetry("DEVTOOLS_LAYOUTVIEW_OPENED_COUNT", "", {0: 3, 1: 0}, "array");
+  checkTelemetry("DEVTOOLS_FONTINSPECTOR_OPENED_COUNT", "", {0: 2, 1: 0}, "array");
   checkTelemetry("DEVTOOLS_COMPUTEDVIEW_TIME_ACTIVE_SECONDS", "", null, "hasentries");
   checkTelemetry("DEVTOOLS_LAYOUTVIEW_TIME_ACTIVE_SECONDS", "", null, "hasentries");
   checkTelemetry("DEVTOOLS_FONTINSPECTOR_TIME_ACTIVE_SECONDS", "", null, "hasentries");

@@ -10,7 +10,7 @@ const {
   EXPAND_TAB,
   TAB_SIZE,
   DETECT_INDENT,
-  getIndentationFromIteration
+  getIndentationFromIteration,
 } = require("devtools/shared/indentation");
 
 const ENABLE_CODE_FOLDING = "devtools.editor.enableCodeFolding";
@@ -41,7 +41,6 @@ const L10N = new LocalizationHelper("devtools/client/locales/sourceeditor.proper
 
 const {
   getWasmText,
-  getWasmLineNumberFormatter,
   isWasm,
   lineToWasmOffset,
   wasmOffsetToLine,
@@ -136,7 +135,9 @@ function Editor(config) {
     theme: "mozilla",
     themeSwitching: true,
     autocomplete: false,
-    autocompleteOpts: {}
+    autocompleteOpts: {},
+    // Set to true to prevent the search addon to be activated.
+    disableSearchAddon: false,
   };
 
   // Additional shortcuts.
@@ -338,7 +339,7 @@ Editor.prototype = {
     const {
       propertyKeywords,
       colorKeywords,
-      valueKeywords
+      valueKeywords,
     } = getCSSKeywords(this.config.cssProperties);
 
     const cssSpec = win.CodeMirror.resolveMode("text/css");
@@ -439,7 +440,9 @@ Editor.prototype = {
       return L10N.getStr(name);
     });
 
-    this._initShortcuts(win);
+    if (!this.config.disableSearchAddon) {
+      this._initSearchShortcuts(win);
+    }
 
     editors.set(this, cm);
 
@@ -501,9 +504,6 @@ Editor.prototype = {
   replaceDocument: function(doc) {
     const cm = editors.get(this);
     cm.swapDoc(doc);
-    if (!Services.prefs.getBoolPref("devtools.debugger.new-debugger-frontend")) {
-      this._updateLineNumberFormat();
-    }
   },
 
   /**
@@ -583,16 +583,6 @@ Editor.prototype = {
     return this.isWasm ? this.lineToWasmOffset(line) : line;
   },
 
-  _updateLineNumberFormat: function() {
-    const cm = editors.get(this);
-    if (this.isWasm) {
-      const formatter = getWasmLineNumberFormatter(this.getDoc());
-      cm.setOption("lineNumberFormatter", formatter);
-    } else {
-      cm.setOption("lineNumberFormatter", (number) => number);
-    }
-  },
-
   /**
    * Replaces whatever is in the text area with the contents of
    * the 'value' argument.
@@ -618,10 +608,6 @@ Editor.prototype = {
       }
       // cm will try to split into lines anyway, saving memory
       value = { split: () => lines };
-    }
-
-    if (!Services.prefs.getBoolPref("devtools.debugger.new-debugger-frontend")) {
-      this._updateLineNumberFormat();
     }
 
     cm.setValue(value);
@@ -778,7 +764,7 @@ Editor.prototype = {
     let topLine = {
       "center": Math.max(line - halfVisible, 0),
       "bottom": Math.max(line - linesVisible + offset, 0),
-      "top": Math.max(line - offset, 0)
+      "top": Math.max(line - offset, 0),
     }[align || "top"] || offset;
 
     // Bringing down the topLine to total lines in the editor if exceeding.
@@ -960,7 +946,7 @@ Editor.prototype = {
     const mark = cm.markText(from, to, { replacedWith: span });
     return {
       anchor: span,
-      clear: () => mark.clear()
+      clear: () => mark.clear(),
     };
   },
 
@@ -1192,7 +1178,7 @@ Editor.prototype = {
         posFrom: null,
         posTo: null,
         overlay: null,
-        query
+        query,
       };
     }
 
@@ -1349,6 +1335,10 @@ Editor.prototype = {
     });
   },
 
+  isDestroyed: function() {
+    return !editors.get(this);
+  },
+
   destroy: function() {
     this.container = null;
     this.config = null;
@@ -1412,15 +1402,15 @@ Editor.prototype = {
   /**
    * Register all key shortcuts.
    */
-  _initShortcuts: function(win) {
+  _initSearchShortcuts: function(win) {
     const shortcuts = new KeyShortcuts({
-      window: win
+      window: win,
     });
-    this._onShortcut = this._onShortcut.bind(this);
+    this._onSearchShortcut = this._onSearchShortcut.bind(this);
     const keys = [
       "find.key",
       "findNext.key",
-      "findPrev.key"
+      "findPrev.key",
     ];
 
     if (OS === "Darwin") {
@@ -1431,13 +1421,13 @@ Editor.prototype = {
     // Process generic keys:
     keys.forEach(name => {
       const key = L10N.getStr(name);
-      shortcuts.on(key, event => this._onShortcut(name, event));
+      shortcuts.on(key, event => this._onSearchShortcut(name, event));
     });
   },
     /**
    * Key shortcut listener.
    */
-  _onShortcut: function(name, event) {
+  _onSearchShortcut: function(name, event) {
     if (!this._isInputOrTextarea(event.target)) {
       return;
     }
@@ -1477,7 +1467,7 @@ Editor.prototype = {
   _isInputOrTextarea: function(element) {
     const name = element.tagName.toLowerCase();
     return name === "input" || name === "textarea";
-  }
+  },
 };
 
 // Since Editor is a thin layer over CodeMirror some methods
@@ -1552,7 +1542,7 @@ function getCSSKeywords(cssProperties) {
   return {
     propertyKeywords: keySet(propertyKeywords),
     colorKeywords: colorKeywords,
-    valueKeywords: valueKeywords
+    valueKeywords: valueKeywords,
   };
 }
 

@@ -222,6 +222,24 @@ struct AudioChunk {
 
   bool IsMuted() const { return mVolume == 0.0f; }
 
+  bool IsAudible() const
+  {
+    for (auto&& channel : mChannelData) {
+      // Transform sound into dB RMS and assume that the value smaller than -100
+      // is inaudible.
+      float dbrms = 0.0;
+      for (uint32_t idx = 0; idx < mDuration; idx++) {
+        dbrms += std::pow(static_cast<const AudioDataValue*>(channel)[idx], 2);
+      }
+      dbrms /= mDuration;
+      dbrms = std::sqrt(dbrms) != 0.0 ? 20 * log10(dbrms) : -1000.0;
+      if (dbrms > -100.0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   size_t SizeOfExcludingThisIfUnshared(MallocSizeOf aMallocSizeOf) const
   {
     return SizeOfExcludingThis(aMallocSizeOf, true);
@@ -272,9 +290,6 @@ struct AudioChunk {
   float mVolume = 1.0f; // volume multiplier to apply
   // format of frames in mBuffer (or silence if mBuffer is null)
   SampleFormat mBufferFormat = AUDIO_FORMAT_SILENCE;
-#ifdef MOZILLA_INTERNAL_API
-  mozilla::TimeStamp mTimeStamp;           // time at which this has been fetched from the MediaEngine
-#endif
   // principalHandle for the data in this chunk.
   // This can be compared to an nsIPrincipal* when back on main thread.
   PrincipalHandle mPrincipalHandle = PRINCIPAL_HANDLE_NONE;
@@ -366,9 +381,6 @@ public:
       chunk->mChannelData.AppendElement(aChannelData[channel]);
     }
     chunk->mBufferFormat = AUDIO_FORMAT_FLOAT32;
-#ifdef MOZILLA_INTERNAL_API
-    chunk->mTimeStamp = TimeStamp::Now();
-#endif
     chunk->mPrincipalHandle = aPrincipalHandle;
   }
   void AppendFrames(already_AddRefed<ThreadSharedObject> aBuffer,
@@ -384,9 +396,6 @@ public:
       chunk->mChannelData.AppendElement(aChannelData[channel]);
     }
     chunk->mBufferFormat = AUDIO_FORMAT_S16;
-#ifdef MOZILLA_INTERNAL_API
-    chunk->mTimeStamp = TimeStamp::Now();
-#endif
     chunk->mPrincipalHandle = aPrincipalHandle;
 
   }
@@ -402,9 +411,6 @@ public:
 
     chunk->mVolume = aChunk->mVolume;
     chunk->mBufferFormat = aChunk->mBufferFormat;
-#ifdef MOZILLA_INTERNAL_API
-    chunk->mTimeStamp = TimeStamp::Now();
-#endif
     chunk->mPrincipalHandle = aChunk->mPrincipalHandle;
     return chunk;
   }
@@ -412,7 +418,7 @@ public:
   // Mix the segment into a mixer, interleaved. This is useful to output a
   // segment to a system audio callback. It up or down mixes to aChannelCount
   // channels.
-  void WriteTo(uint64_t aID, AudioMixer& aMixer, uint32_t aChannelCount,
+  void WriteTo(AudioMixer& aMixer, uint32_t aChannelCount,
                uint32_t aSampleRate);
   // Mix the segment into a mixer, keeping it planar, up or down mixing to
   // aChannelCount channels.

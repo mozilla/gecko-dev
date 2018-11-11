@@ -10,9 +10,10 @@ const promise = require("promise");
 const CssLogic = require("devtools/shared/inspector/css-logic");
 const {ELEMENT_STYLE} = require("devtools/shared/specs/styles");
 const TextProperty = require("devtools/client/inspector/rules/models/text-property");
-const {promiseWarn} = require("devtools/client/inspector/shared/utils");
-const {parseNamedDeclarations} = require("devtools/shared/css/parsing-utils");
 const Services = require("Services");
+
+loader.lazyRequireGetter(this, "promiseWarn", "devtools/client/inspector/shared/utils", true);
+loader.lazyRequireGetter(this, "parseNamedDeclarations", "devtools/shared/css/parsing-utils", true);
 
 const STYLE_INSPECTOR_PROPERTIES = "devtools/shared/locales/styleinspector.properties";
 const {LocalizationHelper} = require("devtools/shared/l10n");
@@ -189,7 +190,7 @@ Rule.prototype = {
         disabledProps.push({
           name: prop.name,
           value: prop.value,
-          priority: prop.priority
+          priority: prop.priority,
         });
         continue;
       }
@@ -230,7 +231,7 @@ Rule.prototype = {
           cssProp = {
             name: textProp.name,
             value: "",
-            priority: ""
+            priority: "",
           };
         }
 
@@ -663,7 +664,7 @@ Rule.prototype = {
       }
     }
     return false;
-  }
+  },
 };
 
 module.exports = Rule;

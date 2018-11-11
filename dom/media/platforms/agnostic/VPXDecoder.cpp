@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VPXDecoder.h"
+#include "BitReader.h"
 #include "TimeUnits.h"
 #include "gfx2DGlue.h"
 #include "mozilla/PodOperations.h"
@@ -38,7 +39,8 @@ static VPXDecoder::Codec MimeTypeToCodec(const nsACString& aMimeType)
 static nsresult
 InitContext(vpx_codec_ctx_t* aCtx,
             const VideoInfo& aInfo,
-            const VPXDecoder::Codec aCodec)
+            const VPXDecoder::Codec aCodec,
+            bool aLowLatency)
 {
   int decode_threads = 2;
 
@@ -58,7 +60,7 @@ InitContext(vpx_codec_ctx_t* aCtx,
   decode_threads = std::min(decode_threads, PR_GetNumberOfProcessors());
 
   vpx_codec_dec_cfg_t config;
-  config.threads = decode_threads;
+  config.threads = aLowLatency ? 1 : decode_threads;
   config.w = config.h = 0; // set after decode
 
   if (!dx || vpx_codec_dec_init(aCtx, dx, &config, 0)) {
@@ -73,6 +75,8 @@ VPXDecoder::VPXDecoder(const CreateDecoderParams& aParams)
   , mTaskQueue(aParams.mTaskQueue)
   , mInfo(aParams.VideoConfig())
   , mCodec(MimeTypeToCodec(aParams.VideoConfig().mMimeType))
+  , mLowLatency(
+      aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency))
 {
   MOZ_COUNT_CTOR(VPXDecoder);
   PodZero(&mVPX);
@@ -98,12 +102,12 @@ VPXDecoder::Shutdown()
 RefPtr<MediaDataDecoder::InitPromise>
 VPXDecoder::Init()
 {
-  if (NS_FAILED(InitContext(&mVPX, mInfo, mCodec))) {
+  if (NS_FAILED(InitContext(&mVPX, mInfo, mCodec, mLowLatency))) {
     return VPXDecoder::InitPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                                                     __func__);
   }
   if (mInfo.HasAlpha()) {
-    if (NS_FAILED(InitContext(&mVPXAlpha, mInfo, mCodec))) {
+    if (NS_FAILED(InitContext(&mVPXAlpha, mInfo, mCodec, mLowLatency))) {
       return VPXDecoder::InitPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                                                       __func__);
     }
@@ -337,5 +341,33 @@ VPXDecoder::GetFrameSize(Span<const uint8_t> aBuffer, Codec aCodec)
 
   return gfx::IntSize(si.w, si.h);
 }
+
+/* static */
+int
+VPXDecoder::GetVP9Profile(Span<const uint8_t> aBuffer)
+{
+  if (aBuffer.Length() < 2) {
+    // Can't be good.
+    return -1;
+  }
+  BitReader br(aBuffer.Elements(), aBuffer.Length() * 8);
+
+  uint32_t frameMarker = br.ReadBits(2); // frame_marker
+  if (frameMarker != 2) {
+    // That's not a valid vp9 header.
+    return -1;
+  }
+  uint32_t profile = br.ReadBits(1); // profile_low_bit
+  profile |= br.ReadBits(1) << 1; // profile_high_bit
+  if (profile == 3) {
+    profile += br.ReadBits(1); // reserved_zero
+    if (profile > 3) {
+      // reserved_zero wasn't zero.
+      return -1;
+    }
+  }
+  return profile;
+}
+
 } // namespace mozilla
 #undef LOG

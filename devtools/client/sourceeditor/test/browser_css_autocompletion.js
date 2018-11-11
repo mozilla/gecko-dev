@@ -66,7 +66,7 @@ const TEST_URI = "data:text/html;charset=UTF-8," + encodeURIComponent(
    "  <div class='devtools-toolbarbutton' label='true'>",
    "   <hbox class='toolbarbutton-menubutton-button'></hbox></div>",
    " </body>",
-   " </html>"
+   " </html>",
   ].join("\n"));
 
 let browser;
@@ -85,13 +85,13 @@ add_task(async function test() {
 async function runTests() {
   const target = await TargetFactory.forTab(gBrowser.selectedTab);
   await target.attach();
-  inspector = target.getFront("inspector");
-  const walker = await inspector.getWalker();
+  inspector = await target.getInspector();
+  const walker = inspector.walker;
   completer = new CSSCompleter({walker: walker,
                                 cssProperties: getClientCssProperties()});
   await checkStateAndMoveOn();
   await completer.walker.release();
-  inspector.destroy();
+  await target.destroy();
   inspector = null;
   completer = null;
 }

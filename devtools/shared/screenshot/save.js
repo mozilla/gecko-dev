@@ -22,31 +22,31 @@ const screenshotCommandParams = [
     name: "clipboard",
     type: "boolean",
     description: L10N.getStr("screenshotClipboardDesc"),
-    manual: L10N.getStr("screenshotClipboardManual")
+    manual: L10N.getStr("screenshotClipboardManual"),
   },
   {
     name: "delay",
     type: "number",
     description: L10N.getStr("screenshotDelayDesc"),
-    manual: L10N.getStr("screenshotDelayManual")
+    manual: L10N.getStr("screenshotDelayManual"),
   },
   {
     name: "dpr",
     type: "number",
     description: L10N.getStr("screenshotDPRDesc"),
-    manual: L10N.getStr("screenshotDPRManual")
+    manual: L10N.getStr("screenshotDPRManual"),
   },
   {
     name: "fullpage",
     type: "boolean",
     description: L10N.getStr("screenshotFullPageDesc"),
-    manual: L10N.getStr("screenshotFullPageManual")
+    manual: L10N.getStr("screenshotFullPageManual"),
   },
   {
     name: "selector",
     type: "string",
     description: L10N.getStr("inspectNodeDesc"),
-    manual: L10N.getStr("inspectNodeManual")
+    manual: L10N.getStr("inspectNodeManual"),
   },
   {
     name: "file",
@@ -58,8 +58,8 @@ const screenshotCommandParams = [
     name: "filename",
     type: "string",
     description: L10N.getStr("screenshotFilenameDesc"),
-    manual: L10N.getStr("screenshotFilenameManual")
-  }
+    manual: L10N.getStr("screenshotFilenameManual"),
+  },
 ];
 
 /**
@@ -183,15 +183,13 @@ function saveToClipboard(base64URI) {
     const base64Data = base64URI.replace("data:image/png;base64,", "");
 
     const image = atob(base64Data);
-    const imgPtr = Cc["@mozilla.org/supports-interface-pointer;1"]
-                   .createInstance(Ci.nsISupportsInterfacePointer);
-    imgPtr.data = imageTools.decodeImageFromBuffer(image, image.length, "image/png");
+    const img = imageTools.decodeImageFromBuffer(image, image.length, "image/png");
 
     const transferable = Cc["@mozilla.org/widget/transferable;1"]
                      .createInstance(Ci.nsITransferable);
     transferable.init(null);
     transferable.addDataFlavor("image/png");
-    transferable.setTransferData("image/png", imgPtr, -1);
+    transferable.setTransferData("image/png", img, -1);
 
     Services.clipboard.setData(transferable, null, Services.clipboard.kGlobalClipboard);
     return L10N.getStr("screenshotCopied");
@@ -234,7 +232,7 @@ async function saveToFile(image) {
   try {
     const download = await Downloads.createDownload({
       source: sourceURI,
-      target: targetFile
+      target: targetFile,
     });
     const list = await Downloads.getList(Downloads.ALL);
     // add the download to the download list in the Downloads list in the Browser UI

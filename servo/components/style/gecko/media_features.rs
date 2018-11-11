@@ -4,17 +4,17 @@
 
 //! Gecko's media feature list and evaluator.
 
-use Atom;
 use app_units::Au;
 use euclid::Size2D;
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use media_queries::Device;
 use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
+use media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
+use media_queries::Device;
 use values::computed::CSSPixelLength;
 use values::computed::Resolution;
+use Atom;
 
 fn viewport_size(device: &Device) -> Size2D<Au> {
     let pc = device.pres_context();
@@ -179,7 +179,7 @@ fn eval_device_orientation(device: &Device, value: Option<Orientation>) -> bool 
 }
 
 /// Values for the display-mode media feature.
-#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum DisplayMode {
@@ -191,16 +191,10 @@ pub enum DisplayMode {
 
 /// https://w3c.github.io/manifest/#the-display-mode-media-feature
 fn eval_display_mode(device: &Device, query_value: Option<DisplayMode>) -> bool {
-    let query_value = match query_value {
-        Some(v) => v,
-        None => return true,
-    };
-
-    let gecko_display_mode =
-        unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(device.document()) };
-
-    // NOTE: cbindgen guarantees the same representation.
-    gecko_display_mode as u8 == query_value as u8
+    match query_value {
+        Some(v) => v == unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(device.document()) },
+        None => true,
+    }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#grid
@@ -311,15 +305,15 @@ bitflags! {
 }
 
 fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document())
+    })
 }
 
 fn all_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document()) }
-    )
+    PointerCapabilities::from_bits_truncate(unsafe {
+        bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document())
+    })
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]

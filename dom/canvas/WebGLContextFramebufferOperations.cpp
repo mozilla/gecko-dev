@@ -4,11 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebGLContext.h"
-#include "WebGLTexture.h"
-#include "WebGLRenderbuffer.h"
-#include "WebGLFramebuffer.h"
+
 #include "GLContext.h"
 #include "GLScreenBuffer.h"
+#include "WebGLFormats.h"
+#include "WebGLFramebuffer.h"
+#include "WebGLRenderbuffer.h"
+#include "WebGLTexture.h"
 
 namespace mozilla {
 
@@ -30,22 +32,15 @@ WebGLContext::Clear(GLbitfield mask)
     }
 
     if (mask & LOCAL_GL_COLOR_BUFFER_BIT && mBoundDrawFramebuffer) {
-        if (mask & LOCAL_GL_COLOR_BUFFER_BIT) {
-            for (const auto& cur : mBoundDrawFramebuffer->ColorDrawBuffers()) {
-                if (!cur->HasImage())
-                    continue;
+        for (const auto& cur : mBoundDrawFramebuffer->ColorDrawBuffers()) {
+            const auto imageInfo = cur->GetImageInfo();
+            if (!imageInfo || !imageInfo->mFormat)
+                continue;
 
-                switch (cur->Format()->format->componentType) {
-                case webgl::ComponentType::Float:
-                case webgl::ComponentType::NormInt:
-                case webgl::ComponentType::NormUInt:
-                    break;
-
-                default:
-                    ErrorInvalidOperation("Color draw buffers must be floating-point"
-                                          " or fixed-point. (normalized (u)ints)");
-                    return;
-                }
+            if (imageInfo->mFormat->format->baseType != webgl::TextureBaseType::Float) {
+                ErrorInvalidOperation("Color draw buffers must be floating-point"
+                                      " or fixed-point. (normalized (u)ints)");
+                return;
             }
         }
     }

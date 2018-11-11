@@ -30,12 +30,10 @@ ac_add_options --target=x86_64-w64-mingw32
 ac_add_options --with-toolchain-prefix=x86_64-w64-mingw32-
 
 ac_add_options --disable-warnings-as-errors
+MOZ_COPY_PDBS=1
 
 # Temporary config settings until we get these working on mingw
 ac_add_options --disable-accessibility # https://sourceforge.net/p/mingw-w64/bugs/648/
-
-# For now, we'll disable the sandbox, until we get get Bug 1461421 figured out
-ac_add_options --disable-sandbox
 
 # These aren't supported on mingw at this time
 ac_add_options --disable-maintenance-service
@@ -53,7 +51,7 @@ AR=llvm-ar
 RANLIB=llvm-ranlib
 
 # For Stylo
-BINDGEN_CFLAGS="-I$TOOLTOOL_DIR/clang/x86_64-w64-mingw32/include/c++/v1 -I$TOOLTOOL_DIR/clang/lib/clang/7.0.0/include -I$TOOLTOOL_DIR/clang/x86_64-w64-mingw32/include"
+BINDGEN_CFLAGS="-I$TOOLTOOL_DIR/clang/x86_64-w64-mingw32/include/c++/v1 -I$TOOLTOOL_DIR/clang/lib/clang/8.0.0/include -I$TOOLTOOL_DIR/clang/x86_64-w64-mingw32/include"
 
 # Since we use windres from binutils without the rest of tools (like cpp), we need to
 # explicitly specify clang as a preprocessor.

@@ -8,7 +8,10 @@ const { PureComponent } = require("devtools/client/shared/vendor/react");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 
-const { SummaryGraphHelper, toPathString } = require("../../utils/graph-helper");
+const {
+  createSummaryGraphPathStringFunction,
+  SummaryGraphHelper,
+} = require("../../utils/graph-helper");
 
 class NegativePath extends PureComponent {
   static get propTypes() {
@@ -36,7 +39,7 @@ class NegativePath extends PureComponent {
     const { state } = animation;
     const effectTiming = Object.assign({}, state, {
       fill: "both",
-      iterations: state.iterationCount ? state.iterationCount : Infinity
+      iterations: state.iterationCount ? state.iterationCount : Infinity,
     });
 
     // Create new keyframes for opacity as computed style.
@@ -47,7 +50,7 @@ class NegativePath extends PureComponent {
       return {
         opacity: keyframe.offset,
         offset: keyframe.offset,
-        easing: keyframe.easing
+        easing: keyframe.easing,
       };
     });
 
@@ -59,6 +62,7 @@ class NegativePath extends PureComponent {
 
     const simulatedElement = simulatedAnimation.effect.target;
     const win = simulatedElement.ownerGlobal;
+    const endTime = simulatedAnimation.effect.getComputedTiming().endTime;
 
     // Set the underlying opacity to zero so that if we sample the animation's output
     // during the delay phase and it is not filling backwards, we get zero.
@@ -69,15 +73,8 @@ class NegativePath extends PureComponent {
       return win.getComputedStyle(simulatedElement).opacity;
     };
 
-    const toPathStringFunc = segments => {
-      const firstSegment = segments[0];
-      let pathString = `M${ firstSegment.x },0 `;
-      pathString += toPathString(segments);
-      const lastSegment = segments[segments.length - 1];
-      pathString += `L${ lastSegment.x },0 Z`;
-      return pathString;
-    };
-
+    const toPathStringFunc =
+      createSummaryGraphPathStringFunction(endTime, state.playbackRate);
     const helper = new SummaryGraphHelper(state, keyframes,
                                           totalDuration, durationPerPixel,
                                           getValueFunc, toPathStringFunc);
@@ -85,7 +82,7 @@ class NegativePath extends PureComponent {
     return dom.g(
       {
         className: this.getClassName(),
-        transform: `translate(${ offset })`
+        transform: `translate(${ offset })`,
       },
       this.renderGraph(state, helper)
     );

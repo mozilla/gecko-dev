@@ -6,17 +6,22 @@
 
 #include "BasicCardPayment.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/PaymentRequest.h"
 #include "mozilla/dom/PaymentRequestChild.h"
-#include "mozilla/dom/PaymentResponse.h"
+#include "mozilla/dom/PaymentRequestManager.h"
+#include "mozilla/intl/LocaleService.h"
+#include "mozilla/intl/MozLocale.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/StaticPrefs.h"
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsIURLParser.h"
 #include "nsNetCID.h"
-#include "PaymentRequestManager.h"
 #include "mozilla/dom/MerchantValidationEvent.h"
+#include "PaymentResponse.h"
+
+using mozilla::intl::LocaleService;
 
 namespace mozilla {
 namespace dom {
@@ -59,9 +64,35 @@ NS_IMPL_RELEASE_INHERITED(PaymentRequest, DOMEventTargetHelper)
 bool
 PaymentRequest::PrefEnabled(JSContext* aCx, JSObject* aObj)
 {
-#ifdef NIGHTLY_BUILD
-  return XRE_IsContentProcess() &&
-         Preferences::GetBool("dom.payments.request.enabled");
+#if defined(NIGHTLY_BUILD)
+  const char* supportedRegions[] = { "US", "CA" };
+
+  if (!XRE_IsContentProcess()) {
+    return false;
+  }
+  if (!StaticPrefs::dom_payments_request_enabled()) {
+    return false;
+  }
+  nsAutoString region;
+  Preferences::GetString("browser.search.region", region);
+  bool regionIsSupported = false;
+  for (const char* each : supportedRegions) {
+    if (region.EqualsASCII(each)) {
+      regionIsSupported = true;
+      break;
+    }
+  }
+  if (!regionIsSupported) {
+    return false;
+  }
+  nsAutoCString locale;
+  LocaleService::GetInstance()->GetAppLocaleAsLangTag(locale);
+  mozilla::intl::Locale loc = mozilla::intl::Locale(locale);
+  if (!(loc.GetLanguage() == "en" && loc.GetRegion() == "US")) {
+    return false;
+  }
+
+  return true;
 #else
   return false;
 #endif
@@ -400,15 +431,6 @@ PaymentRequest::IsValidCurrencyAmount(const nsAString& aItem,
                                       nsAString& aErrorMsg)
 {
   nsresult rv;
-  // currencySystem must equal urn:iso:std:iso:4217
-  if (!aAmount.mCurrencySystem.EqualsASCII("urn:iso:std:iso:4217")) {
-    aErrorMsg.AssignLiteral("The amount.currencySystem of \"");
-    aErrorMsg.Append(aItem);
-    aErrorMsg.AppendLiteral("\"(");
-    aErrorMsg.Append(aAmount.mCurrencySystem);
-    aErrorMsg.AppendLiteral(") must equal urn:iso:std:iso:4217.");
-    return NS_ERROR_RANGE_ERR;
-  }
   rv = IsValidCurrency(aItem, aAmount.mCurrency, aErrorMsg);
   if (NS_FAILED(rv)) {
     return rv;
@@ -557,6 +579,12 @@ PaymentRequest::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
   if (!doc) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+
+  if (!FeaturePolicyUtils::IsFeatureAllowed(doc,
+                                            NS_LITERAL_STRING("payment"))) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
   }
 
@@ -769,7 +797,7 @@ PaymentRequest::RejectShowPayment(nsresult aRejectReason)
 
 void
 PaymentRequest::RespondShowPayment(const nsAString& aMethodName,
-                                   const nsAString& aDetails,
+                                   const ResponseData& aDetails,
                                    const nsAString& aPayerName,
                                    const nsAString& aPayerEmail,
                                    const nsAString& aPayerPhone,
@@ -860,7 +888,7 @@ PaymentRequest::RespondAbortPayment(bool aSuccess)
   if (NS_FAILED(mUpdateError)) {
     // Respond show with mUpdateError, set mUpdating to false.
     mUpdating = false;
-    RespondShowPayment(EmptyString(), EmptyString(), EmptyString(),
+    RespondShowPayment(EmptyString(), ResponseData(), EmptyString(),
                        EmptyString(), EmptyString(), mUpdateError);
     mUpdateError = NS_OK;
     return;
@@ -1034,6 +1062,7 @@ nsresult
 PaymentRequest::UpdateShippingAddress(const nsAString& aCountry,
                                       const nsTArray<nsString>& aAddressLine,
                                       const nsAString& aRegion,
+                                      const nsAString& aRegionCode,
                                       const nsAString& aCity,
                                       const nsAString& aDependentLocality,
                                       const nsAString& aPostalCode,
@@ -1044,11 +1073,13 @@ PaymentRequest::UpdateShippingAddress(const nsAString& aCountry,
 {
   nsTArray<nsString> emptyArray;
   mShippingAddress = new PaymentAddress(GetOwner(), aCountry, emptyArray,
-                                        aRegion, aCity, aDependentLocality,
-                                        aPostalCode, aSortingCode,
-                                        EmptyString(), EmptyString(), EmptyString());
+                                        aRegion, aRegionCode, aCity,
+                                        aDependentLocality, aPostalCode,
+                                        aSortingCode, EmptyString(),
+                                        EmptyString(), EmptyString());
   mFullShippingAddress = new PaymentAddress(GetOwner(), aCountry, aAddressLine,
-                                            aRegion, aCity, aDependentLocality,
+                                            aRegion, aRegionCode, aCity,
+                                            aDependentLocality,
                                             aPostalCode, aSortingCode,
                                             aOrganization, aRecipient, aPhone);
   // Fire shippingaddresschange event

@@ -45,6 +45,9 @@
 #include "nsFrameSelection.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ShortcutKeys.h"
+#include "nsXBLPrototypeHandler.h"
+#include "mozilla/dom/KeyboardEvent.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -234,7 +237,7 @@ nsITextControlElement::GetWrapPropertyEnum(nsIContent* aContent,
   nsAutoString wrap;
   if (aContent->IsHTMLElement()) {
     static Element::AttrValuesArray strings[] =
-      {&nsGkAtoms::HARD, &nsGkAtoms::OFF, nullptr};
+      {nsGkAtoms::HARD, nsGkAtoms::OFF, nullptr};
 
     switch (aContent->AsElement()->FindAttrValueIn(kNameSpaceID_None,
                                                    nsGkAtoms::wrap, strings,
@@ -341,6 +344,7 @@ public:
   NS_IMETHOD WordExtendForDelete(bool aForward) override;
   NS_IMETHOD LineMove(bool aForward, bool aExtend) override;
   NS_IMETHOD IntraLineMove(bool aForward, bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT
   NS_IMETHOD PageMove(bool aForward, bool aExtend) override;
   NS_IMETHOD CompleteScroll(bool aForward) override;
   NS_IMETHOD CompleteMove(bool aForward, bool aExtend) override;
@@ -677,10 +681,10 @@ nsTextInputSelectionImpl::PageMove(bool aForward, bool aExtend)
 {
   // expected behavior for PageMove is to scroll AND move the caret
   // and to remain relative position of the caret in view. see Bug 4302.
-  if (mScrollFrame)
-  {
+  if (mScrollFrame) {
     RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-    frameSelection->CommonPageMove(aForward, aExtend, mScrollFrame);
+    nsIFrame* scrollFrame = do_QueryFrame(mScrollFrame);
+    frameSelection->CommonPageMove(aForward, aExtend, scrollFrame);
   }
   // After ScrollSelectionIntoView(), the pending notifications might be
   // flushed and PresShell/PresContext/Frames may be dead. See bug 418470.
@@ -956,13 +960,44 @@ TextInputListener::HandleEvent(Event* aEvent)
     return NS_OK;
   }
 
-  WidgetKeyboardEvent* keyEvent =
-    aEvent->WidgetEventPtr()->AsKeyboardEvent();
+  RefPtr<KeyboardEvent> keyEvent = aEvent->AsKeyboardEvent();
   if (!keyEvent) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (keyEvent->mMessage != eKeyPress) {
+  WidgetKeyboardEvent* widgetKeyEvent =
+      aEvent->WidgetEventPtr()->AsKeyboardEvent();
+  if (!keyEvent) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsXBLPrototypeHandler* keyHandlers =
+      ShortcutKeys::GetHandlers(mTxtCtrlElement->IsTextArea() ?
+                                HandlerType::eTextArea : HandlerType::eInput);
+
+  RefPtr<nsAtom> eventTypeAtom =
+    ShortcutKeys::ConvertEventToDOMEventType(widgetKeyEvent);
+  for (nsXBLPrototypeHandler* handler = keyHandlers;
+       handler;
+       handler = handler->GetNextHandler()) {
+    if (!handler->EventTypeEquals(eventTypeAtom)) {
+      continue;
+    }
+
+    if (!handler->KeyEventMatched(keyEvent, 0, IgnoreModifierState())) {
+      continue;
+    }
+
+    // XXX Do we execute only one handler even if the handler neither stops
+    //     propagation nor prevents default of the event?
+    nsCOMPtr<EventTarget> target = do_QueryInterface(mTxtCtrlElement);
+    nsresult rv = handler->ExecuteHandler(target, aEvent);
+    if (NS_SUCCEEDED(rv)) {
+      return rv;
+    }
+  }
+
+  if (widgetKeyEvent->mMessage != eKeyPress) {
     return NS_OK;
   }
 
@@ -971,7 +1006,7 @@ TextInputListener::HandleEvent(Event* aEvent)
       nsIWidget::NativeKeyBindingsForMultiLineEditor :
       nsIWidget::NativeKeyBindingsForSingleLineEditor;
 
-  nsIWidget* widget = keyEvent->mWidget;
+  nsIWidget* widget = widgetKeyEvent->mWidget;
   // If the event is created by chrome script, the widget is nullptr.
   if (!widget) {
     widget = mFrame->GetNearestWidget();
@@ -982,10 +1017,10 @@ TextInputListener::HandleEvent(Event* aEvent)
   // If the event is created by chrome script, it is nullptr but we need to
   // execute native key bindings.  Therefore, we need to set widget to
   // WidgetEvent::mWidget temporarily.
-  AutoRestore<nsCOMPtr<nsIWidget>> saveWidget(keyEvent->mWidget);
-  keyEvent->mWidget = widget;
-  if (keyEvent->ExecuteEditCommands(nativeKeyBindingsType,
-                                    DoCommandCallback, mFrame)) {
+  AutoRestore<nsCOMPtr<nsIWidget>> saveWidget(widgetKeyEvent->mWidget);
+  widgetKeyEvent->mWidget = widget;
+  if (widgetKeyEvent->ExecuteEditCommands(nativeKeyBindingsType,
+                                          DoCommandCallback, mFrame)) {
     aEvent->PreventDefault();
   }
   return NS_OK;

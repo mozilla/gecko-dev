@@ -31,7 +31,7 @@ registerCleanupFunction(() => {
 const openAnimationInspector = async function() {
   const { inspector, toolbox } = await openInspectorSidebarTab(TAB_NAME);
   await inspector.once("inspector-updated");
-  const { animationinspector: animationInspector } = inspector;
+  const animationInspector = inspector.getPanel("animationinspector");
   await waitForRendering(animationInspector);
   const panel = inspector.panelWin.document.getElementById("animation-container");
   return { animationInspector, toolbox, inspector, panel };
@@ -49,9 +49,7 @@ const closeAnimationInspector = async function() {
 
 /**
  * Some animation features are not enabled by default in release/beta channels
- * yet including:
- *   * parts of the Web Animations API (Bug 1264101), and
- *   * the frames() timing function (Bug 1379582).
+ * yet including parts of the Web Animations API.
  */
 const enableAnimationFeatures = function() {
   return new Promise(resolve => {
@@ -60,7 +58,7 @@ const enableAnimationFeatures = function() {
       ["dom.animations-api.getAnimations.enabled", true],
       ["dom.animations-api.implicit-keyframes.enabled", true],
       ["dom.animations-api.timelines.enabled", true],
-      ["layout.css.frames-timing.enabled", true],
+      ["layout.css.step-position-jump.enabled", true],
     ]}, resolve);
   });
 };
@@ -407,7 +405,7 @@ const selectAnimationInspector = async function(inspector) {
   const onUpdated = inspector.once("inspector-updated");
   inspector.sidebar.select("animationinspector");
   await onUpdated;
-  await waitForRendering(inspector.animationinspector);
+  await waitForRendering(inspector.getPanel("animationinspector"));
 };
 
 /**
@@ -430,7 +428,7 @@ const selectNodeAndWaitForAnimations = async function(data, inspector, reason = 
   const onUpdated = inspector.once("inspector-updated");
   await selectNode(data, inspector, reason);
   await onUpdated;
-  await waitForRendering(inspector.animationinspector);
+  await waitForRendering(inspector.getPanel("animationinspector"));
 };
 
 /**
@@ -553,6 +551,51 @@ const waitForRendering = async function(animationInspector) {
     waitForAnimationDetail(animationInspector),
   ]);
 };
+
+// Wait until an action of `type` is dispatched. If it's part of an
+// async operation, wait until the `status` field is "done" or "error"
+function _afterDispatchDone(store, type) {
+  return new Promise(resolve => {
+    store.dispatch({
+      // Normally we would use `services.WAIT_UNTIL`, but use the
+      // internal name here so tests aren't forced to always pass it
+      // in
+      type: "@@service/waitUntil",
+      predicate: action => {
+        if (action.type === type) {
+          return true;
+        }
+        return false;
+      },
+      run: (dispatch, getState, action) => {
+        resolve(action);
+      },
+    });
+  });
+}
+
+/**
+ * Wait for a specific action type to be dispatch.
+ * If an async action, will wait for it to be done.
+ * This is a custom waitForDispatch, and rather than having a number to wait on
+ * the function has a callback, that returns a number. This allows us to wait for
+ * an unknown number of dispatches.
+ *
+ * @memberof mochitest/waits
+ * @param {Object} inspector
+ * @param {String} type
+ * @param {Function} repeat
+ * @return {Promise}
+ * @static
+ */
+async function waitForDispatch(inspector, type, repeat) {
+  let count = 0;
+
+  while (count < repeat()) {
+    await _afterDispatchDone(inspector.store, type);
+    count++;
+  }
+}
 
 /**
  * Wait for rendering of animation keyframes.

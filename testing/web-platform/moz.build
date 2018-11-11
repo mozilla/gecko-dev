@@ -78,7 +78,7 @@ with Files("mozilla/tests/placeholder"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
 
 with Files("mozilla/tests/wasm/**"):
-    BUG_COMPONENT = ("Core", "JavaScript Engine: JIT")
+    BUG_COMPONENT = ("Core", "Javascript: Web Assembly")
 
 with Files("update/**"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
@@ -222,12 +222,12 @@ with Files("tests/css/css-fonts/**"):
     BUG_COMPONENT = ("Core", "Layout: Text and Fonts")
 
 with Files("tests/css/css-paint-api/**"):
-    BUG_COMPONENT = ("Core", "Layout: Web Painting")
+    BUG_COMPONENT = ("Core", "Web Painting")
 
 with Files("tests/css/css-scoping/**"):
     BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
 
-with Files("tests/css/css-timing/**"):
+with Files("tests/css/css-easing/**"):
     BUG_COMPONENT = ("Core", "Layout")
 
 with Files("tests/css/css-typed-om/**"):
@@ -536,7 +536,7 @@ with Files("tests/wai-aria/**"):
     BUG_COMPONENT = ("Core", "Disability Access APIs")
 
 with Files("tests/wasm/**"):
-    BUG_COMPONENT = ("Core", "JavaScript Engine: JIT")
+    BUG_COMPONENT = ("Core", "Javascript: Web Assembly")
 
 with Files("tests/web-animations/**"):
     BUG_COMPONENT = ("Core", "DOM: Animation")

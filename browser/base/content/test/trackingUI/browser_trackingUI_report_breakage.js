@@ -5,9 +5,8 @@
 
 const TRACKING_PAGE = "http://tracking.example.org/browser/browser/base/content/test/trackingUI/trackingPage.html";
 const BENIGN_PAGE = "http://tracking.example.org/browser/browser/base/content/test/trackingUI/benignPage.html";
+const COOKIE_PAGE = "http://not-tracking.example.com/browser/browser/base/content/test/trackingUI/cookiePage.html";
 
-const CB_PREF = "browser.contentblocking.enabled";
-const CB_UI_PREF = "browser.contentblocking.ui.enabled";
 const TP_PREF = "privacy.trackingprotection.enabled";
 const PREF_REPORT_BREAKAGE_ENABLED = "browser.contentblocking.reportBreakage.enabled";
 const PREF_REPORT_BREAKAGE_URL = "browser.contentblocking.reportBreakage.url";
@@ -17,10 +16,14 @@ let {CommonUtils} = ChromeUtils.import("resource://services-common/utils.js", {}
 let {Preferences} = ChromeUtils.import("resource://gre/modules/Preferences.jsm", {});
 
 add_task(async function setup() {
-  await SpecialPowers.pushPrefEnv({set: [
-    [CB_UI_PREF, true],
-  ]});
   await UrlClassifierTestUtils.addTestTrackers();
+
+  let oldCanRecord = Services.telemetry.canRecordExtended;
+  Services.telemetry.canRecordExtended = true;
+
+  registerCleanupFunction(() => {
+    Services.telemetry.canRecordExtended = oldCanRecord;
+  });
 });
 
 function openIdentityPopup() {
@@ -35,7 +38,6 @@ add_task(async function testReportBreakageVisibility() {
     {
       url: TRACKING_PAGE,
       prefs: {
-        "browser.contentblocking.enabled": true,
         "privacy.trackingprotection.enabled": true,
         "browser.contentblocking.reportBreakage.enabled": true,
       },
@@ -45,7 +47,6 @@ add_task(async function testReportBreakageVisibility() {
       url: TRACKING_PAGE,
       hasException: true,
       prefs: {
-        "browser.contentblocking.enabled": true,
         "privacy.trackingprotection.enabled": true,
         "browser.contentblocking.reportBreakage.enabled": true,
       },
@@ -54,16 +55,6 @@ add_task(async function testReportBreakageVisibility() {
     {
       url: TRACKING_PAGE,
       prefs: {
-        "browser.contentblocking.enabled": false,
-        "privacy.trackingprotection.enabled": true,
-        "browser.contentblocking.reportBreakage.enabled": true,
-      },
-      buttonVisible: false,
-    },
-    {
-      url: TRACKING_PAGE,
-      prefs: {
-        "browser.contentblocking.enabled": true,
         "privacy.trackingprotection.enabled": true,
         "browser.contentblocking.reportBreakage.enabled": false,
       },
@@ -72,17 +63,26 @@ add_task(async function testReportBreakageVisibility() {
     {
       url: BENIGN_PAGE,
       prefs: {
-        "browser.contentblocking.enabled": true,
         "privacy.trackingprotection.enabled": true,
         "browser.contentblocking.reportBreakage.enabled": true,
       },
       buttonVisible: false,
     },
+    {
+      url: COOKIE_PAGE,
+      prefs: {
+        "privacy.trackingprotection.enabled": false,
+        "network.cookie.cookieBehavior": Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+        "browser.contentblocking.reportBreakage.enabled": false,
+        "browser.contentblocking.rejecttrackers.reportBreakage.enabled": true,
+      },
+      buttonVisible: true,
+    },
   ];
 
   for (let scenario of scenarios) {
     for (let pref in scenario.prefs) {
-      Services.prefs.setBoolPref(pref, scenario.prefs[pref]);
+      Preferences.set(pref, scenario.prefs[pref]);
     }
 
     let uri = Services.io.newURI(scenario.url);
@@ -107,11 +107,12 @@ add_task(async function testReportBreakageVisibility() {
 
 add_task(async function testReportBreakageCancel() {
   Services.prefs.setBoolPref(TP_PREF, true);
-  Services.prefs.setBoolPref(CB_PREF, true);
   Services.prefs.setBoolPref(PREF_REPORT_BREAKAGE_ENABLED, true);
 
   await BrowserTestUtils.withNewTab(TRACKING_PAGE, async function() {
     await openIdentityPopup();
+
+    Services.telemetry.clearEvents();
 
     let reportBreakageButton = document.getElementById("identity-popup-content-blocking-report-breakage");
     ok(BrowserTestUtils.is_visible(reportBreakageButton), "report breakage button is visible");
@@ -119,6 +120,11 @@ add_task(async function testReportBreakageCancel() {
     let viewShown = BrowserTestUtils.waitForEvent(reportBreakageView, "ViewShown");
     reportBreakageButton.click();
     await viewShown;
+
+    let events = Services.telemetry.snapshotEvents(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN).parent;
+    let clickEvents = events.filter(
+      e => e[1] == "security.ui.identitypopup" && e[2] == "click" && e[3] == "report_breakage");
+    is(clickEvents.length, 1, "recorded telemetry for the click");
 
     ok(true, "Report breakage view was shown");
 
@@ -131,7 +137,6 @@ add_task(async function testReportBreakageCancel() {
     ok(true, "Main view was shown");
   });
 
-  Services.prefs.clearUserPref(CB_PREF);
   Services.prefs.clearUserPref(TP_PREF);
   Services.prefs.clearUserPref(PREF_REPORT_BREAKAGE_ENABLED);
 });
@@ -144,7 +149,6 @@ add_task(async function testReportBreakage() {
   let path = i.primaryScheme + "://" + i.primaryHost + ":" + i.primaryPort + "/";
 
   Services.prefs.setBoolPref(TP_PREF, true);
-  Services.prefs.setBoolPref(CB_PREF, true);
   Services.prefs.setBoolPref(PREF_REPORT_BREAKAGE_ENABLED, true);
   Services.prefs.setStringPref(PREF_REPORT_BREAKAGE_URL, path);
 
@@ -190,9 +194,6 @@ add_task(async function testReportBreakage() {
           "network.cookie.cookieBehavior",
           "network.cookie.lifetimePolicy",
           "privacy.restrict3rdpartystorage.expiration",
-          "browser.fastblock.enabled",
-          "browser.contentblocking.fastblock.control-center.ui.enabled",
-          "browser.fastblock.timeout",
         ];
         let prefsBody = "";
 
@@ -229,7 +230,6 @@ add_task(async function testReportBreakage() {
   // Stop the server.
   await new Promise(r => server.stop(r));
 
-  Services.prefs.clearUserPref(CB_PREF);
   Services.prefs.clearUserPref(TP_PREF);
   Services.prefs.clearUserPref(PREF_REPORT_BREAKAGE_ENABLED);
   Services.prefs.clearUserPref(PREF_REPORT_BREAKAGE_URL);
@@ -237,7 +237,6 @@ add_task(async function testReportBreakage() {
 
 add_task(async function cleanup() {
   // Clear prefs that are touched in this test again for sanity.
-  Services.prefs.clearUserPref(CB_PREF);
   Services.prefs.clearUserPref(TP_PREF);
   Services.prefs.clearUserPref(PREF_REPORT_BREAKAGE_ENABLED);
   Services.prefs.clearUserPref(PREF_REPORT_BREAKAGE_URL);

@@ -109,6 +109,15 @@ LogBlockedRequest(nsIRequest* aRequest,
   // we are passing aProperty as the category so we can link to the
   // appropriate MDN docs depending on the specific error.
   uint64_t innerWindowID = nsContentUtils::GetInnerWindowID(aRequest);
+  // The |innerWindowID| could be 0 if this request is created from script.
+  // We can always try top level content window id in this case,
+  // since the window id can lead to current top level window's web console.
+  if (!innerWindowID) {
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
+    if (httpChannel) {
+      Unused << httpChannel->GetTopLevelContentWindowId(&innerWindowID);
+    }
+  }
   nsCORSListenerProxy::LogBlockedCORSRequest(innerWindowID, privateBrowsing,
                                              msg, category);
 }
@@ -1004,7 +1013,7 @@ nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
   nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aChannel);
   NS_ENSURE_TRUE(http, NS_ERROR_FAILURE);
 
-  rv = http->SetRequestHeader(NS_LITERAL_CSTRING("Origin"), origin, false);
+  rv = http->SetRequestHeader(nsDependentCString(net::nsHttp::Origin), origin, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Make cookie-less if needed. We don't need to do anything here if the
@@ -1567,6 +1576,17 @@ nsCORSListenerProxy::StartCORSPreflight(nsIChannel* aRequestChannel,
                                 withCredentials, method, preflightHeaders);
 
   rv = preflightChannel->SetNotificationCallbacks(preflightListener);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Per https://fetch.spec.whatwg.org/#cors-preflight-fetch step 1, the
+  // request's referrer and referrer policy should match the original request.
+  uint32_t referrerPolicy = nsIHttpChannel::REFERRER_POLICY_UNSET;
+  rv = reqCh->GetReferrerPolicy(&referrerPolicy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIURI> requestReferrerURI;
+  rv = reqCh->GetReferrer(getter_AddRefs(requestReferrerURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = preCh->SetReferrerWithPolicy(requestReferrerURI, referrerPolicy);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Start preflight

@@ -1,11 +1,6 @@
 import os
 
 config = {
-    'default_actions': [
-        'clobber',
-        'build',
-        'check-test',
-    ],
     'stage_platform': 'linux-rusttests',
     #### 32 bit build specific #####
     'env': {
@@ -22,7 +17,9 @@ config = {
         'XPCOM_DEBUG_BREAK': 'stack-and-abort',
         'TINDERBOX_OUTPUT': '1',
     },
+    'build_targets': ['pre-export', 'export', 'recurse_rusttests'],
     'mozconfig_variant': 'rusttests',
     'artifact_flag_build_variant_in_try': None,
+    'disable_package_metrics': True,
     #######################
 }

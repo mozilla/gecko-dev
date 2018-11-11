@@ -63,7 +63,7 @@
 
     <popupnotification id="addon-progress-notification" hidden="true">
       <popupnotificationcontent orient="vertical">
-        <progressmeter id="addon-progress-notification-progressmeter"/>
+        <html:progress id="addon-progress-notification-progressmeter" max="100"/>
         <label id="addon-progress-notification-progresstext" crop="end"/>
       </popupnotificationcontent>
     </popupnotification>
@@ -77,12 +77,6 @@
         <description id="addon-webext-perm-text" class="addon-webext-perm-text"/>
         <label id="addon-webext-perm-intro" class="addon-webext-perm-text"/>
         <html:ul id="addon-webext-perm-list" class="addon-webext-perm-list"/>
-      </popupnotificationcontent>
-    </popupnotification>
-
-    <popupnotification id="addon-installed-notification" hidden="true">
-      <popupnotificationcontent class="addon-installed-notification-content" orient="vertical">
-        <description>&addonPostInstallMessage.label;</description>
       </popupnotificationcontent>
     </popupnotification>
 

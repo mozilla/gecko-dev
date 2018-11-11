@@ -23,6 +23,7 @@ class SavedFrame : public NativeObject {
 
   public:
     static const Class          class_;
+    static const Class          protoClass_;
     static const JSPropertySpec protoAccessors[];
     static const JSFunctionSpec protoFunctions[];
     static const JSFunctionSpec staticFunctions[];
@@ -95,19 +96,6 @@ class SavedFrame : public NativeObject {
         RootedIterator begin() { return RootedIterator(*this); }
         RootedIterator end() { return RootedIterator(); }
     };
-
-    static bool isSavedFrameAndNotProto(JSObject& obj) {
-        return obj.is<SavedFrame>() &&
-               !obj.as<SavedFrame>().getReservedSlot(JSSLOT_SOURCE).isNull();
-    }
-
-    static bool isSavedFrameOrWrapperAndNotProto(JSObject& obj) {
-        auto unwrapped = CheckedUnwrap(&obj);
-        if (!unwrapped) {
-            return false;
-        }
-        return isSavedFrameAndNotProto(*unwrapped);
-    }
 
     struct Lookup;
     struct HashPolicy;

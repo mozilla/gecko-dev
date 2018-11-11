@@ -18,7 +18,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-black-box",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_black_box();
                            });
@@ -41,7 +41,7 @@ function test_black_box() {
     function runWithSource(packet) {
       const source = gThreadClient.source(packet.source);
       source.setBreakpoint({
-        line: 2
+        line: 2,
       }).then(test_black_box_paused);
     }
   });

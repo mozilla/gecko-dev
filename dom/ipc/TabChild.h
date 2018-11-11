@@ -54,9 +54,6 @@ template<typename T> class nsPtrHashKey;
 
 namespace mozilla {
 class AbstractThread;
-namespace layout {
-class RenderFrameChild;
-} // namespace layout
 
 namespace layers {
 class APZChild;
@@ -163,7 +160,7 @@ public:
   virtual PuppetWidget* WebWidget() = 0;
   nsIPrincipal* GetPrincipal() { return mPrincipal; }
   virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
-                                       const mozilla::layers::FrameMetrics::ViewID& aViewId,
+                                       const mozilla::layers::ScrollableLayerGuid::ViewID& aViewId,
                                        const Maybe<mozilla::layers::ZoomConstraints>& aConstraints) = 0;
 
   virtual ScreenIntSize GetInnerSize() = 0;
@@ -185,9 +182,9 @@ protected:
   void DispatchMessageManagerMessage(const nsAString& aMessageName,
                                      const nsAString& aJSONData);
 
-  void ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+  void ProcessUpdateFrame(const mozilla::layers::RepaintRequest& aRequest);
 
-  bool UpdateFrameHandler(const mozilla::layers::FrameMetrics& aFrameMetrics);
+  bool UpdateFrameHandler(const mozilla::layers::RepaintRequest& aRequest);
 
 protected:
   RefPtr<TabChildMessageManager> mTabChildMessageManager;
@@ -211,7 +208,6 @@ class TabChild final : public TabChildBase,
   typedef mozilla::dom::ClonedMessageData ClonedMessageData;
   typedef mozilla::dom::CoalescedMouseData CoalescedMouseData;
   typedef mozilla::dom::CoalescedWheelData CoalescedWheelData;
-  typedef mozilla::layout::RenderFrameChild RenderFrameChild;
   typedef mozilla::layers::APZEventState APZEventState;
   typedef mozilla::layers::SetAllowedTouchBehaviorCallback SetAllowedTouchBehaviorCallback;
   typedef mozilla::layers::TouchBehaviorFlags TouchBehaviorFlags;
@@ -307,8 +303,7 @@ public:
   RecvInitRendering(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
                     const layers::LayersId& aLayersId,
                     const mozilla::layers::CompositorOptions& aCompositorOptions,
-                    const bool& aLayersConnected,
-                    PRenderFrameChild* aRenderFrame) override;
+                    const bool& aLayersConnected) override;
 
   virtual mozilla::ipc::IPCResult
   RecvUpdateDimensions(const mozilla::dom::DimensionInfo& aDimensionInfo) override;
@@ -540,6 +535,7 @@ public:
 
   void ClearCachedResources();
   void InvalidateLayers();
+  void SchedulePaint();
   void ReinitRendering();
   void ReinitRenderingForDeviceReset();
 
@@ -605,11 +601,7 @@ public:
   virtual ScreenIntSize GetInnerSize() override;
 
   // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
-  void DoFakeShow(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
-                  const layers::LayersId& aLayersId,
-                  const mozilla::layers::CompositorOptions& aCompositorOptions,
-                  PRenderFrameChild* aRenderFrame,
-                  const ShowInfo& aShowInfo);
+  void DoFakeShow(const ShowInfo& aShowInfo);
 
   void ContentReceivedInputBlock(const ScrollableLayerGuid& aGuid,
                                  uint64_t aInputBlockId,
@@ -634,13 +626,13 @@ public:
   void SetAllowedTouchBehavior(uint64_t aInputBlockId,
                                const nsTArray<TouchBehaviorFlags>& aFlags) const;
 
-  bool UpdateFrame(const FrameMetrics& aFrameMetrics);
+  bool UpdateFrame(const layers::RepaintRequest& aRequest);
   bool NotifyAPZStateChange(const ViewID& aViewId,
                             const layers::GeckoContentController::APZStateChange& aChange,
                             const int& aArg);
   void StartScrollbarDrag(const layers::AsyncDragMetrics& aDragMetrics);
   void ZoomToRect(const uint32_t& aPresShellId,
-                  const FrameMetrics::ViewID& aViewId,
+                  const ScrollableLayerGuid::ViewID& aViewId,
                   const CSSRect& aRect,
                   const uint32_t& aFlags);
 
@@ -713,15 +705,15 @@ public:
 protected:
   virtual ~TabChild();
 
-  virtual PRenderFrameChild* AllocPRenderFrameChild() override;
-
-  virtual bool DeallocPRenderFrameChild(PRenderFrameChild* aFrame) override;
-
   virtual mozilla::ipc::IPCResult RecvDestroy() override;
 
   virtual mozilla::ipc::IPCResult RecvSetDocShellIsActive(const bool& aIsActive) override;
 
   virtual mozilla::ipc::IPCResult RecvRenderLayers(const bool& aEnabled, const bool& aForce, const layers::LayersObserverEpoch& aEpoch) override;
+
+  virtual mozilla::ipc::IPCResult RecvRequestRootPaint(const IntRect& aRect, const float& aScale, const nscolor& aBackgroundColor, RequestRootPaintResolver&& aResolve) override;
+
+  virtual mozilla::ipc::IPCResult RecvRequestSubPaint(const float& aScale, const nscolor& aBackgroundColor, RequestSubPaintResolver&& aResolve) override;
 
   virtual mozilla::ipc::IPCResult RecvNavigateByKey(const bool& aForward,
                                                     const bool& aForDocumentNavigation) override;
@@ -747,6 +739,8 @@ protected:
 
   virtual mozilla::ipc::IPCResult RecvSetWidgetNativeData(const WindowsHandle& aWidgetNativeData) override;
 
+  virtual mozilla::ipc::IPCResult RecvGetContentBlockingLog(GetContentBlockingLogResolver&& aResolve) override;
+
 private:
   void HandleDoubleTap(const CSSPoint& aPoint, const Modifiers& aModifiers,
                        const ScrollableLayerGuid& aGuid);
@@ -768,8 +762,7 @@ private:
 
   void InitRenderingState(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
                           const layers::LayersId& aLayersId,
-                          const mozilla::layers::CompositorOptions& aCompositorOptions,
-                          PRenderFrameChild* aRenderFrame);
+                          const mozilla::layers::CompositorOptions& aCompositorOptions);
   void InitAPZState();
 
   void DestroyWindow();
@@ -819,7 +812,6 @@ private:
   RefPtr<mozilla::dom::TabGroup> mTabGroup;
   RefPtr<PuppetWidget> mPuppetWidget;
   nsCOMPtr<nsIURI> mLastURI;
-  RenderFrameChild* mRemoteFrame;
   RefPtr<nsIContentChild> mManager;
   uint32_t mChromeFlags;
   uint32_t mMaxTouchPoints;

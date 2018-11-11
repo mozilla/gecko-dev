@@ -66,7 +66,8 @@ from leaks import ShutdownLeaks, LSANLeaks
 from mochitest_options import (
     MochitestArgumentParser, build_obj, get_default_valgrind_suppression_files
 )
-from mozprofile import Profile, Preferences
+from mozprofile import Profile
+from mozprofile.cli import parse_preferences, parse_key_value, KeyValueParseError
 from mozprofile.permissions import ServerLocations
 from urllib import quote_plus as encodeURIComponent
 from mozlog.formatters import TbplFormatter
@@ -780,31 +781,6 @@ def findTestMediaDevices(log):
     return info
 
 
-class KeyValueParseError(Exception):
-
-    """error when parsing strings of serialized key-values"""
-
-    def __init__(self, msg, errors=()):
-        self.errors = errors
-        Exception.__init__(self, msg)
-
-
-def parseKeyValue(strings, separator='=', context='key, value: '):
-    """
-    parse string-serialized key-value pairs in the form of
-    `key = value`. Returns a list of 2-tuples.
-    Note that whitespace is not stripped.
-    """
-
-    # syntax check
-    missing = [string for string in strings if separator not in string]
-    if missing:
-        raise KeyValueParseError(
-            "Error: syntax error in %s" %
-            (context, ','.join(missing)), errors=missing)
-    return [string.split(separator, 1) for string in strings]
-
-
 def create_zip(path):
     """
     Takes a `path` on disk and creates a zipfile with its contents. Returns a
@@ -873,6 +849,7 @@ class MochitestDesktop(object):
         self.mozLogs = None
         self.start_script_kwargs = {}
         self.urlOpts = []
+        self.extraPrefs = {}
 
         if logger_options.get('log'):
             self.log = logger_options['log']
@@ -907,20 +884,6 @@ class MochitestDesktop(object):
     def environment(self, **kwargs):
         kwargs['log'] = self.log
         return test_environment(**kwargs)
-
-    def extraPrefs(self, prefs):
-        """Interpolate extra preferences from option strings"""
-
-        try:
-            prefs = dict(parseKeyValue(prefs, context='--setpref='))
-        except KeyValueParseError as e:
-            print(str(e))
-            sys.exit(1)
-
-        for pref, value in prefs.items():
-            value = Preferences.cast(value)
-            prefs[pref] = value
-        return prefs
 
     def getFullPath(self, path):
         " Get an absolute path relative to self.oldcwd."
@@ -1661,7 +1624,7 @@ toolbar#nav-bar {
         try:
             browserEnv.update(
                 dict(
-                    parseKeyValue(
+                    parse_key_value(
                         options.environment,
                         context='--setenv')))
         except KeyValueParseError as e:
@@ -1936,7 +1899,7 @@ toolbar#nav-bar {
         self.profile.set_preferences(prefs)
 
         # Extra prefs from --setpref
-        self.profile.set_preferences(self.extraPrefs(options.extraPrefs))
+        self.profile.set_preferences(self.extraPrefs)
         return manifest
 
     def getGMPPluginPath(self, options):
@@ -2559,16 +2522,20 @@ toolbar#nav-bar {
 
     def runTests(self, options):
         """ Prepare, configure, run tests and cleanup """
+        self.extraPrefs = parse_preferences(options.extraPrefs)
 
         # a11y and chrome tests don't run with e10s enabled in CI. Need to set
         # this here since |mach mochitest| sets the flavor after argument parsing.
         if options.flavor in ('a11y', 'chrome'):
             options.e10s = False
-        mozinfo.update({"e10s": options.e10s})  # for test manifest parsing.
-        mozinfo.update({"headless": options.headless})  # for test manifest parsing.
 
-        if options.jscov_dir_prefix is not None:
-            mozinfo.update({'coverage': True})
+        # for test manifest parsing.
+        mozinfo.update({
+            "e10s": options.e10s,
+            "headless": options.headless,
+            "serviceworker_e10s": self.extraPrefs.get(
+                'dom.serviceWorkers.parent_intercept', False),
+        })
 
         self.setTestRoot(options)
 
@@ -2594,17 +2561,18 @@ toolbar#nav-bar {
         # code for --run-by-manifest
         manifests = set(t['manifest'] for t in tests)
         result = 0
-        origPrefs = options.extraPrefs[:]
+
+        origPrefs = self.extraPrefs.copy()
         for m in sorted(manifests):
             self.log.info("Running manifest: {}".format(m))
 
             prefs = list(self.prefs_by_manifest[m])[0]
-            options.extraPrefs = origPrefs[:]
+            self.extraPrefs = origPrefs.copy()
             if prefs:
                 prefs = prefs.strip().split()
                 self.log.info("The following extra prefs will be set:\n  {}".format(
                     '\n  '.join(prefs)))
-                options.extraPrefs.extend(prefs)
+                self.extraPrefs.update(parse_preferences(prefs))
 
             # If we are using --run-by-manifest, we should not use the profile path (if) provided
             # by the user, since we need to create a new directory for each run. We would face
@@ -2791,6 +2759,8 @@ toolbar#nav-bar {
                     testURL += "?" + "&".join(self.urlOpts)
 
                 self.log.info("runtests.py | Running with e10s: {}".format(options.e10s))
+                self.log.info("runtests.py | Running with serviceworker_e10s: {}".format(
+                    mozinfo.info.get('serviceworker_e10s', False)))
                 self.log.info("runtests.py | Running tests: start.\n")
                 ret, _ = self.runApp(
                     testURL,
@@ -2835,12 +2805,13 @@ toolbar#nav-bar {
                 ignoreMissingLeaks.append(processType)
                 leakThresholds[processType] = sys.maxsize
 
+        utilityPath = options.utilityPath or options.xrePath
         mozleak.process_leak_log(
             self.leak_report_file,
             leak_thresholds=leakThresholds,
             ignore_missing_leaks=ignoreMissingLeaks,
             log=self.log,
-            stack_fixer=get_stack_fixer_function(options.utilityPath,
+            stack_fixer=get_stack_fixer_function(utilityPath,
                                                  options.symbolsPath),
         )
 

@@ -238,15 +238,13 @@ XPCNativeMember::GetInterface() const
 inline const nsIID*
 XPCNativeInterface::GetIID() const
 {
-    const nsIID* iid;
-    return NS_SUCCEEDED(mInfo->GetIIDShared(&iid)) ? iid : nullptr;
+    return &mInfo->IID();
 }
 
 inline const char*
 XPCNativeInterface::GetNameString() const
 {
-    const char* name;
-    return NS_SUCCEEDED(mInfo->GetNameShared(&name)) ? name : nullptr;
+    return mInfo->Name();
 }
 
 inline XPCNativeMember*
@@ -264,9 +262,7 @@ XPCNativeInterface::FindMember(jsid name) const
 inline bool
 XPCNativeInterface::HasAncestor(const nsIID* iid) const
 {
-    bool found = false;
-    mInfo->HasAncestor(iid, &found);
-    return found;
+    return mInfo->HasAncestor(*iid);
 }
 
 /* static */
@@ -502,7 +498,13 @@ XPCWrappedNative::SweepTearOffs()
         // If this tearoff does not have a live dedicated JSObject,
         // then let's recycle it.
         if (!to->GetJSObjectPreserveColor()) {
-            to->SetNative(nullptr);
+            RefPtr<nsISupports> native = to->TakeNative();
+            if (native && mozilla::recordreplay::IsRecordingOrReplaying()) {
+                // Finalization must be deferred while recording/replaying to
+                // match the RecordReplayRegisterDeferredFinalizeThing call
+                // when the tearoff was initialized.
+                mozilla::DeferredFinalize(native.forget().take());
+            }
             to->SetInterface(nullptr);
         }
     }

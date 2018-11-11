@@ -8,6 +8,7 @@
 run talos tests in a virtualenv
 """
 
+import argparse
 import os
 import sys
 import pprint
@@ -135,9 +136,21 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             "dest": "gecko_profile",
             "action": "store_true",
             "default": False,
-            "help": "Whether or not to profile the test run and save the profile results"
+            "help": argparse.SUPPRESS
         }],
         [["--geckoProfileInterval"], {
+            "dest": "gecko_profile_interval",
+            "type": "int",
+            "default": 0,
+            "help": argparse.SUPPRESS
+        }],
+        [["--gecko-profile"], {
+            "dest": "gecko_profile",
+            "action": "store_true",
+            "default": False,
+            "help": "Whether or not to profile the test run and save the profile results"
+        }],
+        [["--gecko-profile-interval"], {
             "dest": "gecko_profile_interval",
             "type": "int",
             "default": 0,
@@ -156,6 +169,13 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             "default": False,
             "help": "Tries to enable the WebRender compositor.",
         }],
+        [["--setpref"], {
+            "action": "append",
+            "metavar": "PREF=VALUE",
+            "dest": "extra_prefs",
+            "default": [],
+            "help": "Defines an extra user preference."}
+         ],
     ] + testing_config_options + copy.deepcopy(code_coverage_config_options)
 
     def __init__(self, **kwargs):
@@ -190,7 +210,8 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
         self.obj_path = self.config.get("obj_path")
         self.tests = None
         self.gecko_profile = self.config.get('gecko_profile') or \
-            "--geckoProfile" in self.config.get("talos_extra_options", [])
+            "--geckoProfile" in self.config.get("talos_extra_options", []) or \
+            "--gecko-profile" in self.config.get("talos_extra_options", [])
         self.gecko_profile_interval = self.config.get('gecko_profile_interval')
         self.pagesets_name = None
         self.benchmark_zip = None
@@ -206,15 +227,15 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
     # We accept some configuration options from the try commit message in the format
     # mozharness: <options>
     # Example try commit message:
-    #   mozharness: --geckoProfile try: <stuff>
+    #   mozharness: --gecko-profile try: <stuff>
     def query_gecko_profile_options(self):
         gecko_results = []
         # finally, if gecko_profile is set, we add that to the talos options
         if self.gecko_profile:
-            gecko_results.append('--geckoProfile')
+            gecko_results.append('--gecko-profile')
             if self.gecko_profile_interval:
                 gecko_results.extend(
-                    ['--geckoProfileInterval', str(self.gecko_profile_interval)]
+                    ['--gecko-profile-interval', str(self.gecko_profile_interval)]
                 )
         return gecko_results
 
@@ -356,6 +377,8 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             options += self.config['talos_extra_options']
         if self.config.get('code_coverage', False):
             options.extend(['--code-coverage'])
+        if self.config['extra_prefs']:
+            options.extend(['--setpref={}'.format(p) for p in self.config['extra_prefs']])
         return options
 
     def populate_webroot(self):
@@ -594,6 +617,11 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
                                      'lib',
                                      os.path.basename(_python_interp),
                                      'site-packages')
+
+            # if  running gecko profiling  install the requirements
+            if self.gecko_profile:
+                self._install_view_gecko_profile_req()
+
             sys.path.append(_path)
             return
 
@@ -623,6 +651,9 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             requirements=[os.path.join(self.talos_path,
                                        'requirements.txt')]
         )
+        self._install_view_gecko_profile_req()
+
+    def _install_view_gecko_profile_req(self):
         # if running locally and gecko profiing is on, we will be using the
         # view-gecko-profile tool which has its own requirements too
         if self.gecko_profile and self.run_local:

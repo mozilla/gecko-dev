@@ -125,34 +125,35 @@ static bool CheckNextInFlowParenthood(nsIFrame* aFrame, nsIFrame* aParent)
  * margin can be adjusted, so that the space is available for list
  * bullets to be rendered with font inflation enabled.
  */
-static  nscoord
+static nscoord
 FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
 {
+  if (!aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
+    return 0;
+  }
+
+  // We only want to adjust the margins if we're dealing with an ordered list.
+  const nsBlockFrame* blockFrame = static_cast<const nsBlockFrame*>(aFrame);
+  if (!blockFrame->HasBullet()) {
+    return 0;
+  }
+
   float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
-  if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
-    const nsBlockFrame* blockFrame = static_cast<const nsBlockFrame*>(aFrame);
+  if (inflation > 1.0f) {
 
-    // We only want to adjust the margins if we're dealing with an ordered
-    // list.
-    if (inflation > 1.0f &&
-        blockFrame->HasBullet() &&
-        inflation > 1.0f) {
-
-      auto listStyleType = aFrame->StyleList()->mCounterStyle->GetStyle();
-      if (listStyleType != NS_STYLE_LIST_STYLE_NONE &&
-          listStyleType != NS_STYLE_LIST_STYLE_DISC &&
-          listStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
-          listStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
-          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED &&
-          listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN) {
-        // The HTML spec states that the default padding for ordered lists
-        // begins at 40px, indicating that we have 40px of space to place a
-        // bullet. When performing font inflation calculations, we add space
-        // equivalent to this, but simply inflated at the same amount as the
-        // text, in app units.
-        return nsPresContext::CSSPixelsToAppUnits(40) * (inflation - 1);
-      }
-
+    auto listStyleType = aFrame->StyleList()->mCounterStyle->GetStyle();
+    if (listStyleType != NS_STYLE_LIST_STYLE_NONE &&
+        listStyleType != NS_STYLE_LIST_STYLE_DISC &&
+        listStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
+        listStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
+        listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_CLOSED &&
+        listStyleType != NS_STYLE_LIST_STYLE_DISCLOSURE_OPEN) {
+      // The HTML spec states that the default padding for ordered lists
+      // begins at 40px, indicating that we have 40px of space to place a
+      // bullet. When performing font inflation calculations, we add space
+      // equivalent to this, but simply inflated at the same amount as the
+      // text, in app units.
+      return nsPresContext::CSSPixelsToAppUnits(40) * (inflation - 1);
     }
   }
 
@@ -348,31 +349,38 @@ ReflowInput::SetComputedHeight(nscoord aComputedHeight)
   }
 }
 
+/* static */ void
+ReflowInput::MarkFrameChildrenDirty(nsIFrame* aFrame)
+{
+  if (aFrame->IsXULBoxFrame()) {
+    return;
+  }
+  // Mark all child frames as dirty.
+  //
+  // We don't do this for XUL boxes because they handle their child
+  // reflow separately.
+  for (nsIFrame::ChildListIterator childLists(aFrame); !childLists.IsDone();
+       childLists.Next()) {
+    for (nsIFrame* childFrame : childLists.CurrentList()) {
+      if (!childFrame->IsTableColGroupFrame()) {
+        childFrame->AddStateBits(NS_FRAME_IS_DIRTY);
+      }
+    }
+  }
+}
+
 void
 ReflowInput::Init(nsPresContext*     aPresContext,
                         const LogicalSize* aContainingBlockSize,
                         const nsMargin*    aBorder,
                         const nsMargin*    aPadding)
 {
-  if ((mFrame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-      !mFrame->IsXULBoxFrame()) {
-    // Mark all child frames as dirty.
-    //
-    // We don't do this for XUL boxes because they handle their child
-    // reflow separately.
-    //
+  if ((mFrame->GetStateBits() & NS_FRAME_IS_DIRTY)) {
     // FIXME (bug 1376530): It would be better for memory locality if we
     // did this as we went.  However, we need to be careful not to do
     // this twice for any particular child if we reflow it twice.  The
     // easiest way to accomplish that is to do it at the start.
-    for (nsIFrame::ChildListIterator childLists(mFrame);
-         !childLists.IsDone(); childLists.Next()) {
-      for (nsIFrame* childFrame : childLists.CurrentList()) {
-        if (!childFrame->IsTableColGroupFrame()) {
-          childFrame->AddStateBits(NS_FRAME_IS_DIRTY);
-        }
-      }
-    }
+    MarkFrameChildrenDirty(mFrame);
   }
 
   if (AvailableISize() == NS_UNCONSTRAINEDSIZE) {
@@ -434,8 +442,7 @@ ReflowInput::Init(nsPresContext*     aPresContext,
   } else {
     const nsStyleCoord& bSizeCoord = mStylePosition->BSize(mWritingMode);
     const nsStyleCoord& maxBSizeCoord = mStylePosition->MaxBSize(mWritingMode);
-    if ((bSizeCoord.GetUnit() != eStyleUnit_Auto ||
-         maxBSizeCoord.GetUnit() != eStyleUnit_None) &&
+    if ((!bSizeCoord.IsAutoOrEnum() || !maxBSizeCoord.IsAutoOrEnum()) &&
          // Don't set NS_FRAME_IN_CONSTRAINED_BSIZE on body or html elements.
          (mFrame->GetContent() &&
         !(mFrame->GetContent()->IsAnyOfHTMLElements(nsGkAtoms::body,
@@ -637,9 +644,11 @@ ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
         nsIFrame *kid = mFrame->PrincipalChildList().FirstChild();
         if (kid) {
           kid->AddStateBits(NS_FRAME_IS_DIRTY);
+          MarkFrameChildrenDirty(kid);
         }
       } else {
         mFrame->AddStateBits(NS_FRAME_IS_DIRTY);
+        MarkFrameChildrenDirty(mFrame);
       }
 
       // Mark intrinsic widths on all descendants dirty.  We need to do
@@ -1558,8 +1567,7 @@ ReflowInput::CalculateHypotheticalPosition(
 
     nscoord boxBSize;
     nsStyleCoord styleBSize = mStylePosition->BSize(wm);
-    bool isAutoBSize = styleBSize.GetUnit() == eStyleUnit_Auto;
-    if (isAutoBSize) {
+    if (styleBSize.IsAutoOrEnum()) {
       if (NS_FRAME_IS_REPLACED(mFrameType) && knowIntrinsicSize) {
         // It's a replaced element with an 'auto' block size so the box
         // block size is its intrinsic size plus any border/padding/margin
@@ -1879,7 +1887,7 @@ ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
     }
   }
 
-  bool bSizeIsAuto = eStyleUnit_Auto == mStylePosition->BSize(cbwm).GetUnit();
+  bool bSizeIsAuto = mStylePosition->BSize(cbwm).IsAutoOrEnum();
   if (bStartIsAuto) {
     // solve for block-start
     if (bSizeIsAuto) {
@@ -2273,7 +2281,9 @@ ReflowInput::InitConstraints(nsPresContext* aPresContext,
 
     // For calculating the size of this box, we use its own writing mode
     const nsStyleCoord &blockSize = mStylePosition->BSize(wm);
-    nsStyleUnit blockSizeUnit = blockSize.GetUnit();
+    nsStyleUnit blockSizeUnit = blockSize.IsAutoOrEnum()
+                                ? eStyleUnit_Auto
+                                : blockSize.GetUnit();
 
     // Check for a percentage based block size and a containing block
     // block size that depends on the content block size
@@ -2589,7 +2599,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   else if (aPadding) { // padding is an input arg
     ComputedPhysicalPadding() = *aPadding;
     needPaddingProp = mFrame->StylePadding()->IsWidthDependent() ||
-	  (mFrame->GetStateBits() & NS_FRAME_REFLOW_ROOT);
+    (mFrame->GetStateBits() & NS_FRAME_REFLOW_ROOT);
   }
   else {
     needPaddingProp = ComputePadding(aWM, aPercentBasis, aFrameType);
@@ -3011,7 +3021,7 @@ SizeComputationInput::ComputePadding(WritingMode aWM,
 }
 
 void
-ReflowInput::ComputeMinMaxValues(const LogicalSize&aCBSize)
+ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize)
 {
   WritingMode wm = GetWritingMode();
 
@@ -3047,49 +3057,37 @@ ReflowInput::ComputeMinMaxValues(const LogicalSize&aCBSize)
   }
 
   // Check for percentage based values and a containing block height that
-  // depends on the content height. Treat them like 'auto'
+  // depends on the content height. Treat them like the initial value.
   // Likewise, check for calc() with percentages on internal table elements;
-  // that's treated as 'auto' too.
+  // that's treated as the initial value too.
   // Likewise, if we're a child of a flex container who's measuring our
-  // intrinsic height, then we want to disregard our min-height.
+  // intrinsic height, then we want to disregard our min-height/max-height.
+  const nscoord& bPercentageBasis = aCBSize.BSize(wm);
+  auto BSizeBehavesAsInitialValue = [&](const nsStyleCoord& aBSize) {
+    return nsLayoutUtils::IsAutoBSize(aBSize, bPercentageBasis) ||
+             (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
+              aBSize.IsCalcUnit() && aBSize.CalcHasPercent()) ||
+             mFlags.mIsFlexContainerMeasuringBSize;
+  };
 
   // NOTE: min-height:auto resolves to 0, except on a flex item. (But
   // even there, it's supposed to be ignored (i.e. treated as 0) until
   // the flex container explicitly resolves & considers it.)
-  if (eStyleUnit_Auto == minBSize.GetUnit() ||
-      (NS_AUTOHEIGHT == aCBSize.BSize(wm) &&
-       minBSize.HasPercent()) ||
-      (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
-       minBSize.IsCalcUnit() && minBSize.CalcHasPercent()) ||
-      mFlags.mIsFlexContainerMeasuringBSize) {
+  if (BSizeBehavesAsInitialValue(minBSize)) {
     ComputedMinBSize() = 0;
   } else {
-    ComputedMinBSize() = ComputeBSizeValue(aCBSize.BSize(wm),
+    ComputedMinBSize() = ComputeBSizeValue(bPercentageBasis,
                                            mStylePosition->mBoxSizing,
                                            minBSize);
   }
-  nsStyleUnit maxBSizeUnit = maxBSize.GetUnit();
-  if (eStyleUnit_None == maxBSizeUnit) {
+
+  if (BSizeBehavesAsInitialValue(maxBSize)) {
     // Specified value of 'none'
     ComputedMaxBSize() = NS_UNCONSTRAINEDSIZE;  // no limit
   } else {
-    // Check for percentage based values and a containing block height that
-    // depends on the content height. Treat them like 'none'
-    // Likewise, check for calc() with percentages on internal table elements;
-    // that's treated as 'auto' too.
-    // Likewise, if we're a child of a flex container who's measuring our
-    // intrinsic height, then we want to disregard our max-height.
-    if ((NS_AUTOHEIGHT == aCBSize.BSize(wm) &&
-         maxBSize.HasPercent()) ||
-        (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
-         maxBSize.IsCalcUnit() && maxBSize.CalcHasPercent()) ||
-        mFlags.mIsFlexContainerMeasuringBSize) {
-      ComputedMaxBSize() = NS_UNCONSTRAINEDSIZE;
-    } else {
-      ComputedMaxBSize() = ComputeBSizeValue(aCBSize.BSize(wm),
-                                             mStylePosition->mBoxSizing,
-                                             maxBSize);
-    }
+    ComputedMaxBSize() = ComputeBSizeValue(bPercentageBasis,
+                                           mStylePosition->mBoxSizing,
+                                           maxBSize);
   }
 
   // If the computed value of 'min-height' is greater than the value of

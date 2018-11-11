@@ -840,7 +840,9 @@ js::DumpScript(JSContext* cx, JSScript* scriptArg)
 static const char*
 FormatValue(JSContext* cx, HandleValue v, UniqueChars& bytes)
 {
-    if (v.isMagic(JS_OPTIMIZED_OUT)) {
+    if (v.isMagic()) {
+        MOZ_ASSERT(v.whyMagic() == JS_OPTIMIZED_OUT ||
+                   v.whyMagic() == JS_UNINITIALIZED_LEXICAL);
         return "[unavailable]";
     }
 
@@ -881,7 +883,8 @@ FormatFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp, int num,
     JSAutoRealm ar(cx, envChain);
 
     const char* filename = script->filename();
-    unsigned lineno = PCToLineNumber(script, pc);
+    unsigned column = 0;
+    unsigned lineno = PCToLineNumber(script, pc, &column);
     RootedFunction fun(cx, iter.maybeCallee(cx));
     RootedString funname(cx);
     if (fun) {
@@ -924,7 +927,11 @@ FormatFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp, int num,
         for (unsigned i = 0; i < iter.numActualArgs(); i++) {
             RootedValue arg(cx);
             if (i < iter.numFormalArgs() && fi.closedOver()) {
-                arg = iter.callObj(cx).aliasedBinding(fi);
+                if (iter.hasInitialEnvironment(cx)) {
+                    arg = iter.callObj(cx).aliasedBinding(fi);
+                } else {
+                    arg = MagicValue(JS_OPTIMIZED_OUT);
+                }
             } else if (iter.hasUsableAbstractFramePtr()) {
                 if (script->analyzedArgsUsage() &&
                     script->argsObjAliasesFormals() &&
@@ -986,11 +993,12 @@ FormatFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp, int num,
         }
     }
 
-    // print filename and line number
-    if (!sp.printf("%s [\"%s\":%d]\n",
+    // print filename, line number and column
+    if (!sp.printf("%s [\"%s\":%d:%d]\n",
                    fun ? ")" : "",
                    filename ? filename : "<unknown>",
-                   lineno))
+                   lineno,
+                   column))
     {
         return false;
     }

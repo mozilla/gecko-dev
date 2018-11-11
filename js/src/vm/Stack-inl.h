@@ -19,7 +19,6 @@
 #include "vm/GeneratorObject.h"
 #include "vm/JSContext.h"
 #include "vm/JSScript.h"
-#include "wasm/WasmInstance.h"
 
 #include "jit/BaselineFrame-inl.h"
 #include "vm/JSObject-inl.h"
@@ -742,7 +741,7 @@ inline GlobalObject*
 AbstractFramePtr::global() const
 {
     if (isWasmDebugFrame()) {
-        return &wasmInstance()->object()->global();
+        return asWasmDebugFrame()->global();
     }
     return &script()->global();
 }
@@ -784,6 +783,16 @@ AbstractFramePtr::isFunctionFrame() const
         return false;
     }
     return asRematerializedFrame()->isFunctionFrame();
+}
+
+inline bool
+AbstractFramePtr::isGeneratorFrame() const
+{
+    if (!isFunctionFrame()) {
+        return false;
+    }
+    JSScript* s = script();
+    return s->isGenerator() || s->isAsync();
 }
 
 inline bool
@@ -940,6 +949,28 @@ AbstractFramePtr::debuggerNeedsCheckPrimitiveReturn() const
         return false;
     }
     return script()->isDerivedClassConstructor();
+}
+
+ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx)
+  : cx_(cx), entryMonitor_(cx->entryMonitor)
+{
+    cx->entryMonitor = nullptr;
+}
+
+ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx, InterpreterFrame* entryFrame)
+  : ActivationEntryMonitor(cx)
+{
+    if (MOZ_UNLIKELY(entryMonitor_)) {
+        init(cx, entryFrame);
+    }
+}
+
+ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx, jit::CalleeToken entryToken)
+  : ActivationEntryMonitor(cx)
+{
+    if (MOZ_UNLIKELY(entryMonitor_)) {
+        init(cx, entryToken);
+    }
 }
 
 ActivationEntryMonitor::~ActivationEntryMonitor()

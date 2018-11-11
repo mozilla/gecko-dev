@@ -219,17 +219,10 @@ nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
   // property amounts to anything.
 
   if (0 == mLineNumber && !HasPrevInFlow(mBlockReflowInput->mFrame)) {
-    const nsStyleCoord &textIndent = mStyleText->mTextIndent;
-    nscoord pctBasis = 0;
-    if (textIndent.HasPercent()) {
-      pctBasis =
-        mBlockReflowInput->GetContainingBlockContentISize(aWritingMode);
-    }
-    nscoord indent = textIndent.ComputeCoordPercentCalc(pctBasis);
-
-    mTextIndent = indent;
-
-    psd->mICoord += indent;
+    nscoord pctBasis = mBlockReflowInput->ComputedISize();
+    mTextIndent = nsLayoutUtils::ResolveToLength<false>(mStyleText->mTextIndent,
+                                                        pctBasis);
+    psd->mICoord += mTextIndent;
   }
 
   PerFrameData* pfd = NewPerFrameData(mBlockReflowInput->mFrame);
@@ -726,7 +719,7 @@ HasPercentageUnitSide(const nsStyleSides& aSides)
 }
 
 static bool
-IsPercentageAware(const nsIFrame* aFrame)
+IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM)
 {
   NS_ASSERTION(aFrame, "null frame is not allowed");
 
@@ -755,16 +748,16 @@ IsPercentageAware(const nsIFrame* aFrame)
 
   const nsStylePosition* pos = aFrame->StylePosition();
 
-  if ((pos->WidthDependsOnContainer() &&
-       pos->mWidth.GetUnit() != eStyleUnit_Auto) ||
-      pos->MaxWidthDependsOnContainer() ||
-      pos->MinWidthDependsOnContainer() ||
-      pos->OffsetHasPercent(eSideRight) ||
-      pos->OffsetHasPercent(eSideLeft)) {
+  if ((pos->ISizeDependsOnContainer(aWM) &&
+       pos->ISize(aWM).GetUnit() != eStyleUnit_Auto) ||
+      pos->MaxISizeDependsOnContainer(aWM) ||
+      pos->MinISizeDependsOnContainer(aWM) ||
+      pos->OffsetHasPercent(aWM.IsVertical() ? eSideBottom : eSideRight) ||
+      pos->OffsetHasPercent(aWM.IsVertical() ? eSideTop : eSideLeft)) {
     return true;
   }
 
-  if (eStyleUnit_Auto == pos->mWidth.GetUnit()) {
+  if (eStyleUnit_Auto == pos->ISize(aWM).GetUnit()) {
     // We need to check for frames that shrink-wrap when they're auto
     // width.
     const nsStyleDisplay* disp = aFrame->StyleDisplay();
@@ -787,7 +780,7 @@ IsPercentageAware(const nsIFrame* aFrame)
     nsIFrame *f = const_cast<nsIFrame*>(aFrame);
     if (f->GetIntrinsicRatio() != nsSize(0, 0) &&
         // Some percents are treated like 'auto', so check != coord
-        pos->mHeight.GetUnit() != eStyleUnit_Coord) {
+        pos->BSize(aWM).GetUnit() != eStyleUnit_Coord) {
       const IntrinsicSize &intrinsicSize = f->GetIntrinsicSize();
       if (intrinsicSize.width.GetUnit() == eStyleUnit_None &&
           intrinsicSize.height.GetUnit() == eStyleUnit_None) {
@@ -906,14 +899,14 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   // if isText(), no need to propagate NS_FRAME_IS_DIRTY from the parent,
   // because reflow doesn't look at the dirty bits on the frame being reflowed.
 
-  // See if this frame depends on the width of its containing block.  If
-  // so, disable resize reflow optimizations for the line.  (Note that,
+  // See if this frame depends on the inline-size of its containing block.
+  // If so, disable resize reflow optimizations for the line.  (Note that,
   // to be conservative, we do this if we *try* to fit a frame on a
   // line, even if we don't succeed.)  (Note also that we can only make
   // this IsPercentageAware check *after* we've constructed our
   // ReflowInput, because that construction may be what forces aFrame
   // to lazily initialize its (possibly-percent-valued) intrinsic size.)
-  if (mGotLineBox && IsPercentageAware(aFrame)) {
+  if (mGotLineBox && IsPercentageAware(aFrame, lineWM)) {
     mLineBox->DisableResizeReflowOptimization();
   }
 
@@ -3218,9 +3211,7 @@ nsLineLayout::TextAlignLine(nsLineBox* aLine,
   //
   nscoord dx = 0;
   uint8_t textAlign = mStyleText->mTextAlign;
-  bool textAlignTrue = mStyleText->mTextAlignTrue;
   if (aIsLastLine) {
-    textAlignTrue = mStyleText->mTextAlignLastTrue;
     if (mStyleText->mTextAlignLast == NS_STYLE_TEXT_ALIGN_AUTO) {
       if (textAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY) {
         textAlign = NS_STYLE_TEXT_ALIGN_START;
@@ -3231,7 +3222,7 @@ nsLineLayout::TextAlignLine(nsLineBox* aLine,
   }
 
   bool isSVG = nsSVGUtils::IsInSVGTextSubtree(mBlockReflowInput->mFrame);
-  bool doTextAlign = remainingISize > 0 || textAlignTrue;
+  bool doTextAlign = remainingISize > 0;
 
   int32_t additionalGaps = 0;
   if (!isSVG && (mHasRuby || (doTextAlign &&

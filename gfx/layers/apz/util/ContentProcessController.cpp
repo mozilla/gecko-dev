@@ -23,10 +23,10 @@ ContentProcessController::ContentProcessController(const RefPtr<dom::TabChild>& 
 }
 
 void
-ContentProcessController::RequestContentRepaint(const FrameMetrics& aFrameMetrics)
+ContentProcessController::RequestContentRepaint(const RepaintRequest& aRequest)
 {
   if (mBrowser) {
-    mBrowser->UpdateFrame(aFrameMetrics);
+    mBrowser->UpdateFrame(aRequest);
   }
 }
 
@@ -66,7 +66,7 @@ ContentProcessController::NotifyAPZStateChange(
 
 void
 ContentProcessController::NotifyMozMouseScrollEvent(
-                                  const FrameMetrics::ViewID& aScrollId,
+                                  const ScrollableLayerGuid::ViewID& aScrollId,
                                   const nsString& aEvent)
 {
   if (mBrowser) {
@@ -87,13 +87,13 @@ ContentProcessController::NotifyFlushComplete()
 }
 
 void
-ContentProcessController::NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId)
+ContentProcessController::NotifyAsyncScrollbarDragRejected(const ScrollableLayerGuid::ViewID& aScrollId)
 {
   APZCCallbackHelper::NotifyAsyncScrollbarDragRejected(aScrollId);
 }
 
 void
-ContentProcessController::NotifyAsyncAutoscrollRejected(const FrameMetrics::ViewID& aScrollId)
+ContentProcessController::NotifyAsyncAutoscrollRejected(const ScrollableLayerGuid::ViewID& aScrollId)
 {
   APZCCallbackHelper::NotifyAsyncAutoscrollRejected(aScrollId);
 }

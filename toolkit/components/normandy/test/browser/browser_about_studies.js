@@ -29,8 +29,10 @@ decorate_task(
   }),
   withAboutStudies,
   async function testLearnMore(browser) {
-    ContentTask.spawn(browser, null, () => {
-      content.document.getElementById("shield-studies-learn-more").click();
+    ContentTask.spawn(browser, null, async () => {
+      const doc = content.document;
+      await ContentTaskUtils.waitForCondition(() => doc.getElementById("shield-studies-learn-more"));
+      doc.getElementById("shield-studies-learn-more").click();
     });
     await BrowserTestUtils.waitForLocationChange(gBrowser);
 
@@ -53,7 +55,9 @@ decorate_task(
     // We have to use gBrowser instead of browser in most spots since we're
     // dealing with a new tab outside of the about:studies tab.
     const tab = await BrowserTestUtils.switchTab(gBrowser, () => {
-      ContentTask.spawn(browser, null, () => {
+      ContentTask.spawn(browser, null, async () => {
+        const doc = content.document;
+        await ContentTaskUtils.waitForCondition(() => doc.getElementById("shield-studies-update-preferences"));
         content.document.getElementById("shield-studies-update-preferences").click();
       });
     });
@@ -71,6 +75,7 @@ decorate_task(
   }
 );
 
+// Test that the study listing shows studies in the proper order and grouping
 decorate_task(
   AddonStudies.withStudies([
     addonStudyFactory({
@@ -199,19 +204,19 @@ decorate_task(
 
       activeAddonStudy.querySelector(".remove-button").click();
       await ContentTaskUtils.waitForCondition(() => (
-        getStudyRow(doc, addonStudies[0].name).matches(".study--disabled")
+        getStudyRow(doc, addonStudies[0].name).matches(".study.disabled")
       ));
       ok(
-        getStudyRow(doc, addonStudies[0].name).matches(".study--disabled"),
+        getStudyRow(doc, addonStudies[0].name).matches(".study.disabled"),
         "Clicking the remove button updates the UI to show that the study has been disabled."
       );
 
       activePrefStudy.querySelector(".remove-button").click();
       await ContentTaskUtils.waitForCondition(() => (
-        getStudyRow(doc, prefStudies[0].name).matches(".study--disabled")
+        getStudyRow(doc, prefStudies[0].name).matches(".study.disabled")
       ));
       ok(
-        getStudyRow(doc, prefStudies[0].name).matches(".study--disabled"),
+        getStudyRow(doc, prefStudies[0].name).matches(".study.disabled"),
         "Clicking the remove button updates the UI to show that the study has been disabled."
       );
     });
@@ -230,10 +235,11 @@ decorate_task(
   }
 );
 
+// Test that a message is shown when no studies have been run
 decorate_task(
   AddonStudies.withStudies([]),
   withAboutStudies,
-  async function testStudyListing(studies, browser) {
+  async function testStudyListingNoStudies(studies, browser) {
     await ContentTask.spawn(browser, null, async () => {
       const doc = content.document;
       await ContentTaskUtils.waitForCondition(() => doc.querySelectorAll(".study-list-info").length);
@@ -248,9 +254,25 @@ decorate_task(
   }
 );
 
+// Test that the message shown when studies are disabled and studies exist
 decorate_task(
   withAboutStudies,
-  async function testStudyListing(browser) {
+  AddonStudies.withStudies([
+    addonStudyFactory({
+      name: "A Fake Add-on Study",
+      active: false,
+      description: "A fake description",
+      studyStartDate: new Date(2018, 0, 4),
+    }),
+  ]),
+  PreferenceExperiments.withMockExperiments([
+    preferenceStudyFactory({
+      name: "B Fake Preference Study",
+      lastSeen: new Date(2018, 0, 5),
+      expired: true,
+    }),
+  ]),
+  async function testStudyListingDisabled(browser, addonStudies, preferenceStudies) {
     try {
       RecipeRunner.disable();
 
@@ -269,4 +291,39 @@ decorate_task(
       RecipeRunner.checkPrefs();
     }
   }
-).only();
+);
+
+// Test for bug 1498940 - detects studies disabled when only study opt-out is set
+decorate_task(
+  withPrefEnv({
+    set: [
+      ["datareporting.healthreport.uploadEnabled", true],
+      ["app.normandy.api_url", "https://example.com"],
+      ["app.shield.optoutstudies.enabled", false],
+    ],
+  }),
+  withAboutStudies,
+  AddonStudies.withStudies([]),
+  PreferenceExperiments.withMockExperiments([]),
+  async function testStudyListingStudiesOptOut(browser) {
+    RecipeRunner.checkPrefs();
+    ok(
+      RecipeRunner.enabled,
+      "RecipeRunner should be enabled as a Precondition",
+    );
+
+    await ContentTask.spawn(browser, null, async () => {
+      const doc = content.document;
+      await ContentTaskUtils.waitForCondition(() => {
+        const span = doc.querySelector(".info-box-content > span");
+        return span && span.textContent;
+      });
+
+      is(
+        doc.querySelector(".info-box-content > span").textContent,
+        "This is a list of studies that you have participated in. No new studies will run.",
+        "A message is shown when studies are disabled",
+      );
+    });
+  }
+);

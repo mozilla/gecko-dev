@@ -13,8 +13,8 @@ const flexboxSpec = generateActorSpec({
     getFlexItems: {
       request: {},
       response: {
-        flexitems: RetVal("array:flexitem")
-      }
+        flexitems: RetVal("array:flexitem"),
+      },
     },
   },
 });
@@ -38,10 +38,11 @@ const layoutSpec = generateActorSpec({
     getCurrentFlexbox: {
       request: {
         node: Arg(0, "domnode"),
+        onlyLookAtParents: Arg(1, "nullable:boolean"),
       },
       response: {
-        flexbox: RetVal("nullable:flexbox")
-      }
+        flexbox: RetVal("nullable:flexbox"),
+      },
     },
 
     getCurrentGrid: {
@@ -49,17 +50,17 @@ const layoutSpec = generateActorSpec({
         node: Arg(0, "domnode"),
       },
       response: {
-        grid: RetVal("nullable:grid")
-      }
+        grid: RetVal("nullable:grid"),
+      },
     },
 
     getGrids: {
       request: {
-        rootNode: Arg(0, "domnode")
+        rootNode: Arg(0, "domnode"),
       },
       response: {
-        grids: RetVal("array:grid")
-      }
+        grids: RetVal("array:grid"),
+      },
     },
   },
 });

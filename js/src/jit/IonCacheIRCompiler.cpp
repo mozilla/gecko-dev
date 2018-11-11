@@ -546,12 +546,12 @@ IonCacheIRCompiler::init()
       }
       case CacheKind::Compare: {
         IonCompareIC *ic = ic_->asCompareIC();
-        ValueOperand output = ic->output();
+        Register output = ic->output();
 
         available.add(output);
 
         liveRegs_.emplace(ic->liveRegs());
-        outputUnchecked_.emplace(TypedOrValueRegister(output));
+        outputUnchecked_.emplace(TypedOrValueRegister(MIRType::Boolean, AnyRegister(output)));
 
         MOZ_ASSERT(numInputs == 2);
         allocator.initInputLocation(0, ic->lhs());
@@ -834,7 +834,7 @@ IonCacheIRCompiler::emitGuardSpecificAtom()
     masm.movePtr(ImmGCPtr(atom), scratch);
     masm.passABIArg(scratch);
     masm.passABIArg(str);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, EqualStringsHelper));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, EqualStringsHelperPure));
     masm.mov(ReturnReg, scratch);
 
     LiveRegisterSet ignore;
@@ -916,7 +916,7 @@ IonCacheIRCompiler::emitGuardHasGetterSetter()
     masm.passABIArg(obj);
     masm.movePtr(ImmGCPtr(shape), scratch2);
     masm.passABIArg(scratch2);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, ObjectHasGetterSetter));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, ObjectHasGetterSetterPure));
     masm.mov(ReturnReg, scratch1);
     masm.PopRegsInMask(volatileRegs);
 
@@ -1189,6 +1189,33 @@ IonCacheIRCompiler::emitCallProxyHasPropResult()
     return true;
 }
 
+
+bool
+IonCacheIRCompiler::emitCallNativeGetElementResult()
+{
+    AutoSaveLiveRegisters save(*this);
+    AutoOutputRegister output(*this);
+
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register index = allocator.useRegister(masm, reader.int32OperandId());
+
+    allocator.discardStack(masm);
+
+    prepareVMCall(masm, save);
+
+    masm.Push(index);
+    masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(obj)));
+    masm.Push(obj);
+
+    if (!callVM(masm, NativeGetElementInfo)) {
+        return false;
+    }
+
+    masm.storeCallResultValue(output);
+    return true;
+}
+
+
 bool
 IonCacheIRCompiler::emitLoadUnboxedPropertyResult()
 {
@@ -1314,12 +1341,11 @@ IonCacheIRCompiler::emitCompareStringResult()
     Register right = allocator.useRegister(masm, reader.stringOperandId());
     JSOp op = reader.jsop();
 
-    AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
-
     allocator.discardStack(masm);
 
     Label slow, done;
-    masm.compareStrings(op, left, right, scratch, &slow);
+    MOZ_ASSERT(!output.hasValue());
+    masm.compareStrings(op, left, right, output.typedReg().gpr(), &slow);
 
     masm.jump(&done);
     masm.bind(&slow);
@@ -1335,10 +1361,8 @@ IonCacheIRCompiler::emitCompareStringResult()
         return false;
     }
 
-    masm.storeCallBoolResult(scratch);
+    masm.storeCallBoolResult(output.typedReg().gpr());
     masm.bind(&done);
-
-    masm.tagValue(JSVAL_TYPE_BOOLEAN, scratch, output.valueReg());
     return true;
 }
 
@@ -1582,7 +1606,7 @@ IonCacheIRCompiler::emitAddAndStoreSlotShared(CacheOp op)
 
     if (op == CacheOp::AllocateAndStoreDynamicSlot) {
         // We have to (re)allocate dynamic slots. Do this first, as it's the
-        // only fallible operation here. Note that growSlotsDontReportOOM is
+        // only fallible operation here. Note that growSlotsPure is
         // fallible but does not GC.
         int32_t numNewSlots = int32StubField(reader.stubOffset());
         MOZ_ASSERT(numNewSlots > 0);
@@ -1596,7 +1620,7 @@ IonCacheIRCompiler::emitAddAndStoreSlotShared(CacheOp op)
         masm.passABIArg(obj);
         masm.move32(Imm32(numNewSlots), scratch2.ref());
         masm.passABIArg(scratch2.ref());
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, NativeObject::growSlotsDontReportOOM));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, NativeObject::growSlotsPure));
         masm.mov(ReturnReg, scratch1);
 
         LiveRegisterSet ignore;
@@ -1931,7 +1955,7 @@ IonCacheIRCompiler::emitStoreDenseElementHole()
     masm.loadJSContext(scratch1);
     masm.passABIArg(scratch1);
     masm.passABIArg(obj);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, NativeObject::addDenseElementDontReportOOM));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, NativeObject::addDenseElementPure));
     masm.mov(ReturnReg, scratch1);
 
     masm.PopRegsInMask(save);
@@ -2240,6 +2264,50 @@ IonCacheIRCompiler::emitCallProxySetByValue()
 
     return callVM(masm, ProxySetPropertyByValueInfo);
 }
+
+bool
+IonCacheIRCompiler::emitCallAddOrUpdateSparseElementHelper()
+{
+    AutoSaveLiveRegisters save(*this);
+
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register id = allocator.useRegister(masm, reader.int32OperandId());
+    ValueOperand val = allocator.useValueRegister(masm, reader.valOperandId());
+    bool strict = reader.readBool();
+
+    allocator.discardStack(masm);
+    prepareVMCall(masm, save);
+
+    masm.Push(Imm32(strict));
+    masm.Push(val);
+    masm.Push(id);
+    masm.Push(obj);
+
+    return callVM(masm, AddOrUpdateSparseElementHelperInfo);
+}
+
+bool
+IonCacheIRCompiler::emitCallGetSparseElementResult()
+{
+    AutoSaveLiveRegisters save(*this);
+    AutoOutputRegister output(*this);
+
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register id = allocator.useRegister(masm, reader.int32OperandId());
+
+    allocator.discardStack(masm);
+    prepareVMCall(masm, save);
+    masm.Push(id);
+    masm.Push(obj);
+
+    if (!callVM(masm, GetSparseElementHelperInfo)) {
+        return false;
+    }
+
+    masm.storeCallResultValue(output);
+    return true;
+}
+
 
 bool
 IonCacheIRCompiler::emitMegamorphicSetElement()

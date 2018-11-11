@@ -1076,6 +1076,19 @@ BookmarksStore.prototype = {
     }
     this._log.debug("Remote parent is " + parentGUID);
 
+    if (record.type == "livemark") {
+      // Places no longer supports livemarks, so we replace new and updated
+      // livemarks with tombstones, and insert new change records for the engine
+      // to upload.
+      let livemarkInfo = record.toSyncBookmark();
+      let newChanges = await PlacesSyncUtils.bookmarks.removeLivemark(
+        livemarkInfo);
+      if (newChanges) {
+        this.engine._modified.insert(newChanges);
+        return;
+      }
+    }
+
     // Do the normal processing of incoming records
     await Store.prototype.applyIncoming.call(this, record);
 
@@ -1289,6 +1302,8 @@ BookmarksTracker.prototype = {
 
   onStart() {
     PlacesUtils.bookmarks.addObserver(this, true);
+    this._placesListener = new PlacesWeakCallbackWrapper(this.handlePlacesEvents.bind(this));
+    PlacesUtils.observers.addListener(["bookmark-added"], this._placesListener);
     Svc.Obs.add("bookmarks-restore-begin", this);
     Svc.Obs.add("bookmarks-restore-success", this);
     Svc.Obs.add("bookmarks-restore-failed", this);
@@ -1296,6 +1311,7 @@ BookmarksTracker.prototype = {
 
   onStop() {
     PlacesUtils.bookmarks.removeObserver(this);
+    PlacesUtils.observers.removeListener(["bookmark-added"], this._placesListener);
     Svc.Obs.remove("bookmarks-restore-begin", this);
     Svc.Obs.remove("bookmarks-restore-success", this);
     Svc.Obs.remove("bookmarks-restore-failed", this);
@@ -1363,15 +1379,15 @@ BookmarksTracker.prototype = {
     }
   },
 
-  onItemAdded: function BMT_onItemAdded(itemId, folder, index,
-                                        itemType, uri, title, dateAdded,
-                                        guid, parentGuid, source) {
-    if (IGNORED_SOURCES.includes(source)) {
-      return;
-    }
+  handlePlacesEvents(events) {
+    for (let event of events) {
+      if (IGNORED_SOURCES.includes(event.source)) {
+        continue;
+      }
 
-    this._log.trace("onItemAdded: " + itemId);
-    this._upScore();
+      this._log.trace("'bookmark-added': " + event.id);
+      this._upScore();
+    }
   },
 
   onItemRemoved(itemId, parentId, index, type, uri,

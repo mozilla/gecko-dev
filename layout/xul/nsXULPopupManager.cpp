@@ -632,7 +632,7 @@ nsXULPopupManager::InitTriggerEvent(Event* aEvent, nsIContent* aPopup,
 
   mCachedModifiers = 0;
 
-  UIEvent* uiEvent = aEvent ? aEvent->AsUIEvent() : nullptr;
+  RefPtr<UIEvent> uiEvent = aEvent ? aEvent->AsUIEvent() : nullptr;
   if (uiEvent) {
     mRangeParent = uiEvent->GetRangeParent();
     mRangeOffset = uiEvent->RangeOffset();
@@ -728,8 +728,7 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
   nsAutoString position;
 
 #ifdef XP_MACOSX
-  nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(aMenu);
-  if (menulist) {
+  if (aMenu->IsXULElement(nsGkAtoms::menulist)) {
     position.AssignLiteral("selection");
   }
   else
@@ -924,6 +923,8 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
   aPopupFrame->ShowPopup(aIsContextMenu);
   NS_ENSURE_TRUE_VOID(weakFrame.IsAlive());
 
+  item->UpdateFollowAnchor();
+
   // popups normally hide when an outside click occurs. Panels may use
   // the noautohide attribute to disable this behaviour. It is expected
   // that the application will hide these popups manually. The tooltip
@@ -936,8 +937,6 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
   mPopups = item;
   SetCaptureState(oldmenu);
   NS_ENSURE_TRUE_VOID(weakFrame.IsAlive());
-
-  item->UpdateFollowAnchor();
 
   if (aSelectFirstItem) {
     nsMenuFrame* next = GetNextMenuItem(aPopupFrame, nullptr, true, false);
@@ -1347,7 +1346,7 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsXULMenuCommandEvent* aEvent)
   CloseMenuMode cmm = CloseMenuMode_Auto;
 
   static Element::AttrValuesArray strings[] =
-    {&nsGkAtoms::none, &nsGkAtoms::single, nullptr};
+    {nsGkAtoms::none, nsGkAtoms::single, nullptr};
 
   if (aMenu->IsElement()) {
     switch (aMenu->AsElement()->FindAttrValueIn(kNameSpaceID_None,
@@ -2559,7 +2558,7 @@ nsXULPopupManager::IsValidMenuItem(nsIContent* aContent, bool aOnPopup)
   nsMenuFrame* menuFrame = do_QueryFrame(aContent->GetPrimaryFrame());
 
   bool skipNavigatingDisabledMenuItem = true;
-  if (aOnPopup && (!menuFrame || menuFrame->GetParentMenuListType() == eNotMenuList)) {
+  if (aOnPopup && (!menuFrame || !menuFrame->IsParentMenuList())) {
     skipNavigatingDisabledMenuItem =
       LookAndFeel::GetInt(LookAndFeel::eIntID_SkipNavigatingDisabledMenuItem,
                           0) != 0;

@@ -40,7 +40,6 @@ gtest:
     run-on-projects:
         by-test-platform:
             windows.*-pgo/.*: []  # permafails on pgo
-            windows.*-msvc/opt: []  # msvc opt builds are pgo
             windows.*-nightly/.*: []  # permafails on nightly too
             windows10-64-asan/opt: []  # permafails on asan too
             .*-devedition/.*: []  # don't run on devedition
@@ -60,7 +59,10 @@ jittest:
         by-test-platform:
             android-em.*: xlarge
             default: default
-    run-on-projects: built-projects
+    run-on-projects:
+        by-test-platform:
+            android-hw.*: ['try']
+            default: built-projects
     chunks:
         by-test-platform:
             windows.*: 1
@@ -83,5 +85,5 @@ jittest:
                 default: true
     tier:
         by-test-platform:
-            android-hw.*: 3
+            android-hw.*: 2
             default: default

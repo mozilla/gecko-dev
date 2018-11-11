@@ -4,7 +4,9 @@
 
 FINAL_TARGET_FILES.defaults.settings.main += [
     'example.json',
+    'language-dictionaries.json',
     'onboarding.json',
+    'sites-classification.json',
 ]
 
 if CONFIG['MOZ_BUILD_APP'] == 'browser':

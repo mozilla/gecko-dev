@@ -9,6 +9,7 @@
 
 #include "CrossProcessMutex.h"
 #include "mozilla/layers/GeckoContentController.h"
+#include "mozilla/layers/RepaintRequest.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Monitor.h"
@@ -75,6 +76,7 @@ public:
   virtual AsyncPanZoomAnimation* CreateFlingAnimation(AsyncPanZoomController& aApzc,
                                                       const FlingHandoffState& aHandoffState,
                                                       float aPLPPI);
+  virtual UniquePtr<VelocityTracker> CreateVelocityTracker(Axis* aAxis);
 
   static void InitializeGlobalState() {}
 };
@@ -149,6 +151,8 @@ class AsyncPanZoomController {
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
   typedef mozilla::gfx::Matrix4x4 Matrix4x4;
+  typedef mozilla::layers::RepaintRequest::ScrollOffsetUpdateType
+    RepaintUpdateType;
 
 public:
   enum GestureBehavior {
@@ -356,12 +360,15 @@ public:
   nsEventStatus HandleGestureEvent(const InputData& aEvent);
 
   /**
-   * Handler for touch velocity.
-   * Sometimes the touch move event will have a velocity even though no scrolling
-   * is occurring such as when the toolbar is being hidden/shown in Fennec.
-   * This function can be called to have the y axis' velocity queue updated.
+   * Handle movement of the dynamic toolbar by |aDeltaY| over the time
+   * period from |aStartTimestampMs| to |aEndTimestampMs|.
+   * This is used to track velocities accurately in the presence of movement
+   * of the dynamic toolbar, since in such cases the finger can be moving
+   * relative to the screen even though no scrolling is occurring.
    */
-  void HandleTouchVelocity(uint32_t aTimesampMs, float aSpeedY);
+  void HandleDynamicToolbarMovement(uint32_t aStartTimestampMs,
+                                    uint32_t aEndTimestampMs,
+                                    ParentLayerCoord aDeltaY);
 
   /**
    * Start autoscrolling this APZC, anchored at the provided location.
@@ -703,11 +710,6 @@ protected:
   void ScrollByAndClamp(const CSSPoint& aOffset);
 
   /**
-   * Copy the scroll offset and scroll generation from |aFrameMetrics|.
-   */
-  void CopyScrollInfoFrom(const FrameMetrics& aFrameMetrics);
-
-  /**
    * Scales the viewport by an amount (note that it multiplies this scale in to
    * the current scale, it doesn't set it to |aScale|). Also considers a focus
    * point so that the page zooms inward/outward from that point.
@@ -804,7 +806,8 @@ protected:
    * from a non-main thread, it will redispatch itself to the main thread, and
    * use the latest metrics during the redispatch.
    */
-  void RequestContentRepaint(bool aUserAction = true);
+  void RequestContentRepaint(RepaintUpdateType aUpdateType =
+                               RepaintUpdateType::eUserAction);
 
   /**
    * Send the provided metrics to Gecko to trigger a repaint. This function
@@ -812,7 +815,8 @@ protected:
    * called on the main thread.
    */
   void RequestContentRepaint(const FrameMetrics& aFrameMetrics,
-                             const ParentLayerPoint& aVelocity);
+                             const ParentLayerPoint& aVelocity,
+                             RepaintUpdateType aUpdateType);
 
   /**
    * Gets the current frame metrics. This is *not* the Gecko copy stored in the
@@ -929,8 +933,8 @@ private:
   // sending messages back to Gecko.
   ScrollMetadata mLastContentPaintMetadata;
   FrameMetrics& mLastContentPaintMetrics;  // for convenience, refers to mLastContentPaintMetadata.mMetrics
-  // The last metrics used for a content repaint request.
-  FrameMetrics mLastPaintRequestMetrics;
+  // The last content repaint request.
+  RepaintRequest mLastPaintRequestMetrics;
   // The metrics that we expect content to have. This is updated when we
   // request a content repaint, and when we receive a shadow layers update.
   // This allows us to transform events into Gecko's coordinate space.
@@ -942,6 +946,10 @@ private:
   CSSRect mCompositedLayoutViewport;
   CSSPoint mCompositedScrollOffset;
   CSSToParentLayerScale2D mCompositedZoom;
+
+  // Groups state variables that are specific to a platform.
+  // Initialized on first use.
+  UniquePtr<PlatformSpecificStateBase> mPlatformSpecificState;
 
   AxisX mX;
   AxisY mY;
@@ -974,9 +982,14 @@ private:
 
   UniquePtr<OverscrollEffectBase> mOverscrollEffect;
 
-  // Groups state variables that are specific to a platform.
-  // Initialized on first use.
-  UniquePtr<PlatformSpecificStateBase> mPlatformSpecificState;
+  // Zoom animation id, used for zooming in WebRender. This should only be
+  // set on the APZC instance for the root content document (i.e. the one we
+  // support zooming on), and is only used if WebRender is enabled. The
+  // animation id itself refers to the transform animation id that was set on
+  // the stacking context in the WR display list. By changing the transform
+  // associated with this id, we can adjust the scaling that WebRender applies,
+  // thereby controlling the zoom.
+  Maybe<uint64_t> mZoomAnimationId;
 
   friend class Axis;
 
@@ -994,6 +1007,9 @@ public:
     RecursiveMutexAutoLock lock(mRecursiveMutex);
     return callable(mLastContentPaintMetrics);
   }
+
+  void SetZoomAnimationId(const Maybe<uint64_t>& aZoomAnimationId);
+  Maybe<uint64_t> GetZoomAnimationId() const;
 
   /* ===================================================================
    * The functions and members in this section are used to expose
@@ -1075,6 +1091,13 @@ public:
    * any transform due to axis over-scroll.
    */
   AsyncTransformComponentMatrix GetCurrentAsyncTransformWithOverscroll(AsyncTransformConsumer aMode) const;
+
+  /**
+   * Returns the "zoom" bits of the transform. This includes both the rasterized
+   * (layout device to layer scale) and async (layer scale to parent layer
+   * scale) components of the zoom.
+   */
+  LayoutDeviceToParentLayerScale GetCurrentPinchZoomScale(AsyncTransformConsumer aMode) const;
 
 private:
   /**
@@ -1331,7 +1354,7 @@ private:
    * including handing off scroll to another APZC, and overscrolling.
    */
 public:
-  FrameMetrics::ViewID GetScrollHandoffParentId() const {
+  ScrollableLayerGuid::ViewID GetScrollHandoffParentId() const {
     return mScrollMetadata.GetScrollParentId();
   }
 

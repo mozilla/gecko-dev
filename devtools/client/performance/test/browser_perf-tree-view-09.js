@@ -15,7 +15,7 @@ add_task(function() {
   const threadNode = new ThreadNode(gProfile.threads[0], { startTime: 0, endTime: 20,
                                                            invertTree: true });
   const treeRoot = new CallView({ frame: threadNode, inverted: true });
-  const container = document.createElement("vbox");
+  const container = document.createXULElement("vbox");
   treeRoot.attachTo(container);
 
   is(treeRoot.getChild(0).frame.location, "B",
@@ -33,27 +33,27 @@ const gProfile = RecordingUtils.deflateProfile({
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-      ]
+      ],
     }, {
       time: 2,
       frames: [
         { location: "(root)" },
         { location: "A" },
-        { location: "B" }
-      ]
+        { location: "B" },
+      ],
     }, {
       time: 3,
       frames: [
         { location: "(root)" },
         { location: "A" },
         { location: "B" },
-      ]
+      ],
     }, {
       time: 4,
       frames: [
         { location: "(root)" },
-        { location: "A" }
-      ]
-    }]
-  }]
+        { location: "A" },
+      ],
+    }],
+  }],
 });

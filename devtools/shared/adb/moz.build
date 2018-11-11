@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
+    'adb-addon.js',
     'adb-binary.js',
     'adb-client.js',
     'adb-device.js',
@@ -10,6 +11,7 @@ DevToolsModules(
     'adb-scanner.js',
     'adb-socket.js',
     'adb.js',
+    'addon-aware-adb-scanner.js',
 )
 
 with Files('**'):

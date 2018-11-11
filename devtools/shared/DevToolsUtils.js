@@ -62,7 +62,7 @@ exports.executeSoon = function(fn) {
       executor = fn;
     }
     Services.tm.dispatchToMainThread({
-      run: exports.makeInfallible(executor)
+      run: exports.makeInfallible(executor),
     });
   }
 };
@@ -164,11 +164,11 @@ exports.defineLazyPrototypeGetter = function(object, key, callback) {
       Object.defineProperty(this, key, {
         configurable: true,
         writable: true,
-        value: value
+        value: value,
       });
 
       return value;
-    }
+    },
   });
 };
 
@@ -176,13 +176,18 @@ exports.defineLazyPrototypeGetter = function(object, key, callback) {
  * Safely get the property value from a Debugger.Object for a given key. Walks
  * the prototype chain until the property is found.
  *
- * @param Debugger.Object object
+ * @param {Debugger.Object} object
  *        The Debugger.Object to get the value from.
- * @param String key
+ * @param {String} key
  *        The key to look for.
+ * @param {Boolean} invokeUnsafeGetter (defaults to false).
+ *        Optional boolean to indicate if the function should execute unsafe getter
+ *        in order to retrieve its result's properties.
+ *        ⚠️ This should be set to true *ONLY* on user action as it may cause side-effects
+ *        in the content page ⚠️
  * @return Any
  */
-exports.getProperty = function(object, key) {
+exports.getProperty = function(object, key, invokeUnsafeGetters = false) {
   const root = object;
   while (object && exports.isSafeDebuggerObject(object)) {
     let desc;
@@ -198,7 +203,7 @@ exports.getProperty = function(object, key) {
         return desc.value;
       }
       // Call the getter if it's safe.
-      if (exports.hasSafeGetter(desc)) {
+      if (exports.hasSafeGetter(desc) || invokeUnsafeGetters === true) {
         try {
           return desc.get.call(root).return;
         } catch (e) {
@@ -306,6 +311,40 @@ exports.hasSafeGetter = function(desc) {
 };
 
 /**
+ * Check that the property value from a Debugger.Object for a given key is an unsafe
+ * getter or not. Walks the prototype chain until the property is found.
+ *
+ * @param {Debugger.Object} object
+ *        The Debugger.Object to check on.
+ * @param {String} key
+ *        The key to look for.
+ * @param {Boolean} invokeUnsafeGetter (defaults to false).
+ *        Optional boolean to indicate if the function should execute unsafe getter
+ *        in order to retrieve its result's properties.
+ * @return Boolean
+ */
+exports.isUnsafeGetter = function(object, key) {
+  while (object && exports.isSafeDebuggerObject(object)) {
+    let desc;
+    try {
+      desc = object.getOwnPropertyDescriptor(key);
+    } catch (e) {
+      // The above can throw when the debuggee does not subsume the object's
+      // compartment, or for some WrappedNatives like Cu.Sandbox.
+      return false;
+    }
+    if (desc) {
+      if (Object.getOwnPropertyNames(desc).includes("get")) {
+        return !exports.hasSafeGetter(desc);
+      }
+    }
+    object = object.proto;
+  }
+
+  return false;
+};
+
+/**
  * Check if it is safe to read properties and execute methods from the given JS
  * object. Safety is defined as being protected from unintended code execution
  * from content scripts (or cross-compartment code).
@@ -399,7 +438,7 @@ exports.defineLazyGetter = function(object, name, lambda) {
       return object[name];
     },
     configurable: true,
-    enumerable: true
+    enumerable: true,
   });
 };
 
@@ -420,7 +459,7 @@ let assertionFailureCount = 0;
 Object.defineProperty(exports, "assertionFailureCount", {
   get() {
     return assertionFailureCount;
-  }
+  },
 });
 
 function reallyAssert(condition, message) {
@@ -609,7 +648,7 @@ function mainThreadFetch(urlIn, aOptions = { loadFromCache: true,
 
       deferred.resolve({
         content: unicodeSource,
-        contentType: request.contentType
+        contentType: request.contentType,
       });
     } catch (ex) {
       const uri = request.originalURI;
@@ -628,7 +667,7 @@ function mainThreadFetch(urlIn, aOptions = { loadFromCache: true,
           // and that failed already. This is the best we can do here.
           return {
             content,
-            contentType: "text/plain"
+            contentType: "text/plain",
           };
         });
 
@@ -671,7 +710,7 @@ function newChannelForURL(url, { policy, window, principal }) {
   const channelOptions = {
     contentPolicyType: policy,
     securityFlags: securityFlags,
-    uri: uri
+    uri: uri,
   };
 
   // Ensure that we have some contentPolicyType type set if one was
@@ -766,7 +805,7 @@ function errorOnFlag(exports, name) {
             `Use the "devtools/shared/flags" module instead`;
       console.error(msg);
       throw new Error(msg);
-    }
+    },
   });
 }
 

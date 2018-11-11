@@ -13,6 +13,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/BlobBinding.h"
+#include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/File.h"
@@ -1185,11 +1186,13 @@ XMLHttpRequestMainThread::GetResponseHeader(const nsACString& header,
 
     // Even non-http channels supply content type and content length.
     // Remember we don't leak header information from denied cross-site
-    // requests.
+    // requests. However, we handle file: and blob: URLs for blob response
+    // types by canceling them with a specific error, so we have to allow
+    // them to pass through this check.
     nsresult status;
     if (!mChannel ||
         NS_FAILED(mChannel->GetStatus(&status)) ||
-        NS_FAILED(status)) {
+        (NS_FAILED(status) && status != NS_ERROR_FILE_ALREADY_EXISTS)) {
       return;
     }
 
@@ -1655,6 +1658,32 @@ XMLHttpRequestMainThread::StreamReaderFunc(nsIInputStream* in,
 
 namespace {
 
+void
+GetBlobURIFromChannel(nsIRequest* aRequest, nsIURI** aURI)
+{
+  MOZ_ASSERT(aRequest);
+  MOZ_ASSERT(aURI);
+
+  *aURI = nullptr;
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  if (!channel) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = channel->GetURI(getter_AddRefs(uri));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  if (!dom::IsBlobURI(uri)) {
+    return;
+  }
+
+  uri.forget(aURI);
+}
+
 nsresult
 GetLocalFileFromChannel(nsIRequest* aRequest, nsIFile** aFile)
 {
@@ -1771,14 +1800,29 @@ XMLHttpRequestMainThread::OnDataAvailable(nsIRequest *request,
 
   nsresult rv;
 
-  nsCOMPtr<nsIFile> localFile;
   if (mResponseType == XMLHttpRequestResponseType::Blob) {
-    rv = GetLocalFileFromChannel(request, getter_AddRefs(localFile));
+    nsCOMPtr<nsIFile> localFile;
+    nsCOMPtr<nsIURI> blobURI;
+    GetBlobURIFromChannel(request, getter_AddRefs(blobURI));
+    if (blobURI) {
+      RefPtr<BlobImpl> blobImpl;
+      rv = NS_GetBlobForBlobURI(blobURI, getter_AddRefs(blobImpl));
+      if (NS_SUCCEEDED(rv)) {
+        if (blobImpl) {
+          mResponseBlob = Blob::Create(GetOwner(), blobImpl);
+        }
+        if (!mResponseBlob) {
+          rv = NS_ERROR_FILE_NOT_FOUND;
+        }
+      }
+    } else {
+      rv = GetLocalFileFromChannel(request, getter_AddRefs(localFile));
+    }
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
 
-    if (localFile) {
+    if (mResponseBlob || localFile) {
       mBlobStorage = nullptr;
       NS_ASSERTION(mResponseBody.IsEmpty(), "mResponseBody should be empty");
 
@@ -2141,12 +2185,18 @@ XMLHttpRequestMainThread::OnStopRequest(nsIRequest *request, nsISupports *ctxt, 
     return NS_OK;
   }
 
+  // If we were just reading a blob URL, we're already done
+  if (status == NS_ERROR_FILE_ALREADY_EXISTS && mResponseBlob) {
+    ChangeStateToDone();
+    return NS_OK;
+  }
+
   bool waitingForBlobCreation = false;
 
   // If we have this error, we have to deal with a file: URL + responseType =
   // blob. We have this error because we canceled the channel. The status will
   // be set to NS_OK.
-  if (status == NS_ERROR_FILE_ALREADY_EXISTS &&
+  if (!mResponseBlob && status == NS_ERROR_FILE_ALREADY_EXISTS &&
       mResponseType == XMLHttpRequestResponseType::Blob) {
     nsCOMPtr<nsIFile> file;
     nsresult rv = GetLocalFileFromChannel(request, getter_AddRefs(file));
@@ -2260,7 +2310,7 @@ XMLHttpRequestMainThread::OnStopRequest(nsIRequest *request, nsISupports *ctxt, 
     NS_ASSERTION(!mFlagSyncLooping,
       "We weren't supposed to support HTML parsing with XHR!");
     mParseEndListener = new nsXHRParseEndListener(this);
-    nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(mResponseXML);
+    nsCOMPtr<EventTarget> eventTarget = mResponseXML;
     EventListenerManager* manager =
       eventTarget->GetOrCreateListenerManager();
     manager->AddEventListenerByType(mParseEndListener,
@@ -2426,6 +2476,16 @@ XMLHttpRequestMainThread::CreateChannel()
                        loadFlags);
   }
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (mCSPEventListener) {
+    nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
+    if (NS_WARN_IF(!loadInfo)) {
+      return NS_ERROR_UNEXPECTED;
+    }
+
+    rv = loadInfo->SetCspEventListener(mCSPEventListener);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
   if (httpChannel) {
@@ -2823,6 +2883,12 @@ XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody,
     return MaybeSilentSendFailure(NS_ERROR_DOM_NETWORK_ERR);
   }
 
+  // non-GET requests aren't allowed for blob.
+  if (IsBlobURI(mRequestURL) && !mRequestMethod.EqualsLiteral("GET")) {
+    mFlagSend = true; // so CloseRequestWithError sets us to DONE.
+    return MaybeSilentSendFailure(NS_ERROR_DOM_NETWORK_ERR);
+  }
+
   // XXX We should probably send a warning to the JS console
   //     if there are no event listeners set and we are doing
   //     an asynchronous call.
@@ -3092,13 +3158,13 @@ XMLHttpRequestMainThread::SetTimeout(uint32_t aTimeout, ErrorResult& aRv)
   }
 }
 
-void
-XMLHttpRequestMainThread::SetTimerEventTarget(nsITimer* aTimer)
+nsIEventTarget*
+XMLHttpRequestMainThread::GetTimerEventTarget()
 {
   if (nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal()) {
-    nsCOMPtr<nsIEventTarget> target = global->EventTargetFor(TaskCategory::Other);
-    aTimer->SetTarget(target);
+    return global->EventTargetFor(TaskCategory::Other);
   }
+  return nullptr;
 }
 
 nsresult
@@ -3133,8 +3199,7 @@ XMLHttpRequestMainThread::StartTimeoutTimer()
   }
 
   if (!mTimeoutTimer) {
-    mTimeoutTimer = NS_NewTimer();
-    SetTimerEventTarget(mTimeoutTimer);
+    mTimeoutTimer = NS_NewTimer(GetTimerEventTarget());
   }
   uint32_t elapsed =
     (uint32_t)((PR_Now() - mRequestSentTime) / PR_USEC_PER_MSEC);
@@ -3551,8 +3616,7 @@ void
 XMLHttpRequestMainThread::StartProgressEventTimer()
 {
   if (!mProgressNotifier) {
-    mProgressNotifier = NS_NewTimer();
-    SetTimerEventTarget(mProgressNotifier);
+    mProgressNotifier = NS_NewTimer(GetTimerEventTarget());
   }
   if (mProgressNotifier) {
     mProgressTimerIsActive = true;
@@ -3578,8 +3642,7 @@ XMLHttpRequestMainThread::MaybeStartSyncTimeoutTimer()
     return eErrorOrExpired;
   }
 
-  mSyncTimeoutTimer = NS_NewTimer();
-  SetTimerEventTarget(mSyncTimeoutTimer);
+  mSyncTimeoutTimer = NS_NewTimer(GetTimerEventTarget());
   if (!mSyncTimeoutTimer) {
     return eErrorOrExpired;
   }

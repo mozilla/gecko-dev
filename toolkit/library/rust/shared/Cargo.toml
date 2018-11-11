@@ -13,6 +13,7 @@ nserror = { path = "../../../../xpcom/rust/nserror" }
 netwerk_helper = { path = "../../../../netwerk/base/rust-helper" }
 xpcom = { path = "../../../../xpcom/rust/xpcom" }
 prefs_parser = { path = "../../../../modules/libpref/parser" }
+profiler_helper = { path = "../../../../tools/profiler/rust-helper", optional = true }
 mozurl = { path = "../../../../netwerk/base/mozurl" }
 webrender_bindings = { path = "../../../../gfx/webrender_bindings", optional = true }
 cubeb-pulse = { path = "../../../../media/libcubeb/cubeb-pulse-rs", optional = true, features=["pulse-dlopen"] }
@@ -27,7 +28,7 @@ rsdparsa_capi = { path = "../../../../media/webrtc/signaling/src/sdp/rsdparsa_ca
 log = {version = "0.4", features = ["release_max_level_info"]}
 env_logger = {version = "0.5", default-features = false} # disable `regex` to reduce code size
 cose-c = { version = "0.1.5" }
-rkv = "0.4"
+rkv = "0.5"
 jsrust_shared = { path = "../../../../js/src/rust/shared", optional = true }
 
 [build-dependencies]
@@ -46,6 +47,8 @@ gecko_debug = ["geckoservo/gecko_debug", "nsstring/gecko_debug"]
 simd-accel = ["encoding_c/simd-accel", "encoding_glue/simd-accel"]
 moz_memory = ["mp4parse_capi/mp4parse_fallible"]
 spidermonkey_rust = ["jsrust_shared"]
+gecko_profiler = ["profiler_helper"]
+gecko_profiler_parse_elf = ["profiler_helper/parse_elf"]
 
 [lib]
 path = "lib.rs"

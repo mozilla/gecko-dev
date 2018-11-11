@@ -18,7 +18,7 @@ add_task(async function() {
 
   const { panel } = await initPerformanceInNewTab({
     url: SIMPLE_URL,
-    win: window
+    win: window,
   });
 
   Services.prefs.setBoolPref(UI_ENABLE_MEMORY_PREF, false);
@@ -39,14 +39,18 @@ add_task(async function() {
 function checkResults() {
   // For help generating these tests use generateTelemetryTests("DEVTOOLS_PERFTOOLS_")
   // here.
-  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_COUNT", "", [2, 0, 0], "array");
+  checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_COUNT", "", {0: 2, 1: 0}, "array");
   checkTelemetry("DEVTOOLS_PERFTOOLS_RECORDING_DURATION_MS", "", null, "hasentries");
   checkTelemetry(
-    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withMarkers", [0, 2, 0], "array");
+    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withMarkers", {0: 0, 1: 2, 2: 0},
+    "array");
   checkTelemetry(
-    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withMemory", [1, 1, 0], "array");
+    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withMemory", {0: 1, 1: 1, 2: 0},
+    "array");
   checkTelemetry(
-    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withAllocations", [2, 0, 0], "array");
+    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withAllocations", {0: 2, 1: 0},
+    "array");
   checkTelemetry(
-    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withTicks", [0, 2, 0], "array");
+    "DEVTOOLS_PERFTOOLS_RECORDING_FEATURES_USED", "withTicks", {0: 0, 1: 2, 2: 0},
+    "array");
 }

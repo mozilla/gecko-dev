@@ -54,7 +54,6 @@ public:
     void SetDocShellAllowsScript(bool aAllowed);
 
     static Scriptability& Get(JSObject* aScope);
-    static Scriptability& Get(JSScript* aScript);
 
 private:
     // Whenever a consumer wishes to prevent script from running on a global,
@@ -353,7 +352,7 @@ bool Base64Decode(JSContext* cx, JS::HandleValue val, JS::MutableHandleValue out
 bool NonVoidStringToJsval(JSContext* cx, nsAString& str, JS::MutableHandleValue rval);
 inline bool StringToJsval(JSContext* cx, nsAString& str, JS::MutableHandleValue rval)
 {
-    // From the T_DOMSTRING case in XPCConvert::NativeData2JS.
+    // From the T_ASTRING case in XPCConvert::NativeData2JS.
     if (str.IsVoid()) {
         rval.setNull();
         return true;

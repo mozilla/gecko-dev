@@ -10,7 +10,8 @@ const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
 const actions = require("devtools/client/webconsole/actions/index");
-const { createContextMenu, createEditContextMenu } = require("devtools/client/webconsole/utils/context-menu");
+const { createEditContextMenu } = require("devtools/client/framework/toolbox-context-menu");
+const { createContextMenu } = require("devtools/client/webconsole/utils/context-menu");
 const { configureStore } = require("devtools/client/webconsole/store");
 
 const { isPacketPrivate } = require("devtools/client/webconsole/utils/messages");
@@ -65,6 +66,13 @@ WebConsoleOutputWrapper.prototype = {
         openLink: (url, e) => {
           hud.owner.openLink(url, e);
         },
+        canRewind: () => {
+          if (!(hud.owner && hud.owner.target && hud.owner.target.activeTab)) {
+            return false;
+          }
+
+          return hud.owner.target.activeTab.traits.canRewind;
+        },
         createElement: nodename => {
           return this.document.createElement(nodename);
         },
@@ -82,7 +90,7 @@ WebConsoleOutputWrapper.prototype = {
         recordTelemetryEvent: (eventName, extra = {}) => {
           this.telemetry.recordEvent(eventName, "webconsole", null, {
             ...extra,
-            "session_id": this.toolbox && this.toolbox.sessionId || -1
+            "session_id": this.toolbox && this.toolbox.sessionId || -1,
           });
         },
         createObjectClient: (object) => {
@@ -99,7 +107,7 @@ WebConsoleOutputWrapper.prototype = {
           }
 
           return debuggerClient.release(actor);
-        }
+        },
       };
 
       // Set `openContextMenu` this way so, `serviceContainer` variable
@@ -157,7 +165,7 @@ WebConsoleOutputWrapper.prototype = {
 
       serviceContainer.openEditContextMenu = (e) => {
         const { screenX, screenY } = e;
-        const menu = createEditContextMenu();
+        const menu = createEditContextMenu(window, "webconsole-menu");
         // Emit the "menu-open" event for testing.
         menu.once("open", () => this.emit("menu-open"));
         menu.popup(screenX, screenY, { doc: this.owner.chromeWindow.document });
@@ -166,6 +174,9 @@ WebConsoleOutputWrapper.prototype = {
       };
 
       if (this.toolbox) {
+        this.toolbox.threadClient.addListener("paused", this.dispatchPaused.bind(this));
+        this.toolbox.threadClient.addListener("resumed", this.dispatchResumed.bind(this));
+
         Object.assign(serviceContainer, {
           onViewSourceInDebugger: frame => {
             this.toolbox.viewSourceInDebugger(frame.url, frame.line).then(() => {
@@ -212,7 +223,7 @@ WebConsoleOutputWrapper.prototype = {
             const onGripNodeToFront = this.toolbox.highlighterUtils.gripToNodeFront(grip);
             const [
               front,
-              inspector
+              inspector,
             ] = await Promise.all([onGripNodeToFront, onSelectInspector]);
 
             const onInspectorUpdated = inspector.once("inspector-updated");
@@ -220,7 +231,9 @@ WebConsoleOutputWrapper.prototype = {
               .setNodeFront(front, { reason: "console" });
 
             return Promise.all([onNodeFrontSet, onInspectorUpdated]);
-          }
+          },
+          jumpToExecutionPoint: executionPoint =>
+            this.toolbox.threadClient.timeWarp(executionPoint),
         });
       }
 
@@ -228,7 +241,7 @@ WebConsoleOutputWrapper.prototype = {
         // We may not have access to the toolbox (e.g. in the browser console).
         sessionId: this.toolbox && this.toolbox.sessionId || -1,
         telemetry: this.telemetry,
-        services: serviceContainer
+        services: serviceContainer,
       });
 
       const {prefs} = store.getState();
@@ -344,6 +357,16 @@ WebConsoleOutputWrapper.prototype = {
 
   dispatchTimestampsToggle: function(enabled) {
     store.dispatch(actions.timestampsToggle(enabled));
+  },
+
+  dispatchPaused: function(_, packet) {
+    if (packet.executionPoint) {
+      store.dispatch(actions.setPauseExecutionPoint(packet.executionPoint));
+    }
+  },
+
+  dispatchResumed: function(_, packet) {
+    store.dispatch(actions.setPauseExecutionPoint(null));
   },
 
   dispatchMessageUpdate: function(message, res) {
@@ -474,7 +497,7 @@ WebConsoleOutputWrapper.prototype = {
   // Called by pushing close button.
   closeSplitConsole() {
     this.toolbox.closeSplitConsole();
-  }
+  },
 };
 
 // Exports from this module

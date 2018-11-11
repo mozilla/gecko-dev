@@ -254,7 +254,7 @@ public:
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission* aFormSubmission) override;
   NS_IMETHOD SaveState() override;
   virtual bool RestoreState(PresState* aState) override;
-  virtual bool IsDisabledForEvents(EventMessage aMessage) override;
+  virtual bool IsDisabledForEvents(WidgetEvent* aEvent) override;
 
   virtual void FieldSetDisabledChanged(bool aNotify) override;
 
@@ -391,7 +391,7 @@ public:
   void SetPreviewValue(const nsAString& aValue);
 
 protected:
-  virtual ~HTMLSelectElement();
+  virtual ~HTMLSelectElement() = default;
 
   friend class SafeOptionListMutation;
 

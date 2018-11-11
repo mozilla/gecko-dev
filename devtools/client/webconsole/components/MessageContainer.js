@@ -12,7 +12,7 @@ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
 const {
   MESSAGE_SOURCE,
-  MESSAGE_TYPE
+  MESSAGE_TYPE,
 } = require("devtools/client/webconsole/constants");
 
 const componentMap = new Map([
@@ -21,8 +21,15 @@ const componentMap = new Map([
   ["DefaultRenderer", require("./message-types/DefaultRenderer")],
   ["EvaluationResult", require("./message-types/EvaluationResult")],
   ["NetworkEventMessage", require("./message-types/NetworkEventMessage")],
-  ["PageError", require("./message-types/PageError")]
+  ["PageError", require("./message-types/PageError")],
 ]);
+
+function isPaused({ getMessage, pausedExecutionPoint }) {
+  const message = getMessage();
+  return pausedExecutionPoint
+  && message.executionPoint
+    && pausedExecutionPoint.progress === message.executionPoint.progress;
+}
 
 class MessageContainer extends Component {
   static get propTypes() {
@@ -52,19 +59,23 @@ class MessageContainer extends Component {
       this.props.timestampsVisible !== nextProps.timestampsVisible;
     const networkMessageUpdateChanged =
       this.props.networkMessageUpdate !== nextProps.networkMessageUpdate;
+    const pausedChanged = isPaused(this.props) !== isPaused(nextProps);
 
     return repeatChanged
       || openChanged
       || tableDataChanged
       || timestampVisibleChanged
-      || networkMessageUpdateChanged;
+      || networkMessageUpdateChanged
+      || pausedChanged;
   }
 
   render() {
     const message = this.props.getMessage();
 
     const MessageComponent = getMessageComponent(message);
-    return MessageComponent(Object.assign({message}, this.props));
+    return MessageComponent(Object.assign({message}, this.props, {
+      isPaused: isPaused(this.props),
+    }));
   }
 }
 

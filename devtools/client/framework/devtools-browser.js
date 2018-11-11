@@ -117,9 +117,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     // Enable record/replay menu items?
     try {
       const recordReplayEnabled = Services.prefs.getBoolPref("devtools.recordreplay.enabled");
-      toggleMenuItem("menu_devtools_recordExecution", recordReplayEnabled);
-      toggleMenuItem("menu_devtools_saveRecording", recordReplayEnabled);
-      toggleMenuItem("menu_devtools_replayExecution", recordReplayEnabled);
+      toggleMenuItem("menu_webreplay", recordReplayEnabled);
     } catch (e) {
       // devtools.recordreplay.enabled only exists on certain platforms.
     }
@@ -216,7 +214,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
           toolbox.hostType == Toolbox.HostType.WINDOW) {
         toolbox.raise();
       } else {
-        gDevTools.closeToolbox(target);
+        toolbox.destroy();
       }
       gDevTools.emit("select-tool-command", toolId);
     } else {
@@ -267,7 +265,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
         break;
       case "responsiveDesignMode":
         ResponsiveUIManager.toggle(window, window.gBrowser.selectedTab, {
-          trigger: "shortcut"
+          trigger: "shortcut",
         });
         break;
       case "scratchpad":
@@ -310,7 +308,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     }
   },
 
-  _getContentProcessTarget(processId) {
+  async _getContentProcessTarget(processId) {
     // Create a DebuggerServer in order to connect locally to it
     DebuggerServer.init();
     DebuggerServer.registerAllActors();
@@ -319,29 +317,21 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     const transport = DebuggerServer.connectPipe();
     const client = new DebuggerClient(transport);
 
-    return new Promise(resolve => {
-      client.connect().then(() => {
-        client.getProcess(processId)
-              .then(response => {
-                const options = {
-                  form: response.form,
-                  client: client,
-                  chrome: true,
-                  isBrowsingContext: false
-                };
-                return TargetFactory.forRemoteTab(options);
-              })
-              .then(target => {
-                // Ensure closing the connection in order to cleanup
-                // the debugger client and also the server created in the
-                // content process
-                target.on("close", () => {
-                  client.close();
-                });
-                resolve(target);
-              });
-      });
+    await client.connect();
+    const response = await client.mainRoot.getProcess(processId);
+    const options = {
+      form: response.form,
+      client: client,
+      chrome: true,
+    };
+    const target = await TargetFactory.forRemoteTab(options);
+    // Ensure closing the connection in order to cleanup
+    // the debugger client and also the server created in the
+    // content process
+    target.on("close", () => {
+      client.close();
     });
+    return target;
   },
 
   /**
@@ -368,6 +358,10 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
           .then(target => {
             // Display a new toolbox in a new window
             return gDevTools.showToolbox(target, null, Toolbox.HostType.WINDOW);
+          })
+          .catch(e => {
+            console.error("Exception while opening the browser content toolbox:",
+              e);
           });
     }
 
@@ -385,10 +379,10 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
    *         worker actor form to debug
    */
   async openWorkerToolbox(client, workerTargetActor) {
-    const [, workerClient] = await client.attachWorker(workerTargetActor);
-    const workerTarget = TargetFactory.forWorker(workerClient);
+    const [, workerTargetFront] = await client.attachWorker(workerTargetActor);
+    const workerTarget = TargetFactory.forWorker(workerTargetFront);
     const toolbox = await gDevTools.showToolbox(workerTarget, null, Toolbox.HostType.WINDOW);
-    toolbox.once("destroy", () => workerClient.detach());
+    toolbox.once("destroy", () => workerTargetFront.detach());
   },
 
   /**
@@ -407,7 +401,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
       tooltiptext: "devtools-webide-button2.tooltiptext",
       onCommand(event) {
         gDevToolsBrowser.openWebIDE();
-      }
+      },
     });
   },
 
@@ -604,7 +598,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
 
   hasToolboxOpened(win) {
     const tab = win.gBrowser.selectedTab;
-    for (const [target, ] of gDevTools._toolboxes) {
+    for (const [target ] of gDevTools._toolboxes) {
       if (target.tab == tab) {
         return true;
       }

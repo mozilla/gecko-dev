@@ -26,6 +26,7 @@ XPIDL_SOURCES += [
     'nsINSSErrorsService.idl',
     'nsINSSVersion.idl',
     'nsIOSKeyStore.idl',
+    'nsIOSReauthenticator.idl',
     'nsIPK11Token.idl',
     'nsIPK11TokenDB.idl',
     'nsIPKCS11Module.idl',
@@ -67,6 +68,8 @@ EXPORTS += [
     'nsRandomGenerator.h',
     'nsSecurityHeaderParser.h',
     'NSSErrorsService.h',
+    'nsSSLSocketProvider.h',
+    'nsTLSSocketProvider.h',
     'RootCertificateTelemetryUtils.h',
     'ScopedNSSTypes.h',
     'SharedCertVerifier.h',
@@ -126,6 +129,7 @@ UNIFIED_SOURCES += [
     'nsSSLSocketProvider.cpp',
     'nsTLSSocketProvider.cpp',
     'OSKeyStore.cpp',
+    'OSReauthenticator.cpp',
     'PKCS11ModuleDB.cpp',
     'PSMContentListener.cpp',
     'PSMRunnable.cpp',
@@ -153,6 +157,9 @@ if CONFIG['OS_ARCH'] == 'Darwin':
     ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
+    OS_LIBS += [
+        'credui'
+    ]
     UNIFIED_SOURCES += [
         'CredentialManagerSecret.cpp',
     ]
@@ -176,7 +183,6 @@ LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/crypto',
     '/security/certverifier',
-    '/security/pkix/include',
 ]
 
 LOCAL_INCLUDES += [
@@ -200,6 +206,10 @@ if not CONFIG['MOZ_SYSTEM_NSS']:
     USE_LIBS += [
         'crmf',
     ]
+
+# mozpkix is linked statically from the in-tree sources independent of whether
+# system NSS is used or not.
+USE_LIBS += [ 'mozpkix' ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

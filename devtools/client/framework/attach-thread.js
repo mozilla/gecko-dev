@@ -21,6 +21,11 @@ function handleThreadState(toolbox, event, packet) {
   // threadClient now.
   toolbox.target.emit("thread-" + event);
 
+  const replayButton = toolbox.doc.getElementById("command-button-stop-replay");
+  if (replayButton) {
+    replayButton.classList.toggle("paused", event === "paused");
+  }
+
   if (event === "paused") {
     toolbox.highlightTool("jsdebugger");
 
@@ -37,21 +42,10 @@ function handleThreadState(toolbox, event, packet) {
 
 function attachThread(toolbox) {
   const target = toolbox.target;
-  const { form: { chromeDebugger, actor } } = target;
 
-  // Sourcemaps are always turned off when using the new debugger
-  // frontend. This is because it does sourcemapping on the
-  // client-side, so the server should not do it.
-  let useSourceMaps = false;
-  let autoBlackBox = false;
-  let ignoreFrameEnvironment = false;
-  const newDebuggerEnabled = Services.prefs.getBoolPref("devtools.debugger.new-debugger-frontend");
-  if (!newDebuggerEnabled) {
-    useSourceMaps = Services.prefs.getBoolPref("devtools.debugger.source-maps-enabled");
-    autoBlackBox = Services.prefs.getBoolPref("devtools.debugger.auto-black-box");
-  } else {
-    ignoreFrameEnvironment = true;
-  }
+  const useSourceMaps = false;
+  const autoBlackBox = false;
+  const ignoreFrameEnvironment = true;
 
   const threadOptions = { useSourceMaps, autoBlackBox, ignoreFrameEnvironment };
 
@@ -93,17 +87,11 @@ function attachThread(toolbox) {
       });
     };
 
-    if (target.isBrowsingContext) {
-      // Attaching a tab, a browser process, or a WebExtensions add-on.
+    if (target.activeTab) {
       target.activeTab.attachThread(threadOptions).then(handleResponse);
-    } else if (target.isAddon) {
-      // Attaching a legacy addon.
-      target.client.attachAddon(actor).then(([res]) => {
-        target.client.attachThread(res.threadActor).then(handleResponse);
-      });
     } else {
-      // Attaching an old browser debugger or a content process.
-      target.client.attachThread(chromeDebugger).then(handleResponse);
+      // Now, all targets should have a front set on activeTab attribute.
+      throw new Error("Target is missing an activeTab attribute");
     }
   });
 }

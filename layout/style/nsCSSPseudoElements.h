@@ -103,13 +103,13 @@ public:
   static void AssertAtoms();
 #endif
 
-  // Alias nsCSSPseudoElements::foo() to alias nsGkAtoms::foo.
-  // XXX Once nsGkAtoms::foo become constexpr variables, these can too.
-  // See bug 1449787.
+  // Alias nsCSSPseudoElements::foo() to nsGkAtoms::foo.
   #define CSS_PSEUDO_ELEMENT(name_, value_, flags_)       \
-    static constexpr nsICSSPseudoElement* const& name_()  \
+    static nsCSSPseudoElementStaticAtom* name_()          \
     {                                                     \
-      return nsGkAtoms::PseudoElement_##name_;            \
+      return const_cast<nsCSSPseudoElementStaticAtom*>(   \
+        static_cast<const nsCSSPseudoElementStaticAtom*>( \
+          nsGkAtoms::PseudoElement_##name_));             \
     }
   #include "nsCSSPseudoElementList.h"
   #undef CSS_PSEUDO_ELEMENT

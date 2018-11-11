@@ -24,36 +24,59 @@ namespace layers {
 using namespace gfx;
 
 D3D11ShareHandleImage::D3D11ShareHandleImage(const gfx::IntSize& aSize,
-                                             const gfx::IntRect& aRect)
- : Image(nullptr, ImageFormat::D3D11_SHARE_HANDLE_TEXTURE),
-   mSize(aSize),
-   mPictureRect(aRect)
+                                             const gfx::IntRect& aRect,
+                                             const GUID& aSourceFormat)
+  : Image(nullptr, ImageFormat::D3D11_SHARE_HANDLE_TEXTURE)
+  , mSize(aSize)
+  , mPictureRect(aRect)
+  , mSourceFormat(aSourceFormat)
+
 {
 }
 
 bool
-D3D11ShareHandleImage::AllocateTexture(D3D11RecycleAllocator* aAllocator, ID3D11Device* aDevice)
+D3D11ShareHandleImage::AllocateTexture(D3D11RecycleAllocator* aAllocator,
+                                       ID3D11Device* aDevice)
 {
   if (aAllocator) {
-    if (gfxPrefs::PDMWMFUseNV12Format() &&
+    if (mSourceFormat == MFVideoFormat_NV12 &&
+        gfxPrefs::PDMWMFUseNV12Format() &&
         gfx::DeviceManagerDx::Get()->CanUseNV12()) {
-      mTextureClient = aAllocator->CreateOrRecycleClient(gfx::SurfaceFormat::NV12, mSize);
+      mTextureClient =
+        aAllocator->CreateOrRecycleClient(gfx::SurfaceFormat::NV12, mSize);
+    } else if (((mSourceFormat == MFVideoFormat_P010 &&
+                 gfx::DeviceManagerDx::Get()->CanUseP010()) ||
+                (mSourceFormat == MFVideoFormat_P016 &&
+                 gfx::DeviceManagerDx::Get()->CanUseP016())) &&
+               gfxPrefs::PDMWMFUseNV12Format()) {
+      mTextureClient = aAllocator->CreateOrRecycleClient(
+        mSourceFormat == MFVideoFormat_P010 ? gfx::SurfaceFormat::P010
+                                            : gfx::SurfaceFormat::P016,
+        mSize);
     } else {
-      mTextureClient = aAllocator->CreateOrRecycleClient(gfx::SurfaceFormat::B8G8R8A8, mSize);
+      mTextureClient =
+        aAllocator->CreateOrRecycleClient(gfx::SurfaceFormat::B8G8R8A8, mSize);
     }
     if (mTextureClient) {
-      mTexture = static_cast<D3D11TextureData*>(mTextureClient->GetInternalData())->GetD3D11Texture();
+      mTexture =
+        static_cast<D3D11TextureData*>(mTextureClient->GetInternalData())
+          ->GetD3D11Texture();
       return true;
     }
     return false;
   } else {
     MOZ_ASSERT(aDevice);
     CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_B8G8R8A8_UNORM,
-                                  mSize.width, mSize.height, 1, 1,
-                                  D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+                                  mSize.width,
+                                  mSize.height,
+                                  1,
+                                  1,
+                                  D3D11_BIND_RENDER_TARGET |
+                                    D3D11_BIND_SHADER_RESOURCE);
     newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-    HRESULT hr = aDevice->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(mTexture));
+    HRESULT hr =
+      aDevice->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(mTexture));
     return SUCCEEDED(hr);
   }
 }
@@ -87,7 +110,7 @@ D3D11ShareHandleImage::GetAsSourceSurface()
 
   HRESULT hr;
 
-  if (desc.Format == DXGI_FORMAT_NV12) {
+  if (desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
     nsAutoCString error;
     std::unique_ptr<DXVA2Manager> manager(DXVA2Manager::CreateD3D11DXVA(nullptr, error, device));
 
@@ -98,10 +121,11 @@ D3D11ShareHandleImage::GetAsSourceSurface()
 
     RefPtr<ID3D11Texture2D> outTexture;
 
-    hr = manager->CopyToBGRATexture(texture, getter_AddRefs(outTexture));
+    hr = manager->CopyToBGRATexture(
+      texture, mSourceFormat, getter_AddRefs(outTexture));
 
     if (FAILED(hr)) {
-      gfxWarning() << "Failed to copy NV12 to BGRA texture.";
+      gfxWarning() << "Failed to copy to BGRA texture.";
       return nullptr;
     }
 
@@ -178,7 +202,8 @@ D3D11ShareHandleImage::GetAsSourceSurface()
 }
 
 ID3D11Texture2D*
-D3D11ShareHandleImage::GetTexture() const {
+D3D11ShareHandleImage::GetTexture() const
+{
   return mTexture;
 }
 

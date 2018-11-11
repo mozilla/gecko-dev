@@ -167,8 +167,14 @@ using ZeroOnOverflow = bool;
 
 class BaseStackFrame;
 
+// Two flags, useABI and interModule, control how calls are made.
+//
 // UseABI::Wasm implies that the Tls/Heap/Global registers are nonvolatile,
 // except when InterModule::True is also set, when they are volatile.
+//
+// UseABI::Builtin implies that the Tls/Heap/Global registers are volatile.
+// In this case, we require InterModule::False.  The calling convention
+// is otherwise like UseABI::Wasm.
 //
 // UseABI::System implies that the Tls/Heap/Global registers are volatile.
 // Additionally, the parameter passing mechanism may be slightly different from
@@ -182,7 +188,7 @@ class BaseStackFrame;
 // after the call (it will restore the Tls register from the save slot and load
 // the other two from the Tls data).
 
-enum class UseABI { Wasm, System };
+enum class UseABI { Wasm, Builtin, System };
 enum class InterModule { False = false, True = true };
 
 #if defined(JS_CODEGEN_NONE)
@@ -3642,22 +3648,23 @@ class BaseCompiler final : public BaseCompilerInterface
 
     void beginCall(FunctionCall& call, UseABI useABI, InterModule interModule)
     {
+        MOZ_ASSERT_IF(useABI == UseABI::Builtin, interModule == InterModule::False);
+
         call.isInterModule = interModule == InterModule::True;
         call.usesSystemAbi = useABI == UseABI::System;
 
         if (call.usesSystemAbi) {
             // Call-outs need to use the appropriate system ABI.
 #if defined(JS_CODEGEN_ARM)
-# if defined(JS_SIMULATOR_ARM)
             call.hardFP = UseHardFpABI();
-# elif defined(JS_CODEGEN_ARM_HARDFP)
-            call.hardFP = true;
-# else
-            call.hardFP = false;
-# endif
             call.abi.setUseHardFp(call.hardFP);
 #elif defined(JS_CODEGEN_MIPS32)
             call.abi.enforceO32ABI();
+#endif
+        } else {
+#if defined(JS_CODEGEN_ARM)
+            MOZ_ASSERT(call.hardFP,
+                       "All private ABIs pass FP arguments in registers");
 #endif
         }
 
@@ -8261,7 +8268,7 @@ BaseCompiler::emitUnaryMathBuiltinCall(SymbolicAddress callee, ValType operandTy
     size_t stackSpace = stackConsumed(numArgs);
 
     FunctionCall baselineCall(lineOrBytecode);
-    beginCall(baselineCall, UseABI::System, InterModule::False);
+    beginCall(baselineCall, UseABI::Builtin, InterModule::False);
 
     if (!emitCallArgs(signature, &baselineCall)) {
         return false;
@@ -9239,8 +9246,15 @@ BaseCompiler::emitInstanceCall(uint32_t lineOrBytecode, const MIRTypeVector& sig
 
     popValueStackBy(numArgs);
 
-    // Note, a number of clients of emitInstanceCall currently assume that the
-    // following operation does not destroy ReturnReg.
+    // Note, many clients of emitInstanceCall currently assume that pushing the
+    // result here does not destroy ReturnReg.
+    //
+    // Furthermore, clients assume that even if retType == ExprType::Void, the
+    // callee may have returned a status result and left it in ReturnReg for us
+    // to find, and that that register will not be destroyed here (or above).
+    // In this case the callee will have a C++ declaration stating that there is
+    // a return value.  Examples include memory and table operations that are
+    // implemented as callouts.
 
     pushReturnedIfNonVoid(baselineCall, retType);
 }
@@ -9779,7 +9793,7 @@ BaseCompiler::emitStructNew()
     // Null pointer check.
 
     Label ok;
-    masm.branchTestPtr(Assembler::NotEqual, ReturnReg, ReturnReg, &ok);
+    masm.branchTestPtr(Assembler::NonZero, ReturnReg, ReturnReg, &ok);
     trap(Trap::ThrowReported);
     masm.bind(&ok);
 
@@ -9908,7 +9922,7 @@ BaseCompiler::emitStructGet()
     RegPtr rp = popRef();
 
     Label ok;
-    masm.branchTestPtr(Assembler::NotEqual, rp, rp, &ok);
+    masm.branchTestPtr(Assembler::NonZero, rp, rp, &ok);
     trap(Trap::NullPointerDereference);
     masm.bind(&ok);
 
@@ -10013,7 +10027,7 @@ BaseCompiler::emitStructSet()
     RegPtr rp = popRef();
 
     Label ok;
-    masm.branchTestPtr(Assembler::NotEqual, rp, rp, &ok);
+    masm.branchTestPtr(Assembler::NonZero, rp, rp, &ok);
     trap(Trap::NullPointerDereference);
     masm.bind(&ok);
 
@@ -10080,14 +10094,7 @@ BaseCompiler::emitStructNarrow()
         return true;
     }
 
-    // Null pointers are just passed through.
-
-    Label done;
-    Label doTest;
     RegPtr rp = popRef();
-    masm.branchTestPtr(Assembler::NotEqual, rp, rp, &doTest);
-    pushRef(NULLREF_VALUE);
-    masm.jump(&done);
 
     // AnyRef -> (ref T) must first unbox; leaves rp or null
 
@@ -10097,14 +10104,10 @@ BaseCompiler::emitStructNarrow()
 
     const StructType& outputStruct = env_.types[outputType.refTypeIndex()].structType();
 
-    masm.bind(&doTest);
-
     pushI32(mustUnboxAnyref);
     pushI32(outputStruct.moduleIndex_);
     pushRef(rp);
     emitInstanceCall(lineOrBytecode, SigPIIP_, ExprType::AnyRef, SymbolicAddress::StructNarrow);
-
-    masm.bind(&done);
 
     return true;
 }
@@ -10696,7 +10699,6 @@ BaseCompiler::emitBody()
           // "Miscellaneous" operations
           case uint16_t(Op::MiscPrefix): {
             switch (op.b1) {
-#ifdef ENABLE_WASM_SATURATING_TRUNC_OPS
               case uint16_t(MiscOp::I32TruncSSatF32):
                 CHECK_NEXT(emitConversionOOM(emitTruncateF32ToI32<TRUNC_SATURATING>,
                                              ValType::F32, ValType::I32));
@@ -10745,7 +10747,6 @@ BaseCompiler::emitBody()
                 CHECK_NEXT(emitConversionOOM(emitTruncateF64ToI64<TRUNC_UNSIGNED | TRUNC_SATURATING>,
                                              ValType::F64, ValType::I64));
 #endif
-#endif // ENABLE_WASM_SATURATING_TRUNC_OPS
 #ifdef ENABLE_WASM_BULKMEM_OPS
               case uint16_t(MiscOp::MemCopy):
                 CHECK_NEXT(emitMemOrTableCopy(/*isMem=*/true));

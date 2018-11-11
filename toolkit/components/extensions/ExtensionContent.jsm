@@ -27,10 +27,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "styleSheetService",
 XPCOMUtils.defineLazyServiceGetter(this, "processScript",
                                    "@mozilla.org/webextensions/extension-process-script;1");
 
-const DocumentEncoder = Components.Constructor(
-  "@mozilla.org/layout/documentEncoder;1?type=text/plain",
-  "nsIDocumentEncoder", "init");
-
 const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer", "initWithCallback");
 
 ChromeUtils.import("resource://gre/modules/ExtensionChild.jsm");
@@ -66,6 +62,10 @@ const {
 
 XPCOMUtils.defineLazyGetter(this, "console", ExtensionCommon.getConsole);
 
+XPCOMUtils.defineLazyGetter(this, "isContentScriptProcess", () => {
+  return Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT ||
+         !WebExtensionPolicy.useRemoteWebExtensions;
+});
 
 var DocumentManager;
 
@@ -378,6 +378,10 @@ class Script {
   }
 
   async injectInto(window) {
+    if (!isContentScriptProcess) {
+      return;
+    }
+
     let context = this.extension.getContext(window);
     try {
       if (this.runAt === "document_end") {
@@ -650,8 +654,7 @@ class UserScript extends Script {
       return;
     }
 
-    const clonedMetadata = scriptMetadata ?
-            Cu.cloneInto(scriptMetadata, apiScope) : undefined;
+    let clonedMetadata;
 
     const UserScriptError = userScriptScope.Error;
     const UserScriptPromise = userScriptScope.Promise;
@@ -687,6 +690,10 @@ class UserScript extends Script {
         } catch (err) {
           Cu.reportError(`Error cloning userScriptAPIMethod parameters in ${fnName}: ${err}`);
           throw new UserScriptError("Only serializable parameters are supported");
+        }
+
+        if (clonedMetadata === undefined) {
+          clonedMetadata = Cu.cloneInto(scriptMetadata, apiScope);
         }
 
         const res = runSafeSyncWithoutClone(fn, fnArgs, clonedMetadata, userScriptScope);
@@ -1104,7 +1111,8 @@ var ExtensionContent = {
       // and since it's hosted by emscripten, and therefore can't shrink
       // its heap after it's grown, it has a performance cost.
       // So we send plain text instead.
-      let encoder = new DocumentEncoder(doc, "text/plain", Ci.nsIDocumentEncoder.SkipInvisibleContent);
+      let encoder = Cu.createDocumentEncoder("text/plain");
+      encoder.init(doc, "text/plain", Ci.nsIDocumentEncoder.SkipInvisibleContent);
       let text = encoder.encodeToStringWithMaxLength(60 * 1024);
 
       let encoding = doc.characterSet;

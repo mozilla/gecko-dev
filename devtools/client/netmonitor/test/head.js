@@ -21,7 +21,7 @@ const {
 
 const {
   getSortedRequests,
-  getRequestById
+  getRequestById,
 } = require("devtools/client/netmonitor/src/selectors/index");
 
 const {
@@ -61,6 +61,7 @@ const JSON_CUSTOM_MIME_URL = EXAMPLE_URL + "html_json-custom-mime-test-page.html
 const JSON_TEXT_MIME_URL = EXAMPLE_URL + "html_json-text-mime-test-page.html";
 const JSON_B64_URL = EXAMPLE_URL + "html_json-b64.html";
 const JSON_BASIC_URL = EXAMPLE_URL + "html_json-basic.html";
+const JSON_EMPTY_URL = EXAMPLE_URL + "html_json-empty.html";
 const SORTING_URL = EXAMPLE_URL + "html_sorting-test-page.html";
 const FILTERING_URL = EXAMPLE_URL + "html_filter-test-page.html";
 const INFINITE_GET_URL = EXAMPLE_URL + "html_infinite-get-page.html";
@@ -143,7 +144,7 @@ function toggleCache(target, disabled) {
   // Disable the cache for any toolbox that it is opened from this point on.
   Services.prefs.setBoolPref("devtools.cache.disabled", disabled);
 
-  return target.activeTab.reconfigure(options).then(() => navigationFinished);
+  return target.activeTab.reconfigure({ options }).then(() => navigationFinished);
 }
 
 /**
@@ -809,7 +810,7 @@ function checkTelemetryEvent(expectedEvent, query) {
   const f = e => JSON.stringify(e, null, 2);
   is(f(event), f({
     ...expectedEvent,
-    "session_id": event.session_id
+    "session_id": event.session_id,
   }), "The event has the expected data");
 }
 

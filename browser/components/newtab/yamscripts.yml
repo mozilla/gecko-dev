@@ -14,7 +14,7 @@ scripts:
 
 # bundle: Build all assets for activity stream
   bundle:
-    locales: pontoon-to-json --src locales --dest data
+    locales: pontoon-to-json --src $npm_package_config_locales_dir --dest data
     webpack: webpack --config webpack.system-addon.config.js
     css: node-sass --source-map true --source-map-contents content-src/styles -o css
     html: rimraf prerendered && webpack --config webpack.prerender.config.js && node ./bin/render-activity-stream-html.js
@@ -24,8 +24,20 @@ scripts:
     pre: rimraf $npm_package_config_mc_dir/browser/components/newtab/
     bundle: => bundle
     copy: rsync --exclude-from .mcignore -a . $npm_package_config_mc_dir/browser/components/newtab/
-    stringsExport: cp locales/en-US/strings.properties $npm_package_config_mc_dir/browser/locales/en-US/chrome/browser/activity-stream/newtab.properties
+    stringsExport: cp $npm_package_config_locales_dir/$npm_package_config_default_locale/strings.properties $npm_package_config_mc_dir/browser/locales/$npm_package_config_default_locale/chrome/browser/activity-stream/newtab.properties
     copyPingCentre: cpx "ping-centre/PingCentre.jsm" $npm_package_config_mc_dir/browser/modules
+
+# builduplift: Build and export to mozilla central for uplifts without exporting strings to browser/locales
+  builduplift:
+    pre: =>prebuildmc
+    bundle: => bundle
+    copy: =>buildmc:copy
+
+# buildlibrary: Export about:library code to mozilla-central - intentionally not included in buildmc for now
+  buildlibrary:
+    webpack: webpack --config webpack.aboutlibrary.config.js
+    css: node-sass --source-map true --source-map-contents content-src/aboutlibrary -o aboutlibrary/content
+    copy: cpx "aboutlibrary/**/{,.}*" $npm_package_config_mc_dir/browser/components/library
 
 # startmc: Start developing the bootstrapped add-on
   startmc:
@@ -43,12 +55,11 @@ scripts:
   testmc:
     lint: =>lint
     build: =>bundle:webpack && =>bundle:locales
-    unit: karma start karma.mc.config.js || (cat logs/coverage/text.txt && exit 2)
-    post: cat logs/coverage/text-summary.txt
+    unit: karma start karma.mc.config.js
 
   tddmc: karma start karma.mc.config.js --tdd
 
-  debugcoverage: open logs/coverage/report-html/index.html
+  debugcoverage: open logs/coverage/index.html
 
 # lint: Run eslint and sass-lint
   lint:

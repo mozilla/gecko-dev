@@ -16,6 +16,7 @@
 #include "vm/Debugger.h"
 #include "vm/JSContext.h"
 #include "vm/Opcodes.h"
+#include "wasm/WasmInstance.h"
 
 #include "jit/JSJitFrameIter-inl.h"
 #include "vm/Compartment-inl.h"
@@ -155,8 +156,8 @@ AssertScopeMatchesEnvironment(Scope* scope, JSObject* originalEnv)
                 break;
 
               case ScopeKind::Module:
-                MOZ_ASSERT(env->as<ModuleEnvironmentObject>().module().script() ==
-                           si.scope()->as<ModuleScope>().script());
+                MOZ_ASSERT(&env->as<ModuleEnvironmentObject>().module() ==
+                           si.scope()->as<ModuleScope>().module());
                 env = &env->as<ModuleEnvironmentObject>().enclosingEnvironment();
                 break;
 
@@ -1420,10 +1421,30 @@ FrameIter::environmentChain(JSContext* cx) const
     MOZ_CRASH("Unexpected state");
 }
 
+bool
+FrameIter::hasInitialEnvironment(JSContext *cx) const {
+    if (hasUsableAbstractFramePtr()) {
+        return abstractFramePtr().hasInitialEnvironment();
+    }
+
+    if (isWasm()) {
+        // See JSFunction::needsFunctionEnvironmentObjects().
+        return false;
+    }
+
+    MOZ_ASSERT(isJSJit() && isIonScripted());
+    bool hasInitialEnv = false;
+    jit::MaybeReadFallback recover(cx, activation()->asJit(), &jsJitFrame());
+    ionInlineFrames_.environmentChain(recover, &hasInitialEnv);
+
+    return hasInitialEnv;
+}
+
 CallObject&
 FrameIter::callObj(JSContext* cx) const
 {
     MOZ_ASSERT(calleeTemplate()->needsCallObject());
+    MOZ_ASSERT(hasInitialEnvironment(cx));
 
     JSObject* pobj = environmentChain(cx);
     while (!pobj->is<CallObject>()) {
@@ -1592,12 +1613,6 @@ NonBuiltinScriptFrameIter::settle()
     }
 }
 
-ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx)
-  : cx_(cx), entryMonitor_(cx->entryMonitor)
-{
-    cx->entryMonitor = nullptr;
-}
-
 Value
 ActivationEntryMonitor::asyncStack(JSContext* cx)
 {
@@ -1609,37 +1624,33 @@ ActivationEntryMonitor::asyncStack(JSContext* cx)
     return stack;
 }
 
-ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx, InterpreterFrame* entryFrame)
-  : ActivationEntryMonitor(cx)
+void
+ActivationEntryMonitor::init(JSContext* cx, InterpreterFrame* entryFrame)
 {
-    if (entryMonitor_) {
-        // The InterpreterFrame is not yet part of an Activation, so it won't
-        // be traced if we trigger GC here. Suppress GC to avoid this.
-        gc::AutoSuppressGC suppressGC(cx);
-        RootedValue stack(cx, asyncStack(cx));
-        const char* asyncCause = cx->asyncCauseForNewActivations;
-        if (entryFrame->isFunctionFrame()) {
-            entryMonitor_->Entry(cx, &entryFrame->callee(), stack, asyncCause);
-        } else {
-            entryMonitor_->Entry(cx, entryFrame->script(), stack, asyncCause);
-        }
+    // The InterpreterFrame is not yet part of an Activation, so it won't
+    // be traced if we trigger GC here. Suppress GC to avoid this.
+    gc::AutoSuppressGC suppressGC(cx);
+    RootedValue stack(cx, asyncStack(cx));
+    const char* asyncCause = cx->asyncCauseForNewActivations;
+    if (entryFrame->isFunctionFrame()) {
+        entryMonitor_->Entry(cx, &entryFrame->callee(), stack, asyncCause);
+    } else {
+        entryMonitor_->Entry(cx, entryFrame->script(), stack, asyncCause);
     }
 }
 
-ActivationEntryMonitor::ActivationEntryMonitor(JSContext* cx, jit::CalleeToken entryToken)
-  : ActivationEntryMonitor(cx)
+void
+ActivationEntryMonitor::init(JSContext* cx, jit::CalleeToken entryToken)
 {
-    if (entryMonitor_) {
-        // The CalleeToken is not traced at this point and we also don't want
-        // a GC to discard the code we're about to enter, so we suppress GC.
-        gc::AutoSuppressGC suppressGC(cx);
-        RootedValue stack(cx, asyncStack(cx));
-        const char* asyncCause = cx->asyncCauseForNewActivations;
-        if (jit::CalleeTokenIsFunction(entryToken)) {
-            entryMonitor_->Entry(cx_, jit::CalleeTokenToFunction(entryToken), stack, asyncCause);
-        } else {
-            entryMonitor_->Entry(cx_, jit::CalleeTokenToScript(entryToken), stack, asyncCause);
-        }
+    // The CalleeToken is not traced at this point and we also don't want
+    // a GC to discard the code we're about to enter, so we suppress GC.
+    gc::AutoSuppressGC suppressGC(cx);
+    RootedValue stack(cx, asyncStack(cx));
+    const char* asyncCause = cx->asyncCauseForNewActivations;
+    if (jit::CalleeTokenIsFunction(entryToken)) {
+        entryMonitor_->Entry(cx_, jit::CalleeTokenToFunction(entryToken), stack, asyncCause);
+    } else {
+        entryMonitor_->Entry(cx_, jit::CalleeTokenToScript(entryToken), stack, asyncCause);
     }
 }
 
@@ -1860,7 +1871,7 @@ jit::JitActivation::startWasmTrap(wasm::Trap trap, uint32_t bytecodeOffset,
 
     bool unwound;
     wasm::UnwindState unwindState;
-    MOZ_ALWAYS_TRUE(wasm::StartUnwinding(state, &unwindState, &unwound));
+    MOZ_RELEASE_ASSERT(wasm::StartUnwinding(state, &unwindState, &unwound));
     MOZ_ASSERT(unwound == (trap == wasm::Trap::IndirectCallBadSig));
 
     void* pc = unwindState.pc;

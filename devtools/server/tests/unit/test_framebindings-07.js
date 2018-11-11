@@ -8,6 +8,12 @@ var gDebuggee;
 var gClient;
 var gThreadClient;
 
+Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+});
+
 // Test that the EnvironmentClient's getBindings() method works as expected.
 function run_test() {
   initTestDebuggerServer();
@@ -16,7 +22,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-bindings",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_banana_environment();
                            });

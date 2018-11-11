@@ -4,13 +4,20 @@
 
 %include ../shared/compacttheme.inc.css
 
+@media (-moz-windows-accent-color-in-titlebar) {
+  :root[tabsintitlebar]:not(:-moz-window-inactive) {
+    background-color: -moz-win-accentcolor;
+    color: -moz-win-accentcolortext;
+  }
+}
+
 /* The window background is white due to no accentcolor in the lightweight
    theme. It can't be changed to transparent when there is no compositor
    (Win 7 in classic / basic theme), or else dragging and focus become
    broken. So instead just show the normal titlebar in that case, and override
    the window color as transparent when the compositor is available. */
 @media (-moz-windows-compositor: 0) {
-  #main-window[tabsintitlebar] #titlebar:-moz-lwtheme {
+  #main-window[tabsintitlebar] > #navigator-toolbox > #titlebar:-moz-lwtheme {
     visibility: visible;
   }
 
@@ -35,7 +42,7 @@
 
     /* Keep showing the correct color inside the tabs. */
     .tabbrowser-tab {
-      color: var(--chrome-color) !important;
+      color: var(--lwt-text-color) !important;
     }
 
     /* Because we're forcing the tabs toolbar to be [brighttext] to
@@ -52,9 +59,9 @@
 }
 
 @media (-moz-windows-glass) {
-  /* Set to full fill-opacity to improve visibility of toolbar buttons on aero glass. */
+  /* Use opaque white icons on Aero Glass. */
   #TabsToolbar {
-    --toolbarbutton-icon-fill-opacity: 1;
+    --lwt-toolbarbutton-icon-fill: white;
   }
 
   /* Make the menubar text readable on aero glass (copied from browser-aero.css). */
@@ -93,7 +100,7 @@
   /* Show border on tabs with background colors and
    * show the tabs toolbar background color inside tabs. */
   .tabbrowser-tab {
-    background-color: var(--chrome-background-color) !important;
+    background-color: var(--lwt-accent-color) !important;
     border-top: 1px solid var(--tabs-border-color);
     background-clip: padding-box;
   }
@@ -114,20 +121,14 @@
     display: none !important;
   }
 
-  /* Use default window colors */
-  #TabsToolbar,
-  #navigator-toolbox {
-    background-color: transparent;
-  }
-
   /* Use proper menu text styling in Win7 classic mode (copied from browser.css) */
   @media (-moz-windows-compositor: 0),
          (-moz-windows-default-theme: 0) {
-    :root[tabsintitlebar]:not([inFullscreen]) .titlebar-color {
+    :root[tabsintitlebar]:not([inFullscreen]) {
       color: CaptionText;
     }
 
-    :root[tabsintitlebar]:not([inFullscreen]) .titlebar-color:-moz-window-inactive {
+    :root[tabsintitlebar]:not([inFullscreen]):-moz-window-inactive {
       color: InactiveCaptionText;
     }
 

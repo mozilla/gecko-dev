@@ -72,7 +72,7 @@ JS_PUBLIC_API(const char*)
 JS::gcreason::ExplainReason(JS::gcreason::Reason reason)
 {
     switch (reason) {
-#define SWITCH_REASON(name)                         \
+#define SWITCH_REASON(name, _)                    \
         case JS::gcreason::name:                    \
           return #name;
         GCREASONS(SWITCH_REASON)
@@ -87,7 +87,7 @@ const char*
 js::gcstats::ExplainAbortReason(gc::AbortReason reason)
 {
     switch (reason) {
-#define SWITCH_REASON(name)                         \
+#define SWITCH_REASON(name, _)                      \
         case gc::AbortReason::name:                 \
           return #name;
         GC_ABORT_REASONS(SWITCH_REASON)
@@ -976,9 +976,12 @@ LongestPhaseSelfTimeInMajorGC(const Statistics::PhaseTimeTable& times)
         if (parent != Phase::NONE) {
             bool ok = CheckSelfTime(parent, i, times, selfTimes, times[i]);
 
-            // This happens very occasionally in release builds. Skip collecting
-            // longest phase telemetry if it does.
+            // This happens very occasionally in release builds and frequently
+            // in Windows debug builds. Skip collecting longest phase telemetry
+            // if it does.
+#ifndef XP_WIN
             MOZ_ASSERT(ok, "Inconsistent time data; see bug 1400153");
+#endif
             if (!ok) {
                 return PhaseKind::NONE;
             }

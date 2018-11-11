@@ -1546,7 +1546,11 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
     if (!(caps & NS_HTTP_DISALLOW_SPDY) && gHttpHandler->IsSpdyEnabled()) {
         RefPtr<nsHttpConnection> conn = GetSpdyActiveConn(ent);
         if (conn) {
-            if ((caps & NS_HTTP_ALLOW_KEEPALIVE) || !conn->IsExperienced()) {
+            bool websocketCheckOK = trans->IsWebsocketUpgrade() ? conn->CanAcceptWebsocket() : true;
+            if (websocketCheckOK &&
+                ((caps & NS_HTTP_ALLOW_KEEPALIVE) ||
+                 (caps & NS_HTTP_ALLOW_SPDY_WITHOUT_KEEPALIVE) ||
+                 !conn->IsExperienced())) {
                 LOG(("   dispatch to spdy: [conn=%p]\n", conn.get()));
                 trans->RemoveDispatchedAsBlocking();  /* just in case */
                 nsresult rv = DispatchTransaction(ent, trans, conn);
@@ -1910,7 +1914,7 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
         LOG(("  ProcessNewTransaction %p tied to h2 session push %p\n",
              trans, pushedStream->Session()));
         return pushedStream->Session()->
-            AddStream(trans, trans->Priority(), false, nullptr) ?
+            AddStream(trans, trans->Priority(), false, false, nullptr) ?
             NS_OK : NS_ERROR_UNEXPECTED;
     }
 
@@ -1954,6 +1958,9 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
         trans->SetConnection(nullptr);
         rv = DispatchTransaction(ent, trans, conn);
     } else {
+        if (!ent->AllowSpdy()) {
+            trans->DisableSpdy();
+        }
         pendingTransInfo = new PendingTransactionInfo(trans);
         rv = TryDispatchTransaction(ent, !!trans->TunnelProvider(), pendingTransInfo);
     }
@@ -5112,6 +5119,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
         gHttpHandler->IsSpdyEnabled() &&
         gHttpHandler->CoalesceSpdy() &&
         mEnt && mEnt->mConnInfo && mEnt->mConnInfo->EndToEndSSL() &&
+        mEnt->AllowSpdy() &&
         !mEnt->mConnInfo->UsingProxy() &&
         mEnt->mCoalescingKeys.IsEmpty()) {
 
@@ -5266,6 +5274,7 @@ nsHttpConnectionMgr::
 nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
     : mConnInfo(ci)
     , mUsingSpdy(false)
+    , mCanUseSpdy(true)
     , mPreferIPv4(false)
     , mPreferIPv6(false)
     , mUsedForConnection(false)
@@ -5400,6 +5409,42 @@ nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
                  "    failed to process pending queue\n"));
         }
     }
+}
+
+void
+nsHttpConnectionMgr::BlacklistSpdy(const nsHttpConnectionInfo *ci)
+{
+    LOG(("nsHttpConnectionMgr::BlacklistSpdy blacklisting ci %s", ci->HashKey().BeginReading()));
+    nsConnectionEntry *ent = mCT.GetWeak(ci->HashKey());
+    if (!ent) {
+        LOG(("nsHttpConnectionMgr::BlacklistSpdy no entry found?!"));
+        return;
+    }
+
+    ent->DisallowSpdy();
+}
+
+void
+nsHttpConnectionMgr::
+nsConnectionEntry::DisallowSpdy()
+{
+    mCanUseSpdy = false;
+
+    // If we have any spdy connections, we want to go ahead and close them when
+    // they're done so we can free up some connections.
+    for (uint32_t i = 0; i < mActiveConns.Length(); ++i) {
+        if (mActiveConns[i]->UsingSpdy()) {
+            mActiveConns[i]->DontReuse();
+        }
+    }
+    for (uint32_t i = 0; i < mIdleConns.Length(); ++i) {
+        if (mIdleConns[i]->UsingSpdy()) {
+            mIdleConns[i]->DontReuse();
+        }
+    }
+
+    // Can't coalesce if we're not using spdy
+    mCoalescingKeys.Clear();
 }
 
 void

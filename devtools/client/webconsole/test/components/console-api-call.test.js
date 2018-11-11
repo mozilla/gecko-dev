@@ -96,17 +96,17 @@ describe("ConsoleAPICall component:", () => {
         "functionName": "initialize",
         "timeStamp": 1519311532912,
         "arguments": [
-          "Initializing"
+          "Initializing",
         ],
         "prefix": "MyNicePrefix",
         "workerType": "none",
         "styles": [],
         "category": "webdev",
-        "_type": "ConsoleAPI"
+        "_type": "ConsoleAPI",
       };
       const wrapper = render(ConsoleApiCall({
         message: prepareMessage(stub, {getNextId: () => "p"}),
-        serviceContainer
+        serviceContainer,
       }));
       const prefix = wrapper.find(".console-message-prefix");
       expect(prefix.text()).toBe("MyNicePrefix: ");
@@ -124,7 +124,7 @@ describe("ConsoleAPICall component:", () => {
       const wrapper = render(ConsoleApiCall({
         message,
         serviceContainer,
-        repeat: 107
+        repeat: 107,
       }));
 
       expect(wrapper.find(".message-repeats").text()).toBe("107");
@@ -141,7 +141,7 @@ describe("ConsoleAPICall component:", () => {
       const indent = 10;
       let wrapper = render(ConsoleApiCall({
         message: Object.assign({}, message, {indent}),
-        serviceContainer
+        serviceContainer,
       }));
       let indentEl = wrapper.find(".indent");
       expect(indentEl.prop("style").width).toBe(`${indent * INDENT_WIDTH}px`);
@@ -327,7 +327,10 @@ describe("ConsoleAPICall component:", () => {
     it("render with arguments", () => {
       const message = stubPreparedMessages.get(
         "console.trace('bar', {'foo': 'bar'}, [1,2,3])");
-      const wrapper = render(ConsoleApiCall({ message, serviceContainer, open: true }));
+      // We need to wrap the ConsoleApiElement in a Provider in order for the
+      // ObjectInspector to work.
+      const wrapper = render(Provider({ store: setupStore() },
+        ConsoleApiCall({ message, serviceContainer, open: true })));
 
       const filepath = "http://example.com/browser/devtools/client/webconsole/" +
                        "test/fixtures/stub-generators/test-console-api.html";
@@ -409,7 +412,7 @@ describe("ConsoleAPICall component:", () => {
       let call = store.dispatch.getCall(0);
       expect(call.args[0]).toEqual({
         id: message.id,
-        type: MESSAGE_CLOSE
+        type: MESSAGE_CLOSE,
       });
 
       wrapper = mount(Provider({store},
@@ -424,7 +427,7 @@ describe("ConsoleAPICall component:", () => {
       call = store.dispatch.getCall(1);
       expect(call.args[0]).toEqual({
         id: message.id,
-        type: MESSAGE_OPEN
+        type: MESSAGE_OPEN,
       });
     });
 
@@ -445,7 +448,7 @@ describe("ConsoleAPICall component:", () => {
       let call = store.dispatch.getCall(0);
       expect(call.args[0]).toEqual({
         id: message.id,
-        type: MESSAGE_CLOSE
+        type: MESSAGE_CLOSE,
       });
 
       wrapper = mount(Provider({store},
@@ -460,7 +463,7 @@ describe("ConsoleAPICall component:", () => {
       call = store.dispatch.getCall(1);
       expect(call.args[0]).toEqual({
         id: message.id,
-        type: MESSAGE_OPEN
+        type: MESSAGE_OPEN,
       });
     });
 

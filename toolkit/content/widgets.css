@@ -8,11 +8,11 @@
 
 @import url("chrome://global/content/autocomplete.css");
 @import url("chrome://global/skin/autocomplete.css");
+@import url("chrome://global/skin/button.css");
 @import url("chrome://global/skin/checkbox.css");
 @import url("chrome://global/skin/dialog.css");
 @import url("chrome://global/skin/dropmarker.css");
 @import url("chrome://global/skin/findBar.css");
-@import url("chrome://global/skin/groupbox.css");
 @import url("chrome://global/skin/menu.css");
 @import url("chrome://global/skin/menulist.css");
 @import url("chrome://global/skin/notification.css");
@@ -23,6 +23,12 @@
 @import url("chrome://global/skin/scrollbox.css");
 @import url("chrome://global/skin/splitter.css");
 @import url("chrome://global/skin/tabbox.css");
+
+/* numberbox.css needs to be loaded after textbox.css since it overrides it */
+@import url("chrome://global/skin/textbox.css");
+@import url("chrome://global/skin/numberbox.css");
+
 @import url("chrome://global/skin/toolbar.css");
 @import url("chrome://global/skin/toolbarbutton.css");
+@import url("chrome://global/skin/tree.css");
 @import url("chrome://global/skin/wizard.css");

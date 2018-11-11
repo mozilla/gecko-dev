@@ -41,12 +41,12 @@ const ACTIVITY_TYPE = {
   RELOAD: {
     WITH_CACHE_ENABLED: 1,
     WITH_CACHE_DISABLED: 2,
-    WITH_CACHE_DEFAULT: 3
+    WITH_CACHE_DEFAULT: 3,
   },
 
   // Enabling or disabling the cache without triggering a reload.
   ENABLE_CACHE: 3,
-  DISABLE_CACHE: 4
+  DISABLE_CACHE: 4,
 };
 
 // The panel's window global is an EventEmitter firing the following events:
@@ -147,6 +147,7 @@ const UPDATE_PROPS = [
   "formDataSections",
   "stacktrace",
   "isThirdPartyTrackingResource",
+  "referrerPolicy",
 ];
 
 const PANELS = {
@@ -169,7 +170,7 @@ const RESPONSE_HEADERS = [
   "Keep-Alive",
   "Last-Modified",
   "Server",
-  "Vary"
+  "Vary",
 ];
 
 const HEADERS = [
@@ -177,11 +178,15 @@ const HEADERS = [
     name: "status",
     label: "status3",
     canFilter: true,
-    filterKey: "status-code"
+    filterKey: "status-code",
   },
   {
     name: "method",
     canFilter: true,
+  },
+  {
+      name: "domain",
+      canFilter: true,
   },
   {
     name: "file",
@@ -193,10 +198,6 @@ const HEADERS = [
   },
   {
     name: "scheme",
-    canFilter: true,
-  },
-  {
-    name: "domain",
     canFilter: true,
   },
   {
@@ -265,12 +266,12 @@ const HEADERS = [
       boxName: "response-header",
       canFilter: false,
       subMenu: "responseHeaders",
-      noLocalization: true
+      noLocalization: true,
     })),
   {
     name: "waterfall",
     canFilter: false,
-  }
+  },
 ];
 
 const HEADER_FILTERS = HEADERS

@@ -27,7 +27,6 @@
 #include "mozilla/dom/DOMPrefs.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/ResolveSystemBinding.h"
 
 #include "nsDOMMutationObserver.h"
 #include "nsICycleCollectorListener.h"
@@ -152,6 +151,8 @@ nsXPConnect::InitStatics()
 
     // Initialize our singleton scopes.
     gSelf->mRuntime->InitSingletonScopes();
+
+    mozJSComponentLoader::InitStatics();
 }
 
 // static
@@ -163,6 +164,8 @@ nsXPConnect::ReleaseXPConnectSingleton()
         nsrefcnt cnt;
         NS_RELEASE2(xpc, cnt);
     }
+
+    mozJSComponentLoader::Shutdown();
 }
 
 // static
@@ -575,10 +578,6 @@ InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
     // We pass null for the 'extra' pointer during global object creation, so
     // we need to have a principal.
     MOZ_ASSERT(aPrincipal);
-
-    if (!SystemBindingInitIds(aJSContext)) {
-      return NS_ERROR_FAILURE;
-    }
 
     InitGlobalObjectOptions(aOptions, aPrincipal);
 

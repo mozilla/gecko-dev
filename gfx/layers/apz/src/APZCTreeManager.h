@@ -307,7 +307,7 @@ public:
    * The different elements in the array of targets correspond to the targets
    * for the different touch points. In the case where the touch point has no
    * target, or the target is not a scrollable frame, the target's |mScrollId|
-   * should be set to FrameMetrics::NULL_SCROLL_ID.
+   * should be set to ScrollableLayerGuid::NULL_SCROLL_ID.
    * Note: For mouse events that start a scrollbar drag, both SetTargetAPZC()
    *       and StartScrollbarDrag() will be called, and the calls may happen
    *       in either order. That's fine - whichever arrives first will confirm
@@ -582,18 +582,23 @@ public:
                                                          gfx::CompositorHitTestInfo* aOutHitResult,
                                                          HitTestingTreeNodeAutoLock* aOutScrollbarNode = nullptr);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const LayersId& aLayersId,
-                                                         const FrameMetrics::ViewID& aScrollId);
+                                                         const ScrollableLayerGuid::ViewID& aScrollId);
   ScreenToParentLayerMatrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;
   ParentLayerToScreenMatrix4x4 GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) const;
   ScreenPoint GetCurrentMousePosition() const;
 
   /**
-   * Process touch velocity.
-   * Sometimes the touch move event will have a velocity even though no scrolling
-   * is occurring such as when the toolbar is being hidden/shown in Fennec.
-   * This function can be called to have the y axis' velocity queue updated.
+   * Process a movement of the dynamic toolbar by |aDeltaY| over the time
+   * period from |aStartTimestampMs| to |aEndTimestampMs|.
+   * This is used to track velocities accurately in the presence of movement
+   * of the dynamic toolbar, since in such cases the finger can be moving
+   * relative to the screen even though no scrolling is occurring.
+   * Note that this function expects "spatial coordinates" (i.e. toolbar
+   * moves up --> negative delta).
    */
-  void ProcessTouchVelocity(uint32_t aTimestampMs, float aSpeedY);
+  void ProcessDynamicToolbarMovement(uint32_t aStartTimestampMs,
+                                     uint32_t aEndTimestampMs,
+                                     ScreenCoord aDeltaY);
 private:
   typedef bool (*GuidComparator)(const ScrollableLayerGuid&, const ScrollableLayerGuid&);
 

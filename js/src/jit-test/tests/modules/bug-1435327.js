@@ -1,5 +1,4 @@
-if (!('oomTest' in this))
-    quit();
+// |jit-test| skip-if: !('oomTest' in this)
 
 lfLogBuffer = `
   let moduleRepo = {};
@@ -8,7 +7,7 @@ lfLogBuffer = `
   });
   let c = moduleRepo['c'] = parseModule("");
   let d = moduleRepo['d'] = parseModule("import { a } from 'c'; a;");
-  instantiateModule(d);
+  d.declarationInstantiation();
 `;
 lfLogBuffer = lfLogBuffer.split('\n');
 var lfCodeBuffer = "";
@@ -25,8 +24,8 @@ function loadFile(lfVarx) {
     try {
         oomTest(function() {
             let m = parseModule(lfVarx);
-            instantiateModule(m);
-            evaluateModule(m);
+            m.declarationInstantiation();
+            m.evaluation();
         });
     } catch (lfVare) {}
 }

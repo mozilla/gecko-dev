@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import "../vendor/custom-elements.min.js";
-
 import PaymentStateSubscriberMixin from "../mixins/PaymentStateSubscriberMixin.js";
 import paymentRequest from "../paymentRequest.js";
 
@@ -22,6 +20,10 @@ import "./shipping-option-picker.js";
 
 /**
  * <payment-dialog></payment-dialog>
+ *
+ * Warning: Do not import this module from any other module as it will import
+ * everything else (see above) and ruin element independence. This can stop
+ * being exported once tests stop depending on it.
  */
 
 export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLElement) {
@@ -104,17 +106,30 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
   }
 
   pay() {
+    let state = this.requestStore.getState();
     let {
       selectedPayerAddress,
       selectedPaymentCard,
       selectedPaymentCardSecurityCode,
-    } = this.requestStore.getState();
+      selectedShippingAddress,
+    } = state;
 
-    paymentRequest.pay({
-      selectedPayerAddressGUID: selectedPayerAddress,
+    let data = {
       selectedPaymentCardGUID: selectedPaymentCard,
       selectedPaymentCardSecurityCode,
-    });
+    };
+
+    data.selectedShippingAddressGUID =
+      state.request.paymentOptions.requestShipping ?
+      selectedShippingAddress :
+      null;
+
+    data.selectedPayerAddressGUID =
+      this._isPayerRequested(state.request.paymentOptions) ?
+      selectedPayerAddress :
+      null;
+
+    paymentRequest.pay(data);
   }
 
   changeShippingAddress(shippingAddressGUID) {
@@ -155,6 +170,13 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
         };
         state.changesPrevented = false;
         break;
+      case "": {
+        // When we get a DOM update for an updateWith() or retry() the completeStatus
+        // is "" when we need to show non-final screens. Don't set the page as we
+        // may be on a form instead of payment-summary
+        state.changesPrevented = false;
+        break;
+      }
     }
     return state;
   }
@@ -166,7 +188,7 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
    *
    * @param {object} state - See `PaymentsStore.setState`
    */
-  setStateFromParent(state) {
+  async setStateFromParent(state) {
     let oldAddresses = paymentRequest.getAddresses(this.requestStore.getState());
     if (state.request) {
       state = this._updateCompleteStatus(state);
@@ -259,7 +281,7 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
           (this._isPayerRequested(state.request.paymentOptions) &&
            (!this._payerAddressPicker.selectedOption ||
             this._payerAddressPicker.classList.contains(INVALID_CLASS_NAME))) ||
-          !this._paymentMethodPicker.securityCodeInput.validity.valid ||
+          !this._paymentMethodPicker.securityCodeInput.isValid ||
           !this._paymentMethodPicker.selectedOption ||
           this._paymentMethodPicker.classList.contains(INVALID_CLASS_NAME) ||
           state.changesPrevented;
@@ -286,7 +308,7 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
     }
 
     if (payerRequested) {
-      let fieldNames = new Set(); // default: ["name", "tel", "email"]
+      let fieldNames = new Set();
       if (paymentOptions.requestPayerName) {
         fieldNames.add("name");
       }
@@ -374,20 +396,13 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
 
     this._renderPayerFields(state);
 
-    // hide the accepted cards list if the merchant didn't specify a preference
-    let basicCardMethod = request.paymentMethods
-      .find(method => method.supportedMethods == "basic-card");
-    let merchantNetworks = basicCardMethod && basicCardMethod.data &&
-                           basicCardMethod.data.supportedNetworks;
-    this._acceptedCardsList.hidden = !(merchantNetworks && merchantNetworks.length);
-
     let isMac = /mac/i.test(navigator.platform);
     for (let manageTextEl of this._manageText.children) {
       manageTextEl.hidden = manageTextEl.dataset.os == "mac" ? !isMac : isMac;
       let link = manageTextEl.querySelector("a");
       // The href is only set to be exposed to accessibility tools so users know what will open.
       // The actual opening happens from the click event listener.
-      link.href = "about:preferences#privacy-address-autofill";
+      link.href = "about:preferences#privacy-form-autofill";
     }
 
     this._renderPayButton(state);
@@ -403,16 +418,6 @@ export default class PaymentDialog extends PaymentStateSubscriberMixin(HTMLEleme
     }
     this.setAttribute("complete-status", request.completeStatus);
     this._disabledOverlay.hidden = !state.changesPrevented;
-  }
-
-  static maybeCreateFieldErrorElement(container) {
-    let span = container.querySelector(".error-text");
-    if (!span) {
-      span = document.createElement("span");
-      span.className = "error-text";
-      container.appendChild(span);
-    }
-    return span;
   }
 }
 

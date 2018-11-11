@@ -37,7 +37,7 @@ class WorkersPanel extends Component {
   static get propTypes() {
     return {
       client: PropTypes.instanceOf(DebuggerClient).isRequired,
-      id: PropTypes.string.isRequired
+      id: PropTypes.string.isRequired,
     };
   }
 
@@ -54,9 +54,16 @@ class WorkersPanel extends Component {
 
   componentDidMount() {
     const client = this.props.client;
+    // When calling RootFront.listAllWorkers, ContentProcessTargetActor are created
+    // for each content process, which sends `workerListChanged` events.
+    // Until we create a Front for ContentProcessTargetActor, we should listen for these
+    // event on DebuggerClient. After that, we have to listen on the related fronts
+    // directly.
     client.addListener("workerListChanged", this.updateWorkers);
-    client.addListener("serviceWorkerRegistrationListChanged", this.updateWorkers);
-    client.addListener("processListChanged", this.updateWorkers);
+    client.mainRoot.on("workerListChanged", this.updateWorkers);
+
+    client.mainRoot.on("serviceWorkerRegistrationListChanged", this.updateWorkers);
+    client.mainRoot.on("processListChanged", this.updateWorkers);
     client.addListener("registration-changed", this.updateWorkers);
 
     // Some notes about these observers:
@@ -80,8 +87,9 @@ class WorkersPanel extends Component {
 
   componentWillUnmount() {
     const client = this.props.client;
-    client.removeListener("processListChanged", this.updateWorkers);
-    client.removeListener("serviceWorkerRegistrationListChanged", this.updateWorkers);
+    client.mainRoot.off("processListChanged", this.updateWorkers);
+    client.mainRoot.off("serviceWorkerRegistrationListChanged", this.updateWorkers);
+    client.mainRoot.off("workerListChanged", this.updateWorkers);
     client.removeListener("workerListChanged", this.updateWorkers);
     client.removeListener("registration-changed", this.updateWorkers);
 
@@ -94,7 +102,7 @@ class WorkersPanel extends Component {
       workers: {
         service: [],
         shared: [],
-        other: []
+        other: [],
       },
       processCount: 1,
     };
@@ -140,7 +148,7 @@ class WorkersPanel extends Component {
     }
     return dom.p(
       {
-        className: "service-worker-disabled"
+        className: "service-worker-disabled",
       },
       dom.div({ className: "warning" }),
       dom.span(
@@ -152,7 +160,7 @@ class WorkersPanel extends Component {
       dom.a(
         {
           href: MORE_INFO_URL,
-          target: "_blank"
+          target: "_blank",
         },
         Strings.GetStringFromName("configurationIsNotCompatible.learnMore")
       ),
@@ -171,17 +179,17 @@ class WorkersPanel extends Component {
         id: id + "-panel",
         className: "panel",
         role: "tabpanel",
-        "aria-labelledby": id + "-header"
+        "aria-labelledby": id + "-header",
       },
       PanelHeader({
         id: id + "-header",
-        name: Strings.GetStringFromName("workers")
+        name: Strings.GetStringFromName("workers"),
       }),
       isMultiE10S ? MultiE10SWarning() : "",
       dom.div(
         {
           id: "workers",
-          className: "inverted-icons"
+          className: "inverted-icons",
         },
         TargetList({
           client,
@@ -191,7 +199,7 @@ class WorkersPanel extends Component {
           name: Strings.GetStringFromName("serviceWorkers"),
           sort: true,
           targetClass: ServiceWorkerTarget,
-          targets: workers.service
+          targets: workers.service,
         }),
         TargetList({
           client,
@@ -199,7 +207,7 @@ class WorkersPanel extends Component {
           name: Strings.GetStringFromName("sharedWorkers"),
           sort: true,
           targetClass: WorkerTarget,
-          targets: workers.shared
+          targets: workers.shared,
         }),
         TargetList({
           client,
@@ -207,7 +215,7 @@ class WorkersPanel extends Component {
           name: Strings.GetStringFromName("otherWorkers"),
           sort: true,
           targetClass: WorkerTarget,
-          targets: workers.other
+          targets: workers.other,
         })
       )
     );

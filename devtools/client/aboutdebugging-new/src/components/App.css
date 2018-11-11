@@ -10,19 +10,50 @@
  *  |   (240px)   |                               |
  *  |             |                               |
  *  +-------------+-------------------------------+
+ *
+ * Some of the values (font sizes, widths, etc.) are the same as
+ * about:preferences, which uses the shared common.css
  */
+
 .app {
-  display: grid;
-  font-size: 15px;
-  grid-column-gap: 40px;
-  grid-template-columns: 240px auto;
-  height: 100vh;
-  overflow: hidden;
+  /* from common */
+  --sidebar-width: 240px;
+  --app-top-padding: 70px;
+  --app-bottom-padding: 40px;
+  --app-left-padding: 34px;
+
+  box-sizing: border-box;
   width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* we don't want the sidebar to scroll, only the main content */
+
+  display: grid;
+  grid-column-gap: 40px;
+  grid-template-columns: var(--sidebar-width) auto;
+
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+}
+
+.app__sidebar {
+  padding-block-start: var(--app-top-padding);
+  padding-block-end: var(--app-bottom-padding);
+  padding-inline-start: var(--app-left-padding);
+}
+
+.app__content {
+  padding-block-start: var(--app-top-padding);
+  padding-block-end: var(--app-bottom-padding);
+
+  /* we want to scroll only the main content, not the sidebar */
+  overflow-y: auto;
 }
 
 .page {
-  padding-block-start: 60px;
-  padding-inline-end: 40px;
-  overflow-y: auto;
+  max-width: var(--page-width);
+}
+
+.page__section {
+  margin-block-end: calc(var(--base-distance) * 12);
+  --section-inline-margin: calc(var(--alt-heading-icon-size) + var(--alt-heading-icon-gap));
 }

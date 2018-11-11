@@ -11,7 +11,7 @@
 "use strict";
 
 const Services = require("Services");
-const { TelemetryStopwatch } = require("devtools/client/shared/TelemetryStopwatch.jsm");
+const TelemetryStopwatch = require("TelemetryStopwatch");
 const { getNthPathExcluding } = require("devtools/shared/platform/stack");
 const { TelemetryEnvironment } = require("resource://gre/modules/TelemetryEnvironment.jsm");
 const WeakMapMap = require("devtools/client/shared/WeakMapMap");
@@ -84,13 +84,16 @@ class Telemetry {
    *        The telemetry event or ping is associated with this object, meaning
    *        that multiple events or pings for the same histogram may be run
    *        concurrently, as long as they are associated with different objects.
+   * @param {Object}  [options.inSeconds=false]
+   *        Record elapsed time for this histogram in seconds instead of
+   *        milliseconds. Defaults to false.
    * @returns {Boolean}
    *          True if the timer was successfully started, false otherwise. If a
    *          timer already exists, it can't be started again, and the existing
    *          one will be cleared in order to avoid measurements errors.
    */
-  start(histogramId, obj) {
-    return TelemetryStopwatch.start(histogramId, obj);
+  start(histogramId, obj, {inSeconds} = {}) {
+    return TelemetryStopwatch.start(histogramId, obj, {inSeconds});
   }
 
   /**
@@ -108,14 +111,17 @@ class Telemetry {
    *        The telemetry event or ping is associated with this object, meaning
    *        that multiple events or pings for the same histogram may be run
    *        concurrently, as long as they are associated with different objects.
+   * @param {Object}  [options.inSeconds=false]
+   *        Record elapsed time for this histogram in seconds instead of
+   *        milliseconds. Defaults to false.
    *
    * @returns {Boolean}
    *          True if the timer was successfully started, false otherwise. If a
    *          timer already exists, it can't be started again, and the existing
    *          one will be cleared in order to avoid measurements errors.
    */
-  startKeyed(histogramId, key, obj) {
-    return TelemetryStopwatch.startKeyed(histogramId, key, obj);
+  startKeyed(histogramId, key, obj, {inSeconds} = {}) {
+    return TelemetryStopwatch.startKeyed(histogramId, key, obj, {inSeconds});
   }
 
   /**
@@ -188,7 +194,7 @@ class Telemetry {
     }
 
     return histogram || {
-      add: () => {}
+      add: () => {},
     };
   }
 
@@ -211,7 +217,7 @@ class Telemetry {
       }
     }
     return histogram || {
-      add: () => {}
+      add: () => {},
     };
   }
 
@@ -392,7 +398,7 @@ class Telemetry {
 
     const data = {
       extra: {},
-      expected: new Set(expected)
+      expected: new Set(expected),
     };
 
     PENDING_EVENTS.set(obj, sig, data);
@@ -442,7 +448,7 @@ class Telemetry {
         props[pendingPropName] = pendingPropValue;
       } else {
         PENDING_EVENT_PROPERTIES.set(obj, sig, {
-          [pendingPropName]: pendingPropValue
+          [pendingPropName]: pendingPropValue,
         });
       }
       return;
@@ -546,17 +552,20 @@ class Telemetry {
     if (extra) {
       for (let [name, val] of Object.entries(extra)) {
         val = val + "";
-        extra[name] = val;
 
         if (val.length > 80) {
           const sig = `${method},${object},${value}`;
 
-          throw new Error(`The property "${name}" was added to a telemetry ` +
-                          `event with the signature ${sig} but it's value ` +
-                          `"${val}" is longer than the maximum allowed length ` +
-                          `of 80 characters\n` +
-                          `CALLER: ${getCaller()}`);
+          dump(`Warning: The property "${name}" was added to a telemetry ` +
+               `event with the signature ${sig} but it's value "${val}" is ` +
+               `longer than the maximum allowed length of 80 characters.\n` +
+               `The property value has been trimmed to 80 characters before ` +
+               `sending.\nCALLER: ${getCaller()}`);
+
+          val = val.substring(0, 80);
         }
+
+        extra[name] = val;
       }
     }
     Services.telemetry.recordEvent(CATEGORY, method, object, value, extra);
@@ -594,13 +603,13 @@ class Telemetry {
       this.preparePendingEvent(obj, "tool_timer", id, null, [
         "os",
         "time_open",
-        "session_id"
+        "session_id",
       ]);
       this.addEventProperty(obj, "tool_timer", id, null,
                             "time_open", this.msSystemNow());
     }
     if (charts.timerHist) {
-      this.start(charts.timerHist, obj);
+      this.start(charts.timerHist, obj, {inSeconds: true});
     }
     if (charts.countHist) {
       this.getHistogramById(charts.countHist).add(true);
@@ -645,7 +654,7 @@ class Telemetry {
       this.addEventProperties(obj, "tool_timer", id, null, {
         "time_open": time,
         "os": this.osNameAndVersion,
-        "session_id": sessionId
+        "session_id": sessionId,
       });
     }
 
@@ -737,7 +746,7 @@ function getChartsFromToolId(id) {
     useTimedEvent: useTimedEvent,
     timerHist: timerHist,
     countHist: countHist,
-    countScalar: countScalar
+    countScalar: countScalar,
   };
 }
 

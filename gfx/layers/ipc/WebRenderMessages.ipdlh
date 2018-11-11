@@ -73,10 +73,6 @@ struct OpRemovePipelineIdForCompositable {
   PipelineId pipelineId;
 };
 
-struct OpRemoveExternalImageId {
-  ExternalImageId externalImageId;
-};
-
 struct OpReleaseTextureOfImage {
   ImageKey key;
 };
@@ -97,7 +93,6 @@ struct OpUpdatedAsyncImagePipeline {
 union WebRenderParentCommand {
   OpAddPipelineIdForCompositable;
   OpRemovePipelineIdForCompositable;
-  OpRemoveExternalImageId;
   OpReleaseTextureOfImage;
   OpUpdateAsyncImagePipeline;
   OpUpdatedAsyncImagePipeline;
@@ -139,7 +134,7 @@ struct OpUpdateBlobImage {
 };
 
 struct OpSetImageVisibleArea {
-  Rect area;
+  ImageIntRect area;
   ImageKey key;
 };
 

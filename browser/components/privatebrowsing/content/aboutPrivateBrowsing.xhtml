@@ -34,7 +34,6 @@
     <div class="showPrivate container">
       <h1 class="title">
         <span id="title">&privateBrowsing.title;</span>
-        <span id="titleTracking" hidden="hidden">&privateBrowsing.title.tracking;</span>
       </h1>
       <section class="section-main">
         <p>&aboutPrivateBrowsing.info.notsaved.before;<strong>&aboutPrivateBrowsing.info.notsaved.emphasize;</strong>&aboutPrivateBrowsing.info.notsaved.after;</p>
@@ -58,14 +57,10 @@
       </section>
 
       <h2 id="tpSubHeader" class="about-subheader">
-        <span id="tpTitle">&trackingProtection.title;</span>
         <span id="cbTitle">&contentBlocking.title;</span>
-        <input id="tpToggle" class="toggle toggle-input" type="checkbox"/>
-        <span id="tpButton" class="toggle-btn"></span>
       </h2>
 
-      <section class="section-main">
-        <p id="tpDescription">&trackingProtection.description2;</p>
+      <section id="tpSection" class="section-main">
         <p id="cbDescription">&contentBlocking.description;</p>
         <p>
           <a id="startTour" class="button">&trackingProtection.startTour1;</a>
@@ -75,7 +70,6 @@
       <section class="section-main">
         <p class="about-info">&aboutPrivateBrowsing.learnMore3.before;<a id="learnMore" target="_blank">&aboutPrivateBrowsing.learnMore3.title;</a>&aboutPrivateBrowsing.learnMore3.after;</p>
       </section>
-
     </div>
   </body>
 </html>

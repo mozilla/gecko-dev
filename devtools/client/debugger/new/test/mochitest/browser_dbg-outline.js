@@ -1,9 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests that the editor highlights the correct location when the
-// debugger pauses
-
 function getItems(dbg) {
   return findAllElements(dbg, "outlineItems");
 }
@@ -11,7 +8,8 @@ function getItems(dbg) {
 function getNthItem(dbg, index) {
   return findElement(dbg, "outlineItem", index);
 }
-
+// Tests that the editor highlights the correct location when the
+// debugger pauses
 add_task(async function() {
   const dbg = await initDebugger("doc-scripts.html");
   const {

@@ -290,6 +290,10 @@
 <!-- Localization note (pref_feature_tips_notification_summary): Description of a new toggleable setting in Settings-Notifications screen.
      Similar to the already existing "pref_whats_new_notification_summary"-->
 <!ENTITY pref_feature_tips_notification_summary "Learn more about using &brandShortName; and other &vendorShortName; products">
+<!-- Localization note (pref_feature_tips_notification_enabling_hint):
+     Describe the action the user should do to enable this preference
+     Will be used in the context "<Turn on> ... to enable this feature" -->
+<!ENTITY pref_feature_tips_notification_enabling_hint "Turn on">
 
 <!-- Localization note (pref_category_experimental): Title of a sub category in the 'advanced' category
      for experimental features. -->
@@ -835,8 +839,6 @@ just addresses the organization to follow, e.g. "This site is run by " -->
 <!ENTITY whatsnew_notification_title "&brandShortName; is up to date">
 <!ENTITY whatsnew_notification_summary "Find out what\'s new in this version">
 
-<!ENTITY promotion_add_page_shortcut "Add page shortcut">
-
 <!ENTITY helper_first_offline_bookmark_title "Read offline">
 <!ENTITY helper_first_offline_bookmark_message "Find your Reader View items in Bookmarks, even offline.">
 <!ENTITY helper_first_offline_bookmark_button "Go to Bookmarks">
@@ -895,11 +897,14 @@ Picture-in-picture mini window -->
 <!ENTITY pip_pause_button_description "Pause playing">
 
 <!-- Notification channels names -->
-<!ENTITY default_notification_channel "&brandShortName;">
+<!ENTITY default_notification_channel2 "Browser">
 <!ENTITY mls_notification_channel "&vendorShortName; Location Service">
 <!ENTITY download_notification_channel "Downloads">
-<!ENTITY media_notification_channel "Media playback">
+<!ENTITY media_notification_channel2 "Sound and video">
 <!-- These push notifications come without a specific channel and/or name from Leanplum -->
-<!ENTITY leanplum_default_notifications_channel "&brandShortName; Push notifications">
+<!ENTITY leanplum_default_notifications_channel2 "&vendorShortName; tips and tricks">
 <!ENTITY updater_notification_channel "App updates">
 <!ENTITY synced_tabs_notification_channel "Synced tabs">
+<!-- LOCALIZATION NOTE (site_notifications_channel): This is for system notifications displayed by
+web sites through the HTML Notifications API. -->
+<!ENTITY site_notifications_channel "Site notifications">

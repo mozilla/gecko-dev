@@ -8,6 +8,7 @@ package org.mozilla.geckoview;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.ref.WeakReference;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +17,6 @@ import java.util.UUID;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.gfx.LayerSession;
 import org.mozilla.gecko.GeckoEditableChild;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.IGeckoEditableParent;
@@ -32,6 +32,8 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Binder;
@@ -40,19 +42,21 @@ import android.os.IInterface;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
+import android.support.annotation.AnyThread;
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringDef;
+import android.support.annotation.UiThread;
 import android.util.Base64;
 import android.util.Log;
+import android.util.LongSparseArray;
 import android.view.Surface;
 import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 
-public class GeckoSession extends LayerSession
-        implements Parcelable {
+public class GeckoSession implements Parcelable {
     private static final String LOGTAG = "GeckoSession";
     private static final boolean DEBUG = false;
 
@@ -102,6 +106,161 @@ public class GeckoSession extends LayerSession
     /* package */ String getId() { return mId; }
 
     private boolean mShouldPinOnScreen;
+
+    // All fields are accessed on UI thread only.
+    private PanZoomController mNPZC;
+    private OverscrollEdgeEffect mOverscroll;
+    private DynamicToolbarAnimator mToolbar;
+    private CompositorController mController;
+
+    private boolean mAttachedCompositor;
+    private boolean mCompositorReady;
+    private Surface mSurface;
+
+    // All fields of coordinates are in screen units.
+    private int mLeft;
+    private int mTop; // Top of the surface (including toolbar);
+    private int mClientTop; // Top of the client area (i.e. excluding toolbar);
+    private int mWidth;
+    private int mHeight; // Height of the surface (including toolbar);
+    private int mClientHeight; // Height of the client area (i.e. excluding toolbar);
+    private float mViewportLeft;
+    private float mViewportTop;
+    private float mViewportZoom = 1.0f;
+
+    //
+    // NOTE: These values are also defined in
+    // gfx/layers/ipc/UiCompositorControllerMessageTypes.h and must be kept in sync. Any
+    // new AnimatorMessageType added here must also be added there.
+    //
+    // Sent from compositor when the static toolbar wants to hide.
+    /* package */ final static int STATIC_TOOLBAR_NEEDS_UPDATE      = 0;
+    // Sent from compositor when the static toolbar image has been updated and is ready to
+    // animate.
+    /* package */ final static int STATIC_TOOLBAR_READY             = 1;
+    // Sent to compositor when the real toolbar has been hidden.
+    /* package */ final static int TOOLBAR_HIDDEN                   = 2;
+    // Sent to compositor when the real toolbar is visible.
+    /* package */ final static int TOOLBAR_VISIBLE                  = 3;
+    // Sent from compositor when the static toolbar has been made visible so the real
+    // toolbar should be shown.
+    /* package */ final static int TOOLBAR_SHOW                     = 4;
+    // Sent from compositor after first paint
+    /* package */ final static int FIRST_PAINT                      = 5;
+    // Sent to compositor requesting toolbar be shown immediately
+    /* package */ final static int REQUEST_SHOW_TOOLBAR_IMMEDIATELY = 6;
+    // Sent to compositor requesting toolbar be shown animated
+    /* package */ final static int REQUEST_SHOW_TOOLBAR_ANIMATED    = 7;
+    // Sent to compositor requesting toolbar be hidden immediately
+    /* package */ final static int REQUEST_HIDE_TOOLBAR_IMMEDIATELY = 8;
+    // Sent to compositor requesting toolbar be hidden animated
+    /* package */ final static int REQUEST_HIDE_TOOLBAR_ANIMATED    = 9;
+    // Sent from compositor when a layer has been updated
+    /* package */ final static int LAYERS_UPDATED                   = 10;
+    // Sent to compositor when the toolbar snapshot fails.
+    /* package */ final static int TOOLBAR_SNAPSHOT_FAILED          = 11;
+    // Special message sent from UiCompositorControllerChild once it is open
+    /* package */ final static int COMPOSITOR_CONTROLLER_OPEN       = 20;
+    // Special message sent from controller to query if the compositor controller is open.
+    /* package */ final static int IS_COMPOSITOR_CONTROLLER_OPEN    = 21;
+
+    protected class Compositor extends JNIObject {
+        public boolean isReady() {
+            return GeckoSession.this.isCompositorReady();
+        }
+
+        @WrapForJNI(calledFrom = "ui")
+        private void onCompositorAttached() {
+            GeckoSession.this.onCompositorAttached();
+        }
+
+        @WrapForJNI(calledFrom = "ui")
+        private void onCompositorDetached() {
+            // Clear out any pending calls on the UI thread.
+            GeckoSession.this.onCompositorDetached();
+        }
+
+        @WrapForJNI(dispatchTo = "gecko")
+        @Override protected native void disposeNative();
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+        public native void attachNPZC(PanZoomController npzc);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+        public native void onBoundsChanged(int left, int top, int width, int height);
+
+        // Gecko thread pauses compositor; blocks UI thread.
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void syncPauseCompositor();
+
+        // UI thread resumes compositor and notifies Gecko thread; does not block UI thread.
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void syncResumeResizeCompositor(int width, int height, Object surface);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void setMaxToolbarHeight(int height);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void setPinned(boolean pinned, int reason);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void sendToolbarAnimatorMessage(int message);
+
+        @WrapForJNI(calledFrom = "ui")
+        private void recvToolbarAnimatorMessage(int message) {
+            GeckoSession.this.handleCompositorMessage(message);
+        }
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void setDefaultClearColor(int color);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void requestScreenPixels();
+
+        @WrapForJNI(calledFrom = "ui")
+        private void recvScreenPixels(int width, int height, int[] pixels) {
+            GeckoSession.this.recvScreenPixels(width, height, pixels);
+        }
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void enableLayerUpdateNotifications(boolean enable);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        public native void sendToolbarPixelsToCompositor(final int width, final int height,
+                                                         final int[] pixels);
+
+        // The compositor invokes this function just before compositing a frame where the
+        // document is different from the document composited on the last frame. In these
+        // cases, the viewport information we have in Java is no longer valid and needs to
+        // be replaced with the new viewport information provided.
+        @WrapForJNI(calledFrom = "ui")
+        private void updateRootFrameMetrics(float scrollX, float scrollY, float zoom) {
+            GeckoSession.this.onMetricsChanged(scrollX, scrollY, zoom);
+        }
+
+        @WrapForJNI(calledFrom = "ui")
+        private void updateOverscrollVelocity(final float x, final float y) {
+            GeckoSession.this.updateOverscrollVelocity(x, y);
+        }
+
+        @WrapForJNI(calledFrom = "ui")
+        private void updateOverscrollOffset(final float x, final float y) {
+            GeckoSession.this.updateOverscrollOffset(x, y);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            disposeNative();
+        }
+    }
+
+    protected final Compositor mCompositor = new Compositor();
+
+    @WrapForJNI(stubName = "GetCompositor", calledFrom = "ui")
+    private Object getCompositorFromNative() {
+        // Only used by native code.
+        return mCompositorReady ? mCompositor : null;
+    }
 
     /* package */ static abstract class CallbackResult<T> extends GeckoResult<T>
                                                           implements EventCallback {
@@ -189,105 +348,6 @@ public class GeckoSession extends LayerSession
                 return flags & NavigationDelegate.LOAD_REQUEST_IS_USER_TRIGGERED;
             }
 
-            private @NavigationDelegate.LoadErrorCategory int getErrorCategory(
-                    long errorModule, @NavigationDelegate.LoadError int error) {
-                // Match flags with XPCOM ErrorList.h.
-                if (errorModule == 21) {
-                    return NavigationDelegate.ERROR_CATEGORY_SECURITY;
-                }
-                return error & 0xF;
-            }
-
-            private @NavigationDelegate.LoadError int convertGeckoError(
-                    long geckoError, int geckoErrorModule, int geckoErrorClass) {
-                // Match flags with XPCOM ErrorList.h.
-                // safebrowsing
-                if (geckoError == 0x805D001FL) {
-                    return NavigationDelegate.ERROR_SAFEBROWSING_PHISHING_URI;
-                }
-                if (geckoError == 0x805D001EL) {
-                    return NavigationDelegate.ERROR_SAFEBROWSING_MALWARE_URI;
-                }
-                if (geckoError == 0x805D0023L) {
-                    return NavigationDelegate.ERROR_SAFEBROWSING_UNWANTED_URI;
-                }
-                if (geckoError == 0x805D0026L) {
-                    return NavigationDelegate.ERROR_SAFEBROWSING_HARMFUL_URI;
-                }
-                // content
-                if (geckoError == 0x805E0010L) {
-                    return NavigationDelegate.ERROR_CONTENT_CRASHED;
-                }
-                if (geckoError == 0x804B001BL) {
-                    return NavigationDelegate.ERROR_INVALID_CONTENT_ENCODING;
-                }
-                if (geckoError == 0x804B004AL) {
-                    return NavigationDelegate.ERROR_UNSAFE_CONTENT_TYPE;
-                }
-                if (geckoError == 0x804B001DL) {
-                    return NavigationDelegate.ERROR_CORRUPTED_CONTENT;
-                }
-                // network
-                if (geckoError == 0x804B0014L) {
-                    return NavigationDelegate.ERROR_NET_RESET;
-                }
-                if (geckoError == 0x804B0047L) {
-                    return NavigationDelegate.ERROR_NET_INTERRUPT;
-                }
-                if (geckoError == 0x804B000EL) {
-                    return NavigationDelegate.ERROR_NET_TIMEOUT;
-                }
-                if (geckoError == 0x804B000DL) {
-                    return NavigationDelegate.ERROR_CONNECTION_REFUSED;
-                }
-                if (geckoError == 0x804B0033L) {
-                    return NavigationDelegate.ERROR_UNKNOWN_SOCKET_TYPE;
-                }
-                if (geckoError == 0x804B001FL) {
-                    return NavigationDelegate.ERROR_REDIRECT_LOOP;
-                }
-                if (geckoError == 0x804B0010L) {
-                    return NavigationDelegate.ERROR_OFFLINE;
-                }
-                if (geckoError == 0x804B0013L) {
-                    return NavigationDelegate.ERROR_PORT_BLOCKED;
-                }
-                // uri
-                if (geckoError == 0x804B0012L) {
-                    return NavigationDelegate.ERROR_UNKNOWN_PROTOCOL;
-                }
-                if (geckoError == 0x804B001EL) {
-                    return NavigationDelegate.ERROR_UNKNOWN_HOST;
-                }
-                if (geckoError == 0x804B000AL) {
-                    return NavigationDelegate.ERROR_MALFORMED_URI;
-                }
-                if (geckoError == 0x80520012L) {
-                    return NavigationDelegate.ERROR_FILE_NOT_FOUND;
-                }
-                if (geckoError == 0x80520015L) {
-                    return NavigationDelegate.ERROR_FILE_ACCESS_DENIED;
-                }
-                // proxy
-                if (geckoError == 0x804B002AL) {
-                    return NavigationDelegate.ERROR_UNKNOWN_PROXY_HOST;
-                }
-                if (geckoError == 0x804B0048L) {
-                    return NavigationDelegate.ERROR_PROXY_CONNECTION_REFUSED;
-                }
-
-                if (geckoErrorModule == 21) {
-                    if (geckoErrorClass == 1) {
-                        return NavigationDelegate.ERROR_SECURITY_SSL;
-                    }
-                    if (geckoErrorClass == 2) {
-                        return NavigationDelegate.ERROR_SECURITY_BAD_CERT;
-                    }
-                }
-
-                return NavigationDelegate.ERROR_UNKNOWN;
-            }
-
             @Override
             public void handleMessage(final NavigationDelegate delegate,
                                       final String event,
@@ -303,33 +363,42 @@ public class GeckoSession extends LayerSession
                     delegate.onCanGoForward(GeckoSession.this,
                                             message.getBoolean("canGoForward"));
                 } else if ("GeckoView:OnLoadRequest".equals(event)) {
-                    final String uri = message.getString("uri");
-                    final int where = convertGeckoTarget(message.getInt("where"));
-                    final int flags = filterFlags(message.getInt("flags"));
+                    final NavigationDelegate.LoadRequest request =
+                        new NavigationDelegate.LoadRequest(
+                              message.getString("uri"),
+                              message.getString("triggerUri"),
+                              message.getInt("where"),
+                              message.getInt("flags"));
 
-                    if (!IntentUtils.isUriSafeForScheme(uri)) {
+                    if (!IntentUtils.isUriSafeForScheme(request.uri)) {
                         callback.sendError("Blocked unsafe intent URI");
 
-                        delegate.onLoadError(GeckoSession.this, uri,
-                                             NavigationDelegate.ERROR_CATEGORY_URI,
-                                             NavigationDelegate.ERROR_MALFORMED_URI);
+                        delegate.onLoadError(GeckoSession.this, request.uri,
+                                             new WebRequestError(WebRequestError.ERROR_CATEGORY_URI,
+                                                                 WebRequestError.ERROR_MALFORMED_URI));
 
                         return;
                     }
 
-                    final GeckoResult<Boolean> result =
-                        delegate.onLoadRequest(GeckoSession.this, uri, where, flags);
+                    final GeckoResult<AllowOrDeny> result =
+                        delegate.onLoadRequest(GeckoSession.this, request);
 
                     if (result == null) {
                         callback.sendSuccess(null);
                         return;
                     }
 
-                    result.then(new GeckoResult.OnValueListener<Boolean, Void>() {
+                    result.then(new GeckoResult.OnValueListener<AllowOrDeny, Void>() {
                         @Override
-                        public GeckoResult<Void> onValue(Boolean value) throws Throwable {
+                        public GeckoResult<Void> onValue(AllowOrDeny value) throws Throwable {
                             ThreadUtils.assertOnUiThread();
-                            callback.sendSuccess(value);
+                            if (value == AllowOrDeny.ALLOW) {
+                                callback.sendSuccess(false);
+                            } else  if (value == AllowOrDeny.DENY) {
+                                callback.sendSuccess(true);
+                            } else {
+                                callback.sendError("Invalid response");
+                            }
                             return null;
                         }
                     }, new GeckoResult.OnExceptionListener<Void>() {
@@ -344,11 +413,10 @@ public class GeckoSession extends LayerSession
                     final long errorCode = message.getLong("error");
                     final int errorModule = message.getInt("errorModule");
                     final int errorClass = message.getInt("errorClass");
-                    final int error = convertGeckoError(errorCode, errorModule,
-                                                        errorClass);
-                    final int errorCat = getErrorCategory(errorModule, error);
 
-                    final GeckoResult<String> result = delegate.onLoadError(GeckoSession.this, uri, errorCat, error);
+                    final WebRequestError err = WebRequestError.fromGeckoError(errorCode, errorModule, errorClass);
+
+                    final GeckoResult<String> result = delegate.onLoadError(GeckoSession.this, uri, err);
                     if (result == null) {
                         if (GeckoAppShell.isFennec()) {
                             callback.sendSuccess(null);
@@ -527,8 +595,7 @@ public class GeckoSession extends LayerSession
                     }
                     delegate.onContentPermissionRequest(
                             GeckoSession.this, message.getString("uri"),
-                            type, message.getString("access"),
-                            new PermissionCallback(typeString, callback));
+                            type, new PermissionCallback(typeString, callback));
                 } else if ("GeckoView:MediaPermission".equals(event)) {
                     GeckoBundle[] videoBundles = message.getBundleArray("video");
                     GeckoBundle[] audioBundles = message.getBundleArray("audio");
@@ -608,10 +675,85 @@ public class GeckoSession extends LayerSession
             }
         };
 
+    private LongSparseArray<MediaElement> mMediaElements = new LongSparseArray<>();
+    /* package */ LongSparseArray<MediaElement> getMediaElements() {
+        return mMediaElements;
+    }
+    private final GeckoSessionHandler<MediaDelegate> mMediaHandler =
+            new GeckoSessionHandler<MediaDelegate>(
+                    "GeckoViewMedia", this,
+                    new String[]{
+                            "GeckoView:MediaAdd",
+                            "GeckoView:MediaRemove",
+                            "GeckoView:MediaRemoveAll",
+                            "GeckoView:MediaReadyStateChanged",
+                            "GeckoView:MediaTimeChanged",
+                            "GeckoView:MediaPlaybackStateChanged",
+                            "GeckoView:MediaMetadataChanged",
+                            "GeckoView:MediaProgress",
+                            "GeckoView:MediaVolumeChanged",
+                            "GeckoView:MediaRateChanged",
+                            "GeckoView:MediaFullscreenChanged",
+                            "GeckoView:MediaError",
+                    }
+            ) {
+                @Override
+                public void handleMessage(final MediaDelegate delegate,
+                                          final String event,
+                                          final GeckoBundle message,
+                                          final EventCallback callback) {
+                    if ("GeckoView:MediaAdd".equals(event)) {
+                        final MediaElement element = new MediaElement(message.getLong("id"), GeckoSession.this);
+                        delegate.onMediaAdd(GeckoSession.this, element);
+                        return;
+                    } else if ("GeckoView:MediaRemoveAll".equals(event)) {
+                        for (int i = 0; i < mMediaElements.size(); i++) {
+                            final long key = mMediaElements.keyAt(i);
+                            delegate.onMediaRemove(GeckoSession.this, mMediaElements.get(key));
+                        }
+                        mMediaElements.clear();
+                        return;
+                    }
+
+                    final long id = message.getLong("id", 0);
+                    final MediaElement element = mMediaElements.get(id);
+                    if (element == null) {
+                        Log.w(LOGTAG, "MediaElement not found for '" + id + "'");
+                        return;
+                    }
+
+                    if ("GeckoView:MediaTimeChanged".equals(event)) {
+                        element.notifyTimeChange(message.getDouble("time"));
+                    } else if ("GeckoView:MediaProgress".equals(event)) {
+                        element.notifyLoadProgress(message);
+                    } else if ("GeckoView:MediaMetadataChanged".equals(event)) {
+                        element.notifyMetadataChange(message);
+                    } else if ("GeckoView:MediaReadyStateChanged".equals(event)) {
+                        element.notifyReadyStateChange(message.getInt("readyState"));
+                    } else if ("GeckoView:MediaPlaybackStateChanged".equals(event)) {
+                        element.notifyPlaybackStateChange(message.getString("playbackState"));
+                    } else if ("GeckoView:MediaVolumeChanged".equals(event)) {
+                        element.notifyVolumeChange(message.getDouble("volume"), message.getBoolean("muted"));
+                    } else if ("GeckoView:MediaRateChanged".equals(event)) {
+                        element.notifyPlaybackRateChange(message.getDouble("rate"));
+                    } else if ("GeckoView:MediaFullscreenChanged".equals(event)) {
+                        element.notifyFullscreenChange(message.getBoolean("fullscreen"));
+                    } else if ("GeckoView:MediaRemove".equals(event)) {
+                        delegate.onMediaRemove(GeckoSession.this, element);
+                        mMediaElements.remove(element.getVideoId());
+                    } else if ("GeckoView:MediaError".equals(event)) {
+                        element.notifyError(message.getInt("code"));
+                    } else {
+                        throw new UnsupportedOperationException(event + " media message not implemented");
+                    }
+                }
+            };
+
+
     /* package */ int handlersCount;
 
     private final GeckoSessionHandler<?>[] mSessionHandlers = new GeckoSessionHandler<?>[] {
-        mContentHandler, mNavigationHandler, mProgressHandler, mScrollHandler,
+        mContentHandler, mMediaHandler, mNavigationHandler, mProgressHandler, mScrollHandler,
         mTrackingProtectionHandler, mPermissionHandler, mSelectionActionDelegate
     };
 
@@ -665,6 +807,22 @@ public class GeckoSession extends LayerSession
     }
 
     /**
+     * Get the current user agent string for this GeckoSession.
+     *
+     * @return a {@link GeckoResult} containing the UserAgent string
+     */
+    public @NonNull GeckoResult<String> getUserAgent() {
+        final CallbackResult<String> result = new CallbackResult<String>() {
+            @Override
+            public void sendSuccess(final Object value) {
+                complete((String) value);
+            }
+        };
+        mEventDispatcher.dispatch("GeckoView:GetUserAgent", null, result);
+        return result;
+    }
+
+    /**
      * Get the current prompt delegate for this GeckoSession.
      * @return PromptDelegate instance or null if using default delegate.
      */
@@ -686,12 +844,15 @@ public class GeckoSession extends LayerSession
 
     /* package */ static final class Window extends JNIObject implements IInterface {
         public final GeckoRuntime runtime;
+        private WeakReference<GeckoSession> mOwner;
         private NativeQueue mNativeQueue;
         private Binder mBinder;
 
         public Window(final @NonNull GeckoRuntime runtime,
+                      final @NonNull GeckoSession owner,
                       final @NonNull NativeQueue nativeQueue) {
             this.runtime = runtime;
+            mOwner = new WeakReference<>(owner);
             mNativeQueue = nativeQueue;
         }
 
@@ -735,6 +896,7 @@ public class GeckoSession extends LayerSession
                 }
                 mNativeQueue.reset(State.INITIAL);
                 mNativeQueue = null;
+                mOwner = null;
             }
 
             // Detach ourselves from the binder as well, to prevent this window from being
@@ -754,7 +916,8 @@ public class GeckoSession extends LayerSession
 
         // Assign a new set of Java session objects to the underlying Gecko window.
         // This replaces previously assigned objects from open() or transfer() calls.
-        public synchronized void transfer(final NativeQueue queue,
+        public synchronized void transfer(final GeckoSession owner,
+                                          final NativeQueue queue,
                                           final Compositor compositor,
                                           final EventDispatcher dispatcher,
                                           final SessionAccessibility.NativeProvider sessionAccessibility,
@@ -763,6 +926,13 @@ public class GeckoSession extends LayerSession
                 // Already closed.
                 return;
             }
+
+            final GeckoSession oldOwner = mOwner.get();
+            if (oldOwner != null && owner != oldOwner) {
+                oldOwner.abandonWindow();
+            }
+
+            mOwner = new WeakReference<>(owner);
 
             if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
                 nativeTransfer(queue, compositor, dispatcher, sessionAccessibility, initData);
@@ -791,8 +961,7 @@ public class GeckoSession extends LayerSession
                                            GeckoBundle initData);
 
         @WrapForJNI(dispatchTo = "proxy")
-        public native void attachEditable(IGeckoEditableParent parent,
-                                          GeckoEditableChild child);
+        public native void attachEditable(IGeckoEditableParent parent);
 
         @WrapForJNI(dispatchTo = "proxy")
         public native void attachAccessibility(SessionAccessibility.NativeProvider sessionAccessibility);
@@ -817,6 +986,12 @@ public class GeckoSession extends LayerSession
                 Log.i(LOGTAG, "zerdatime " + SystemClock.elapsedRealtime() +
                       " - chrome startup finished");
             }
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            close();
+            disposeNative();
         }
     }
 
@@ -866,6 +1041,16 @@ public class GeckoSession extends LayerSession
         return mWindow.runtime;
     }
 
+    /* package */ synchronized void abandonWindow() {
+        if (mWindow == null) {
+            return;
+        }
+
+        onWindowChanged(WINDOW_TRANSFER_OUT, /* inProgress */ true);
+        mWindow = null;
+        onWindowChanged(WINDOW_TRANSFER_OUT, /* inProgress */ false);
+    }
+
     private void transferFrom(final Window window,
                               final GeckoSessionSettings settings,
                               final String id) {
@@ -883,26 +1068,16 @@ public class GeckoSession extends LayerSession
         mId = id;
 
         if (mWindow != null) {
-            mWindow.transfer(mNativeQueue, mCompositor,
-                             mEventDispatcher, mAccessibility != null ? mAccessibility.nativeProvider : null,
-                             createInitData());
-
+            mWindow.transfer(this, mNativeQueue, mCompositor,
+                    mEventDispatcher, mAccessibility != null ? mAccessibility.nativeProvider : null,
+                    createInitData());
             onWindowChanged(WINDOW_TRANSFER_IN, /* inProgress */ false);
         }
     }
 
     /* package */ void transferFrom(final GeckoSession session) {
-        final boolean changing = (session.mWindow != null);
-        if (changing) {
-            session.onWindowChanged(WINDOW_TRANSFER_OUT, /* inProgress */ true);
-        }
-
         transferFrom(session.mWindow, session.mSettings, session.mId);
         session.mWindow = null;
-
-        if (changing) {
-            session.onWindowChanged(WINDOW_TRANSFER_OUT, /* inProgress */ false);
-        }
     }
 
     @Override // Parcelable
@@ -994,6 +1169,7 @@ public class GeckoSession extends LayerSession
      * @see #close
      * @see #isOpen
      */
+    @UiThread
     public void open(final @NonNull GeckoRuntime runtime) {
         ThreadUtils.assertOnUiThread();
 
@@ -1006,7 +1182,7 @@ public class GeckoSession extends LayerSession
         final int screenId = mSettings.getInt(GeckoSessionSettings.SCREEN_ID);
         final boolean isPrivate = mSettings.getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
 
-        mWindow = new Window(runtime, mNativeQueue);
+        mWindow = new Window(runtime, this, mNativeQueue);
 
         onWindowChanged(WINDOW_OPEN, /* inProgress */ true);
 
@@ -1043,6 +1219,7 @@ public class GeckoSession extends LayerSession
      * @see #open
      * @see #isOpen
      */
+    @UiThread
     public void close() {
         ThreadUtils.assertOnUiThread();
 
@@ -1065,9 +1242,6 @@ public class GeckoSession extends LayerSession
             mTextInput.onWindowChanged(mWindow);
         }
         if ((change == WINDOW_CLOSE || change == WINDOW_TRANSFER_OUT) && !inProgress) {
-            if (mAccessibility != null) {
-                mAccessibility.clearAutoFill();
-            }
             mTextInput.clearAutoFill();
         }
     }
@@ -1077,6 +1251,7 @@ public class GeckoSession extends LayerSession
      *
      * @return SessionTextInput instance.
      */
+    @AnyThread
     public @NonNull SessionTextInput getTextInput() {
         // May be called on any thread.
         return mTextInput;
@@ -1087,6 +1262,7 @@ public class GeckoSession extends LayerSession
       *
       * @return SessionAccessibility instance.
       */
+    @UiThread
     public @NonNull SessionAccessibility getAccessibility() {
         ThreadUtils.assertOnUiThread();
         if (mAccessibility != null) { return mAccessibility; }
@@ -1397,10 +1573,6 @@ public class GeckoSession extends LayerSession
         final GeckoBundle msg = new GeckoBundle(1);
         msg.putBoolean("focused", focused);
         mEventDispatcher.dispatch("GeckoView:SetFocused", msg);
-
-        if (focused && mAccessibility != null) {
-            mAccessibility.onWindowFocus();
-        }
     }
 
     /**
@@ -1499,6 +1671,7 @@ public class GeckoSession extends LayerSession
      * @return GeckoDisplay instance.
      * @see #releaseDisplay(GeckoDisplay)
      */
+    @UiThread
     public @NonNull GeckoDisplay acquireDisplay() {
         ThreadUtils.assertOnUiThread();
 
@@ -1518,6 +1691,7 @@ public class GeckoSession extends LayerSession
      * @param display Acquired GeckoDisplay instance.
      * @see #acquireDisplay()
      */
+    @UiThread
     public void releaseDisplay(final @NonNull GeckoDisplay display) {
         ThreadUtils.assertOnUiThread();
 
@@ -1651,6 +1825,24 @@ public class GeckoSession extends LayerSession
         }
         mSelectionActionDelegate.setDelegate(delegate, this);
     }
+
+    /**
+     * Set the media callback handler.
+     * This will replace the current handler.
+     * @param delegate An implementation of MediaDelegate.
+     */
+    public void setMediaDelegate(final @Nullable MediaDelegate delegate) {
+        mMediaHandler.setDelegate(delegate, this);
+    }
+
+    /**
+     * Get the Media callback handler.
+     * @return The current Media callback handler.
+     */
+    public @Nullable MediaDelegate getMediaDelegate() {
+        return mMediaHandler.getDelegate();
+    }
+
 
     /**
      * Get the current selection action delegate for this GeckoSession.
@@ -2013,17 +2205,24 @@ public class GeckoSession extends LayerSession
                 break;
             }
             case "popup": {
-                GeckoResult<Boolean> res = delegate.onPopupRequest(session, message.getString("targetUri"));
+                GeckoResult<AllowOrDeny> res = delegate.onPopupRequest(session, message.getString("targetUri"));
 
                 if (res == null) {
                     // Keep the popup blocked if the delegate returns null
                     callback.sendSuccess(false);
+                    return;
                 }
 
-                res.then(new GeckoResult.OnValueListener<Boolean, Void>() {
+                res.then(new GeckoResult.OnValueListener<AllowOrDeny, Void>() {
                     @Override
-                    public GeckoResult<Void> onValue(Boolean value) throws Throwable {
-                        callback.sendSuccess(value);
+                    public GeckoResult<Void> onValue(AllowOrDeny value) throws Throwable {
+                        if (value == AllowOrDeny.ALLOW) {
+                            callback.sendSuccess(true);
+                        } else if (value == AllowOrDeny.DENY) {
+                            callback.sendSuccess(false);
+                        } else {
+                            callback.sendError("Invalid response");
+                        }
                         return null;
                     }
                 }, new GeckoResult.OnExceptionListener<Void>() {
@@ -2042,9 +2241,15 @@ public class GeckoSession extends LayerSession
         }
     }
 
-    @Override
     protected void setShouldPinOnScreen(final boolean pinned) {
-        super.setShouldPinOnScreen(pinned);
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        if (mToolbar != null) {
+            mToolbar.setPinned(pinned, DynamicToolbarAnimator.PinReason.CARET_DRAG);
+        }
+
         mShouldPinOnScreen = pinned;
     }
 
@@ -2517,13 +2722,63 @@ public class GeckoSession extends LayerSession
 
         @IntDef(flag = true,
                 value = {LOAD_REQUEST_IS_USER_TRIGGERED})
-        /* package */ @interface LoadRequestFlags {}
+                /* package */ @interface LoadRequestFlags {}
 
         // Match with nsIDocShell.idl.
         /**
          * The load request was triggered by user input.
          */
         public static final int LOAD_REQUEST_IS_USER_TRIGGERED = 0x1000;
+
+        /**
+         * Load request details.
+         */
+        public static class LoadRequest {
+            /* package */ LoadRequest(@NonNull final String uri,
+                                      @Nullable final String triggerUri,
+                                      int geckoTarget,
+                                      int flags) {
+                this.uri = uri;
+                this.triggerUri = triggerUri;
+                this.target = convertGeckoTarget(geckoTarget);
+
+                // Match with nsIDocShell.idl.
+                this.isUserTriggered = (flags & 0x1000) != 0;
+            }
+
+            // This needs to match nsIBrowserDOMWindow.idl
+            private @TargetWindow int convertGeckoTarget(int geckoTarget) {
+                switch (geckoTarget) {
+                    case 0: // OPEN_DEFAULTWINDOW
+                    case 1: // OPEN_CURRENTWINDOW
+                        return TARGET_WINDOW_CURRENT;
+                    default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_SWITCHTAB
+                        return TARGET_WINDOW_NEW;
+                }
+            }
+
+            /**
+             * The URI to be loaded.
+             */
+            public final @NonNull String uri;
+
+            /**
+             * The URI of the origin page that triggered the load request.
+             * null for initial loads and loads originating from data: URIs.
+             */
+            public final @Nullable String triggerUri;
+
+            /**
+             * The target where the window has requested to open.
+             * One of {@link #TARGET_WINDOW_NONE TARGET_WINDOW_*}.
+             */
+            public final @TargetWindow int target;
+
+            /**
+             * True if and only if the request was triggered by user interaction.
+             */
+            public final boolean isUserTriggered;
+        }
 
         /**
          * A request to open an URI. This is called before each page load to
@@ -2533,22 +2788,15 @@ public class GeckoSession extends LayerSession
          * GeckoSession via onNewSession.
          *
          * @param session The GeckoSession that initiated the callback.
-         * @param uri The URI to be loaded.
-         * @param target The target where the window has requested to open.
-         *               One of {@link #TARGET_WINDOW_NONE TARGET_WINDOW_*}.
-         * @param flags The load request flags.
-         *              One or more of {@link #LOAD_REQUEST_IS_USER_TRIGGERED
-         *              LOAD_REQUEST_*}.
+         * @param request The {@link LoadRequest} containing the request details.
          *
-         * @return A {@link GeckoResult} with a boolean value which indicates whether or
-         *         not the load was handled. If unhandled, Gecko will continue the
+         * @return A {@link GeckoResult} with a AllowOrDeny value which indicates whether
+         *         or not the load was handled. If unhandled, Gecko will continue the
          *         load as normal. If handled (true value), Gecko will abandon the load.
          *         A null return value is interpreted as false (unhandled).
          */
-        @Nullable GeckoResult<Boolean> onLoadRequest(@NonNull GeckoSession session,
-                                                     @NonNull String uri,
-                                                     @TargetWindow int target,
-                                                     @LoadRequestFlags int flags);
+        @Nullable GeckoResult<AllowOrDeny> onLoadRequest(@NonNull GeckoSession session,
+                                                         @NonNull LoadRequest request);
 
         /**
         * A request has been made to open a new session. The URI is provided only for
@@ -2564,83 +2812,13 @@ public class GeckoSession extends LayerSession
         */
         @Nullable GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession session, @NonNull String uri);
 
-        @IntDef({ERROR_CATEGORY_UNKNOWN, ERROR_CATEGORY_SECURITY,
-                 ERROR_CATEGORY_NETWORK, ERROR_CATEGORY_CONTENT,
-                 ERROR_CATEGORY_URI, ERROR_CATEGORY_PROXY,
-                 ERROR_CATEGORY_SAFEBROWSING})
-        public @interface LoadErrorCategory {}
-
-        @IntDef({ERROR_UNKNOWN, ERROR_SECURITY_SSL, ERROR_SECURITY_BAD_CERT,
-                 ERROR_NET_RESET, ERROR_NET_INTERRUPT, ERROR_NET_TIMEOUT,
-                 ERROR_CONNECTION_REFUSED, ERROR_UNKNOWN_PROTOCOL,
-                 ERROR_UNKNOWN_HOST, ERROR_UNKNOWN_SOCKET_TYPE,
-                 ERROR_UNKNOWN_PROXY_HOST, ERROR_MALFORMED_URI,
-                 ERROR_REDIRECT_LOOP, ERROR_SAFEBROWSING_PHISHING_URI,
-                 ERROR_SAFEBROWSING_MALWARE_URI, ERROR_SAFEBROWSING_UNWANTED_URI,
-                 ERROR_SAFEBROWSING_HARMFUL_URI, ERROR_CONTENT_CRASHED,
-                 ERROR_OFFLINE, ERROR_PORT_BLOCKED,
-                 ERROR_PROXY_CONNECTION_REFUSED, ERROR_FILE_NOT_FOUND,
-                 ERROR_FILE_ACCESS_DENIED, ERROR_INVALID_CONTENT_ENCODING,
-                 ERROR_UNSAFE_CONTENT_TYPE, ERROR_CORRUPTED_CONTENT})
-        public @interface LoadError {}
-
-        public static final int ERROR_CATEGORY_UNKNOWN = 0x1;
-        public static final int ERROR_CATEGORY_SECURITY = 0x2;
-        public static final int ERROR_CATEGORY_NETWORK = 0x3;
-        public static final int ERROR_CATEGORY_CONTENT = 0x4;
-        public static final int ERROR_CATEGORY_URI = 0x5;
-        public static final int ERROR_CATEGORY_PROXY = 0x6;
-        public static final int ERROR_CATEGORY_SAFEBROWSING = 0x7;
-
-        public static final int ERROR_UNKNOWN = 0x11;
-
-        // Security
-        public static final int ERROR_SECURITY_SSL = 0x22;
-        public static final int ERROR_SECURITY_BAD_CERT = 0x32;
-
-        // Network
-        public static final int ERROR_NET_INTERRUPT = 0x23;
-        public static final int ERROR_NET_TIMEOUT = 0x33;
-        public static final int ERROR_CONNECTION_REFUSED = 0x43;
-        public static final int ERROR_UNKNOWN_SOCKET_TYPE = 0x53;
-        public static final int ERROR_REDIRECT_LOOP = 0x63;
-        public static final int ERROR_OFFLINE = 0x73;
-        public static final int ERROR_PORT_BLOCKED = 0x83;
-        public static final int ERROR_NET_RESET = 0x93;
-
-        // Content
-        public static final int ERROR_UNSAFE_CONTENT_TYPE = 0x24;
-        public static final int ERROR_CORRUPTED_CONTENT = 0x34;
-        public static final int ERROR_CONTENT_CRASHED = 0x44;
-        public static final int ERROR_INVALID_CONTENT_ENCODING = 0x54;
-
-        // URI
-        public static final int ERROR_UNKNOWN_HOST = 0x25;
-        public static final int ERROR_MALFORMED_URI = 0x35;
-        public static final int ERROR_UNKNOWN_PROTOCOL = 0x45;
-        public static final int ERROR_FILE_NOT_FOUND = 0x55;
-        public static final int ERROR_FILE_ACCESS_DENIED = 0x65;
-
-        // Proxy
-        public static final int ERROR_PROXY_CONNECTION_REFUSED = 0x26;
-        public static final int ERROR_UNKNOWN_PROXY_HOST = 0x36;
-
-        // Safebrowsing
-        public static final int ERROR_SAFEBROWSING_MALWARE_URI = 0x27;
-        public static final int ERROR_SAFEBROWSING_UNWANTED_URI = 0x37;
-        public static final int ERROR_SAFEBROWSING_HARMFUL_URI = 0x47;
-        public static final int ERROR_SAFEBROWSING_PHISHING_URI = 0x57;
-
         /**
          * @param session The GeckoSession that initiated the callback.
          * @param uri The URI that failed to load.
-         * @param category The error category.
-         * @param error The error type.
+         * @param error A WebRequestError containing details about the error
          * @return A URI to display as an error. Returning null will halt the load entirely.
          */
-        GeckoResult<String> onLoadError(GeckoSession session, String uri,
-                                        @LoadErrorCategory int category,
-                                        @LoadError int error);
+        GeckoResult<String> onLoadError(GeckoSession session, String uri, WebRequestError error);
     }
 
     /**
@@ -3113,10 +3291,10 @@ public class GeckoSession extends LayerSession
          * @param session GeckoSession that triggered the prompt
          * @param targetUri The target URI for the popup
          *
-         * @return A {@link GeckoResult} resolving to a Boolean which indicates
+         * @return A {@link GeckoResult} resolving to a AllowOrDeny which indicates
          *         whether or not the popup should be allowed to open.
          */
-        GeckoResult<Boolean> onPopupRequest(GeckoSession session, String targetUri);
+        GeckoResult<AllowOrDeny> onPopupRequest(GeckoSession session, String targetUri);
     }
 
     /**
@@ -3132,6 +3310,170 @@ public class GeckoSession extends LayerSession
         * @param scrollY The new vertical scroll position in pixels.
         */
         public void onScrollChanged(GeckoSession session, int scrollX, int scrollY);
+    }
+
+    /**
+     * Get the PanZoomController instance for this session.
+     *
+     * @return PanZoomController instance.
+     */
+    @UiThread
+    public PanZoomController getPanZoomController() {
+        ThreadUtils.assertOnUiThread();
+
+        if (mNPZC == null) {
+            mNPZC = new PanZoomController(this);
+            if (mAttachedCompositor) {
+                mCompositor.attachNPZC(mNPZC);
+            }
+        }
+        return mNPZC;
+    }
+
+    /**
+     * Get the OverscrollEdgeEffect instance for this session.
+     *
+     * @return OverscrollEdgeEffect instance.
+     */
+    @UiThread
+    public OverscrollEdgeEffect getOverscrollEdgeEffect() {
+        ThreadUtils.assertOnUiThread();
+
+        if (mOverscroll == null) {
+            mOverscroll = new OverscrollEdgeEffect(this);
+        }
+        return mOverscroll;
+    }
+
+    /**
+     * Get the DynamicToolbarAnimator instance for this session.
+     *
+     * @return DynamicToolbarAnimator instance.
+     */
+    @UiThread
+    public @NonNull DynamicToolbarAnimator getDynamicToolbarAnimator() {
+        ThreadUtils.assertOnUiThread();
+
+        if (mToolbar == null) {
+            mToolbar = new DynamicToolbarAnimator(this);
+        }
+        return mToolbar;
+    }
+
+    /**
+     * Get the CompositorController instance for this session.
+     *
+     * @return CompositorController instance.
+     */
+    @UiThread
+    public @NonNull CompositorController getCompositorController() {
+        ThreadUtils.assertOnUiThread();
+
+        if (mController == null) {
+            mController = new CompositorController(this);
+            if (mCompositorReady) {
+                mController.onCompositorReady();
+            }
+        }
+        return mController;
+    }
+
+    /**
+     * Get a matrix for transforming from client coordinates to surface coordinates.
+     *
+     * @param matrix Matrix to be replaced by the transformation matrix.
+     * @see #getClientToScreenMatrix(Matrix)
+     * @see #getPageToSurfaceMatrix(Matrix)
+     */
+    @UiThread
+    public void getClientToSurfaceMatrix(@NonNull final Matrix matrix) {
+        ThreadUtils.assertOnUiThread();
+
+        matrix.setScale(mViewportZoom, mViewportZoom);
+        if (mClientTop != mTop) {
+            matrix.postTranslate(0, mClientTop - mTop);
+        }
+    }
+
+    /**
+     * Get a matrix for transforming from client coordinates to screen coordinates. The
+     * client coordinates are in CSS pixels and are relative to the viewport origin; their
+     * relation to screen coordinates does not depend on the current scroll position.
+     *
+     * @param matrix Matrix to be replaced by the transformation matrix.
+     * @see #getClientToSurfaceMatrix(Matrix)
+     * @see #getPageToScreenMatrix(Matrix)
+     */
+    @UiThread
+    public void getClientToScreenMatrix(@NonNull final Matrix matrix) {
+        ThreadUtils.assertOnUiThread();
+
+        getClientToSurfaceMatrix(matrix);
+        matrix.postTranslate(mLeft, mTop);
+    }
+
+    /**
+     * Get a matrix for transforming from page coordinates to screen coordinates. The page
+     * coordinates are in CSS pixels and are relative to the page origin; their relation
+     * to screen coordinates depends on the current scroll position of the outermost
+     * frame.
+     *
+     * @param matrix Matrix to be replaced by the transformation matrix.
+     * @see #getPageToSurfaceMatrix(Matrix)
+     * @see #getClientToScreenMatrix(Matrix)
+     */
+    @UiThread
+    public void getPageToScreenMatrix(@NonNull final Matrix matrix) {
+        ThreadUtils.assertOnUiThread();
+
+        getPageToSurfaceMatrix(matrix);
+        matrix.postTranslate(mLeft, mTop);
+    }
+
+    /**
+     * Get a matrix for transforming from page coordinates to surface coordinates.
+     *
+     * @param matrix Matrix to be replaced by the transformation matrix.
+     * @see #getPageToScreenMatrix(Matrix)
+     * @see #getClientToSurfaceMatrix(Matrix)
+     */
+    @UiThread
+    public void getPageToSurfaceMatrix(@NonNull final Matrix matrix) {
+        ThreadUtils.assertOnUiThread();
+
+        getClientToSurfaceMatrix(matrix);
+        matrix.postTranslate(-mViewportLeft, -mViewportTop);
+    }
+
+    /**
+     * Get the bounds of the client area in client coordinates. The returned top-left
+     * coordinates are always (0, 0). Use the matrix from {@link
+     * #getClientToSurfaceMatrix(Matrix)} or {@link #getClientToScreenMatrix(Matrix)} to
+     * map these bounds to surface or screen coordinates, respectively.
+     *
+     * @param rect RectF to be replaced by the client bounds in client coordinates.
+     * @see #getSurfaceBounds(Rect)
+     */
+    @UiThread
+    public void getClientBounds(@NonNull final RectF rect) {
+        ThreadUtils.assertOnUiThread();
+
+        rect.set(0.0f, 0.0f, (float) mWidth / mViewportZoom,
+                (float) mClientHeight / mViewportZoom);
+    }
+
+    /**
+     * Get the bounds of the client area in surface coordinates. This is equivalent to
+     * mapping the bounds returned by #getClientBounds(RectF) with the matrix returned by
+     * #getClientToSurfaceMatrix(Matrix).
+     *
+     * @param rect Rect to be replaced by the client bounds in surface coordinates.
+     */
+    @UiThread
+    public void getSurfaceBounds(@NonNull final Rect rect) {
+        ThreadUtils.assertOnUiThread();
+
+        rect.set(0, mClientTop - mTop, mWidth, mHeight);
     }
 
     /**
@@ -3256,12 +3598,10 @@ public class GeckoSession extends LayerSession
          *             PERMISSION_GEOLOCATION
          *             PERMISSION_DESKTOP_NOTIFICATION
          *             PERMISSION_AUTOPLAY_MEDIA
-         * @param access Not used.
          * @param callback Callback interface.
          */
         void onContentPermissionRequest(GeckoSession session, String uri,
-                                        @Permission int type,
-                                        String access, Callback callback);
+                                        @Permission int type, Callback callback);
 
         class MediaSource {
             @IntDef({SOURCE_CAMERA, SOURCE_SCREEN, SOURCE_APPLICATION,
@@ -3480,6 +3820,7 @@ public class GeckoSession extends LayerSession
          * @param session Session instance.
          * @param reason Reason for the reset.
          */
+        @UiThread
         void restartInput(@NonNull GeckoSession session, @RestartReason int reason);
 
         /**
@@ -3489,6 +3830,7 @@ public class GeckoSession extends LayerSession
          * @param session Session instance.
          * @see #hideSoftInput
          * */
+        @UiThread
         void showSoftInput(@NonNull GeckoSession session);
 
         /**
@@ -3498,6 +3840,7 @@ public class GeckoSession extends LayerSession
          * @param session Session instance.
          * @see #showSoftInput
          * */
+        @UiThread
         void hideSoftInput(@NonNull GeckoSession session);
 
         /**
@@ -3510,6 +3853,7 @@ public class GeckoSession extends LayerSession
          * @param compositionStart Composition start offset, or -1 if there is no composition.
          * @param compositionEnd Composition end offset, or -1 if there is no composition.
          */
+        @UiThread
         void updateSelection(@NonNull GeckoSession session, int selStart, int selEnd,
                              int compositionStart, int compositionEnd);
 
@@ -3522,6 +3866,7 @@ public class GeckoSession extends LayerSession
          * @param request The extract text request.
          * @param text The extracted text.
          */
+        @UiThread
         void updateExtractedText(@NonNull GeckoSession session,
                                  @NonNull ExtractedTextRequest request,
                                  @NonNull ExtractedText text);
@@ -3534,6 +3879,7 @@ public class GeckoSession extends LayerSession
          * @param session Session instance.
          * @param info Cursor-anchor information.
          */
+        @UiThread
         void updateCursorAnchorInfo(@NonNull GeckoSession session, @NonNull CursorAnchorInfo info);
 
         @Retention(RetentionPolicy.SOURCE)
@@ -3573,7 +3919,257 @@ public class GeckoSession extends LayerSession
          *                  SessionTextInput#onProvideAutofillVirtualStructure} and can be used
          *                  with {@link SessionTextInput#autofill}.
          */
+        @UiThread
         void notifyAutoFill(@NonNull GeckoSession session, @AutoFillNotification int notification,
                             int virtualId);
+    }
+
+    /* package */ void onSurfaceChanged(final Surface surface, final int width,
+                                        final int height) {
+        ThreadUtils.assertOnUiThread();
+
+        mWidth = width;
+        mHeight = height;
+
+        if (mCompositorReady) {
+            mCompositor.syncResumeResizeCompositor(width, height, surface);
+            onWindowBoundsChanged();
+            return;
+        }
+
+        // We have a valid surface but we're not attached or the compositor
+        // is not ready; save the surface for later when we're ready.
+        mSurface = surface;
+
+        // Adjust bounds as the last step.
+        onWindowBoundsChanged();
+    }
+
+    /* package */ void onSurfaceDestroyed() {
+        ThreadUtils.assertOnUiThread();
+
+        if (mCompositorReady) {
+            mCompositor.syncPauseCompositor();
+            return;
+        }
+
+        // While the surface was valid, we never became attached or the
+        // compositor never became ready; clear the saved surface.
+        mSurface = null;
+    }
+
+    /* package */ void onScreenOriginChanged(final int left, final int top) {
+        ThreadUtils.assertOnUiThread();
+
+        if (mLeft == left && mTop == top) {
+            return;
+        }
+
+        mLeft = left;
+        mTop = top;
+        onWindowBoundsChanged();
+    }
+
+    /* package */ void onCompositorAttached() {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        mAttachedCompositor = true;
+
+        if (mNPZC != null) {
+            mCompositor.attachNPZC(mNPZC);
+        }
+
+        if (mSurface != null) {
+            // If we have a valid surface, create the compositor now that we're attached.
+            // Leave mSurface alone because we'll need it later for onCompositorReady.
+            onSurfaceChanged(mSurface, mWidth, mHeight);
+        }
+
+        mCompositor.sendToolbarAnimatorMessage(IS_COMPOSITOR_CONTROLLER_OPEN);
+    }
+
+    /* package */ void onCompositorDetached() {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        if (mController != null) {
+            mController.onCompositorDetached();
+        }
+
+        mAttachedCompositor = false;
+        mCompositorReady = false;
+    }
+
+    /* package */ void handleCompositorMessage(final int message) {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        switch (message) {
+            case COMPOSITOR_CONTROLLER_OPEN: {
+                if (isCompositorReady()) {
+                    return;
+                }
+
+                // Delay calling onCompositorReady to avoid deadlock due
+                // to synchronous call to the compositor.
+                ThreadUtils.postToUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onCompositorReady();
+                    }
+                });
+                break;
+            }
+
+            case FIRST_PAINT: {
+                if (mController != null) {
+                    mController.onFirstPaint();
+                }
+                break;
+            }
+
+            case LAYERS_UPDATED: {
+                if (mController != null) {
+                    mController.notifyDrawCallbacks();
+                }
+                break;
+            }
+
+            case STATIC_TOOLBAR_READY:
+            case TOOLBAR_SHOW: {
+                if (mToolbar != null) {
+                    mToolbar.handleToolbarAnimatorMessage(message);
+                    // Update window bounds due to toolbar visibility change.
+                    onWindowBoundsChanged();
+                }
+                break;
+            }
+
+            default: {
+                if (mToolbar != null) {
+                    mToolbar.handleToolbarAnimatorMessage(message);
+                } else {
+                    Log.w(LOGTAG, "Unexpected message: " + message);
+                }
+                break;
+            }
+        }
+    }
+
+    /* package */ void recvScreenPixels(int width, int height, int[] pixels) {
+        if (mController != null) {
+            mController.recvScreenPixels(width, height, pixels);
+        }
+    }
+
+    /* package */ boolean isCompositorReady() {
+        return mCompositorReady;
+    }
+
+    /* package */ void onCompositorReady() {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        mCompositorReady = true;
+
+        if (mController != null) {
+            mController.onCompositorReady();
+        }
+
+        if (mSurface != null) {
+            // If we have a valid surface, resume the
+            // compositor now that the compositor is ready.
+            onSurfaceChanged(mSurface, mWidth, mHeight);
+            mSurface = null;
+        }
+
+        if (mToolbar != null) {
+            mToolbar.onCompositorReady();
+        }
+    }
+
+    /* package */ void updateOverscrollVelocity(final float x, final float y) {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        if (mOverscroll == null) {
+            return;
+        }
+
+        // Multiply the velocity by 1000 to match what was done in JPZ.
+        mOverscroll.setVelocity(x * 1000.0f, OverscrollEdgeEffect.AXIS_X);
+        mOverscroll.setVelocity(y * 1000.0f, OverscrollEdgeEffect.AXIS_Y);
+    }
+
+    /* package */ void updateOverscrollOffset(final float x, final float y) {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        if (mOverscroll == null) {
+            return;
+        }
+
+        mOverscroll.setDistance(x, OverscrollEdgeEffect.AXIS_X);
+        mOverscroll.setDistance(y, OverscrollEdgeEffect.AXIS_Y);
+    }
+
+    /* package */ void onMetricsChanged(final float scrollX, final float scrollY,
+                                        final float zoom) {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        mViewportLeft = scrollX;
+        mViewportTop = scrollY;
+        mViewportZoom = zoom;
+    }
+
+    /* protected */ void onWindowBoundsChanged() {
+        if (DEBUG) {
+            ThreadUtils.assertOnUiThread();
+        }
+
+        final int toolbarHeight;
+        if (mToolbar != null) {
+            toolbarHeight = mToolbar.getCurrentToolbarHeight();
+        } else {
+            toolbarHeight = 0;
+        }
+
+        mClientTop = mTop + toolbarHeight;
+        mClientHeight = mHeight - toolbarHeight;
+
+        if (mAttachedCompositor) {
+            mCompositor.onBoundsChanged(mLeft, mClientTop, mWidth, mClientHeight);
+        }
+
+        if (mOverscroll != null) {
+            mOverscroll.setSize(mWidth, mClientHeight);
+        }
+    }
+
+    /**
+     * GeckoSession applications implement this interface to handle media events.
+     */
+    public interface MediaDelegate {
+        /**
+         * An HTMLMediaElement has been created.
+         * @param session Session instance.
+         * @param element The media element that was just created.
+         */
+        void onMediaAdd(@NonNull GeckoSession session, @NonNull MediaElement element);
+        /**
+         * An HTMLMediaElement has been unloaded.
+         * @param session Session instance.
+         * @param element The media element that was unloaded.
+         */
+        void onMediaRemove(@NonNull GeckoSession session, @NonNull MediaElement element);
     }
 }

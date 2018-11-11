@@ -66,7 +66,7 @@ W32API_VERSION=3.14
 GCONF_VERSION=1.2.1
 STARTUP_NOTIFICATION_VERSION=0.8
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.25.1
+SQLITE_VERSION=3.25.3
 
 dnl Set various checks
 dnl ========================================================
@@ -79,8 +79,6 @@ MOZ_USE_PTHREADS=
 _PTHREAD_LDFLAGS=""
 
 LDFLAGS="$LDFLAGS $LINKER_LDFLAGS"
-
-MOZ_DEFAULT_COMPILER
 
 if test "$COMPILE_ENVIRONMENT"; then
     MOZ_ANDROID_NDK
@@ -158,7 +156,6 @@ case "$target" in
     if test "$GCC" != "yes"; then
         # Check to see if we are really running in a msvc environemnt
         _WIN32_MSVC=1
-        AC_CHECK_PROGS(MIDL, midl)
 
         # Make sure compilers are valid
         CFLAGS="$CFLAGS -nologo"
@@ -266,19 +263,6 @@ case "$target" in
 
         INCREMENTAL_LINKER=1
 
-        # Set midl environment
-        case "$target" in
-        i*86-*)
-            MIDL_FLAGS="${MIDL_FLAGS} -env win32"
-            ;;
-        x86_64-*)
-            MIDL_FLAGS="${MIDL_FLAGS} -env x64"
-            ;;
-        aarch64-*)
-            MIDL_FLAGS="${MIDL_FLAGS} -env arm64"
-            ;;
-        esac
-
         unset _MSVC_VER_FILTER
 
         WRAP_STL_INCLUDES=1
@@ -321,18 +305,6 @@ case "$target" in
             AC_MSG_ERROR([windres version $WINDRES_VERSION or higher is required to build.])
         fi
 
-        AC_CHECK_PROGS(MIDL, $target-widl widl)
-        if test -n "$MIDL"; then
-            case "$target" in
-            i*86-*)
-                MIDL_FLAGS="$MIDL_FLAGS --win32 -m32"
-                ;;
-            x86_64-*)
-                MIDL_FLAGS="$MIDL_FLAGS --win64 -m64"
-                ;;
-            esac
-        fi
-
         # strsafe.h on mingw uses macros for function deprecation that pollutes namespace
         # causing problems with local implementations with the same name.
         AC_DEFINE(STRSAFE_NO_DEPRECATE)
@@ -359,10 +331,8 @@ fi
 
 fi # COMPILE_ENVIRONMENT
 
-AC_SUBST(MIDL_FLAGS)
 AC_SUBST(_MSC_VER)
 
-AC_SUBST(GNU_AS)
 AC_SUBST(GNU_CC)
 AC_SUBST(GNU_CXX)
 
@@ -443,10 +413,7 @@ fi # COMPILE_ENVIRONMENT
 dnl ========================================================
 dnl set the defaults first
 dnl ========================================================
-AS_BIN=$AS
 AR_EXTRACT='$(AR) x'
-AS='$(CC)'
-AS_DASH_C_FLAG='-c'
 MOZ_USER_DIR=".mozilla"
 
 MOZ_FIX_LINK_PATHS="-Wl,-rpath-link,${DIST}/bin -Wl,-rpath-link,${prefix}/lib"
@@ -547,6 +514,13 @@ if test "$GNU_CC"; then
     AC_MSG_CHECKING([for -z nocopyreloc option to ld])
     _SAVE_LDFLAGS=$LDFLAGS
     LDFLAGS="$LDFLAGS -Wl,-z,nocopyreloc"
+    AC_TRY_LINK(,,AC_MSG_RESULT([yes]),
+                  AC_MSG_RESULT([no])
+                  LDFLAGS=$_SAVE_LDFLAGS)
+
+    AC_MSG_CHECKING([for -Bsymbolic-functions option to ld])
+    _SAVE_LDFLAGS=$LDFLAGS
+    LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions"
     AC_TRY_LINK(,,AC_MSG_RESULT([yes]),
                   AC_MSG_RESULT([no])
                   LDFLAGS=$_SAVE_LDFLAGS)
@@ -863,13 +837,6 @@ case "$target" in
         fi
     else
         TARGET_COMPILER_ABI=msvc
-        if test "$AS_BIN"; then
-            AS="$(basename "$AS_BIN")"
-        fi
-        # armasm64 doesn't understand -c.
-        if test "$CPU_ARCH" = "aarch64"; then
-            AS_DASH_C_FLAG=
-        fi
         case "$LINKER" in
         *lld*)
             AR='llvm-lib'
@@ -884,7 +851,12 @@ case "$target" in
         RANLIB='echo not_ranlib'
         STRIP='echo not_strip'
         PKG_SKIP_STRIP=1
-        WIN32_SUBSYSTEM_VERSION=6.01
+        # aarch64 doesn't support subsystems below 6.02
+        if test "$CPU_ARCH" = "aarch64"; then
+            WIN32_SUBSYSTEM_VERSION=6.02
+        else
+            WIN32_SUBSYSTEM_VERSION=6.01
+        fi
         WIN32_CONSOLE_EXE_LDFLAGS=-SUBSYSTEM:CONSOLE,$WIN32_SUBSYSTEM_VERSION
         WIN32_GUI_EXE_LDFLAGS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
         DSO_LDOPTS=-SUBSYSTEM:WINDOWS,$WIN32_SUBSYSTEM_VERSION
@@ -1773,11 +1745,11 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.39, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.40, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
+NSS_CFLAGS="$NSS_CFLAGS -I${DIST}/include/nss"
 if test -z "$MOZ_SYSTEM_NSS"; then
-   NSS_CFLAGS="-I${DIST}/include/nss"
    case "${OS_ARCH}" in
         # Only few platforms have been tested with GYP
         WINNT|Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|SunOS)
@@ -1902,10 +1874,6 @@ MOZ_AUTH_EXTENSION=1
 if test "$MOZ_IOS"; then
    MOZ_AUTH_EXTENSION=
 fi
-MOZ_RAW=
-MOZ_SRTP=
-MOZ_WEBRTC_HARDWARE_AEC_NS=
-MOZ_SCTP=
 VPX_USE_YASM=
 VPX_ASFLAGS=
 VPX_AS_CONVERSION=
@@ -1914,7 +1882,6 @@ VPX_ARM_ASM=
 LIBJPEG_TURBO_AS=
 LIBJPEG_TURBO_ASFLAGS=
 MOZ_PREF_EXTENSIONS=1
-MOZ_REFLOW_PERF=
 MOZ_SPELLCHECK=1
 MOZ_TOOLKIT_SEARCH=1
 MOZ_UNIVERSALCHARDET=1
@@ -1924,7 +1891,6 @@ MOZ_NO_SMART_CARDS=
 NECKO_COOKIES=1
 MOZ_USE_NATIVE_POPUP_WINDOWS=
 MOZ_EXCLUDE_HYPHENATION_DICTIONARIES=
-ACCESSIBILITY=1
 MOZ_CONTENT_SANDBOX=
 MOZ_GMP_SANDBOX=
 MOZ_SANDBOX=1
@@ -1936,13 +1902,6 @@ case "$target_os" in
         NS_ENABLE_TSF=1
         AC_DEFINE(NS_ENABLE_TSF)
         ;;
-esac
-
-case "${target}" in
-    *-android*|*-linuxandroid*)
-        MOZ_RAW=1
-        ;;
-
 esac
 
 # Optional Firefox for Android partner distribution directory.
@@ -2103,9 +2062,6 @@ if test "$COMPILE_ENVIRONMENT"; then
     AC_DEFINE_UNQUOTED(GDK_VERSION_MAX_ALLOWED,$GDK_VERSION_MAX_ALLOWED)
     GLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_32
   fi
-  if test "$MOZ_WIDGET_TOOLKIT" = gtk2; then
-    GLIB_VERSION_MAX_ALLOWED=$GLIB_VERSION_MIN_REQUIRED
-  fi
   if test "$MOZ_ENABLE_GTK"; then
     if test "$MOZ_X11"; then
       GDK_PACKAGES=gdk-x11-2.0
@@ -2115,10 +2071,6 @@ if test "$COMPILE_ENVIRONMENT"; then
 
     PKG_CHECK_MODULES(MOZ_GTK2, gtk+-2.0 >= $GTK2_VERSION gtk+-unix-print-2.0 glib-2.0 >= $GLIB_VERSION gobject-2.0 gio-unix-2.0 $GDK_PACKAGES)
     MOZ_GTK2_CFLAGS="-I${_topsrcdir}/widget/gtk/compat $MOZ_GTK2_CFLAGS"
-  fi
-  if test "$MOZ_WIDGET_TOOLKIT" = gtk2; then
-    TK_CFLAGS=$MOZ_GTK2_CFLAGS
-    TK_LIBS=$MOZ_GTK2_LIBS
   fi
 fi # COMPILE_ENVIRONMENT
 
@@ -2305,35 +2257,6 @@ if test -n "$MOZ_EXCLUDE_HYPHENATION_DICTIONARIES"; then
     AC_DEFINE(MOZ_EXCLUDE_HYPHENATION_DICTIONARIES)
 fi
 
-dnl ========================================================
-dnl accessibility support on by default on all platforms
-dnl ========================================================
-MOZ_ARG_DISABLE_BOOL(accessibility,
-[  --disable-accessibility Disable accessibility support],
-    ACCESSIBILITY=,
-    ACCESSIBILITY=1 )
-if test "$ACCESSIBILITY"; then
-    case "$target" in
-    *-mingw*)
-        if test -z "$MIDL"; then
-            if test "$GCC" != "yes"; then
-                AC_MSG_ERROR([MIDL could not be found. Building accessibility without MIDL is not supported.])
-            else
-                AC_MSG_ERROR([You have accessibility enabled, but widl could not be found. Add --disable-accessibility to your mozconfig or install widl. See https://developer.mozilla.org/en-US/docs/Cross_Compile_Mozilla_for_Mingw32 for details.])
-            fi
-        fi
-    esac
-    AC_DEFINE(ACCESSIBILITY)
-fi
-
-dnl ========================================================
-dnl Accessibility is required for the linuxgl widget
-dnl backend
-dnl ========================================================
-if test "${MOZ_WIDGET_TOOLKIT}" = "linuxgl" -a "$ACCESSIBILITY" != "1"; then
-    AC_MSG_ERROR(["Accessibility is required for the linuxgl widget backend"])
-fi
-
 AC_TRY_COMPILE([#include <linux/ethtool.h>],
                [ struct ethtool_cmd cmd; cmd.speed_hi = 0; ],
                MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI=1)
@@ -2341,46 +2264,12 @@ AC_TRY_COMPILE([#include <linux/ethtool.h>],
 AC_SUBST(MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI)
 
 if test -n "$MOZ_WEBRTC"; then
-    MOZ_RAW=1
-    MOZ_SCTP=1
-    MOZ_SRTP=1
-    AC_DEFINE(MOZ_SCTP)
-    AC_DEFINE(MOZ_SRTP)
     if test -n "$MOZ_X11"; then
       MOZ_WEBRTC_X11_LIBS="-lXext -lXdamage -lXfixes -lXcomposite"
     fi
 fi
 
-dnl ========================================================
-dnl = Force hardware AEC, disable webrtc.org AEC
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(hardware-aec-ns,
-[  --enable-hardware-aec-ns   Enable support for hardware AEC and noise suppression],
-    MOZ_WEBRTC_HARDWARE_AEC_NS=1,
-    MOZ_WEBRTC_HARDWARE_AEC_NS=)
-
-if test -n "$MOZ_WEBRTC_HARDWARE_AEC_NS"; then
-    AC_DEFINE(MOZ_WEBRTC_HARDWARE_AEC_NS)
-fi
-
-AC_SUBST(MOZ_WEBRTC_HARDWARE_AEC_NS)
-AC_SUBST(MOZ_SCTP)
-AC_SUBST(MOZ_SRTP)
 AC_SUBST_LIST(MOZ_WEBRTC_X11_LIBS)
-
-dnl ========================================================
-dnl = Enable Raw Codecs
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(raw,
-[  --enable-raw           Enable support for RAW media],
-    MOZ_RAW=1,
-    MOZ_RAW=)
-
-if test -n "$MOZ_RAW"; then
-    AC_DEFINE(MOZ_RAW)
-fi
-
-AC_SUBST(MOZ_RAW)
 
 dnl ========================================================
 dnl = Apple platform decoder support
@@ -3003,49 +2892,6 @@ AC_CHECK_PROGS(WGET, wget, "")
 AC_SUBST(WGET)
 
 dnl ========================================================
-dnl Maintenance Service
-dnl ========================================================
-
-MOZ_ARG_ENABLE_BOOL(maintenance-service,
-[  --enable-maintenance-service       Enable building of maintenanceservice],
-    MOZ_MAINTENANCE_SERVICE=1,
-    MOZ_MAINTENANCE_SERVICE= )
-
-if test -n "$MOZ_MAINTENANCE_SERVICE"; then
-  if test "$OS_ARCH" = "WINNT"; then
-    AC_DEFINE(MOZ_MAINTENANCE_SERVICE)
-  else
-    AC_MSG_ERROR([Can only build with --enable-maintenance-service with a Windows target])
-  fi
-fi
-
-dnl ========================================================
-dnl Bundled fonts on desktop platforms
-dnl ========================================================
-
-MOZ_ARG_ENABLE_BOOL(bundled-fonts,
-[  --enable-bundled-fonts  Enable support for bundled fonts on desktop platforms],
-    MOZ_BUNDLED_FONTS=1,
-    MOZ_BUNDLED_FONTS=)
-
-if test -n "$MOZ_BUNDLED_FONTS"; then
-  AC_DEFINE(MOZ_BUNDLED_FONTS)
-fi
-
-dnl ========================================================
-dnl Verify MAR signatures
-dnl ========================================================
-
-MOZ_ARG_ENABLE_BOOL(verify-mar,
-[  --enable-verify-mar     Enable verifying MAR signatures],
-    MOZ_VERIFY_MAR_SIGNATURE=1,
-    MOZ_VERIFY_MAR_SIGNATURE= )
-
-if test -n "$MOZ_VERIFY_MAR_SIGNATURE"; then
-  AC_DEFINE(MOZ_VERIFY_MAR_SIGNATURE)
-fi
-
-dnl ========================================================
 dnl Enable building the signmar program.
 dnl This option is much different than the --enable-verify-mar option.
 dnl --enable-verify-mar is for enabling the verification check on MAR
@@ -3609,29 +3455,6 @@ dnl ========================================================
 MOZ_ARG_HEADER(Profiling and Instrumenting)
 
 dnl ========================================================
-dnl = Enable TaskTracer
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(tasktracer,
-[  --enable-tasktracer       Set compile flags necessary for using TaskTracer],
-    MOZ_TASK_TRACER=1,
-    MOZ_TASK_TRACER= )
-if test -n "$MOZ_TASK_TRACER"; then
-    AC_DEFINE(MOZ_TASK_TRACER)
-    AC_SUBST(MOZ_TASK_TRACER)
-fi
-
-dnl ========================================================
-dnl Turn on reflow counting
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(reflow-perf,
-[  --enable-reflow-perf    Enable reflow performance tracing],
-    MOZ_REFLOW_PERF=1,
-    MOZ_REFLOW_PERF= )
-if test -n "$MOZ_REFLOW_PERF"; then
-    AC_DEFINE(MOZ_REFLOW_PERF)
-fi
-
-dnl ========================================================
 dnl = Offer a way to disable the startup cache
 dnl ========================================================
 
@@ -4029,10 +3852,8 @@ dnl ========================================================
 AC_SUBST(AR)
 AC_SUBST(AR_FLAGS)
 AC_SUBST(AR_EXTRACT)
-AC_SUBST(AS)
 AC_SUBST(NM)
 AC_SUBST_LIST(ASFLAGS)
-AC_SUBST(AS_DASH_C_FLAG)
 AC_SUBST(RC)
 AC_SUBST(RCFLAGS)
 AC_SUBST(WINDRES)
@@ -4048,14 +3869,11 @@ AC_SUBST(MOZ_TOOLKIT_SEARCH)
 AC_SUBST(MOZ_FEEDS)
 
 AC_SUBST(MOZ_UNIVERSALCHARDET)
-AC_SUBST(ACCESSIBILITY)
 AC_SUBST(MOZ_SPELLCHECK)
 AC_SUBST(MOZ_ANDROID_ANR_REPORTER)
 AC_SUBST(MOZ_CRASHREPORTER)
 AC_SUBST(MOZ_CRASHREPORTER_INJECTOR)
-AC_SUBST(MOZ_MAINTENANCE_SERVICE)
 AC_SUBST(MOZ_STUB_INSTALLER)
-AC_SUBST(MOZ_VERIFY_MAR_SIGNATURE)
 AC_SUBST(MOZ_ENABLE_SIGNMAR)
 AC_SUBST(MOZ_UPDATER)
 
@@ -4394,7 +4212,6 @@ AC_SUBST(HAVE_TOOLCHAIN_SUPPORT_MSSSE3)
 AC_SUBST(HAVE_TOOLCHAIN_SUPPORT_MSSE4_1)
 AC_SUBST(HAVE_X86_AVX2)
 AC_SUBST(HAVE_ALTIVEC)
-AC_SUBST(GCC_USE_GNU_LD)
 
 AC_SUBST_LIST(DSO_CFLAGS)
 AC_SUBST_LIST(DSO_PIC_CFLAGS)
@@ -4468,11 +4285,6 @@ fi # COMPILE_ENVIRONMENT
 
 dnl Set various defines and substitutions
 dnl ========================================================
-
-if test "$MOZ_DEBUG"; then
-    AC_DEFINE(MOZ_REFLOW_PERF)
-    AC_DEFINE(MOZ_REFLOW_PERF_DSP)
-fi
 
 if test "$ACCESSIBILITY" -a "$MOZ_ENABLE_GTK" ; then
     AC_DEFINE(MOZ_ACCESSIBILITY_ATK)

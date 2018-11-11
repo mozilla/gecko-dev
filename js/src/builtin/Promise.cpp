@@ -664,6 +664,13 @@ AddPromiseFlags(PromiseObject& promise, int32_t flag)
     promise.setFixedSlot(PromiseSlot_Flags, Int32Value(flags | flag));
 }
 
+static void
+RemovePromiseFlags(PromiseObject& promise, int32_t flag)
+{
+    int32_t flags = promise.flags();
+    promise.setFixedSlot(PromiseSlot_Flags, Int32Value(flags & ~flag));
+}
+
 static bool
 PromiseHasAnyFlag(PromiseObject& promise, int32_t flag)
 {
@@ -3292,6 +3299,21 @@ PromiseThenNewPromiseCapability(JSContext* cx, HandleObject promiseObj,
             if (!NewPromiseCapability(cx, C, resultCapability, true)) {
                 return false;
             }
+
+            RootedObject unwrappedPromise(cx, promiseObj);
+            if (IsWrapper(promiseObj)) {
+              unwrappedPromise = UncheckedUnwrap(promiseObj);
+            }
+            RootedObject unwrappedNewPromise(cx, resultCapability.promise());
+            if (IsWrapper(resultCapability.promise())) {
+              unwrappedNewPromise = UncheckedUnwrap(resultCapability.promise());
+            }
+            if (unwrappedPromise->is<PromiseObject>() &&
+                unwrappedNewPromise->is<PromiseObject>())
+            {
+              unwrappedNewPromise->as<PromiseObject>()
+                .copyUserInteractionFlagsFrom(*unwrappedPromise.as<PromiseObject>());
+            }
         }
     }
 
@@ -3300,16 +3322,11 @@ PromiseThenNewPromiseCapability(JSContext* cx, HandleObject promiseObj,
 
 // ES2016, 25.4.5.3., steps 3-5.
 MOZ_MUST_USE bool
-js::OriginalPromiseThen(JSContext* cx, Handle<PromiseObject*> promise,
+js::OriginalPromiseThen(JSContext* cx, HandleObject promiseObj,
                         HandleValue onFulfilled, HandleValue onRejected,
                         MutableHandleObject dependent, CreateDependentPromise createDependent)
 {
-    RootedObject promiseObj(cx, promise);
-    if (promise->compartment() != cx->compartment()) {
-        if (!cx->compartment()->wrap(cx, &promiseObj)) {
-            return false;
-        }
-    }
+    Rooted<PromiseObject*> promise(cx, &CheckedUnwrap(promiseObj)->as<PromiseObject>());
 
     // Steps 3-4.
     Rooted<PromiseCapability> resultCapability(cx);
@@ -3370,6 +3387,7 @@ OriginalPromiseThenBuiltin(JSContext* cx, HandleValue promiseVal, HandleValue on
             return false;
         }
 
+        resultPromise->copyUserInteractionFlagsFrom(promiseVal.toObject().as<PromiseObject>());
         resultCapability.promise().set(resultPromise);
     }
 
@@ -3384,6 +3402,16 @@ OriginalPromiseThenBuiltin(JSContext* cx, HandleValue promiseVal, HandleValue on
         rval.setUndefined();
     }
     return true;
+}
+
+MOZ_MUST_USE bool
+js::RejectPromiseWithPendingError(JSContext* cx, Handle<PromiseObject*> promise)
+{
+    // Not much we can do about uncatchable exceptions, just bail.
+    RootedValue exn(cx);
+    if (!GetAndClearException(cx, &exn))
+        return false;
+    return PromiseObject::reject(cx, promise, exn);
 }
 
 static MOZ_MUST_USE bool PerformPromiseThenWithReaction(JSContext* cx,
@@ -4039,22 +4067,19 @@ Promise_then_impl(JSContext* cx, HandleValue promiseVal, HandleValue onFulfilled
     }
 
     RootedObject promiseObj(cx, &promiseVal.toObject());
-    Rooted<PromiseObject*> promise(cx);
 
-    if (promiseObj->is<PromiseObject>()) {
-        promise = &promiseObj->as<PromiseObject>();
-    } else {
+    if (!promiseObj->is<PromiseObject>()) {
         JSObject* unwrappedPromiseObj = CheckedUnwrap(promiseObj);
         if (!unwrappedPromiseObj) {
             ReportAccessDenied(cx);
             return false;
         }
         if (!unwrappedPromiseObj->is<PromiseObject>()) {
-            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                                      "Promise", "then", "value");
+            JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+                                       "Promise", "then",
+                                       InformalValueTypeName(ObjectValue(*promiseObj)));
             return false;
         }
-        promise = &unwrappedPromiseObj->as<PromiseObject>();
     }
 
     // Steps 3-5.
@@ -4062,7 +4087,7 @@ Promise_then_impl(JSContext* cx, HandleValue promiseVal, HandleValue onFulfilled
                                              ? CreateDependentPromise::Always
                                              : CreateDependentPromise::SkipIfCtorUnobservable;
     RootedObject resultPromise(cx);
-    if (!OriginalPromiseThen(cx, promise, onFulfilled, onRejected, &resultPromise,
+    if (!OriginalPromiseThen(cx, promiseObj, onFulfilled, onRejected, &resultPromise,
                              createDependent))
     {
         return false;
@@ -4335,12 +4360,23 @@ PromiseObject::dependentPromises(JSContext* cx, MutableHandle<GCVector<Value>> v
         return true;
     }
 
-    RootedNativeObject reactions(cx, &reactionsVal.toObject().as<NativeObject>());
+    RootedObject reactionsObj(cx, &reactionsVal.toObject());
 
-    // If only a single reaction is pending, it's stored directly.
-    if (reactions->is<PromiseReactionRecord>()) {
+    // If only a single reaction exists, it's stored directly instead of in a
+    // list. In that case, `reactionsObj` might be a wrapper, which we can
+    // always safely unwrap.
+    if (IsProxy(reactionsObj)) {
+        reactionsObj = UncheckedUnwrap(reactionsObj);
+        if (JS_IsDeadWrapper(reactionsObj)) {
+            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+            return false;
+        }
+        MOZ_RELEASE_ASSERT(reactionsObj->is<PromiseReactionRecord>());
+    }
+
+    if (reactionsObj->is<PromiseReactionRecord>()) {
         // Not all reactions have a Promise on them.
-        RootedObject promiseObj(cx, reactions->as<PromiseReactionRecord>().promise());
+        RootedObject promiseObj(cx, reactionsObj->as<PromiseReactionRecord>().promise());
         if (!promiseObj) {
             return true;
         }
@@ -4353,13 +4389,26 @@ PromiseObject::dependentPromises(JSContext* cx, MutableHandle<GCVector<Value>> v
         return true;
     }
 
+    MOZ_RELEASE_ASSERT(reactionsObj->is<NativeObject>());
+    HandleNativeObject reactions = reactionsObj.as<NativeObject>();
+
     uint32_t len = reactions->getDenseInitializedLength();
     MOZ_ASSERT(len >= 2);
 
     uint32_t valuesIndex = 0;
+    Rooted<PromiseReactionRecord*> reaction(cx);
     for (uint32_t i = 0; i < len; i++) {
-        const Value& element = reactions->getDenseElement(i);
-        PromiseReactionRecord* reaction = &element.toObject().as<PromiseReactionRecord>();
+        JSObject* element = &reactions->getDenseElement(i).toObject();
+        if (IsProxy(element)) {
+            element = UncheckedUnwrap(element);
+            if (JS_IsDeadWrapper(element)) {
+                JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+                return false;
+            }
+        }
+
+        MOZ_RELEASE_ASSERT(element->is<PromiseReactionRecord>());
+        reaction = &element->as<PromiseReactionRecord>();
 
         // Not all reactions have a Promise on them.
         RootedObject promiseObj(cx, reaction->promise());
@@ -4435,6 +4484,33 @@ PromiseObject::onSettled(JSContext* cx, Handle<PromiseObject*> promise)
     }
 
     Debugger::onPromiseSettled(cx, promise);
+}
+
+void
+PromiseObject::setRequiresUserInteractionHandling(bool state)
+{
+    if (state) {
+        AddPromiseFlags(*this, PROMISE_FLAG_REQUIRES_USER_INTERACTION_HANDLING);
+    } else {
+        RemovePromiseFlags(*this, PROMISE_FLAG_REQUIRES_USER_INTERACTION_HANDLING);
+    }
+}
+
+void
+PromiseObject::setHadUserInteractionUponCreation(bool state)
+{
+    if (state) {
+        AddPromiseFlags(*this, PROMISE_FLAG_HAD_USER_INTERACTION_UPON_CREATION);
+    } else {
+        RemovePromiseFlags(*this, PROMISE_FLAG_HAD_USER_INTERACTION_UPON_CREATION);
+    }
+}
+
+void
+PromiseObject::copyUserInteractionFlagsFrom(PromiseObject& rhs)
+{
+    setRequiresUserInteractionHandling(rhs.requiresUserInteractionHandling());
+    setHadUserInteractionUponCreation(rhs.hadUserInteractionUponCreation());
 }
 
 JSFunction*
@@ -5045,12 +5121,6 @@ OffThreadPromiseRuntimeState::shutdown(JSContext* cx)
     MOZ_ASSERT(!initialized());
 }
 
-static JSObject*
-CreatePromisePrototype(JSContext* cx, JSProtoKey key)
-{
-    return GlobalObject::createBlankPrototype(cx, cx->global(), &PromiseObject::protoClass_);
-}
-
 const JSJitInfo promise_then_info = {
   { (JSJitGetterOp)Promise_then_noRetVal },
   { 0 }, /* unused */
@@ -5096,7 +5166,7 @@ static const JSPropertySpec promise_static_properties[] = {
 
 static const ClassSpec PromiseObjectClassSpec = {
     GenericCreateConstructor<PromiseConstructor, 1, gc::AllocKind::FUNCTION>,
-    CreatePromisePrototype,
+    GenericCreatePrototype<PromiseObject>,
     promise_static_methods,
     promise_static_properties,
     promise_methods,

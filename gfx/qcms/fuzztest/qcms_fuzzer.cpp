@@ -39,7 +39,7 @@ transform(qcms_profile* src_profile, qcms_profile* dst_profile, size_t size)
   qcms_intent intent = qcms_profile_get_rendering_intent(src_profile);
   // Firefox calls this on the display profile to increase performance.
   // Skip with low probability to increase coverage.
-  if (size % 0x10) {
+  if (size % 15) {
     qcms_profile_precache_output_transform(dst_profile);
   }
 
@@ -51,6 +51,8 @@ transform(qcms_profile* src_profile, qcms_profile* dst_profile, size_t size)
 
   static uint8_t src[] = {
     0x7F, 0x7F, 0x7F, 0x00, 0x00, 0x7F, 0x7F, 0xFF, 0x7F, 0x10, 0x20, 0x30,
+    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xB0, 0xBF, 0xEF, 0x6F,
+    0x3F, 0xC0, 0x9F, 0xE0, 0x90, 0xCF, 0x40, 0xAF, 0x0F, 0x01, 0x60, 0xF0,
   };
   static uint8_t dst[sizeof(src) * 4]; // 4x in case of GRAY to RGBA
 

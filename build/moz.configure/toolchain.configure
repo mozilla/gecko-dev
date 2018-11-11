@@ -9,8 +9,8 @@ imply_option('--enable-release', depends_if('MOZ_AUTOMATION')(lambda x: True))
 
 js_option('--enable-release',
           default=milestone.is_release_or_beta,
-          help='Build with more conservative, release engineering-oriented '
-               'options. This may slow down builds.')
+          help='{Build|Do not build} with more conservative, release '
+               'engineering-oriented options.{ This may slow down builds.|}')
 
 
 @depends('--enable-release')
@@ -32,10 +32,9 @@ add_old_configure_assignment('MOZ_PGO', depends('MOZ_PGO')(lambda x: bool(x)))
 # Code optimization
 # ==============================================================
 
-js_option('--enable-optimize',
+js_option('--disable-optimize',
           nargs='?',
-          default=True,
-          help='Enable optimizations via compiler flags')
+          help='Disable optimizations via compiler flags')
 
 
 @depends('--enable-optimize')
@@ -550,6 +549,9 @@ def check_compiler(compiler, language, target):
             if (info.cpu, target.cpu) == ('x86_64', 'x86'):
                 # -m32 does not use -Xclang, so add it directly.
                 flags.append('-m32')
+            elif target.toolchain == 'aarch64-mingw32':
+                # clang-cl uses a different name for this target
+                flags.append('--target=aarch64-windows-msvc')
         elif info.type == 'gcc':
             same_arch = same_arch_different_bits()
             if (target.cpu, info.cpu) in same_arch:
@@ -693,7 +695,7 @@ def default_c_compilers(host_or_target, other_c_compiler=None):
     from init.configure.
     `other_c_compiler` is the `target` C compiler when `host_or_target` is `host`.
     '''
-    assert host_or_target in (host, target)
+    assert host_or_target in {host, target}
 
     other_c_compiler = () if other_c_compiler is None else (other_c_compiler,)
 
@@ -797,6 +799,33 @@ def default_cxx_compilers(c_compiler, other_c_compiler=None, other_cxx_compiler=
 
 
 @template
+def provided_program(env_var):
+    '''Template handling cases where a program can be specified either as a
+    path or as a path with applicable arguments.
+    '''
+
+    @depends_if(env_var)
+    @imports(_from='itertools', _import='takewhile')
+    @imports(_from='mozbuild.shellutil', _import='split', _as='shell_split')
+    def provided(cmd):
+        # Assume the first dash-prefixed item (and any subsequent items) are
+        # command-line options, the item before the dash-prefixed item is
+        # the program we're looking for, and anything before that is a wrapper
+        # of some kind (e.g. sccache).
+        cmd = shell_split(cmd[0])
+
+        without_flags = list(takewhile(lambda x: not x.startswith('-'), cmd))
+
+        return namespace(
+            wrapper=without_flags[:-1],
+            program=without_flags[-1],
+            flags=cmd[len(without_flags):],
+        )
+
+    return provided
+
+
+@template
 def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
              other_c_compiler=None):
     '''Template handling the generic base checks for the compiler for the
@@ -811,11 +840,11 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
     `other_c_compiler` is the result of the `compiler` template for the
     language 'C' for `target`.
     '''
-    assert host_or_target in (host, target)
+    assert host_or_target in {host, target}
     assert language in ('C', 'C++')
     assert language == 'C' or c_compiler is not None
-    assert host_or_target == target or other_compiler is not None
-    assert language == 'C' or host_or_target == target or \
+    assert host_or_target is target or other_compiler is not None
+    assert language == 'C' or host_or_target is target or \
         other_c_compiler is not None
 
     host_or_target_str = {
@@ -841,31 +870,14 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
 
     # Handle the compiler given by the user through one of the CC/CXX/HOST_CC/
     # HOST_CXX variables.
-    @depends_if(var)
-    @imports(_from='itertools', _import='takewhile')
-    @imports(_from='mozbuild.shellutil', _import='split', _as='shell_split')
-    def provided_compiler(cmd):
-        # Historically, the compiler variables have contained more than the
-        # path to the compiler itself. So for backwards compatibility, try to
-        # find what is what in there, assuming the first dash-prefixed item is
-        # a compiler option, the item before that is the compiler, and anything
-        # before that is a compiler wrapper.
-        cmd = shell_split(cmd[0])
-
-        without_flags = list(takewhile(lambda x: not x.startswith('-'), cmd))
-
-        return namespace(
-            wrapper=without_flags[:-1],
-            compiler=without_flags[-1],
-            flags=cmd[len(without_flags):],
-        )
+    provided_compiler = provided_program(var)
 
     # Normally, we'd use `var` instead of `_var`, but the interaction with
     # old-configure complicates things, and for now, we a) can't take the plain
     # result from check_prog as CC/CXX/HOST_CC/HOST_CXX and b) have to let
     # old-configure AC_SUBST it (because it's autoconf doing it, not us)
     compiler = check_prog('_%s' % var, what=what, progs=default_compilers,
-                          input=provided_compiler.compiler,
+                          input=provided_compiler.program,
                           paths=toolchain_search_path)
 
     @depends(compiler, provided_compiler, compiler_wrapper, host_or_target)
@@ -1040,7 +1052,7 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
     # need to check this works for preprocessing, because we already relied
     # on $CC -E/$CXX -E doing preprocessing work to validate the compiler
     # in the first place.
-    if host_or_target == target:
+    if host_or_target is target:
         pp_var = {
             'C': 'CPP',
             'C++': 'CXXCPP',
@@ -1069,7 +1081,7 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
                 log.warning('The value of %s is not used by this build system.'
                             % linker_var)
 
-        if host_or_target == target:
+        if host_or_target is target:
             @depends(valid_compiler)
             def is_msvc(compiler):
                 return compiler.type == 'msvc'
@@ -1116,27 +1128,13 @@ def check_have_64_bit(have_64_bit, compiler_have_64_bit):
                         'about the target bitness.')
 
 
-js_option(env='BINDGEN_CFLAGS',
-          nargs=1,
-          default=bindgen_cflags_defaults,
-          help='Options bindgen should pass to the C/C++ parser')
-
-
-@depends('BINDGEN_CFLAGS')
-@checking('bindgen cflags', lambda s: s if s else 'no')
-def bindgen_cflags(value):
-    if value and len(value):
-        return value[0].split()
-
-
-add_old_configure_assignment('_BINDGEN_CFLAGS', bindgen_cflags)
-
-
-@depends(c_compiler)
-def default_debug_flags(compiler_info):
+@depends(c_compiler, target)
+def default_debug_flags(compiler_info, target):
     # Debug info is ON by default.
     if compiler_info.type in ('msvc', 'clang-cl'):
         return '-Zi'
+    elif target.kernel == 'WINNT' and compiler_info.type == 'clang':
+        return '-g -gcodeview'
     return '-g'
 
 
@@ -1147,10 +1145,9 @@ option(env='MOZ_DEBUG_FLAGS',
 imply_option('--enable-debug-symbols',
              depends_if('--enable-debug')(lambda v: v))
 
-js_option('--enable-debug-symbols',
+js_option('--disable-debug-symbols',
           nargs='?',
-          default=True,
-          help='Enable debug symbols using the given compiler flags')
+          help='Disable debug symbols using the given compiler flags')
 
 set_config('MOZ_DEBUG_SYMBOLS',
            depends_if('--enable-debug-symbols')(lambda _: True))
@@ -1808,6 +1805,124 @@ set_config('LD_IS_BFD', depends(select_linker.KIND)
 add_old_configure_assignment('LINKER_LDFLAGS', select_linker.LINKER_FLAG)
 
 
+# There's a wrinkle with MinGW: linker configuration is not enabled, so
+# `select_linker` is never invoked.  Hard-code around it.
+@depends(select_linker, target, c_compiler)
+def gcc_use_gnu_ld(select_linker, target, c_compiler):
+    if select_linker is not None:
+        return select_linker.KIND in ('bfd', 'gold', 'lld')
+    if target.kernel == 'WINNT' and c_compiler.type == 'clang':
+        return True
+    return None
+
+
+# GCC_USE_GNU_LD=1 means the linker is command line compatible with GNU ld.
+set_config('GCC_USE_GNU_LD', gcc_use_gnu_ld)
+add_old_configure_assignment('GCC_USE_GNU_LD', gcc_use_gnu_ld)
+
+# Assembler detection
+# ==============================================================
+
+js_option(env='AS', nargs=1, help='Path to the assembler')
+
+@depends(target, c_compiler)
+def as_info(target, c_compiler):
+    if c_compiler.type in ('msvc', 'clang-cl'):
+        ml = {
+            'x86': 'ml',
+            'x86_64': 'ml64',
+            'aarch64': 'armasm64.exe',
+        }.get(target.cpu)
+        return namespace(
+            type='masm',
+            names=(ml, )
+        )
+    # When building with anything but MSVC, we just use the C compiler as the assembler.
+    return namespace(
+        type='gcc',
+        names=(c_compiler.compiler, )
+    )
+
+# One would expect the assembler to be specified merely as a program.  But in
+# cases where the assembler is passed down into js/, it can be specified in
+# the same way as CC: a program + a list of argument flags.  We might as well
+# permit the same behavior in general, even though it seems somewhat unusual.
+# So we have to do the same sort of dance as we did above with
+# `provided_compiler`.
+provided_assembler = provided_program('AS')
+assembler = check_prog('_AS', input=provided_assembler.program,
+                       what='the assembler', progs=as_info.names)
+
+@depends(as_info, assembler, provided_assembler, c_compiler)
+def as_with_flags(as_info, assembler, provided_assembler, c_compiler):
+    if provided_assembler:
+        return provided_assembler.wrapper + \
+            [provided_assembler.program] + \
+            provided_assembler.flags
+
+    if as_info.type == 'masm':
+        return assembler
+
+    assert as_info.type == 'gcc'
+
+    # Need to add compiler wrappers and flags as appropriate.
+    return c_compiler.wrapper + [assembler] + c_compiler.flags
+
+
+add_old_configure_assignment('AS', as_with_flags)
+
+
+@depends(assembler, c_compiler, extra_toolchain_flags)
+@imports('subprocess')
+@imports(_from='os', _import='devnull')
+def gnu_as(assembler, c_compiler, toolchain_flags):
+    # clang uses a compatible GNU assembler.
+    if c_compiler.type == 'clang':
+        return True
+
+    if c_compiler.type == 'gcc':
+        cmd = [assembler] + c_compiler.flags
+        if toolchain_flags:
+            cmd += toolchain_flags
+        cmd += ['-Wa,--version', '-c', '-o', devnull, '-x', 'assembler', '-']
+        # We don't actually have to provide any input on stdin, `Popen.communicate` will
+        # close the stdin pipe.
+        # clang will error if it uses its integrated assembler for this target,
+        # so handle failures gracefully.
+        if 'GNU' in check_cmd_output(*cmd, stdin=subprocess.PIPE, onerror=lambda: '').decode('utf-8'):
+            return True
+
+
+set_config('GNU_AS', gnu_as)
+add_old_configure_assignment('GNU_AS', gnu_as)
+
+
+@depends(as_info, target)
+def as_dash_c_flag(as_info, target):
+    # armasm64 doesn't understand -c.
+    if as_info.type == 'masm' and target.cpu == 'aarch64':
+        return ''
+    else:
+        return '-c'
+
+
+set_config('AS_DASH_C_FLAG', as_dash_c_flag)
+
+
+@depends(as_info, target)
+def as_outoption(as_info, target):
+    # The uses of ASOUTOPTION depend on the spacing for -o/-Fo.
+    if as_info.type == 'masm' and target.cpu != 'aarch64':
+        return '-Fo'
+
+    return '-o '
+
+
+set_config('ASOUTOPTION', as_outoption)
+
+# clang plugin handling
+# ==============================================================
+
 js_option('--enable-clang-plugin', env='ENABLE_CLANG_PLUGIN',
           help="Enable building with the mozilla clang plugin")
 
@@ -1880,10 +1995,15 @@ add_old_configure_assignment('LIBFUZZER_FLAGS', libfuzzer_flags.use_flags)
 @depends(target, c_compiler)
 def make_shared_library(target, compiler):
     if target.os == 'WINNT':
-        if compiler.type in ('gcc', 'clang'):
+        if compiler.type == 'gcc':
             return namespace(
                 mkshlib=['$(CXX)', '$(DSO_LDOPTS)', '-o', '$@'],
                 mkcshlib=['$(CC)', '$(DSO_LDOPTS)', '-o', '$@'],
+            )
+        elif compiler.type == 'clang':
+            return namespace(
+                mkshlib=['$(CXX)', '$(DSO_LDOPTS)', '-Wl,-pdb,$(LINK_PDBFILE)', '-o', '$@'],
+                mkcshlib=['$(CC)', '$(DSO_LDOPTS)', '-Wl,-pdb,$(LINK_PDBFILE)', '-o', '$@'],
             )
         else:
             linker = [

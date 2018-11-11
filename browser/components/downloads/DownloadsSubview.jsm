@@ -419,21 +419,44 @@ DownloadsSubview.Button = class extends DownloadsViewUI.DownloadElementShell {
     } else {
       this._updateState();
     }
-
-    // This cannot be placed within onStateChanged because when a download goes
-    // from hasBlockedData to !hasBlockedData it will still remain in the same state.
-    this.element.classList.toggle("temporary-block",
-                                  !!this.download.hasBlockedData);
   }
 
-  /**
-   * Update the DOM representation of this download to match the current, recently
-   * updated, state.
-   */
+  // DownloadElementShell
+  connect() {}
+
+  // DownloadElementShell
+  showDisplayNameAndIcon(displayName, icon) {
+    this.element.setAttribute("label", displayName);
+    this.element.setAttribute("image", icon);
+  }
+
+  // DownloadElementShell
+  showProgress() {}
+
+  // DownloadElementShell
+  showStatus(status) {
+    this.element.setAttribute("status", status);
+    this.element.setAttribute("tooltiptext", status);
+  }
+
+  // DownloadElementShell
+  showButton() {}
+
+  // DownloadElementShell
+  hideButton() {}
+
+  // DownloadElementShell
   _updateState() {
+    // This view only show completed and failed downloads.
+    let state = DownloadsCommon.stateOfDownload(this.download);
+    let shouldDisplay = state == DownloadsCommon.DOWNLOAD_FINISHED ||
+                        state == DownloadsCommon.DOWNLOAD_FAILED;
+    this.element.hidden = !shouldDisplay;
+    if (!shouldDisplay) {
+      return;
+    }
+
     super._updateState();
-    this.element.setAttribute("label", this.element.getAttribute("displayName"));
-    this.element.setAttribute("tooltiptext", this.element.getAttribute("fullStatus"));
 
     if (this.isCommandEnabled("downloadsCmd_show")) {
       this.element.setAttribute("openLabel", kButtonLabels.open);
@@ -448,23 +471,19 @@ DownloadsSubview.Button = class extends DownloadsViewUI.DownloadElementShell {
       this.element.removeAttribute("retryLabel");
       this.element.removeAttribute("showLabel");
     }
-
-    this._updateVisibility();
   }
 
-  _updateVisibility() {
-    let state = this.element.getAttribute("state");
-    // This view only show completed and failed downloads.
-    this.element.hidden = !(state == DownloadsCommon.DOWNLOAD_FINISHED ||
-      state == DownloadsCommon.DOWNLOAD_FAILED);
+  // DownloadElementShell
+  _updateStateInner() {
+    if (!this.element.hidden) {
+      super._updateStateInner();
+    }
   }
 
   /**
    * Command handler; copy the download URL to the OS general clipboard.
    */
   downloadsCmd_copyLocation() {
-    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
-                      .getService(Ci.nsIClipboardHelper);
-    clipboard.copyString(this.download.source.url);
+    DownloadsCommon.copyDownloadLink(this.download);
   }
 };

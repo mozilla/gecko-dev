@@ -78,7 +78,7 @@ var _attachConsole = async function(
   }
 
   if (!attachToTab) {
-    response = await state.dbgClient.getProcess();
+    response = await state.dbgClient.mainRoot.getProcess(0);
     await state.dbgClient.attachTarget(response.form.actor);
     const consoleActor = response.form.consoleActor;
     state.actor = consoleActor;
@@ -94,7 +94,7 @@ var _attachConsole = async function(
     return;
   }
   const tab = response.tabs[response.selected];
-  const [, tabClient] = await state.dbgClient.attachTarget(tab.actor);
+  const [, targetFront] = await state.dbgClient.attachTarget(tab.actor);
   if (attachToWorker) {
     const workerName = "console-test-worker.js#" + new Date().getTime();
     const worker = new Worker(workerName);
@@ -104,23 +104,23 @@ var _attachConsole = async function(
     state._worker_ref = worker;
     await waitForMessage(worker);
 
-    const { workers } = await tabClient.listWorkers();
+    const { workers } = await targetFront.listWorkers();
     const workerTargetActor = workers.filter(w => w.url == workerName)[0].actor;
     if (!workerTargetActor) {
       console.error("listWorkers failed. Unable to find the " +
                     "worker actor\n");
       return;
     }
-    const [workerResponse, workerClient] =
-      await tabClient.attachWorker(workerTargetActor);
-    if (!workerClient || workerResponse.error) {
-      console.error("attachWorker failed. No worker client or " +
+    const [workerResponse, workerTargetFront] =
+      await targetFront.attachWorker(workerTargetActor);
+    if (!workerTargetFront || workerResponse.error) {
+      console.error("attachWorker failed. No worker target front or " +
                     " error: " + workerResponse.error);
       return;
     }
-    await workerClient.attachThread({});
-    state.actor = workerClient.consoleActor;
-    state.dbgClient.attachConsole(workerClient.consoleActor, listeners)
+    await workerTargetFront.attachThread({});
+    state.actor = workerTargetFront.consoleActor;
+    state.dbgClient.attachConsole(workerTargetFront.consoleActor, listeners)
       .then(_onAttachConsole.bind(null, state), _onAttachError.bind(null, state));
   } else {
     state.actor = tab.consoleActor;
@@ -217,7 +217,7 @@ function checkRawHeaders(text, expected) {
     }
     arr.push({
       name: header.substr(0, index),
-      value: header.substr(index + 2)
+      value: header.substr(index + 2),
     });
   }
 

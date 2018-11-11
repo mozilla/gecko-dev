@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body onload="doRequestFullscreen()">
+<script>
+function doRequestFullscreen() {
+  function handler(evt) {
+    document.removeEventListener("fullscreenchange", handler);
+    document.removeEventListener("fullscreenerror", handler);
+    if (evt.type == "fullscreenchange") {
+      document.addEventListener("fullscreenchange", () => parent.continueTest(evt.type), {once: true});
+      document.exitFullscreen();
+    } else {
+      parent.continueTest(evt.type);
+    }
+  }
+  parent.ok(document.fullscreenEnabled, "Fullscreen " +
+            `should be enabled in ${parent.testTargetName}`);
+  document.addEventListener("fullscreenchange", handler);
+  document.addEventListener("fullscreenerror", handler);
+  parent.opener.info("Requesting fullscreen");
+  document.documentElement.requestFullscreen();
+}
+</script>
+</body>
+</html>

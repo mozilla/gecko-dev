@@ -5,11 +5,9 @@
 
 /* globals ReaderMode */
 
-/* eslint-disable mozilla/use-chromeutils-import */
-
-Cu.import("resource://gre/modules/ReaderMode.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
+ChromeUtils.import("resource://gre/modules/ReaderMode.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm");
 
 var Reader = Services.wm.getMostRecentWindow("navigator:browser").Reader;
 
@@ -22,11 +20,11 @@ var TEST_PAGES = [
       title: "Article title",
       byline: "by Jane Doe",
       excerpt: "This is the article description.",
-    }
+    },
   },
   {
     url: URL_PREFIX + "not_an_article.html",
-    expected: null
+    expected: null,
   },
   {
     url: URL_PREFIX + "developer.mozilla.org/en/XULRunner/Build_Instructions.html",
@@ -34,7 +32,7 @@ var TEST_PAGES = [
       title: "Building XULRunner",
       byline: null,
       excerpt: "XULRunner is built using basically the same process as Firefox or other applications. Please read and follow the general Build Documentation for instructions on how to get sources and set up build prerequisites.",
-    }
+    },
   },
 ];
 

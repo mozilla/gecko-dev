@@ -5,10 +5,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <stdlib.h>
 #include "mozilla/Types.h"
 #include <gtk/gtk.h>
+#include <gtk/gtkx.h>
 #include <gdk/gdkwayland.h>
 
+union wl_argument;
+
+/* Those strucures are just placeholders and will be replaced by
+ * real symbols from libwayland during run-time linking. We need to make
+ * them explicitly visible.
+ */
+#pragma GCC visibility push(default)
 const struct wl_interface wl_buffer_interface;
 const struct wl_interface wl_callback_interface;
 const struct wl_interface wl_data_device_interface;
@@ -22,6 +31,7 @@ const struct wl_interface wl_seat_interface;
 const struct wl_interface wl_surface_interface;
 const struct wl_interface wl_subsurface_interface;
 const struct wl_interface wl_subcompositor_interface;
+#pragma GCC visibility pop
 
 MOZ_EXPORT void
 wl_event_queue_destroy(struct wl_event_queue *queue)
@@ -35,7 +45,7 @@ wl_proxy_marshal(struct wl_proxy *p, uint32_t opcode, ...)
 
 MOZ_EXPORT void
 wl_proxy_marshal_array(struct wl_proxy *p, uint32_t opcode,
-		       union wl_argument *args)
+    union wl_argument *args)
 {
 }
 
@@ -111,6 +121,9 @@ wl_proxy_get_listener(struct wl_proxy *proxy)
 {
    return NULL;
 }
+
+typedef int (* wl_dispatcher_func_t)(const void *, void *, uint32_t,
+    const struct wl_message *, union wl_argument *);
 
 MOZ_EXPORT int
 wl_proxy_add_dispatcher(struct wl_proxy *proxy,
@@ -289,3 +302,13 @@ wl_egl_window_resize(struct wl_egl_window *egl_window,
                      int dx, int dy)
 {
 }
+
+MOZ_EXPORT GType
+gdk_wayland_display_get_type(void)
+{
+   // This shouldn't be ever called.
+   abort();
+
+   return GDK_TYPE_X11_DISPLAY;
+}
+

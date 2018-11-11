@@ -9,6 +9,7 @@
 #include "vm/JSObject.h"
 
 #include "vm/ArrayObject-inl.h"
+#include "vm/Debugger-inl.h"
 #include "vm/JSAtom-inl.h"
 #include "vm/JSScript-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -19,7 +20,7 @@ using namespace js;
 JSObject*
 GeneratorObject::create(JSContext* cx, AbstractFramePtr frame)
 {
-    MOZ_ASSERT(frame.script()->isGenerator() || frame.script()->isAsync());
+    MOZ_ASSERT(frame.isGeneratorFrame());
     MOZ_ASSERT(frame.script()->nfixed() == 0);
     MOZ_ASSERT(!frame.isConstructing());
 
@@ -50,6 +51,10 @@ GeneratorObject::create(JSContext* cx, AbstractFramePtr frame)
         genObj->setArgsObj(frame.argsObj());
     }
     genObj->clearExpressionStack();
+
+    if (!Debugger::onNewGenerator(cx, frame, genObj)) {
+        return nullptr;
+    }
 
     return genObj;
 }
@@ -88,8 +93,7 @@ GeneratorObject::suspend(JSContext* cx, HandleObject obj, AbstractFramePtr frame
         } while (false);
     }
 
-    uint32_t yieldAndAwaitIndex = GET_UINT24(pc);
-    genObj->setYieldAndAwaitIndex(yieldAndAwaitIndex);
+    genObj->setResumeIndex(pc);
     genObj->setEnvironmentChain(*frame.environmentChain());
     if (stack) {
         genObj->setExpressionStack(*stack);
@@ -110,8 +114,11 @@ GeneratorObject*
 js::GetGeneratorObjectForFrame(JSContext* cx, AbstractFramePtr frame)
 {
     cx->check(frame);
-    MOZ_ASSERT(frame.isFunctionFrame() &&
-               (frame.callee()->isGenerator() || frame.callee()->isAsync()));
+    MOZ_ASSERT(frame.isGeneratorFrame());
+
+    if (!frame.hasInitialEnvironment()) {
+        return nullptr;
+    }
 
     // The ".generator" binding is always present and always "aliased".
     CallObject& callObj = frame.callObj();
@@ -182,7 +189,7 @@ GeneratorObject::resume(JSContext* cx, InterpreterActivation& activation,
     }
 
     JSScript* script = callee->nonLazyScript();
-    uint32_t offset = script->yieldAndAwaitOffsets()[genObj->yieldAndAwaitIndex()];
+    uint32_t offset = script->resumeOffsets()[genObj->resumeIndex()];
     activation.regs().pc = script->offsetToPC(offset);
 
     // Always push on a value, even if we are raising an exception. In the
@@ -299,7 +306,7 @@ GeneratorObject::isAfterYieldOrAwait(JSOp op)
 
     JSScript* script = callee().nonLazyScript();
     jsbytecode* code = script->code();
-    uint32_t nextOffset = script->yieldAndAwaitOffsets()[yieldAndAwaitIndex()];
+    uint32_t nextOffset = script->resumeOffsets()[resumeIndex()];
     if (code[nextOffset] != JSOP_DEBUGAFTERYIELD) {
         return false;
     }

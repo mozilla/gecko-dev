@@ -256,6 +256,9 @@ public:
     return IsNodeInternal(aFirst, aArgs...);
   }
 
+  // Attach UA Shadow Root if it is not attached.
+  void AttachAndSetUAShadowRoot();
+
 protected:
   virtual ~nsGenericHTMLElement() {}
 
@@ -903,7 +906,7 @@ protected:
   ContentEditableTristate GetContentEditableValue() const
   {
     static const Element::AttrValuesArray values[] =
-      { &nsGkAtoms::_false, &nsGkAtoms::_true, &nsGkAtoms::_empty, nullptr };
+      { nsGkAtoms::_false, nsGkAtoms::_true, nsGkAtoms::_empty, nullptr };
 
     if (!MayHaveContentEditableAttr())
       return eInherit;
@@ -1133,7 +1136,7 @@ protected:
                               void* aData);
 
   // Returns true if the event should not be handled from GetEventTargetParent
-  bool IsElementDisabledForEvents(mozilla::EventMessage aMessage,
+  bool IsElementDisabledForEvents(mozilla::WidgetEvent* aEvent,
                                   nsIFrame* aFrame);
 
   // The focusability state of this form control.  eUnfocusable means that it

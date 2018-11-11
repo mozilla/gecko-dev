@@ -867,7 +867,8 @@ Proxy::Init()
                   ownerWindow ? ownerWindow->AsGlobal() : nullptr,
                   mWorkerPrivate->GetBaseURI(),
                   mWorkerPrivate->GetLoadGroup(),
-                  mWorkerPrivate->GetPerformanceStorage());
+                  mWorkerPrivate->GetPerformanceStorage(),
+                  mWorkerPrivate->CSPEventListener());
 
   mXHR->SetParameters(mMozAnon, mMozSystem);
   mXHR->SetClientInfoAndController(mClientInfo, mController);
@@ -1296,13 +1297,6 @@ EventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
 
   XMLHttpRequestWorker* xhr = mProxy->mXMLHttpRequestPrivate;
   xhr->UpdateState(*state.get(), mUseCachedArrayBufferResponse);
-
-  if (mType.EqualsASCII(sEventStrings[STRING_readystatechange])) {
-    if (mReadyState == 4 && !mUploadEvent && !mProxy->mSeenLoadStart) {
-      // We've already dispatched premature abort events.
-      return true;
-    }
-  }
 
   if (mUploadEvent && !xhr->GetUploadObjectNoCreate()) {
     return true;

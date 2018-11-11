@@ -56,6 +56,12 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
           "dest": "test_about_blank",
           "default": False,
           "help": "Runs the about:blank base case memory test.",
+          }],
+        [["--dmd"],
+         {"action": "store_true",
+          "dest": "dmd",
+          "default": False,
+          "help": "Runs tests with DMD enabled.",
           }]
     ] + testing_config_options + copy.deepcopy(code_coverage_config_options)
 
@@ -137,7 +143,7 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
         archive = os.path.join(page_load_test_dir, 'tp5n.zip')
         unzip = self.query_exe('unzip')
         unzip_cmd = [unzip, '-q', '-o', archive, '-d', page_load_test_dir]
-        self.run_command(unzip_cmd, halt_on_failure=True)
+        self.run_command(unzip_cmd, halt_on_failure=False)
         self.run_command("ls %s" % page_load_test_dir)
 
     def run_tests(self, args=None, **kw):
@@ -162,7 +168,7 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
             dmd_py_lib_dir = os.path.join(dmd_py_lib_dir, "../Resources/")
 
         dmd_path = os.path.join(dmd_py_lib_dir, "dmd.py")
-        if os.path.isfile(dmd_path):
+        if self.config['dmd'] and os.path.isfile(dmd_path):
             dmd_enabled = True
             runtime_testvars['dmd'] = True
 

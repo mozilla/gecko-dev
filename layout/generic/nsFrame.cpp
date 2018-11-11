@@ -19,6 +19,7 @@
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/Sprintf.h"
 
@@ -251,6 +252,7 @@ nsIFrame::DestroyAnonymousContent(nsPresContext* aPresContext,
 {
   if (nsCOMPtr<nsIContent> content = aContent) {
     aPresContext->EventStateManager()->NativeAnonymousContentRemoved(content);
+    aPresContext->PresShell()->NativeAnonymousContentRemoved(content);
     content->UnbindFromTree();
   }
 }
@@ -1173,9 +1175,8 @@ nsFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle)
   // correctness because text nodes themselves shouldn't have effects applied.
   if (!IsTextFrame() && !GetPrevContinuation()) {
     // Kick off loading of external SVG resources referenced from properties if
-    // any. This currently includes filter, clip-path, and mask. We don't care
-    // about the return value. We only want its side effect.
-    Unused << SVGObserverUtils::GetEffectProperties(this);
+    // any. This currently includes filter, clip-path, and mask.
+    SVGObserverUtils::InitiateResourceDocLoads(this);
   }
 
   // If the page contains markup that overrides text direction, and
@@ -1191,6 +1192,27 @@ nsFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle)
 
   mMayHaveRoundedCorners = true;
 }
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+void
+nsIFrame::AssertNewStyleIsSane(ComputedStyle& aNewStyle)
+{
+  MOZ_DIAGNOSTIC_ASSERT(PresShell() == aNewStyle.PresContextForFrame()->PresShell());
+  MOZ_DIAGNOSTIC_ASSERT(
+    aNewStyle.GetPseudo() == mComputedStyle->GetPseudo() ||
+    // ::first-line continuations are weird, this should probably be fixed via
+    // bug 1465474.
+    (mComputedStyle->GetPseudo() == nsCSSPseudoElements::firstLine() &&
+     aNewStyle.GetPseudo() == nsCSSAnonBoxes::mozLineFrame()) ||
+    // ::first-letter continuations are broken, in particular floating ones, see
+    // bug 1490281. The construction code tries to fix this up after the fact,
+    // then restyling undoes it...
+    (mComputedStyle->GetPseudo() == nsCSSAnonBoxes::mozText() &&
+     aNewStyle.GetPseudo() == nsCSSAnonBoxes::firstLetterContinuation()) ||
+    (mComputedStyle->GetPseudo() == nsCSSAnonBoxes::firstLetterContinuation() &&
+     aNewStyle.GetPseudo() == nsCSSAnonBoxes::mozText()));
+}
+#endif
 
 void
 nsIFrame::ReparentFrameViewTo(nsViewManager* aViewManager,
@@ -2623,6 +2645,7 @@ CheckForApzAwareEventHandlers(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
 static bool
 FrameParticipatesIn3DContext(nsIFrame* aAncestor, nsIFrame* aDescendant) {
   MOZ_ASSERT(aAncestor != aDescendant);
+  MOZ_ASSERT(aAncestor->GetContent() != aDescendant->GetContent());
   MOZ_ASSERT(aAncestor->Extend3DContext());
 
   nsIFrame* ancestor = aAncestor->FirstContinuation();
@@ -2644,30 +2667,40 @@ FrameParticipatesIn3DContext(nsIFrame* aAncestor, nsIFrame* aDescendant) {
 static bool
 ItemParticipatesIn3DContext(nsIFrame* aAncestor, nsDisplayItem* aItem)
 {
-  nsIFrame* transformFrame;
-  if (aItem->GetType() == DisplayItemType::TYPE_TRANSFORM ||
-      aItem->GetType() == DisplayItemType::TYPE_PERSPECTIVE) {
-    transformFrame = aItem->Frame();
-  } else {
+  auto type = aItem->GetType();
+  if (type != DisplayItemType::TYPE_TRANSFORM &&
+      type != DisplayItemType::TYPE_PERSPECTIVE) {
     return false;
   }
-  if (aAncestor == transformFrame) {
+  nsIFrame* transformFrame = aItem->Frame();
+  if (aAncestor->GetContent() == transformFrame->GetContent()) {
     return true;
   }
   return FrameParticipatesIn3DContext(aAncestor, transformFrame);
 }
 
 static void
-WrapSeparatorTransform(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                       nsDisplayList* aSource, nsDisplayList* aTarget,
-                       int aIndex) {
-  if (!aSource->IsEmpty()) {
-    nsDisplayTransform *sepIdItem =
-      MakeDisplayItem<nsDisplayTransform>(aBuilder, aFrame, aSource,
-                                        aBuilder->GetVisibleRect(), Matrix4x4(), aIndex);
-    sepIdItem->SetNoExtendContext();
-    aTarget->AppendToTop(sepIdItem);
+WrapSeparatorTransform(nsDisplayListBuilder* aBuilder,
+                       nsIFrame* aFrame,
+                       nsDisplayList* aNonParticipants,
+                       nsDisplayList* aParticipants,
+                       int aIndex,
+                       nsDisplayItem** aSeparator)
+{
+  if (aNonParticipants->IsEmpty()) {
+    return;
   }
+
+  nsDisplayTransform* item =
+    MakeDisplayItem<nsDisplayTransform>(aBuilder, aFrame, aNonParticipants,
+      aBuilder->GetVisibleRect(), Matrix4x4(), aIndex);
+  item->SetNoExtendContext();
+
+  if (*aSeparator == nullptr) {
+    *aSeparator = item;
+  }
+
+  aParticipants->AppendToTop(item);
 }
 
 // Try to compute a clip rect to bound the contents of the mask item
@@ -2675,13 +2708,12 @@ WrapSeparatorTransform(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 // one, return an empty Maybe.
 // The returned clip rect, if there is one, is relative to |aMaskedFrame|.
 static Maybe<nsRect>
-ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder, nsIFrame* aMaskedFrame,
-                       bool aHandleOpacity)
+ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder, nsIFrame* aMaskedFrame)
 {
   const nsStyleSVGReset* svgReset = aMaskedFrame->StyleSVGReset();
 
   nsSVGUtils::MaskUsage maskUsage;
-  nsSVGUtils::DetermineMaskUsage(aMaskedFrame, aHandleOpacity, maskUsage);
+  nsSVGUtils::DetermineMaskUsage(aMaskedFrame, false, maskUsage);
 
   nsPoint offsetToUserSpace = nsLayoutUtils::ComputeOffsetToUserSpace(aBuilder, aMaskedFrame);
   int32_t devPixelRatio = aMaskedFrame->PresContext()->AppUnitsPerDevPixel();
@@ -2718,10 +2750,11 @@ ComputeClipForMaskItem(nsDisplayListBuilder* aBuilder, nsIFrame* aMaskedFrame,
     // case, and we handle that specially.
     nsRect dirtyRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
 
-    nsIFrame* firstFrame = nsLayoutUtils::FirstContinuationOrIBSplitSibling(aMaskedFrame);
-    SVGObserverUtils::EffectProperties effectProperties =
-        SVGObserverUtils::GetEffectProperties(firstFrame);
-    nsTArray<nsSVGMaskFrame*> maskFrames = effectProperties.GetMaskFrames();
+    nsIFrame* firstFrame =
+      nsLayoutUtils::FirstContinuationOrIBSplitSibling(aMaskedFrame);
+    nsTArray<nsSVGMaskFrame*> maskFrames;
+    // XXX check return value?
+    SVGObserverUtils::GetAndObserveMasks(firstFrame, &maskFrames);
 
     for (uint32_t i = 0; i < maskFrames.Length(); ++i) {
       gfxRect clipArea;
@@ -2789,6 +2822,60 @@ struct AutoCheckBuilder {
 
   nsDisplayListBuilder* mBuilder;
 };
+
+/**
+ * Helper class to track container creation. Stores the first tracked container.
+ * Used to find the innermost container for hit test information, and to notify
+ * callers whether a container item was created or not.
+ */
+struct ContainerTracker
+{
+  void TrackContainer(nsDisplayItem* aContainer)
+  {
+    MOZ_ASSERT(aContainer);
+
+    if (!mContainer) {
+      mContainer = aContainer;
+    }
+
+    mCreatedContainer = true;
+  }
+
+  void ResetCreatedContainer()
+  {
+    mCreatedContainer = false;
+  }
+
+  nsDisplayItem* mContainer = nullptr;
+  bool mCreatedContainer = false;
+};
+
+/**
+ * Adds hit test information |aHitTestInfo| on the container item |aContainer|,
+ * or if the container item is null, creates a separate hit test item that is
+ * added to the bottom of the display list |aList|.
+ */
+static void
+AddHitTestInfo(nsDisplayListBuilder* aBuilder,
+               nsDisplayList* aList,
+               nsDisplayItem* aContainer,
+               nsIFrame* aFrame,
+               mozilla::UniquePtr<HitTestInfo>&& aHitTestInfo)
+{
+  nsDisplayHitTestInfoItem* hitTestItem;
+
+  if (aContainer) {
+    MOZ_ASSERT(aContainer->IsHitTestItem());
+    hitTestItem = static_cast<nsDisplayHitTestInfoItem*>(aContainer);
+    hitTestItem->SetHitTestInfo(std::move(aHitTestInfo));
+  } else {
+    // No container item was created for this frame. Create a separate
+    // nsDisplayCompositorHitTestInfo item instead.
+    hitTestItem = MakeDisplayItem<nsDisplayCompositorHitTestInfo>(
+      aBuilder, aFrame, std::move(aHitTestInfo));
+    aList->AppendToBottom(hitTestItem);
+  }
+}
 
 void
 nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
@@ -2934,16 +3021,18 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     aBuilder->EnterSVGEffectsContents(&hoistedScrollInfoItemsStorage);
   }
 
+  // We build an opacity item if it's not going to be drawn by SVG content.
+  // We could in principle skip creating an nsDisplayOpacity item if
+  // nsDisplayOpacity::NeedsActiveLayer returns false and usingSVGEffects is
+  // true (the nsDisplayFilter/nsDisplayMasksAndClipPaths could handle the
+  // opacity). Since SVG has perf issues where we sometimes spend a lot of
+  // time creating display list items that might be helpful.  We'd need to
+  // restore our mechanism to do that (changed in bug 1482403), and we'd
+  // need to invalidate the frame if the value that would be return from
+  // NeedsActiveLayer was to change, which we don't currently do.
+  bool useOpacity =
+    HasVisualOpacity(effectSet) && !nsSVGUtils::CanOptimizeOpacity(this);
 
-  bool needsActiveOpacityLayer = false;
-  // We build an opacity item if it's not going to be drawn by SVG content, or
-  // SVG effects. SVG effects won't handle the opacity if we want an active
-  // layer (for async animations), see
-  // nsSVGIntegrationsUtils::PaintMaskAndClipPath or
-  // nsSVGIntegrationsUtils::PaintFilter.
-  bool useOpacity = HasVisualOpacity(effectSet) &&
-                    !nsSVGUtils::CanOptimizeOpacity(this) &&
-                    ((needsActiveOpacityLayer = nsDisplayOpacity::NeedsActiveLayer(aBuilder, this)) || !usingSVGEffects);
   bool useBlendMode = effects->mMixBlendMode != NS_STYLE_BLEND_NORMAL;
   bool useStickyPosition = disp->mPosition == NS_STYLE_POSITION_STICKY &&
     IsScrollFrameActive(aBuilder,
@@ -3015,8 +3104,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   Maybe<nsRect> clipForMask;
   if (usingMask) {
-    clipForMask = ComputeClipForMaskItem(aBuilder, this, !useOpacity);
+    clipForMask = ComputeClipForMaskItem(aBuilder, this);
   }
+
+
+  mozilla::UniquePtr<HitTestInfo> hitTestInfo;
 
   nsDisplayListCollection set(aBuilder);
   {
@@ -3052,8 +3144,23 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
     aBuilder->AdjustWindowDraggingRegion(this);
 
-    aBuilder->BuildCompositorHitTestInfoIfNeeded(this, set.BorderBackground(),
-                                                 true);
+    if (gfxVars::UseWebRender()) {
+      aBuilder->BuildCompositorHitTestInfoIfNeeded(
+        this, set.BorderBackground(), true);
+    } else {
+      CompositorHitTestInfo info = aBuilder->BuildCompositorHitTestInfo()
+                                 ? GetCompositorHitTestInfo(aBuilder)
+                                 : CompositorHitTestInvisibleToHit;
+
+      if (info != CompositorHitTestInvisibleToHit) {
+        // Frame has hit test flags set, initialize the hit test info structure.
+        hitTestInfo = mozilla::MakeUnique<HitTestInfo>(aBuilder, this, info);
+
+        // Let child frames know the current hit test area and hit test flags.
+        aBuilder->SetCompositorHitTestInfo(
+          hitTestInfo->mArea, hitTestInfo->mFlags);
+      }
+    }
 
     MarkAbsoluteFramesForDisplayList(aBuilder);
     aBuilder->Check();
@@ -3156,9 +3263,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   // Get the ASR to use for the container items that we create here.
   const ActiveScrolledRoot* containerItemASR = contASRTracker.GetContainerASR();
 
-  if (aCreatedContainerItem) {
-    *aCreatedContainerItem = false;
-  }
+  ContainerTracker ct;
 
   /* If adding both a nsDisplayBlendContainer and a nsDisplayBlendMode to the
    * same list, the nsDisplayBlendContainer should be added first. This only
@@ -3172,9 +3277,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     resultList.AppendToTop(
       nsDisplayBlendContainer::CreateForMixBlendMode(aBuilder, this, &resultList,
                                                      containerItemASR));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   }
 
   /* If there are any SVG effects, wrap the list up in an SVG effects item
@@ -3183,7 +3286,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
    * output even if the element being filtered wouldn't otherwise do so.
    */
   if (usingSVGEffects) {
-    MOZ_ASSERT(usingFilter ||usingMask,
+    MOZ_ASSERT(usingFilter || usingMask,
                "Beside filter & mask/clip-path, what else effect do we have?");
 
     if (clipCapturedBy == ContainerItemType::eFilter) {
@@ -3194,15 +3297,10 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
     // Skip all filter effects while generating glyph mask.
     if (usingFilter && !aBuilder->IsForGenerateGlyphMask()) {
-      // If we are going to create a mask display item, handle opacity effect
-      // in that mask display item; Otherwise, take care of opacity in this
-      // filter display item.
-      bool handleOpacity = !usingMask && !useOpacity;
-
       /* List now emptied, so add the new list to the top. */
-      resultList.AppendToTop(
-        MakeDisplayItem<nsDisplayFilters>(aBuilder, this, &resultList,
-                                          handleOpacity));
+      resultList.AppendToTop(MakeDisplayItem<nsDisplayFilters>(
+        aBuilder, this, &resultList));
+      ct.TrackContainer(resultList.GetTop());
     }
 
     if (usingMask) {
@@ -3213,25 +3311,26 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       // an item always needs to have finite bounds with respect to its ASR.
       // If we weren't able to compute a clip for the mask, we fall back to
       // using containerItemASR, which is the lowest common ancestor clip of
-      // the mask's contents. That's not entirely crrect, but it satisfies
+      // the mask's contents. That's not entirely correct, but it satisfies
       // the base requirement of the ASR system (that items have finite bounds
       // wrt. their ASR).
       const ActiveScrolledRoot* maskASR = clipForMask.isSome()
                                         ? aBuilder->CurrentActiveScrolledRoot()
                                         : containerItemASR;
       /* List now emptied, so add the new list to the top. */
-      resultList.AppendToTop(
-        MakeDisplayItem<nsDisplayMasksAndClipPaths>(aBuilder, this, &resultList,
-                                                    !useOpacity, maskASR));
+      resultList.AppendToTop(MakeDisplayItem<nsDisplayMasksAndClipPaths>(
+        aBuilder, this, &resultList, maskASR));
+      ct.TrackContainer(resultList.GetTop());
     }
+
+    // TODO(miko): We could probably create a wraplist here and avoid creating
+    // it later in |BuildDisplayListForChild()|.
+    ct.ResetCreatedContainer();
 
     // Also add the hoisted scroll info items. We need those for APZ scrolling
     // because nsDisplayMasksAndClipPaths items can't build active layers.
     aBuilder->ExitSVGEffectsContents();
     resultList.AppendToTop(&hoistedScrollInfoItemsStorage);
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = false;
-    }
   }
 
   /* If the list is non-empty and there is CSS group opacity without SVG
@@ -3242,14 +3341,15 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     // The clip we would set on an element with opacity would clip
     // all descendant content, but some should not be clipped.
     DisplayListClipState::AutoSaveRestore opacityClipState(aBuilder);
+    const bool needsActiveOpacityLayer =
+      nsDisplayOpacity::NeedsActiveLayer(aBuilder, this);
+
     resultList.AppendToTop(
       MakeDisplayItem<nsDisplayOpacity>(aBuilder, this, &resultList,
                                         containerItemASR,
                                         opacityItemForEventsAndPluginsOnly,
                                         needsActiveOpacityLayer));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   }
 
   /* If we're going to apply a transformation and don't have preserve-3d set, wrap
@@ -3270,10 +3370,15 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     nsDisplayList participants;
     int index = 1;
 
+    nsDisplayItem* separator = nullptr;
+
     while (nsDisplayItem* item = resultList.RemoveBottom()) {
-      if (ItemParticipatesIn3DContext(this, item) && !item->GetClip().HasClip()) {
+      if (ItemParticipatesIn3DContext(this, item) &&
+          !item->GetClip().HasClip()) {
         // The frame of this item participates the same 3D context.
-        WrapSeparatorTransform(aBuilder, this, &nonparticipants, &participants, index++);
+        WrapSeparatorTransform(
+          aBuilder, this, &nonparticipants, &participants, index++, &separator);
+
         participants.AppendToTop(item);
       } else {
         // The frame of the item doesn't participate the current
@@ -3286,7 +3391,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
         nonparticipants.AppendToTop(item);
       }
     }
-    WrapSeparatorTransform(aBuilder, this, &nonparticipants, &participants, index++);
+    WrapSeparatorTransform(
+      aBuilder, this, &nonparticipants, &participants, index++, &separator);
+
+    if (separator) {
+      ct.TrackContainer(separator);
+    }
+
     resultList.AppendToTop(&participants);
   }
 
@@ -3314,18 +3425,15 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
                                         &resultList, visibleRect, 0,
                                         allowAsyncAnimation);
     resultList.AppendToTop(transformItem);
+    ct.TrackContainer(transformItem);
 
     if (hasPerspective) {
       if (clipCapturedBy == ContainerItemType::ePerspective) {
         clipState.Restore();
       }
-      resultList.AppendToTop(
-        MakeDisplayItem<nsDisplayPerspective>(
+      resultList.AppendToTop(MakeDisplayItem<nsDisplayPerspective>(
           aBuilder, this, &resultList));
-    }
-
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
+      ct.TrackContainer(resultList.GetTop());
     }
   }
 
@@ -3336,9 +3444,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
                                        aBuilder->CurrentActiveScrolledRoot(),
                                        nsDisplayOwnLayerFlags::eNone,
                                        ScrollbarData{}, /* aForceActive = */ false));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   }
 
   /* If we have sticky positioning, wrap it in a sticky position item.
@@ -3360,9 +3466,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     resultList.AppendToTop(
         MakeDisplayItem<nsDisplayFixedPosition>(aBuilder, this, &resultList,
           fixedASR, containerItemASR));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   } else if (useStickyPosition) {
     // For position:sticky, the clip needs to be applied both to the sticky
     // container item and to the contents. The container item needs the clip
@@ -3382,9 +3486,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     resultList.AppendToTop(
         MakeDisplayItem<nsDisplayStickyPosition>(aBuilder, this, &resultList,
           stickyASR, aBuilder->CurrentActiveScrolledRoot()));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   }
 
   /* If there's blending, wrap up the list in a blend-mode item. Note
@@ -3398,12 +3500,25 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
         MakeDisplayItem<nsDisplayBlendMode>(aBuilder, this, &resultList,
                                           effects->mMixBlendMode,
                                           containerItemASR));
-    if (aCreatedContainerItem) {
-      *aCreatedContainerItem = true;
-    }
+    ct.TrackContainer(resultList.GetTop());
   }
 
-  CreateOwnLayerIfNeeded(aBuilder, &resultList, aCreatedContainerItem);
+  bool createdOwnLayer = false;
+  CreateOwnLayerIfNeeded(aBuilder, &resultList, &createdOwnLayer);
+  if (createdOwnLayer) {
+    ct.TrackContainer(resultList.GetTop());
+  }
+
+  if (aCreatedContainerItem) {
+    *aCreatedContainerItem = ct.mCreatedContainer;
+  }
+
+  if (hitTestInfo) {
+    // WebRender support is not yet implemented.
+    MOZ_ASSERT(!gfxVars::UseWebRender());
+    AddHitTestInfo(
+      aBuilder, &resultList, ct.mContainer, this, std::move(hitTestInfo));
+  }
 
   aList->AppendToTop(&resultList);
 }
@@ -5222,7 +5337,7 @@ nsFrame::MarkIntrinsicISizesDirty()
   // (which likely depended on our now-stale intrinsic isize).
   auto* parentFrame = GetParent();
   if (parentFrame && parentFrame->IsFlexContainerFrame()) {
-    DeleteProperty(CachedFlexMeasuringReflow());
+    nsFlexContainerFrame::MarkCachedFlexMeasurementsDirty(this);
   }
 
   if (GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
@@ -5710,7 +5825,7 @@ nsFrame::ComputeSize(gfxContext*         aRenderingContext,
                                          boxSizingAdjust.BSize(aWM),
                                          *blockStyleCoord);
     } else if (MOZ_UNLIKELY(isGridItem) &&
-               blockStyleCoord->GetUnit() == eStyleUnit_Auto &&
+               blockStyleCoord->IsAutoOrEnum() &&
                !IS_TRUE_OVERFLOW_CONTAINER(this)) {
       auto cbSize = aCBSize.BSize(aWM);
       if (cbSize != NS_AUTOHEIGHT) {
@@ -6514,12 +6629,6 @@ nsFrame::AttributeChanged(int32_t         aNameSpaceID,
 }
 
 // Flow member functions
-
-nsSplittableType
-nsFrame::GetSplittableType() const
-{
-  return NS_FRAME_NOT_SPLITTABLE;
-}
 
 nsIFrame* nsFrame::GetPrevContinuation() const
 {
@@ -9246,9 +9355,13 @@ UnionBorderBoxes(nsIFrame* aFrame, bool aApplyTransform,
   Maybe<nsRect> clipPropClipRect =
     aFrame->GetClipPropClipRect(disp, effects, bounds.Size());
 
-  // Iterate over all children except pop-ups.
+  // Iterate over all children except pop-up, absolutely-positioned, and
+  // float ones.
   const nsIFrame::ChildListIDs skip(nsIFrame::kPopupList |
-                                    nsIFrame::kSelectPopupList);
+                                    nsIFrame::kSelectPopupList |
+                                    nsIFrame::kAbsoluteList |
+                                    nsIFrame::kFixedList |
+                                    nsIFrame::kFloatList);
   for (nsIFrame::ChildListIterator childLists(aFrame);
        !childLists.IsDone(); childLists.Next()) {
     if (skip.Contains(childLists.CurrentID())) {
@@ -9258,6 +9371,10 @@ UnionBorderBoxes(nsIFrame* aFrame, bool aApplyTransform,
     nsFrameList children = childLists.CurrentList();
     for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
       nsIFrame* child = e.get();
+      if (child->IsPlaceholderFrame()) {
+        continue;
+      }
+
       // Note that passing |true| for aApplyTransform when
       // child->Combines3DTransformWithAncestors() is incorrect if our
       // aApplyTransform is false... but the opposite would be as
@@ -10966,8 +11083,9 @@ nsIFrame::IsStackingContext(EffectSet* aEffectSet,
 {
   return HasOpacity(aEffectSet) ||
          IsTransformed(aStyleDisplay) ||
-         aStyleDisplay->IsContainPaint() ||
-         aStyleDisplay->IsContainLayout() ||
+         (IsFrameOfType(eSupportsContainLayoutAndPaint) &&
+          (aStyleDisplay->IsContainPaint() ||
+           aStyleDisplay->IsContainLayout())) ||
          // strictly speaking, 'perspective' doesn't require visual atomicity,
          // but the spec says it acts like the rest of these
          ChildrenHavePerspective(aStyleDisplay) ||
@@ -11057,12 +11175,10 @@ nsIFrame::ComputeWidgetTransform()
 
   nsPresContext* presContext = PresContext();
   int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-  bool dummyBool;
   gfx::Matrix4x4 matrix =
     nsStyleTransformMatrix::ReadTransforms(uiReset->mSpecifiedWindowTransform->mHead,
                                            refBox,
-                                           float(appUnitsPerDevPixel),
-                                           &dummyBool);
+                                           float(appUnitsPerDevPixel));
 
   // Apply the -moz-window-transform-origin translation to the matrix.
   Point transformOrigin =
@@ -11238,6 +11354,31 @@ nsIFrame::AddSizeOfExcludingThisForTree(nsWindowSizes& aSizes) const
   }
 }
 
+nsRect
+nsIFrame::GetCompositorHitTestArea(nsDisplayListBuilder* aBuilder)
+{
+  nsRect area;
+
+  nsIScrollableFrame* scrollFrame =
+    nsLayoutUtils::GetScrollableFrameFor(this);
+  if (scrollFrame) {
+    // If the frame is content of a scrollframe, then we need to pick up the
+    // area corresponding to the overflow rect as well. Otherwise the parts of
+    // the overflow that are not occupied by descendants get skipped and the
+    // APZ code sends touch events to the content underneath instead.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1127773#c15.
+    area = GetScrollableOverflowRect();
+  } else {
+    area = nsRect(nsPoint(0, 0), GetSize());
+  }
+
+  if (!area.IsEmpty()) {
+    return area + aBuilder->ToReferenceFrame(this);
+  }
+
+  return area;
+}
+
 CompositorHitTestInfo
 nsIFrame::GetCompositorHitTestInfo(nsDisplayListBuilder* aBuilder)
 {
@@ -11292,10 +11433,8 @@ nsIFrame::GetCompositorHitTestInfo(nsDisplayListBuilder* aBuilder)
     // ancestor DOM elements. Refer to the documentation in TouchActionHelper.cpp
     // for details; this code is meant to be equivalent to that code, but woven
     // into the top-down recursive display list building process.
-    CompositorHitTestInfo inheritedTouchAction = CompositorHitTestInvisibleToHit;
-    if (nsDisplayCompositorHitTestInfo* parentInfo = aBuilder->GetCompositorHitTestInfo()) {
-      inheritedTouchAction = parentInfo->HitTestInfo() & CompositorHitTestTouchActionMask;
-    }
+    CompositorHitTestInfo inheritedTouchAction =
+      aBuilder->GetHitTestInfo() & CompositorHitTestTouchActionMask;
 
     nsIFrame* touchActionFrame = this;
     if (nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this)) {
@@ -11342,7 +11481,7 @@ nsIFrame::GetCompositorHitTestInfo(nsDisplayListBuilder* aBuilder)
   if (scrollDirection.isSome()) {
     if (GetContent()->IsXULElement(nsGkAtoms::thumb)) {
       const bool thumbGetsLayer = aBuilder->GetCurrentScrollbarTarget() !=
-          layers::FrameMetrics::NULL_SCROLL_ID;
+          layers::ScrollableLayerGuid::NULL_SCROLL_ID;
       if (thumbGetsLayer) {
         result += CompositorHitTestFlags::eScrollbarThumb;
       } else {

@@ -17,12 +17,15 @@ const SAVE_ADDRESS_DEFAULT_PREF = "dom.payments.defaults.saveAddress";
 const paymentSrv = Cc["@mozilla.org/dom/payments/payment-request-service;1"]
                      .getService(Ci.nsIPaymentRequestService);
 const paymentUISrv = Cc["@mozilla.org/dom/payments/payment-ui-service;1"]
-                     .getService().wrappedJSObject;
+                     .getService(Ci.nsIPaymentUIService).wrappedJSObject;
 const {AppConstants} = ChromeUtils.import("resource://gre/modules/AppConstants.jsm", {});
 const {formAutofillStorage} = ChromeUtils.import(
   "resource://formautofill/FormAutofillStorage.jsm", {});
+const {OSKeyStoreTestUtils} = ChromeUtils.import(
+  "resource://testing-common/OSKeyStoreTestUtils.jsm", {});
 const {PaymentTestUtils: PTU} = ChromeUtils.import(
   "resource://testing-common/PaymentTestUtils.jsm", {});
+ChromeUtils.import("resource:///modules/BrowserWindowTracker.jsm");
 ChromeUtils.import("resource://gre/modules/CreditCard.jsm");
 
 function getPaymentRequests() {
@@ -31,19 +34,23 @@ function getPaymentRequests() {
 
 /**
  * Return the container (e.g. dialog or overlay) that the payment request contents are shown in.
- * This abstracts away the details of the widget used so that this can more earily transition from a
- * dialog to another kind of overlay.
- * Consumers shouldn't rely on a dialog window being returned.
+ * This abstracts away the details of the widget used so that this can more easily transition to
+ * another kind of dialog/overlay.
+ * @param {string} requestId
  * @returns {Promise}
  */
-async function getPaymentWidget() {
-  let win;
-  await BrowserTestUtils.waitForCondition(() => {
-    win = Services.wm.getMostRecentWindow(null);
-    return win.name.startsWith(paymentUISrv.REQUEST_ID_PREFIX);
-  }, "payment dialog should be the most recent");
-
-  return win;
+async function getPaymentWidget(requestId) {
+  return BrowserTestUtils.waitForCondition(() => {
+    let {dialogContainer} = paymentUISrv.findDialog(requestId);
+    if (!dialogContainer) {
+      return false;
+    }
+    let browserIFrame = dialogContainer.querySelector("iframe");
+    if (!browserIFrame) {
+      return false;
+    }
+    return browserIFrame.contentWindow;
+  }, "payment dialog should be opened");
 }
 
 async function getPaymentFrame(widget) {
@@ -237,19 +244,18 @@ function checkPaymentMethodDetailsMatchesCard(methodDetails, card, msg) {
  */
 async function setupPaymentDialog(browser, {methodData, details, options, merchantTaskFn}) {
   let dialogReadyPromise = waitForWidgetReady();
-  await ContentTask.spawn(browser,
-                          {
-                            methodData,
-                            details,
-                            options,
-                          },
-                          merchantTaskFn);
+  let {requestId} = await ContentTask.spawn(browser,
+                                            {
+                                              methodData,
+                                              details,
+                                              options,
+                                            },
+                                            merchantTaskFn);
+  ok(requestId, "requestId should be defined");
 
   // get a reference to the UI dialog and the requestId
-  let [win] = await Promise.all([getPaymentWidget(), dialogReadyPromise]);
+  let [win] = await Promise.all([getPaymentWidget(requestId), dialogReadyPromise]);
   ok(win, "Got payment widget");
-  let requestId = paymentUISrv.requestIdForWindow(win);
-  ok(requestId, "requestId should be defined");
   is(win.closed, false, "dialog should not be closed");
 
   let frame = await getPaymentFrame(win);
@@ -322,6 +328,12 @@ async function spawnInDialogForMerchantTask(merchantTaskFn, dialogTaskFn, taskAr
   });
 }
 
+async function loginAndCompletePayment(frame) {
+  let osKeyStoreLoginShown = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+  await spawnPaymentDialogTask(frame, PTU.DialogContentTasks.completePayment);
+  await osKeyStoreLoginShown;
+}
+
 async function setupFormAutofillStorage() {
   await formAutofillStorage.initialize();
 }
@@ -358,10 +370,12 @@ add_task(async function setup_head() {
     }
     ok(false, msg.message || msg.errorMessage);
   });
+  OSKeyStoreTestUtils.setup();
   await setupFormAutofillStorage();
-  registerCleanupFunction(function cleanup() {
+  registerCleanupFunction(async function cleanup() {
     paymentSrv.cleanup();
     cleanupFormAutofillStorage();
+    await OSKeyStoreTestUtils.cleanup();
     Services.prefs.clearUserPref(RESPONSE_TIMEOUT_PREF);
     Services.prefs.clearUserPref(SAVE_CREDITCARD_DEFAULT_PREF);
     Services.prefs.clearUserPref(SAVE_ADDRESS_DEFAULT_PREF);
@@ -412,14 +426,19 @@ async function navigateToAddAddressPage(frame, aOptions = {
 async function fillInBillingAddressForm(frame, aAddress) {
   // For now billing and shipping address forms have the same fields but that may
   // change so use separarate helpers.
-  return fillInShippingAddressForm(frame, aAddress);
+  return fillInShippingAddressForm(frame, aAddress, {
+    expectedSelectedStateKey: ["basic-card-page", "billingAddressGUID"],
+  });
 }
 
 async function fillInShippingAddressForm(frame, aAddress, aOptions) {
   let address = Object.assign({}, aAddress);
   // Email isn't used on address forms, only payer/contact ones.
   delete address.email;
-  return fillInAddressForm(frame, address, aOptions);
+  return fillInAddressForm(frame, address, {
+    expectedSelectedStateKey: ["selectedShippingAddress"],
+    ...aOptions,
+  });
 }
 
 async function fillInPayerAddressForm(frame, aAddress) {
@@ -431,12 +450,29 @@ async function fillInPayerAddressForm(frame, aAddress) {
     }
     delete address[fieldName];
   }
-  return fillInAddressForm(frame, address);
+  return fillInAddressForm(frame, address, {
+    expectedSelectedStateKey: ["selectedPayerAddress"],
+  });
 }
 
+/**
+ * @param {HTMLElement} frame
+ * @param {object} aAddress
+ * @param {object} [aOptions = {}]
+ * @param {boolean} [aOptions.setPersistCheckedValue = undefined] How to set the persist checkbox.
+ * @param {string[]} [expectedSelectedStateKey = undefined] The expected selectedStateKey for
+                                                            address-page.
+ */
 async function fillInAddressForm(frame, aAddress, aOptions = {}) {
   await spawnPaymentDialogTask(frame, async (args) => {
     let {address, options = {}} = args;
+
+    if (options.expectedSelectedStateKey) {
+      let store = Cu.waiveXrays(content.document.querySelector("address-form")).requestStore;
+      Assert.deepEqual(store.getState()["address-page"].selectedStateKey,
+                       options.expectedSelectedStateKey,
+                       "Check address page selectedStateKey");
+    }
 
     if (typeof(address.country) != "undefined") {
       // Set the country first so that the appropriate fields are visible.
@@ -637,7 +673,7 @@ async function fillInCardForm(frame, aCard, aOptions = {}) {
  */
 /* eslint-enable valid-jsdoc */
 async function injectEventUtilsInContentTask(browser) {
-  await ContentTask.spawn(browser, {}, async function() {
+  await spawnPaymentDialogTask(browser, async function injectEventUtils() {
     if ("EventUtils" in this) {
       return;
     }

@@ -20,7 +20,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-grips",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              add_pause_listener();
                            });
@@ -43,7 +43,7 @@ function eval_code() {
   Cu.evalInSandbox([
     "this.line0 = Error().lineNumber;",
     "function f() {}",
-    "stopMe(f, {});"
+    "stopMe(f, {});",
   ].join("\n"), gDebuggee);
 }
 

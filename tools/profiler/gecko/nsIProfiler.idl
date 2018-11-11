@@ -103,9 +103,10 @@ interface nsIProfiler : nsISupports
    * Every object has the properties:
    *  - start:      The start address of the memory region occupied by this library.
    *  - end:        The end address of the memory region occupied by this library.
-   *  - offset:     Usually zero, except on Android if the region was mapped from
-   *                a file (using mmap), then this is the offset in the file where
-   *                the mapping begins.
+   *  - offset:     Usually zero, except on Linux / Android if the first mapped
+   *                section of the library has been mapped to an address that's
+   *                different from the library's base address.
+   *                Then offset = start - baseAddress.
    *  - name:       The name (file basename) of the binary.
    *  - path:       The full absolute path to the binary.
    *  - debugName:  On Windows, the name of the pdb file for the binary. On other
@@ -121,6 +122,31 @@ interface nsIProfiler : nsISupports
    */
   [implicit_jscontext]
   readonly attribute jsval sharedLibraries;
+
+  /**
+   * Returns a promise that resolves to a SymbolTableAsTuple for the binary at
+   * the given path.
+   *
+   * SymbolTable as tuple: [addrs, index, buffer]
+   * Contains a symbol table, which can be used to map addresses to strings.
+   *
+   * The first element of this tuple, commonly named "addrs", is a sorted array of
+   * symbol addresses, as library-relative offsets in bytes, in ascending order.
+   * The third element of this tuple, commonly named "buffer", is a buffer of
+   * bytes that contains all strings from this symbol table, in the order of the
+   * addresses they correspond to, in utf-8 encoded form, all concatenated
+   * together.
+   * The second element of this tuple, commonly named "index", contains positions
+   * into "buffer". For every address, that position is where the string for that
+   * address starts in the buffer.
+   * index.length == addrs.length + 1.
+   * index[addrs.length] is the end position of the last string in the buffer.
+   *
+   * The string for the address addrs[i] is
+   * (new TextDecoder()).decode(buffer.subarray(index[i], index[i + 1]))
+   */
+  [implicit_jscontext]
+  nsISupports getSymbolTable(in ACString aDebugPath, in ACString aBreakpadID);
 
   /**
    * Dump the collected profile to a file.

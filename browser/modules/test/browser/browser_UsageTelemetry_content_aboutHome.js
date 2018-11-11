@@ -27,6 +27,10 @@ add_task(async function setup() {
   let engineOneOff = Services.search.getEngineByName("MozSearch2");
   Services.search.moveEngine(engineOneOff, 0);
 
+  // Enable local telemetry recording for the duration of the tests.
+  let oldCanRecord = Services.telemetry.canRecordExtended;
+  Services.telemetry.canRecordExtended = true;
+
   // Enable event recording for the events tested here.
   Services.telemetry.setEventRecordingEnabled("navigation", true);
 
@@ -37,6 +41,7 @@ add_task(async function setup() {
     Services.search.removeEngine(engineOneOff);
     await PlacesUtils.history.clear();
     Services.telemetry.setEventRecordingEnabled("navigation", false);
+    Services.telemetry.canRecordExtended = oldCanRecord;
   });
 });
 
@@ -48,21 +53,17 @@ add_task(async function test_abouthome_activitystream_simpleQuery() {
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
-  info("Setup waiting for search input to initialise.");
-  let promiseAboutHomeSearchLoaded = BrowserTestUtils.waitForContentEvent(tab.linkedBrowser, "ContentSearchClient", true, null, true).then(() => false);
-
   info("Load about:home.");
   BrowserTestUtils.loadURI(tab.linkedBrowser, "about:home");
-  info("Wait for ActivityStream search input.");
-  await promiseAboutHomeSearchLoaded;
+  await BrowserTestUtils.browserStopped(tab.linkedBrowser, "about:home");
 
   info("Wait for ContentSearchUI search provider to initialize.");
   await ContentTask.spawn(tab.linkedBrowser, null, async function() {
     await ContentTaskUtils.waitForCondition(() => content.wrappedJSObject.gContentSearchController.defaultEngine);
   });
 
-  info("Trigger a simple serch, just test + enter.");
-  let p = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  info("Trigger a simple search, just test + enter.");
+  let p = BrowserTestUtils.browserStopped(tab.linkedBrowser, "http://example.com/?q=test+query");
   await typeInSearchField(tab.linkedBrowser, "test query", "newtab-search-text");
   await BrowserTestUtils.synthesizeKey("VK_RETURN", {}, tab.linkedBrowser);
   await p;

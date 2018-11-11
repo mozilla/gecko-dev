@@ -13,14 +13,24 @@ const ChangesApp = createFactory(require("./components/ChangesApp"));
 
 const {
   resetChanges,
+  trackChange,
 } = require("./actions/changes");
 
 class ChangesView {
-  constructor(inspector) {
+  constructor(inspector, window) {
+    this.document = window.document;
     this.inspector = inspector;
     this.store = this.inspector.store;
+    this.toolbox = this.inspector.toolbox;
 
+    this.onAddChange = this.onAddChange.bind(this);
+    this.onClearChanges = this.onClearChanges.bind(this);
     this.destroy = this.destroy.bind(this);
+
+    // Get the Changes front, and listen to it.
+    this.changesFront = this.toolbox.target.getFront("changes");
+    this.changesFront.on("add-change", this.onAddChange);
+    this.changesFront.on("clear-changes", this.onClearChanges);
 
     this.init();
   }
@@ -35,9 +45,29 @@ class ChangesView {
       store: this.store,
     }, changesApp);
 
-    // TODO: save store and restore/replay on refresh.
-    // Bug 1478439 - https://bugzilla.mozilla.org/show_bug.cgi?id=1478439
-    this.inspector.target.once("will-navigate", this.destroy);
+    this.inspector.target.on("will-navigate", this.onClearChanges);
+
+    // Get all changes collected up to this point by the ChangesActor on the server,
+    // then push them to the Redux store here on the client.
+    this.changesFront.allChanges()
+      .then(changes => {
+        changes.forEach(change => {
+          this.onAddChange(change);
+        });
+      })
+      .catch(err => {
+        // The connection to the server may have been cut, for example during test
+        // teardown. Here we just catch the error and silently ignore it.
+      });
+  }
+
+  onAddChange(change) {
+    // Turn data into a suitable change to send to the store.
+    this.store.dispatch(trackChange(change));
+  }
+
+  onClearChanges() {
+    this.store.dispatch(resetChanges());
   }
 
   /**
@@ -45,8 +75,15 @@ class ChangesView {
    */
   destroy() {
     this.store.dispatch(resetChanges());
+
+    this.changesFront.off("add-change", this.onAddChange);
+    this.changesFront.off("clear-changes", this.onClearChanges);
+    this.changesFront = null;
+
+    this.document = null;
     this.inspector = null;
     this.store = null;
+    this.toolbox = null;
   }
 }
 

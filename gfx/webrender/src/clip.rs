@@ -3,25 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{BorderRadius, ClipMode, ComplexClipRegion, DeviceIntRect, DevicePixelScale, ImageMask};
-use api::{ImageRendering, LayoutRect, LayoutSize, LayoutPoint, LayoutVector2D, LocalClip};
-use api::{BoxShadowClipMode, LayoutToWorldScale, LineOrientation, LineStyle, PicturePixel, WorldPixel};
+use api::{ImageRendering, LayoutRect, LayoutSize, LayoutPoint, LayoutVector2D};
+use api::{BoxShadowClipMode, LayoutToWorldScale, PicturePixel, WorldPixel};
 use api::{PictureRect, LayoutPixel, WorldPoint, WorldSize, WorldRect, LayoutToWorldTransform};
 use api::{VoidPtrToSizeFn, LayoutRectAu, ImageKey, AuHelpers};
 use app_units::Au;
 use border::{ensure_no_corner_overlap, BorderRadiusAu};
 use box_shadow::{BLUR_SAMPLE_SCALE, BoxShadowClipSource, BoxShadowCacheKey};
-use clip_scroll_tree::{ClipScrollTree, CoordinateSystemId, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
+use box_shadow::get_max_scale_for_box_shadow;
+use clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
 use ellipse::Ellipse;
 use gpu_cache::{GpuCache, GpuCacheHandle, ToGpuBlocks};
 use gpu_types::{BoxShadowStretchMode};
+use image::{self, Repetition};
 use intern;
 use internal_types::FastHashSet;
-use prim_store::{ClipData, ImageMaskData, SpaceMapper};
+use prim_store::{ClipData, ImageMaskData, SpaceMapper, VisibleMaskImageTile};
 use render_task::to_cache_size;
 use resource_cache::{ImageRequest, ResourceCache};
 use std::{cmp, u32};
 use std::os::raw::c_void;
-use util::{extract_inner_rect_safe, pack_as_float, project_rect, ScaleOffset};
+use util::{extract_inner_rect_safe, project_rect, ScaleOffset};
 
 /*
 
@@ -95,13 +97,14 @@ use util::{extract_inner_rect_safe, pack_as_float, project_rect, ScaleOffset};
 // Type definitions for interning clip nodes.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ClipDataMarker;
 
 pub type ClipDataStore = intern::DataStore<ClipItemKey, ClipNode, ClipDataMarker>;
 pub type ClipDataHandle = intern::Handle<ClipDataMarker>;
 pub type ClipDataUpdateList = intern::UpdateList<ClipItemKey>;
-pub type ClipDataInterner = intern::Interner<ClipItemKey, ClipDataMarker>;
+pub type ClipDataInterner = intern::Interner<ClipItemKey, ClipItemSceneData, ClipDataMarker>;
+pub type ClipUid = intern::ItemUid<ClipDataMarker>;
 
 // Result of comparing a clip node instance against a local rect.
 #[derive(Debug)]
@@ -144,20 +147,15 @@ impl From<ClipItemKey> for ClipNode {
                     mode,
                 )
             }
-            ClipItemKey::LineDecoration(rect, style, orientation, wavy_line_thickness) => {
-                ClipItem::LineDecoration(LineDecorationClipSource {
-                    rect: LayoutRect::from_au(rect),
-                    style,
-                    orientation,
-                    wavy_line_thickness: wavy_line_thickness.to_f32_px(),
-                })
-            }
             ClipItemKey::ImageMask(rect, image, repeat) => {
-                ClipItem::Image(ImageMask {
-                    image,
-                    rect: LayoutRect::from_au(rect),
-                    repeat,
-                })
+                ClipItem::Image {
+                    mask: ImageMask {
+                        image,
+                        rect: LayoutRect::from_au(rect),
+                        repeat,
+                    },
+                    visible_tiles: None,
+                }
             }
             ClipItemKey::BoxShadow(shadow_rect, shadow_radius, prim_shadow_rect, blur_radius, clip_mode) => {
                 ClipItem::new_box_shadow(
@@ -259,7 +257,6 @@ struct ClipNodeInfo {
     conversion: ClipSpaceConversion,
     handle: ClipDataHandle,
     spatial_node_index: SpatialNodeIndex,
-    has_non_root_coord_system: bool,
 }
 
 impl ClipNode {
@@ -268,14 +265,79 @@ impl ClipNode {
         gpu_cache: &mut GpuCache,
         resource_cache: &mut ResourceCache,
         device_pixel_scale: DevicePixelScale,
+        clipped_rect: &LayoutRect,
     ) {
-        if let Some(mut request) = gpu_cache.request(&mut self.gpu_cache_handle) {
-            match self.item {
-                ClipItem::Image(ref mask) => {
-                    let data = ImageMaskData { local_rect: mask.rect };
-                    data.write_gpu_blocks(request);
+        match self.item {
+            ClipItem::Image { ref mask, ref mut visible_tiles } => {
+                let request = ImageRequest {
+                    key: mask.image,
+                    rendering: ImageRendering::Auto,
+                    tile: None,
+                };
+                *visible_tiles = None;
+                if let Some(props) = resource_cache.get_image_properties(mask.image) {
+                    if let Some(tile_size) = props.tiling {
+                        let mut mask_tiles = Vec::new();
+
+                        let device_image_size = props.descriptor.size;
+                        let visible_rect = if mask.repeat {
+                            *clipped_rect
+                        } else {
+                            clipped_rect.intersection(&mask.rect).unwrap()
+                        };
+
+                        let repetitions = image::repetitions(
+                            &mask.rect,
+                            &visible_rect,
+                            mask.rect.size,
+                        );
+
+                        for Repetition { origin, .. } in repetitions {
+                            let image_rect = LayoutRect {
+                                origin,
+                                size: mask.rect.size,
+                            };
+                            let tiles = image::tiles(
+                                &image_rect,
+                                &visible_rect,
+                                &device_image_size,
+                                tile_size as u32,
+                            );
+                            for tile in tiles {
+                                resource_cache.request_image(
+                                    request.with_tile(tile.offset),
+                                    gpu_cache,
+                                );
+                                let mut handle = GpuCacheHandle::new();
+                                if let Some(request) = gpu_cache.request(&mut handle) {
+                                    let data = ImageMaskData {
+                                        local_mask_rect: mask.rect,
+                                        local_tile_rect: tile.rect,
+                                    };
+                                    data.write_gpu_blocks(request);
+                                }
+
+                                mask_tiles.push(VisibleMaskImageTile {
+                                    tile_offset: tile.offset,
+                                    handle,
+                                });
+                            }
+                        }
+                        *visible_tiles = Some(mask_tiles);
+                    } else {
+                        if let Some(request) = gpu_cache.request(&mut self.gpu_cache_handle) {
+                            let data = ImageMaskData {
+                                local_mask_rect: mask.rect,
+                                local_tile_rect: mask.rect,
+                            };
+                            data.write_gpu_blocks(request);
+                        }
+                        resource_cache.request_image(request, gpu_cache);
+                    }
                 }
-                ClipItem::BoxShadow(ref info) => {
+            }
+            ClipItem::BoxShadow(ref mut info) => {
+                if let Some(mut request) = gpu_cache.request(&mut self.gpu_cache_handle) {
                     request.push([
                         info.shadow_rect_alloc_size.width,
                         info.shadow_rect_alloc_size.height,
@@ -290,48 +352,25 @@ impl ClipNode {
                     ]);
                     request.push(info.prim_shadow_rect);
                 }
-                ClipItem::Rectangle(rect, mode) => {
-                    let data = ClipData::uniform(rect, 0.0, mode);
-                    data.write(&mut request);
-                }
-                ClipItem::RoundedRectangle(ref rect, ref radius, mode) => {
-                    let data = ClipData::rounded_rect(rect, radius, mode);
-                    data.write(&mut request);
-                }
-                ClipItem::LineDecoration(ref info) => {
-                    request.push(info.rect);
-                    request.push([
-                        info.wavy_line_thickness,
-                        pack_as_float(info.style as u32),
-                        pack_as_float(info.orientation as u32),
-                        0.0,
-                    ]);
-                }
-            }
-        }
 
-        match self.item {
-            ClipItem::Image(ref mask) => {
-                resource_cache.request_image(
-                    ImageRequest {
-                        key: mask.image,
-                        rendering: ImageRendering::Auto,
-                        tile: None,
-                    },
-                    gpu_cache,
-                );
-            }
-            ClipItem::BoxShadow(ref mut info) => {
                 // Quote from https://drafts.csswg.org/css-backgrounds-3/#shadow-blur
                 // "the image that would be generated by applying to the shadow a
                 // Gaussian blur with a standard deviation equal to half the blur radius."
-                let blur_radius_dp = (info.blur_radius * 0.5 * device_pixel_scale.0).round();
+                let blur_radius_dp = info.blur_radius * 0.5;
+
+                // Create scaling from requested size to cache size.  If the
+                // requested size exceeds the maximum size of the cache, the
+                // box shadow will be scaled down and stretched when rendered
+                // into the document.
+                let world_scale = LayoutToWorldScale::new(1.0);
+                let mut content_scale = world_scale * device_pixel_scale;
+                let max_scale = get_max_scale_for_box_shadow(&info.shadow_rect_alloc_size);
+                content_scale.0 = content_scale.0.min(max_scale.0);
 
                 // Create the cache key for this box-shadow render task.
-                let content_scale = LayoutToWorldScale::new(1.0) * device_pixel_scale;
                 let cache_size = to_cache_size(info.shadow_rect_alloc_size * content_scale);
                 let bs_cache_key = BoxShadowCacheKey {
-                    blur_radius_dp: blur_radius_dp as i32,
+                    blur_radius_dp: (blur_radius_dp * content_scale.0).round() as i32,
                     clip_mode: info.clip_mode,
                     rect_size: (info.shadow_rect_alloc_size * content_scale).round().to_i32(),
                     br_top_left: (info.shadow_radius.top_left * content_scale).round().to_i32(),
@@ -352,9 +391,18 @@ impl ClipNode {
                     data.write(&mut request);
                 }
             }
-            ClipItem::Rectangle(..) |
-            ClipItem::RoundedRectangle(..) |
-            ClipItem::LineDecoration(..) => {}
+            ClipItem::Rectangle(rect, mode) => {
+                if let Some(mut request) = gpu_cache.request(&mut self.gpu_cache_handle) {
+                    let data = ClipData::uniform(rect, 0.0, mode);
+                    data.write(&mut request);
+                }
+            }
+            ClipItem::RoundedRectangle(ref rect, ref radius, mode) => {
+                if let Some(mut request) = gpu_cache.request(&mut self.gpu_cache_handle) {
+                    let data = ClipData::rounded_rect(rect, radius, mode);
+                    data.write(&mut request);
+                }
+            }
         }
     }
 }
@@ -375,7 +423,6 @@ pub struct ClipChainInstance {
     // Combined clip rect for clips that are in the
     // same coordinate system as the primitive.
     pub local_clip_rect: LayoutRect,
-    pub has_non_root_coord_system: bool,
     pub has_non_local_clips: bool,
     // If true, this clip chain requires allocation
     // of a clip mask.
@@ -422,20 +469,20 @@ impl ClipStore {
         &self.clip_node_instances[(node_range.first + index) as usize]
     }
 
-    // Notify the clip store that a new rasterization root has been created.
+    // Notify the clip store that a new surface has been created.
     // This means any clips from an earlier root should be collected rather
     // than applied on the primitive itself.
-    pub fn push_raster_root(
+    pub fn push_surface(
         &mut self,
-        raster_spatial_node_index: SpatialNodeIndex,
+        spatial_node_index: SpatialNodeIndex,
     ) {
         self.clip_node_collectors.push(
-            ClipNodeCollector::new(raster_spatial_node_index),
+            ClipNodeCollector::new(spatial_node_index),
         );
     }
 
-    // Mark the end of a rasterization root.
-    pub fn pop_raster_root(
+    // Mark the end of a rendering surface.
+    pub fn pop_surface(
         &mut self,
     ) -> ClipNodeCollector {
         self.clip_node_collectors.pop().unwrap()
@@ -474,7 +521,7 @@ impl ClipStore {
             // Check if any clip node index should actually be
             // handled during compositing of a rasterization root.
             match self.clip_node_collectors.iter_mut().find(|c| {
-                clip_chain_node.spatial_node_index < c.raster_root
+                clip_chain_node.spatial_node_index < c.spatial_node_index
             }) {
                 Some(collector) => {
                     collector.insert(current_clip_chain_id);
@@ -530,7 +577,6 @@ impl ClipStore {
         // Run through the clip nodes, and see which ones affect this prim region.
 
         let first_clip_node_index = self.clip_node_instances.len() as u32;
-        let mut has_non_root_coord_system = false;
         let mut has_non_local_clips = false;
         let mut needs_mask = false;
 
@@ -573,6 +619,7 @@ impl ClipStore {
                         gpu_cache,
                         resource_cache,
                         device_pixel_scale,
+                        &local_bounding_rect,
                     );
 
                     // Calculate some flags that are required for the segment
@@ -598,9 +645,8 @@ impl ClipStore {
                     needs_mask |= match node.item {
                         ClipItem::Rectangle(_, ClipMode::ClipOut) |
                         ClipItem::RoundedRectangle(..) |
-                        ClipItem::Image(..) |
-                        ClipItem::BoxShadow(..) |
-                        ClipItem::LineDecoration(..) => {
+                        ClipItem::Image { .. } |
+                        ClipItem::BoxShadow(..) => {
                             true
                         }
 
@@ -616,8 +662,6 @@ impl ClipStore {
                         spatial_node_index: node_info.spatial_node_index,
                     };
                     self.clip_node_instances.push(instance);
-
-                    has_non_root_coord_system |= node_info.has_non_root_coord_system;
                 }
             }
         }
@@ -631,12 +675,57 @@ impl ClipStore {
         // Return a valid clip chain instance
         Some(ClipChainInstance {
             clips_range,
-            has_non_root_coord_system,
             has_non_local_clips,
             local_clip_rect,
             pic_clip_rect,
             needs_mask,
         })
+    }
+
+    /// Walk the clip chain of a primitive, and calculate a minimal
+    /// local clip rect for the primitive.
+    #[allow(dead_code)]
+    pub fn build_local_clip_rect(
+        &self,
+        prim_clip_rect: LayoutRect,
+        spatial_node_index: SpatialNodeIndex,
+        clip_chain_id: ClipChainId,
+        clip_interner: &ClipDataInterner,
+    ) -> LayoutRect {
+        let mut clip_rect = prim_clip_rect;
+        let mut current_clip_chain_id = clip_chain_id;
+
+        // for each clip chain node
+        while current_clip_chain_id != ClipChainId::NONE {
+            let clip_chain_node = &self.clip_chain_nodes[current_clip_chain_id.0 as usize];
+
+            // If the clip chain node and the primitive share a spatial node,
+            // then by definition the clip can't move relative to the primitive,
+            // due to scrolling or transform animation. When that constraint
+            // holds, it's fine to include the local clip rect of this
+            // clip node in the local clip rect of the primitive itself. This
+            // is used to minimize the size of any render target allocations
+            // if this primitive ends up being part of an off-screen surface.
+
+            if clip_chain_node.spatial_node_index == spatial_node_index {
+                let clip_data = &clip_interner[clip_chain_node.handle];
+
+                // TODO(gw): For now, if a clip results in the local
+                //           rect of this primitive becoming zero, just
+                //           ignore and continue (it will be culled later
+                //           on). Technically, we could add a code path
+                //           here to drop the primitive immediately, but
+                //           that complicates some of the existing callers
+                //           of build_local_clip_rect.
+                clip_rect = clip_rect
+                    .intersection(&clip_data.clip_rect)
+                    .unwrap_or(LayoutRect::zero());
+            }
+
+            current_clip_chain_id = clip_chain_node.parent_clip_chain_id;
+        }
+
+        clip_rect
     }
 
     /// Reports the heap usage of this clip store.
@@ -650,17 +739,6 @@ impl ClipStore {
         size
     }
 }
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "capture", derive(Serialize))]
-#[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct LineDecorationClipSource {
-    rect: LayoutRect,
-    style: LineStyle,
-    orientation: LineOrientation,
-    wavy_line_thickness: f32,
-}
-
 
 pub struct ComplexTranslateIter<I> {
     source: I,
@@ -713,26 +791,24 @@ impl<J> ClipRegion<ComplexTranslateIter<J>> {
 
 impl ClipRegion<Option<ComplexClipRegion>> {
     pub fn create_for_clip_node_with_local_clip(
-        local_clip: &LocalClip,
+        local_clip: &LayoutRect,
         reference_frame_relative_offset: &LayoutVector2D
     ) -> Self {
         ClipRegion {
-            main: local_clip
-                .clip_rect()
-                .translate(reference_frame_relative_offset),
+            main: local_clip.translate(reference_frame_relative_offset),
             image_mask: None,
-            complex_clips: match *local_clip {
-                LocalClip::Rect(_) => None,
-                LocalClip::RoundedRect(_, ref region) => {
-                    Some(ComplexClipRegion {
-                        rect: region.rect.translate(reference_frame_relative_offset),
-                        radii: region.radii,
-                        mode: region.mode,
-                    })
-                },
-            }
+            complex_clips: None,
         }
     }
+}
+
+/// The information about an interned clip item that
+/// is stored and available in the scene builder
+/// thread.
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct ClipItemSceneData {
+    pub clip_rect: LayoutRect,
 }
 
 // The ClipItemKey is a hashable representation of the contents
@@ -750,7 +826,6 @@ pub enum ClipItemKey {
     RoundedRectangle(LayoutRectAu, BorderRadiusAu, ClipMode),
     ImageMask(LayoutRectAu, ImageKey, bool),
     BoxShadow(LayoutRectAu, BorderRadiusAu, LayoutRectAu, Au, BoxShadowClipMode),
-    LineDecoration(LayoutRectAu, LineStyle, LineOrientation, Au),
 }
 
 impl ClipItemKey {
@@ -779,20 +854,6 @@ impl ClipItemKey {
         )
     }
 
-    pub fn line_decoration(
-        rect: LayoutRect,
-        style: LineStyle,
-        orientation: LineOrientation,
-        wavy_line_thickness: f32,
-    ) -> Self {
-        ClipItemKey::LineDecoration(
-            rect.to_au(),
-            style,
-            orientation,
-            Au::from_f32_px(wavy_line_thickness),
-        )
-    }
-
     pub fn box_shadow(
         shadow_rect: LayoutRect,
         shadow_radius: BorderRadius,
@@ -808,36 +869,16 @@ impl ClipItemKey {
             clip_mode,
         )
     }
-
-    // Return a modified clip source that is the same as self
-    // but offset in local-space by a specified amount.
-    pub fn offset(&self, offset: &LayoutVector2D) -> Self {
-        let offset = offset.to_au();
-        match *self {
-            ClipItemKey::LineDecoration(rect, style, orientation, wavy_line_thickness) => {
-                ClipItemKey::LineDecoration(
-                    rect.translate(&offset),
-                    style,
-                    orientation,
-                    wavy_line_thickness,
-                )
-            }
-            _ => {
-                panic!("bug: other clip sources not expected here yet");
-            }
-        }
-    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum ClipItem {
     Rectangle(LayoutRect, ClipMode),
     RoundedRectangle(LayoutRect, BorderRadius, ClipMode),
-    Image(ImageMask),
+    Image { mask: ImageMask, visible_tiles: Option<Vec<VisibleMaskImageTile>> },
     BoxShadow(BoxShadowClipSource),
-    LineDecoration(LineDecorationClipSource),
 }
 
 impl ClipItem {
@@ -949,10 +990,9 @@ impl ClipItem {
             ClipItem::Rectangle(_, ClipMode::ClipOut) => None,
             ClipItem::RoundedRectangle(clip_rect, _, ClipMode::Clip) => Some(clip_rect),
             ClipItem::RoundedRectangle(_, _, ClipMode::ClipOut) => None,
-            ClipItem::Image(ref mask) if mask.repeat => None,
-            ClipItem::Image(ref mask) => Some(mask.rect),
+            ClipItem::Image { ref mask, .. } if mask.repeat => None,
+            ClipItem::Image { ref mask, .. } => Some(mask.rect),
             ClipItem::BoxShadow(..) => None,
-            ClipItem::LineDecoration(..) => None,
         }
     }
 
@@ -972,9 +1012,8 @@ impl ClipItem {
             }
             ClipItem::Rectangle(_, ClipMode::ClipOut) |
             ClipItem::RoundedRectangle(_, _, ClipMode::ClipOut) |
-            ClipItem::Image(..) |
-            ClipItem::BoxShadow(..) |
-            ClipItem::LineDecoration(..) => {
+            ClipItem::Image { .. } |
+            ClipItem::BoxShadow(..) => {
                 return ClipResult::Partial
             }
         };
@@ -1084,7 +1123,7 @@ impl ClipItem {
                     }
                 }
             }
-            ClipItem::Image(ref mask) => {
+            ClipItem::Image { ref mask, .. } => {
                 if mask.repeat {
                     ClipResult::Partial
                 } else {
@@ -1098,8 +1137,7 @@ impl ClipItem {
                     }
                 }
             }
-            ClipItem::BoxShadow(..) |
-            ClipItem::LineDecoration(..) => {
+            ClipItem::BoxShadow(..) => {
                 ClipResult::Partial
             }
         }
@@ -1186,16 +1224,16 @@ pub fn project_inner_rect(
 // root at the end of primitive preparation.
 #[derive(Debug)]
 pub struct ClipNodeCollector {
-    raster_root: SpatialNodeIndex,
+    spatial_node_index: SpatialNodeIndex,
     clips: FastHashSet<ClipChainId>,
 }
 
 impl ClipNodeCollector {
     pub fn new(
-        raster_root: SpatialNodeIndex,
+        spatial_node_index: SpatialNodeIndex,
     ) -> Self {
         ClipNodeCollector {
-            raster_root,
+            spatial_node_index,
             clips: FastHashSet::default(),
         }
     }
@@ -1229,11 +1267,9 @@ fn add_clip_node_to_current_chain(
     let conversion = if spatial_node_index == clip_spatial_node_index {
         Some(ClipSpaceConversion::Local)
     } else if ref_spatial_node.coordinate_system_id == clip_spatial_node.coordinate_system_id {
-        let scale_offset = ref_spatial_node
-            .coordinate_system_relative_scale_offset
-            .difference(
-                &clip_spatial_node.coordinate_system_relative_scale_offset
-            );
+        let scale_offset = ref_spatial_node.coordinate_system_relative_scale_offset
+            .inverse()
+            .accumulate(&clip_spatial_node.coordinate_system_relative_scale_offset);
         Some(ClipSpaceConversion::ScaleOffset(scale_offset))
     } else {
         let xf = clip_scroll_tree.get_relative_transform(
@@ -1281,7 +1317,6 @@ fn add_clip_node_to_current_chain(
             conversion,
             handle,
             spatial_node_index: clip_spatial_node_index,
-            has_non_root_coord_system: clip_spatial_node.coordinate_system_id != CoordinateSystemId::root(),
         })
     }
 

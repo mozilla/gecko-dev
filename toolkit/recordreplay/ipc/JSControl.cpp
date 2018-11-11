@@ -401,6 +401,45 @@ Middleman_MaybeSwitchToReplayingChild(JSContext* aCx, unsigned aArgc, Value* aVp
   return true;
 }
 
+static bool
+Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp)
+{
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isNumber() || !args.get(1).isNumber()) {
+    JS_ReportErrorASCII(aCx, "Bad width/height");
+    return false;
+  }
+
+  size_t width = args.get(0).toNumber();
+  size_t height = args.get(1).toNumber();
+
+  PaintMessage message(CheckpointId::Invalid, width, height);
+  parent::UpdateGraphicsInUIProcess(&message);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool
+Middleman_HadRepaintFailure(JSContext* aCx, unsigned aArgc, Value* aVp)
+{
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  parent::UpdateGraphicsInUIProcess(nullptr);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool
+Middleman_ChildIsRecording(JSContext* aCx, unsigned aArgc, Value* aVp)
+{
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+  args.rval().setBoolean(parent::ActiveChildIsRecording());
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Devtools Sandbox
 ///////////////////////////////////////////////////////////////////////////////
@@ -576,7 +615,8 @@ struct ContentInfo
   const void* mToken;
   char* mURL;
   char* mContentType;
-  InfallibleVector<char16_t> mContent;
+  InfallibleVector<char> mContent8;
+  InfallibleVector<char16_t> mContent16;
 
   ContentInfo(const void* aToken, const char* aURL, const char* aContentType)
     : mToken(aToken),
@@ -588,7 +628,8 @@ struct ContentInfo
     : mToken(aOther.mToken),
       mURL(aOther.mURL),
       mContentType(aOther.mContentType),
-      mContent(std::move(aOther.mContent))
+      mContent8(std::move(aOther.mContent8)),
+      mContent16(std::move(aOther.mContent16))
   {
     aOther.mURL = nullptr;
     aOther.mContentType = nullptr;
@@ -623,18 +664,37 @@ RecordReplayInterface_BeginContentParse(const void* aToken,
 }
 
 MOZ_EXPORT void
-RecordReplayInterface_AddContentParseData(const void* aToken,
-                                          const char16_t* aBuffer, size_t aLength)
+RecordReplayInterface_AddContentParseData8(const void* aToken,
+                                           const Utf8Unit* aUtf8Buffer, size_t aLength)
 {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
   MOZ_RELEASE_ASSERT(aToken);
 
-  RecordReplayAssert("AddContentParseDataForRecordReplay %d", (int) aLength);
+  RecordReplayAssert("AddContentParseData8ForRecordReplay %d", (int) aLength);
 
   MonitorAutoLock lock(*child::gMonitor);
   for (ContentInfo& info : gContent) {
     if (info.mToken == aToken) {
-      info.mContent.append(aBuffer, aLength);
+      info.mContent8.append(reinterpret_cast<const char*>(aUtf8Buffer), aLength);
+      return;
+    }
+  }
+  MOZ_CRASH("Unknown content parse token");
+}
+
+MOZ_EXPORT void
+RecordReplayInterface_AddContentParseData16(const void* aToken,
+                                            const char16_t* aBuffer, size_t aLength)
+{
+  MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
+  MOZ_RELEASE_ASSERT(aToken);
+
+  RecordReplayAssert("AddContentParseData16ForRecordReplay %d", (int) aLength);
+
+  MonitorAutoLock lock(*child::gMonitor);
+  for (ContentInfo& info : gContent) {
+    if (info.mToken == aToken) {
+      info.mContent16.append(aBuffer, aLength);
       return;
     }
   }
@@ -667,9 +727,19 @@ FetchContent(JSContext* aCx, HandleString aURL,
   for (ContentInfo& info : gContent) {
     if (JS_FlatStringEqualsAscii(JS_ASSERT_STRING_IS_FLAT(aURL), info.mURL)) {
       aContentType.set(JS_NewStringCopyZ(aCx, info.mContentType));
-      aContent.set(JS_NewUCStringCopyN(aCx, (const char16_t*) info.mContent.begin(),
-                                       info.mContent.length()));
-      return aContentType && aContent;
+      if (!aContentType) {
+        return false;
+      }
+
+      MOZ_ASSERT(info.mContent8.length() == 0 ||
+                 info.mContent16.length() == 0,
+                 "should have content data of only one type");
+
+      aContent.set(info.mContent8.length() > 0
+                   ? JS_NewStringCopyUTF8N(aCx, JS::UTF8Chars(info.mContent8.begin(),
+                                                              info.mContent8.length()))
+                   : JS_NewUCStringCopyN(aCx, info.mContent16.begin(), info.mContent16.length()));
+      return aContent != nullptr;
     }
   }
   aContentType.set(JS_NewStringCopyZ(aCx, "text/plain"));
@@ -753,14 +823,18 @@ static bool
 RecordReplay_CurrentExecutionPoint(JSContext* aCx, unsigned aArgc, Value* aVp)
 {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
-  RootedObject obj(aCx, NonNullObject(aCx, args.get(0)));
-  if (!obj) {
-    return false;
-  }
 
-  BreakpointPosition position;
-  if (!position.Decode(aCx, obj)) {
-    return false;
+  Maybe<BreakpointPosition> position;
+  if (!args.get(0).isUndefined()) {
+    RootedObject obj(aCx, NonNullObject(aCx, args.get(0)));
+    if (!obj) {
+      return false;
+    }
+
+    position.emplace();
+    if (!position.ref().Decode(aCx, obj)) {
+      return false;
+    }
   }
 
   ExecutionPoint point = navigation::CurrentExecutionPoint(position);
@@ -789,6 +863,41 @@ RecordReplay_TimeWarpTargetExecutionPoint(JSContext* aCx, unsigned aArgc, Value*
   }
 
   args.rval().setObject(*result);
+  return true;
+}
+
+static bool
+RecordReplay_RecordingEndpoint(JSContext* aCx, unsigned aArgc, Value* aVp)
+{
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  ExecutionPoint point = navigation::GetRecordingEndpoint();
+  RootedObject result(aCx, point.Encode(aCx));
+  if (!result) {
+    return false;
+  }
+
+  args.rval().setObject(*result);
+  return true;
+}
+
+static bool
+RecordReplay_Repaint(JSContext* aCx, unsigned aArgc, Value* aVp)
+{
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  size_t width, height;
+  child::Repaint(&width, &height);
+
+  RootedObject obj(aCx, JS_NewObject(aCx, nullptr));
+  if (!obj ||
+      !JS_DefineProperty(aCx, obj, "width", (double) width, JSPROP_ENUMERATE) ||
+      !JS_DefineProperty(aCx, obj, "height", (double) height, JSPROP_ENUMERATE))
+  {
+    return false;
+  }
+
+  args.rval().setObject(*obj);
   return true;
 }
 
@@ -828,6 +937,9 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
   JS_FN("setBreakpoint", Middleman_SetBreakpoint, 2, 0),
   JS_FN("clearBreakpoint", Middleman_ClearBreakpoint, 1, 0),
   JS_FN("maybeSwitchToReplayingChild", Middleman_MaybeSwitchToReplayingChild, 0, 0),
+  JS_FN("hadRepaint", Middleman_HadRepaint, 2, 0),
+  JS_FN("hadRepaintFailure", Middleman_HadRepaintFailure, 0, 0),
+  JS_FN("childIsRecording", Middleman_ChildIsRecording, 0, 0),
   JS_FS_END
 };
 
@@ -839,6 +951,8 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("getContent", RecordReplay_GetContent, 1, 0),
   JS_FN("currentExecutionPoint", RecordReplay_CurrentExecutionPoint, 1, 0),
   JS_FN("timeWarpTargetExecutionPoint", RecordReplay_TimeWarpTargetExecutionPoint, 1, 0),
+  JS_FN("recordingEndpoint", RecordReplay_RecordingEndpoint, 0, 0),
+  JS_FN("repaint", RecordReplay_Repaint, 0, 0),
   JS_FN("dump", RecordReplay_Dump, 1, 0),
   JS_FS_END
 };

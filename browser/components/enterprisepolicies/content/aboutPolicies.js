@@ -161,9 +161,10 @@ function generatePolicy(data, row, depth, new_cont, islast, arr_sep = false) {
           }
 
           last_row.appendChild(col(obj));
+          last_row.classList.add(color_class);
 
           if (arr_sep) {
-            last_row.classList.add(color_class, "arr_sep");
+            last_row.classList.add("arr_sep");
           }
 
           generatePolicy(data[obj], last_row, depth + 1, new_cont, islast ? islast : false, false);
@@ -234,6 +235,7 @@ function generateDocumentation() {
   // existing descriptions
   let string_mapping = {
     "DisableSetDesktopBackground": "DisableSetAsDesktopBackground",
+    "Certificates": "CertificatesDescription",
   };
 
   for (let policyName in schema.properties) {
@@ -261,6 +263,11 @@ function generateDocumentation() {
     let schema_row = document.createElement("tr");
     if (schema.properties[policyName].properties) {
       let column = col(JSON.stringify(schema.properties[policyName].properties, null, 1), "schema");
+      column.colSpan = "2";
+      schema_row.appendChild(column);
+      sec_tbody.appendChild(schema_row);
+    } else if (schema.properties[policyName].items) {
+      let column = col(JSON.stringify(schema.properties[policyName], null, 1), "schema");
       column.colSpan = "2";
       schema_row.appendChild(column);
       sec_tbody.appendChild(schema_row);

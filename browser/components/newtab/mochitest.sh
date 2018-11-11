@@ -14,13 +14,13 @@ cd /activity-stream && npm install . && npm run buildmc
 # Build latest m-c with Activity Stream changes
 cd /mozilla-central && ./mach build \
   && ./mach lint -l codespell browser/components/newtab \
+  && ./mach test browser/components/newtab/test/browser --headless \
+  && ./mach test browser/components/newtab/test/xpcshell \
   && ./mach test --log-tbpl test_run_log \
   browser_parsable_css \
-  browser/components/newtab \
   browser/components/preferences/in-content/tests/browser_hometab_restore_defaults.js \
   browser/components/preferences/in-content/tests/browser_newtab_menu.js \
   browser/components/enterprisepolicies/tests/browser/browser_policy_set_homepage.js \
   browser/components/preferences/in-content/tests/browser_search_subdialogs_within_preferences_1.js \
-  browser/extensions/onboarding/test/browser \
   && ! grep -q TEST-UNEXPECTED test_run_log \
   && ! ./mach test all_files_referenced | grep activity-stream

@@ -7,11 +7,11 @@ const {
   Front,
   FrontClassWithSpec,
   custom,
-  preEvent
+  preEvent,
 } = require("devtools/shared/protocol");
 const {
   pageStyleSpec,
-  styleRuleSpec
+  styleRuleSpec,
 } = require("devtools/shared/specs/styles");
 const promise = require("promise");
 
@@ -68,7 +68,7 @@ const PageStyleFront = FrontClassWithSpec(pageStyleSpec, {
       return ret.matched;
     });
   }, {
-    impl: "_getMatchedSelectors"
+    impl: "_getMatchedSelectors",
   }),
 
   getApplied: custom(async function(node, options = {}) {
@@ -82,7 +82,7 @@ const PageStyleFront = FrontClassWithSpec(pageStyleSpec, {
     const ret = await this._getApplied(node, options);
     return ret.entries;
   }, {
-    impl: "_getApplied"
+    impl: "_getApplied",
   }),
 
   addNewRule: custom(function(node, pseudoClasses) {
@@ -96,8 +96,8 @@ const PageStyleFront = FrontClassWithSpec(pageStyleSpec, {
       return ret.entries[0];
     });
   }, {
-    impl: "_addNewRule"
-  })
+    impl: "_addNewRule",
+  }),
 });
 
 exports.PageStyleFront = PageStyleFront;
@@ -218,10 +218,6 @@ const StyleRuleFront = FrontClassWithSpec(styleRuleSpec, {
     return sheet ? sheet.nodeHref : "";
   },
 
-  get supportsModifySelectorUnmatched() {
-    return this._form.traits && this._form.traits.modifySelectorUnmatched;
-  },
-
   get canSetRuleText() {
     return this._form.traits && this._form.traits.canSetRuleText;
   },
@@ -231,7 +227,7 @@ const StyleRuleFront = FrontClassWithSpec(styleRuleSpec, {
       source: this.parentStyleSheet,
       href: this.href,
       line: this.line,
-      column: this.column
+      column: this.column,
     };
   },
 
@@ -255,7 +251,7 @@ const StyleRuleFront = FrontClassWithSpec(styleRuleSpec, {
           href: source,
           line: line,
           column: column,
-          mediaText: this.mediaText
+          mediaText: this.mediaText,
         };
         if (fromSourceMap === false) {
           location.source = this.parentStyleSheet;
@@ -270,15 +266,10 @@ const StyleRuleFront = FrontClassWithSpec(styleRuleSpec, {
 
   modifySelector: custom(async function(node, value) {
     let response;
-    if (this.supportsModifySelectorUnmatched) {
-      // If the debugee supports adding unmatched rules (post FF41)
-      if (this.canSetRuleText) {
-        response = await this.modifySelector2(node, value, true);
-      } else {
-        response = await this.modifySelector2(node, value);
-      }
+    if (this.canSetRuleText) {
+      response = await this._modifySelector(node, value, true);
     } else {
-      response = await this._modifySelector(value);
+      response = await this._modifySelector(node, value);
     }
 
     if (response.ruleProps) {
@@ -286,15 +277,15 @@ const StyleRuleFront = FrontClassWithSpec(styleRuleSpec, {
     }
     return response;
   }, {
-    impl: "_modifySelector"
+    impl: "_modifySelector",
   }),
 
-  setRuleText: custom(function(newText) {
+  setRuleText: custom(function(newText, modifications) {
     this._form.authoredText = newText;
-    return this._setRuleText(newText);
+    return this._setRuleText(newText, modifications);
   }, {
-    impl: "_setRuleText"
-  })
+    impl: "_setRuleText",
+  }),
 });
 
 exports.StyleRuleFront = StyleRuleFront;
@@ -344,12 +335,7 @@ class RuleModificationList {
    *                          string or "important"
    */
   setProperty(index, name, value, priority) {
-    this.modifications.push({
-      type: "set",
-      name: name,
-      value: value,
-      priority: priority
-    });
+    this.modifications.push({ type: "set", index, name, value, priority });
   }
 
   /**
@@ -363,10 +349,7 @@ class RuleModificationList {
    * @param {String} name the name of the property to remove
    */
   removeProperty(index, name) {
-    this.modifications.push({
-      type: "remove",
-      name: name
-    });
+    this.modifications.push({ type: "remove", index, name });
   }
 
   /**

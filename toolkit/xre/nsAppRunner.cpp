@@ -180,7 +180,7 @@
 #endif
 
 // for X remote support
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
 #include "XRemoteClient.h"
 #include "nsIRemoteService.h"
 #include "nsProfileLock.h"
@@ -1117,7 +1117,7 @@ nsXULAppInfo::SetEnabled(bool aEnabled)
       return NS_ERROR_FAILURE;
     }
 
-    nsCOMPtr<nsIFile> xreBinDirectory = do_QueryInterface(greBinDir);
+    nsCOMPtr<nsIFile> xreBinDirectory = greBinDir;
     if (!xreBinDirectory) {
       return NS_ERROR_FAILURE;
     }
@@ -1659,7 +1659,7 @@ DumpVersion()
   printf("\n");
 }
 
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
 static RemoteResult
 ParseRemoteCommandLine(nsCString& program,
                        const char** profile,
@@ -1700,13 +1700,20 @@ StartRemoteClient(const char* aDesktopStartupID,
 {
   nsAutoPtr<nsRemoteClient> client;
 
-#if defined(MOZ_ENABLE_DBUS) && defined(MOZ_WAYLAND)
-  client = new DBusRemoteClient();
-#else
-  client = new XRemoteClient();
-#endif
+  bool useX11Remote = GDK_IS_X11_DISPLAY(gdk_display_get_default());
 
-  nsresult rv = client->Init();
+#if defined(MOZ_ENABLE_DBUS)
+  if (!useX11Remote) {
+    client = new DBusRemoteClient();
+  }
+#endif
+  if (useX11Remote) {
+    client = new XRemoteClient();
+  }
+
+  // There are people who build Wayland without DBus...well
+  // don't judge others for personal taste.
+  nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
   if (NS_FAILED(rv))
     return REMOTE_NOT_FOUND;
 
@@ -1729,7 +1736,7 @@ StartRemoteClient(const char* aDesktopStartupID,
 
   return REMOTE_FOUND;
 }
-#endif // MOZ_ENABLE_XREMOTE
+#endif // MOZ_WIDGET_GTK
 
 void
 XRE_InitOmnijar(nsIFile* greOmni, nsIFile* appOmni)
@@ -3019,10 +3026,8 @@ public:
   XREMain() :
     mStartOffline(false)
     , mShuttingDown(false)
-#ifdef MOZ_ENABLE_XREMOTE
-    , mDisableRemote(false)
-#endif
 #if defined(MOZ_WIDGET_GTK)
+    , mDisableRemote(false)
     , mGdkDisplay(nullptr)
 #endif
   {};
@@ -3044,7 +3049,7 @@ public:
   nsCOMPtr<nsIFile> mProfD;
   nsCOMPtr<nsIFile> mProfLD;
   nsCOMPtr<nsIProfileLock> mProfileLock;
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
   nsCOMPtr<nsIRemoteService> mRemoteService;
   nsProfileLock mRemoteLock;
   nsCOMPtr<nsIFile> mRemoteLockDir;
@@ -3059,7 +3064,7 @@ public:
 
   bool mStartOffline;
   bool mShuttingDown;
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
   bool mDisableRemote;
 #endif
 
@@ -3196,9 +3201,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
     ChaosMode::SetChaosFeature(static_cast<ChaosFeature>(
                                ChaosFeature::ThreadScheduling
                                | ChaosFeature::NetworkScheduling
-                               | ChaosFeature::TimerScheduling
-                               | ChaosFeature::TaskDispatching
-                               | ChaosFeature::TaskRunning));
+                               | ChaosFeature::TimerScheduling));
   }
 #endif
 
@@ -3913,7 +3916,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
 #endif /* XP_WIN */
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_ENABLE_XREMOTE)
+#if defined(MOZ_WIDGET_GTK)
   // Stash DESKTOP_STARTUP_ID in malloc'ed memory because gtk_init will clear it.
 #define HAVE_DESKTOP_STARTUP_ID
   const char* desktopStartupIDEnv = PR_GetEnv("DESKTOP_STARTUP_ID");
@@ -4000,10 +4003,18 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
       saveDisplayArg = true;
     }
 
+    bool disableWayland = true;
+#if defined(MOZ_WAYLAND)
+    // Make X11 backend the default one.
+    // Enable Wayland backend only when GDK_BACKEND is set and
+    // Gtk+ >= 3.22 where we can expect recent enough
+    // compositor & libwayland interface.
+    disableWayland = (PR_GetEnv("GDK_BACKEND") == nullptr) ||
+                     (gtk_check_version(3, 22, 0) != nullptr);
+#endif
     // On Wayland disabled builds read X11 DISPLAY env exclusively
     // and don't care about different displays.
-#if !defined(MOZ_WAYLAND)
-    if (!display_name) {
+    if (disableWayland && !display_name) {
       display_name = PR_GetEnv("DISPLAY");
       if (!display_name) {
         PR_fprintf(PR_STDERR,
@@ -4011,7 +4022,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
         return 1;
       }
     }
-#endif
 
     if (display_name) {
       mGdkDisplay = gdk_display_open(display_name);
@@ -4043,7 +4053,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     mDisableRemote = true;
   }
 #endif
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
   // handle --remote now that xpcom is fired up
   bool newInstance;
   {
@@ -4726,7 +4736,7 @@ XREMain::XRE_mainRun()
   }
 
   if (!mShuttingDown) {
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
     // if we have X remote support, start listening for requests on the
     // proxy window.
     if (!mDisableRemote)
@@ -4738,7 +4748,7 @@ XREMain::XRE_mainRun()
       mRemoteLock.Cleanup();
       mRemoteLockDir->Remove(false);
     }
-#endif /* MOZ_ENABLE_XREMOTE */
+#endif /* MOZ_WIDGET_GTK */
 
     mNativeApp->Enable();
   }
@@ -4943,12 +4953,12 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   }
 
   if (!mShuttingDown) {
-#ifdef MOZ_ENABLE_XREMOTE
+#if defined(MOZ_WIDGET_GTK)
     // shut down the x remote proxy window
     if (mRemoteService) {
       mRemoteService->Shutdown();
     }
-#endif /* MOZ_ENABLE_XREMOTE */
+#endif /* MOZ_WIDGET_GTK */
   }
 
   mScopedXPCOM = nullptr;

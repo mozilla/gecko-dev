@@ -5,6 +5,7 @@
 
 #include "DecoderFactory.h"
 
+#include "gfxPrefs.h"
 #include "nsMimeTypes.h"
 #include "mozilla/RefPtr.h"
 
@@ -19,6 +20,7 @@
 #include "nsBMPDecoder.h"
 #include "nsICODecoder.h"
 #include "nsIconDecoder.h"
+#include "nsWebPDecoder.h"
 
 namespace mozilla {
 
@@ -67,6 +69,11 @@ DecoderFactory::GetDecoderType(const char* aMimeType)
   // Icon
   } else if (!strcmp(aMimeType, IMAGE_ICON_MS)) {
     type = DecoderType::ICON;
+
+  // WebP
+  } else if (!strcmp(aMimeType, IMAGE_WEBP) &&
+             gfxPrefs::ImageWebPEnabled()) {
+    type = DecoderType::WEBP;
   }
 
   return type;
@@ -101,6 +108,9 @@ DecoderFactory::GetDecoder(DecoderType aType,
       break;
     case DecoderType::ICON:
       decoder = new nsIconDecoder(aImage);
+      break;
+    case DecoderType::WEBP:
+      decoder = new nsWebPDecoder(aImage);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unknown decoder type");
@@ -182,7 +192,8 @@ DecoderFactory::CreateAnimationDecoder(DecoderType aType,
     return NS_ERROR_INVALID_ARG;
   }
 
-  MOZ_ASSERT(aType == DecoderType::GIF || aType == DecoderType::PNG,
+  MOZ_ASSERT(aType == DecoderType::GIF || aType == DecoderType::PNG ||
+             aType == DecoderType::WEBP,
              "Calling CreateAnimationDecoder for non-animating DecoderType");
 
   // Create an anonymous decoder. Interaction with the SurfaceCache and the
@@ -235,7 +246,8 @@ DecoderFactory::CloneAnimationDecoder(Decoder* aDecoder)
   // get scheduled yet, or it has only decoded the first frame and has yet to
   // rediscover it is animated).
   DecoderType type = aDecoder->GetType();
-  MOZ_ASSERT(type == DecoderType::GIF || type == DecoderType::PNG,
+  MOZ_ASSERT(type == DecoderType::GIF || type == DecoderType::PNG ||
+             type == DecoderType::WEBP,
              "Calling CloneAnimationDecoder for non-animating DecoderType");
 
   RefPtr<Decoder> decoder = GetDecoder(type, nullptr, /* aIsRedecode = */ true);
@@ -246,6 +258,7 @@ DecoderFactory::CloneAnimationDecoder(Decoder* aDecoder)
   decoder->SetIterator(aDecoder->GetSourceBuffer()->Iterator());
   decoder->SetDecoderFlags(aDecoder->GetDecoderFlags());
   decoder->SetSurfaceFlags(aDecoder->GetSurfaceFlags());
+  decoder->SetFrameRecycler(aDecoder->GetFrameRecycler());
 
   if (NS_FAILED(decoder->Init())) {
     return nullptr;

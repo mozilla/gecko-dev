@@ -31,6 +31,28 @@ where the "value" is encoded as:
   * Value 3: other custom URL(s)
 Two encoded integers for about:newtab and about:home are combined in a bitwise fashion. For instance, if both about:home and about:newtab were set to about:blank, then `value = 5 = (1 | (1 << 2))`, i.e `value = (bitfield of about:newtab) | (bitfield of about:newhome << 2)`.
 
+## Page takeover ping
+
+This ping is submitted once upon Activity Stream initialization if either about:home or about:newtab are set to a custom URL. It sends the category of the custom URL.
+
+```js
+{
+  "event": "PAGE_TAKEOVER_DATA",
+  "value": {
+    "home_url_category": ["search-engine" | "search-engine-mozilla-tag" | "search-engine-other-tag" | "news-portal" | "ecommerce" | "social-media" | "known-hijacker" | "other"],
+    "newtab_url_category": ["search-engine" | "search-engine-mozilla-tag" | "search-engine-other-tag" | "news-portal" | "ecommerce" | "social-media" | "known-hijacker" | "other"],
+  },
+
+  // Basic metadata
+  "action": "activity_stream_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
+
 ## User event pings
 
 These pings are captured when a user **performs some kind of interaction** in the add-on.
@@ -342,6 +364,47 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 }
 ```
 
+### Onboarding user events on about:welcome
+
+#### Form Submit Events
+
+```js
+{
+  "event": ["SUBMIT_EMAIL" | "SKIPPED_SIGNIN"],
+  "value": {
+    "has_flow_params": false,
+  }
+
+  // Basic metadata
+  "action": "activity_stream_event",
+  "page": "about:welcome",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
+
+#### Firefox Accounts Metrics flow errors
+
+```js
+{
+  "event": ["FXA_METRICS_FETCH_ERROR" | "FXA_METRICS_ERROR"],
+  "value": 500, // Only FXA_METRICS_FETCH_ERROR provides this value, this value is any valid HTTP status code except 200.
+
+  // Basic metadata
+  "action": "activity_stream_event",
+  "page": "about:welcome",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
+
+
 ## Session end pings
 
 When a session ends, the browser will send a `"activity_stream_session"` ping to our metrics servers. This ping contains the length of the session, a unique reason for why the session ended, and some additional metadata.
@@ -496,7 +559,7 @@ This reports the user's interaction with those Pocket tiles.
 
 These pings are captured to record performance related events i.e. how long certain operations take to execute.
 
-### Domain affinity calculation
+### Domain affinity calculation v1
 
 This reports the duration of the domain affinity calculation in milliseconds.
 
@@ -509,6 +572,151 @@ This reports the duration of the domain affinity calculation in milliseconds.
   "user_prefs": 7,
   "event": "topstories.domain.affinity.calculation.ms",
   "value": 43
+}
+```
+
+### Domain affinity calculation v2
+
+These report the duration of the domain affinity v2 calculations in milliseconds.
+
+#### Total calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_TOTAL_DURATION",
+  "value": 43
+}
+```
+
+#### getRecipe calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_GET_RECIPE_DURATION",
+  "value": 43
+}
+```
+
+#### RecipeExecutor calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_RECIPE_EXECUTOR_DURATION",
+  "value": 43
+}
+```
+
+#### taggers calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_TAGGERS_DURATION",
+  "value": 43
+}
+```
+
+#### createInterestVector calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_CREATE_INTEREST_VECTOR_DURATION",
+  "value": 43
+}
+```
+
+#### calculateItemRelevanceScore calculation in ms
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_ITEM_RELEVANCE_SCORE_DURATION",
+  "value": 43
+}
+```
+
+### History size used for v2 calculation
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_HISTORY_SIZE",
+  "value": 43
+}
+```
+
+### Error events for v2 calculation
+
+These report any failures during domain affinity v2 calculations, and where it failed.
+
+#### getRecipe error
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_GET_RECIPE_ERROR"
+}
+```
+
+#### generateRecipeExecutor error
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_GENERATE_RECIPE_EXECUTOR_ERROR"
+}
+```
+
+#### createInterestVector error
+
+```js
+{
+  "action": "activity_stream_performance_event",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7,
+  "event": "PERSONALIZATION_V2_CREATE_INTEREST_VECTOR_ERROR"
 }
 ```
 
@@ -542,9 +750,9 @@ This reports the impression of Activity Stream Router.
 #### Snippets impression
 ```js
 {
-  "client_id": "n/a",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "action": "snippets_user_event",
-  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
+  "impression_id": "n/a",
   "source": "SNIPPETS",
   "addon_version": "20180710100040",
   "locale": "en-US",
@@ -565,8 +773,8 @@ CFR impression ping has two forms, in which the message_id could be of different
   "addon_version": "20180710100040",
   "locale": "en-US",
   "source": "CFR",
-  // message_id could be the ID of the recommendation, such as "amazon_addon"
-  "message_id": "amazon_addon",
+  // message_id could be the ID of the recommendation, such as "wikipedia_addon"
+  "message_id": "wikipedia_addon",
   "event": "IMPRESSION"
 }
 ```
@@ -594,10 +802,10 @@ This reports the user's interaction with Activity Stream Router.
 #### Snippets interaction pings
 ```js
 {
-  "client_id": "n/a",
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "action": "snippets_user_event",
   "addon_version": "20180710100040",
-  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
+  "impression_id": "n/a",
   "locale": "en-US",
   "source": "NEWTAB_FOOTER_BAR",
   "message_id": "some_snippet_id",
@@ -628,8 +836,8 @@ This reports the user's interaction with Activity Stream Router.
   "impression_id": "n/a",
   "locale": "en-US",
   "source": "CFR",
-  // message_id could be the ID of the recommendation, such as "amazon_addon"
-  "message_id": "amazon_addon",
+  // message_id could be the ID of the recommendation, such as "wikipedia_addon"
+  "message_id": "wikipedia_addon",
   "event": "[INSTALL | BLOCK | DISMISS | RATIONALE | LEARN_MORE | CLICK_DOORHANGER]"
 }
 ```

@@ -8,6 +8,7 @@
 #include "nsIContentPolicy.idl"
 
 interface nsIChannel;
+interface nsICSPEventListener;
 interface nsINode;
 interface nsIPrincipal;
 interface nsIRedirectHistoryEntry;
@@ -1066,4 +1067,17 @@ interface nsILoadInfo : nsISupports
     * The top-level document has been user-interacted.
     */
   [infallible] attribute boolean documentHasUserInteracted;
+
+  /**
+    * This attribute represents whether the document to which this
+    * load belongs had finished loading when the load was initiated.
+    */
+  [infallible] attribute boolean documentHasLoaded;
+
+  /**
+    * The object in charged to receive CSP violation events. It can be null.
+    * This attribute will be merged into the CSP object eventually.
+    * See bug 1500908.
+    */
+  attribute nsICSPEventListener cspEventListener;
 };

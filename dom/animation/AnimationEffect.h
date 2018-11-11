@@ -34,7 +34,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AnimationEffect)
 
-  AnimationEffect(nsIDocument* aDocument, const TimingParams& aTiming);
+  AnimationEffect(nsIDocument* aDocument, TimingParams&& aTiming);
 
   virtual KeyframeEffect* AsKeyframeEffect() { return nullptr; }
 
@@ -59,7 +59,7 @@ public:
   void UpdateTiming(const OptionalEffectTiming& aTiming, ErrorResult& aRv);
 
   const TimingParams& SpecifiedTiming() const { return mTiming; }
-  void SetSpecifiedTiming(const TimingParams& aTiming);
+  void SetSpecifiedTiming(TimingParams&& aTiming);
 
   // This function takes as input the timing parameters of an animation and
   // returns the computed timing at the specified local time.

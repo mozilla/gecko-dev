@@ -11,6 +11,8 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm", this);
 ChromeUtils.import("resource://testing-common/httpd.js");
 ChromeUtils.import("resource://testing-common/MockRegistrar.jsm", this);
 ChromeUtils.import("resource://gre/modules/FileUtils.jsm");
+ChromeUtils.import("resource://services-common/utils.js");
+ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 // AttributionCode is only needed for Firefox
 ChromeUtils.defineModuleGetter(this, "AttributionCode",
@@ -19,9 +21,6 @@ ChromeUtils.defineModuleGetter(this, "AttributionCode",
 // Lazy load |LightweightThemeManager|.
 ChromeUtils.defineModuleGetter(this, "LightweightThemeManager",
                                "resource://gre/modules/LightweightThemeManager.jsm");
-
-ChromeUtils.defineModuleGetter(this, "ProfileAge",
-                               "resource://gre/modules/ProfileAge.jsm");
 
 ChromeUtils.defineModuleGetter(this, "ExtensionTestUtils",
                                "resource://testing-common/ExtensionXPCShellUtils.jsm");
@@ -57,7 +56,8 @@ const GFX_DEVICE_ID = "0x1234";
 // The profile reset date, in milliseconds (Today)
 const PROFILE_RESET_DATE_MS = Date.now();
 // The profile creation date, in milliseconds (Yesterday).
-const PROFILE_CREATION_DATE_MS = PROFILE_RESET_DATE_MS - MILLISECONDS_PER_DAY;
+const PROFILE_FIRST_USE_MS = PROFILE_RESET_DATE_MS - MILLISECONDS_PER_DAY;
+const PROFILE_CREATION_DATE_MS = PROFILE_FIRST_USE_MS - MILLISECONDS_PER_DAY;
 
 const FLASH_PLUGIN_NAME = "Shockwave Flash";
 const FLASH_PLUGIN_DESC = "A mock flash plugin";
@@ -296,12 +296,11 @@ function spoofGfxAdapter() {
 }
 
 function spoofProfileReset() {
-  let profileAccessor = new ProfileAge();
-
-  return profileAccessor.writeTimes({
+  return CommonUtils.writeJSON({
     created: PROFILE_CREATION_DATE_MS,
     reset: PROFILE_RESET_DATE_MS,
-  });
+    firstUse: PROFILE_FIRST_USE_MS,
+  }, OS.Path.join(OS.Constants.Path.profileDir, "times.json"));
 }
 
 function spoofPartnerInfo() {
@@ -456,6 +455,7 @@ function checkProfileSection(data) {
   Assert.ok("profile" in data, "There must be a profile section in Environment.");
   Assert.equal(data.profile.creationDate, truncateToDays(PROFILE_CREATION_DATE_MS));
   Assert.equal(data.profile.resetDate, truncateToDays(PROFILE_RESET_DATE_MS));
+  Assert.equal(data.profile.firstUseDate, truncateToDays(PROFILE_FIRST_USE_MS));
 }
 
 function checkPartnerSection(data, isInitial) {
@@ -1609,7 +1609,7 @@ add_task(async function test_defaultSearchEngine() {
       }
     }, "browser-search-engine-modified");
     Services.search.addEngine("file://" + do_get_cwd().path + "/engine.xml",
-                              null, null, false);
+                              null, false);
   });
   Services.search.defaultEngine = engine;
   await promise;

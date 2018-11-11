@@ -19,7 +19,7 @@ window.onload = function() {
   SimpleTest.waitForExplicitFinish();
 
   (async function() {
-    const { memory, client } = await startServerAndGetSelectedTabMemory();
+    const { memory, target } = await startServerAndGetSelectedTabMemory();
     await memory.attach();
 
     const allocs = [];
@@ -42,7 +42,7 @@ window.onload = function() {
     memory.on("allocations", onAlloc);
 
     await memory.startRecordingAllocations({
-      drainAllocationsTimeout: 10
+      drainAllocationsTimeout: 10,
     });
 
     await waitUntil(() => eventsFired > 5);
@@ -56,7 +56,7 @@ window.onload = function() {
     const startTime = performance.now();
     const drainTimer = 1000000;
     await memory.startRecordingAllocations({
-      drainAllocationsTimeout: drainTimer
+      drainAllocationsTimeout: drainTimer,
     });
 
     startAllocating();
@@ -71,7 +71,7 @@ window.onload = function() {
 
     memory.off("allocations", onAlloc);
     await memory.detach();
-    destroyServerAndFinish(client);
+    destroyServerAndFinish(target);
   })();
 };
 </script>

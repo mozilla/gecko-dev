@@ -618,7 +618,6 @@ typedef js::Vector<CodePosition, 4, SystemAllocPolicy> SplitPositionVector;
 
 class BacktrackingAllocator : protected RegisterAllocator
 {
-    friend class C1Spewer;
     friend class JSONSpewer;
 
     // This flag is set when testing new allocator modifications.
@@ -829,6 +828,9 @@ class BacktrackingAllocator : protected RegisterAllocator
         LMoveGroup* moves = block->getEntryMoveGroup(alloc());
         return addMove(moves, from, to, type);
     }
+
+    MOZ_MUST_USE bool moveAtEdge(LBlock* predecessor, LBlock* successor, LiveRange* from,
+                                 LiveRange* to, LDefinition::Type type);
 
     // Debugging methods.
     void dumpAllocations();

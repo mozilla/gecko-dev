@@ -463,8 +463,9 @@ Instance::memFill(Instance* instance, uint32_t byteOffset, uint32_t value, uint3
 
     if (len == 0) {
         // Even though the length is zero, we must check for a valid offset.
-        if (byteOffset < memLen)
+        if (byteOffset < memLen) {
             return 0;
+        }
     } else {
         // Here, we know that |len - 1| cannot underflow.
         CheckedU32 highestOffset = CheckedU32(byteOffset) + CheckedU32(len - 1);
@@ -546,8 +547,9 @@ Instance::tableCopy(Instance* instance, uint32_t dstOffset, uint32_t srcOffset, 
     if (len == 0) {
         // Even though the number of items to copy is zero, we must check
         // for valid offsets.
-        if (dstOffset < tableLen && srcOffset < tableLen)
+        if (dstOffset < tableLen && srcOffset < tableLen) {
             return 0;
+        }
     } else {
         // Here, we know that |len - 1| cannot underflow.
         CheckedU32 lenMinus1 = CheckedU32(len - 1);
@@ -561,11 +563,13 @@ Instance::tableCopy(Instance* instance, uint32_t dstOffset, uint32_t srcOffset, 
             // Actually do the copy, taking care to handle overlapping cases
             // correctly.
             if (dstOffset > srcOffset) {
-                for (uint32_t i = len; i > 0; i--)
+                for (uint32_t i = len; i > 0; i--) {
                     table->copy(dstOffset + (i - 1), srcOffset + (i - 1));
+                }
             } else if (dstOffset < srcOffset) {
-                for (uint32_t i = 0; i < len; i++)
+                for (uint32_t i = 0; i < len; i++) {
                     table->copy(dstOffset + i, srcOffset + i);
+                }
             }
 
             return 0;
@@ -655,7 +659,7 @@ Instance::tableInit(Instance* instance, uint32_t dstOffset, uint32_t srcOffset,
 
     const ElemSegment& seg = *instance->passiveElemSegments_[segIndex];
     MOZ_RELEASE_ASSERT(!seg.active());
-    const Table& table = *instance->tables()[seg.tableIndex];
+    const Table& table = *instance->tables()[0];
 
     // We are proposing to copy
     //
@@ -710,13 +714,18 @@ Instance::structNew(Instance* instance, uint32_t typeIndex)
 
 /* static */ void*
 Instance::structNarrow(Instance* instance, uint32_t mustUnboxAnyref, uint32_t outputTypeIndex,
-                       void* nonnullPtr)
+                       void* maybeNullPtr)
 {
     JSContext* cx = TlsContext.get();
 
     Rooted<TypedObject*> obj(cx);
     Rooted<StructTypeDescr*> typeDescr(cx);
 
+    if (maybeNullPtr == nullptr) {
+        return maybeNullPtr;
+    }
+
+    void* nonnullPtr = maybeNullPtr;
     if (mustUnboxAnyref) {
         Rooted<NativeObject*> no(cx, static_cast<NativeObject*>(nonnullPtr));
         if (!no->is<TypedObject>()) {
@@ -797,9 +806,7 @@ Instance::Instance(JSContext* cx,
     MOZ_ASSERT(tables_.length() == metadata().tables.length());
 
     tlsData()->memoryBase = memory ? memory->buffer().dataPointerEither().unwrap() : nullptr;
-#ifndef WASM_HUGE_MEMORY
     tlsData()->boundsCheckLimit = memory ? memory->buffer().wasmBoundsCheckLimit() : 0;
-#endif
     tlsData()->instance = this;
     tlsData()->realm = realm_;
     tlsData()->cx = cx;
@@ -987,7 +994,6 @@ Instance::memoryMappedSize() const
     return memory_->buffer().wasmMappedSize();
 }
 
-#ifdef JS_SIMULATOR
 bool
 Instance::memoryAccessInGuardRegion(uint8_t* addr, unsigned numBytes) const
 {
@@ -1005,7 +1011,6 @@ Instance::memoryAccessInGuardRegion(uint8_t* addr, unsigned numBytes) const
     size_t lastByteOffset = addr - base + (numBytes - 1);
     return lastByteOffset >= memory()->volatileMemoryLength() && lastByteOffset < memoryMappedSize();
 }
-#endif
 
 void
 Instance::tracePrivate(JSTracer* trc)
@@ -1237,9 +1242,7 @@ Instance::onMovingGrowMemory(uint8_t* prevMemoryBase)
 
     ArrayBufferObject& buffer = memory_->buffer().as<ArrayBufferObject>();
     tlsData()->memoryBase = buffer.dataPointer();
-#ifndef WASM_HUGE_MEMORY
     tlsData()->boundsCheckLimit = buffer.wasmBoundsCheckLimit();
-#endif
 }
 
 void

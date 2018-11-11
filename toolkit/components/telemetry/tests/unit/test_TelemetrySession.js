@@ -330,7 +330,7 @@ function checkPayload(payload, reason, successfulPings) {
     sum: 0,
   };
   let flag = payload.histograms[TELEMETRY_TEST_FLAG];
-  Assert.equal(uneval(flag), uneval(expected_flag));
+  Assert.deepEqual(flag, expected_flag);
 
   // We should have a test count.
   const expected_count = {
@@ -341,7 +341,7 @@ function checkPayload(payload, reason, successfulPings) {
     sum: 1,
   };
   let count = payload.histograms[TELEMETRY_TEST_COUNT];
-  Assert.equal(uneval(count), uneval(expected_count));
+  Assert.deepEqual(count, expected_count);
 
   // There should be one successful report from the previous telemetry ping.
   if (successfulPings > 0) {
@@ -353,7 +353,7 @@ function checkPayload(payload, reason, successfulPings) {
       sum: successfulPings,
     };
     let tc = payload.histograms[TELEMETRY_SUCCESS];
-    Assert.equal(uneval(tc), uneval(expected_tc));
+    Assert.deepEqual(tc, expected_tc);
   }
 
   // The ping should include data from memory reporters.  We can't check that
@@ -361,7 +361,7 @@ function checkPayload(payload, reason, successfulPings) {
   // memory reporters.  But we can at least check that the data is there.
   //
   // It's important to check for the presence of reporters with a mix of units,
-  // because TelemetryController has separate logic for each one.  But we can't
+  // because MemoryTelemetry has separate logic for each one.  But we can't
   // currently check UNITS_COUNT_CUMULATIVE or UNITS_PERCENTAGE because
   // Telemetry doesn't touch a memory reporter with these units that's
   // available on all platforms.
@@ -929,6 +929,41 @@ add_task(async function test_environmentChange() {
 
   Assert.ok(!(COUNT_ID in ping.payload.histograms));
   Assert.ok(!(KEYED_ID in ping.payload.keyedHistograms));
+
+  // Trigger and collect another ping. The histograms should be reset.
+  startHour = TelemetryUtils.truncateToHours(now);
+  gMonotonicNow = fakeMonotonicNow(gMonotonicNow + 10 * MILLISECONDS_PER_MINUTE);
+  now = fakeNow(futureDate(now, 10 * MILLISECONDS_PER_MINUTE));
+
+  if (Services.prefs.getBoolPref("prio.enabled", false)) {
+    fakePrioEncode();
+
+    // Set histograms to expected state.
+    let prioMeasures = [
+      "BROWSER_IS_USER_DEFAULT",
+      "NEWTAB_PAGE_ENABLED",
+    ];
+
+    for (let measure of prioMeasures) {
+      const value = Telemetry.getHistogramById(measure);
+      value.clear();
+      value.add(1);
+    }
+
+    let expectedPrioResult = {
+      "booleans": [
+        true,
+        true,
+        false,
+      ],
+    };
+
+    Preferences.set(PREF_TEST, 3);
+    ping = await PingServer.promiseNextPing();
+    Assert.ok(!!ping);
+
+    Assert.deepEqual(ping.payload.prio, expectedPrioResult);
+  }
 
   await TelemetryController.testShutdown();
 });

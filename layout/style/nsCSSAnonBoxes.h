@@ -94,13 +94,13 @@ public:
   static void AssertAtoms();
 #endif
 
-  // Alias nsCSSAnonBoxes::foo() to alias nsGkAtoms::AnonBox_foo.
-  // XXX Once nsGkAtoms::AnonBox_foo become constexpr variables, these can too.
-  // See bug 1449787.
+  // Alias nsCSSAnonBoxes::foo() to nsGkAtoms::AnonBox_foo.
   #define CSS_ANON_BOX(name_, value_)                     \
-    static constexpr nsICSSAnonBoxPseudo* const& name_()  \
+    static nsCSSAnonBoxPseudoStaticAtom* name_()          \
     {                                                     \
-      return nsGkAtoms::AnonBox_##name_;                  \
+      return const_cast<nsCSSAnonBoxPseudoStaticAtom*>(   \
+        static_cast<const nsCSSAnonBoxPseudoStaticAtom*>( \
+          nsGkAtoms::AnonBox_##name_));                   \
     }
   #include "nsCSSAnonBoxList.h"
   #undef CSS_ANON_BOX

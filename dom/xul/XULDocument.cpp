@@ -82,6 +82,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/XULDocumentBinding.h"
+#include "mozilla/dom/XULPersist.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/Preferences.h"
@@ -117,19 +118,6 @@ int32_t XULDocument::gRefCnt = 0;
 LazyLogModule XULDocument::gXULLog("XULDocument");
 
 //----------------------------------------------------------------------
-
-struct BroadcastListener {
-    nsWeakPtr mListener;
-    RefPtr<nsAtom> mAttribute;
-};
-
-struct BroadcasterMapEntry : public PLDHashEntryHdr
-{
-    Element* mBroadcaster;  // [WEAK]
-    nsTArray<BroadcastListener*> mListeners;  // [OWNING] of BroadcastListener objects
-};
-
-//----------------------------------------------------------------------
 //
 // ctors & dtors
 //
@@ -140,7 +128,6 @@ namespace dom {
 XULDocument::XULDocument(void)
     : XMLDocument("application/vnd.mozilla.xul+xml"),
       mNextSrcLoadWaiter(nullptr),
-      mApplyingPersistedAttrs(false),
       mIsWritingFastLoad(false),
       mDocumentLoaded(false),
       mStillWalking(false),
@@ -149,10 +136,7 @@ XULDocument::XULDocument(void)
       mOffThreadCompiling(false),
       mOffThreadCompileStringBuf(nullptr),
       mOffThreadCompileStringLength(0),
-      mBroadcasterMap(nullptr),
-      mInitialLayoutComplete(false),
-      mHandlingDelayedAttrChange(false),
-      mHandlingDelayedBroadcasters(false)
+      mInitialLayoutComplete(false)
 {
     // Override the default in nsDocument
     mCharacterSet = UTF_8_ENCODING;
@@ -169,9 +153,6 @@ XULDocument::~XULDocument()
 {
     NS_ASSERTION(mNextSrcLoadWaiter == nullptr,
         "unreferenced document still waiting for script source to load?");
-
-    // Destroy our broadcaster map.
-    delete mBroadcasterMap;
 
     Preferences::UnregisterCallback(XULDocument::DirectionChanged,
                                     "intl.uidirection", this);
@@ -220,12 +201,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(XULDocument, XMLDocument)
 
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCurrentPrototype)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrototypes)
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocalStore)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(XULDocument, XMLDocument)
-    NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocalStore)
     //XXX We should probably unlink all the objects we traverse.
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -442,384 +421,6 @@ XULDocument::OnPrototypeLoadDone(bool aResumeWalk)
     return rv;
 }
 
-static void
-ClearBroadcasterMapEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry)
-{
-    BroadcasterMapEntry* entry =
-        static_cast<BroadcasterMapEntry*>(aEntry);
-    for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
-        delete entry->mListeners[i];
-    }
-    entry->mListeners.Clear();
-
-    // N.B. that we need to manually run the dtor because we
-    // constructed the nsTArray object in-place.
-    entry->mListeners.~nsTArray<BroadcastListener*>();
-}
-
-static bool
-CanBroadcast(int32_t aNameSpaceID, nsAtom* aAttribute)
-{
-    // Don't push changes to the |id|, |persist|, |command| or
-    // |observes| attribute.
-    if (aNameSpaceID == kNameSpaceID_None) {
-        if ((aAttribute == nsGkAtoms::id) ||
-            (aAttribute == nsGkAtoms::persist) ||
-            (aAttribute == nsGkAtoms::command) ||
-            (aAttribute == nsGkAtoms::observes)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-struct nsAttrNameInfo
-{
-  nsAttrNameInfo(int32_t aNamespaceID, nsAtom* aName, nsAtom* aPrefix) :
-    mNamespaceID(aNamespaceID), mName(aName), mPrefix(aPrefix) {}
-  nsAttrNameInfo(const nsAttrNameInfo& aOther) :
-    mNamespaceID(aOther.mNamespaceID), mName(aOther.mName),
-    mPrefix(aOther.mPrefix) {}
-  int32_t           mNamespaceID;
-  RefPtr<nsAtom> mName;
-  RefPtr<nsAtom> mPrefix;
-};
-
-void
-XULDocument::SynchronizeBroadcastListener(Element *aBroadcaster,
-                                          Element *aListener,
-                                          const nsAString &aAttr)
-{
-    if (!nsContentUtils::IsSafeToRunScript()) {
-        nsDelayedBroadcastUpdate delayedUpdate(aBroadcaster, aListener,
-                                               aAttr);
-        mDelayedBroadcasters.AppendElement(delayedUpdate);
-        MaybeBroadcast();
-        return;
-    }
-    bool notify = mDocumentLoaded || mHandlingDelayedBroadcasters;
-
-    if (aAttr.EqualsLiteral("*")) {
-        uint32_t count = aBroadcaster->GetAttrCount();
-        nsTArray<nsAttrNameInfo> attributes(count);
-        for (uint32_t i = 0; i < count; ++i) {
-            const nsAttrName* attrName = aBroadcaster->GetAttrNameAt(i);
-            int32_t nameSpaceID = attrName->NamespaceID();
-            nsAtom* name = attrName->LocalName();
-
-            // _Don't_ push the |id|, |ref|, or |persist| attribute's value!
-            if (! CanBroadcast(nameSpaceID, name))
-                continue;
-
-            attributes.AppendElement(nsAttrNameInfo(nameSpaceID, name,
-                                                    attrName->GetPrefix()));
-        }
-
-        count = attributes.Length();
-        while (count-- > 0) {
-            int32_t nameSpaceID = attributes[count].mNamespaceID;
-            nsAtom* name = attributes[count].mName;
-            nsAutoString value;
-            if (aBroadcaster->GetAttr(nameSpaceID, name, value)) {
-              aListener->SetAttr(nameSpaceID, name, attributes[count].mPrefix,
-                                 value, notify);
-            }
-
-#if 0
-            // XXX we don't fire the |onbroadcast| handler during
-            // initial hookup: doing so would potentially run the
-            // |onbroadcast| handler before the |onload| handler,
-            // which could define JS properties that mask XBL
-            // properties, etc.
-            ExecuteOnBroadcastHandlerFor(aBroadcaster, aListener, name);
-#endif
-        }
-    }
-    else {
-        // Find out if the attribute is even present at all.
-        RefPtr<nsAtom> name = NS_Atomize(aAttr);
-
-        nsAutoString value;
-        if (aBroadcaster->GetAttr(kNameSpaceID_None, name, value)) {
-            aListener->SetAttr(kNameSpaceID_None, name, value, notify);
-        } else {
-            aListener->UnsetAttr(kNameSpaceID_None, name, notify);
-        }
-
-#if 0
-        // XXX we don't fire the |onbroadcast| handler during initial
-        // hookup: doing so would potentially run the |onbroadcast|
-        // handler before the |onload| handler, which could define JS
-        // properties that mask XBL properties, etc.
-        ExecuteOnBroadcastHandlerFor(aBroadcaster, aListener, name);
-#endif
-    }
-}
-
-void
-XULDocument::AddBroadcastListenerFor(Element& aBroadcaster, Element& aListener,
-                                     const nsAString& aAttr, ErrorResult& aRv)
-{
-    nsresult rv =
-        nsContentUtils::CheckSameOrigin(this, &aBroadcaster);
-
-    if (NS_FAILED(rv)) {
-        aRv.Throw(rv);
-        return;
-    }
-
-    rv = nsContentUtils::CheckSameOrigin(this, &aListener);
-
-    if (NS_FAILED(rv)) {
-        aRv.Throw(rv);
-        return;
-    }
-
-    static const PLDHashTableOps gOps = {
-        PLDHashTable::HashVoidPtrKeyStub,
-        PLDHashTable::MatchEntryStub,
-        PLDHashTable::MoveEntryStub,
-        ClearBroadcasterMapEntry,
-        nullptr
-    };
-
-    if (! mBroadcasterMap) {
-        mBroadcasterMap = new PLDHashTable(&gOps, sizeof(BroadcasterMapEntry));
-    }
-
-    auto entry = static_cast<BroadcasterMapEntry*>
-                            (mBroadcasterMap->Search(&aBroadcaster));
-    if (!entry) {
-        entry = static_cast<BroadcasterMapEntry*>
-                           (mBroadcasterMap->Add(&aBroadcaster, fallible));
-
-        if (! entry) {
-            aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-            return;
-        }
-
-        entry->mBroadcaster = &aBroadcaster;
-
-        // N.B. placement new to construct the nsTArray object in-place
-        new (&entry->mListeners) nsTArray<BroadcastListener*>();
-    }
-
-    // Only add the listener if it's not there already!
-    RefPtr<nsAtom> attr = NS_Atomize(aAttr);
-
-    for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
-        BroadcastListener* bl = entry->mListeners[i];
-        nsCOMPtr<Element> blListener = do_QueryReferent(bl->mListener);
-
-        if (blListener == &aListener && bl->mAttribute == attr)
-            return;
-    }
-
-    BroadcastListener* bl = new BroadcastListener;
-    bl->mListener  = do_GetWeakReference(&aListener);
-    bl->mAttribute = attr;
-
-    entry->mListeners.AppendElement(bl);
-
-    SynchronizeBroadcastListener(&aBroadcaster, &aListener, aAttr);
-}
-
-void
-XULDocument::RemoveBroadcastListenerFor(Element& aBroadcaster,
-                                        Element& aListener,
-                                        const nsAString& aAttr)
-{
-    // If we haven't added any broadcast listeners, then there sure
-    // aren't any to remove.
-    if (! mBroadcasterMap)
-        return;
-
-    auto entry = static_cast<BroadcasterMapEntry*>
-                            (mBroadcasterMap->Search(&aBroadcaster));
-    if (entry) {
-        RefPtr<nsAtom> attr = NS_Atomize(aAttr);
-        for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
-            BroadcastListener* bl = entry->mListeners[i];
-            nsCOMPtr<Element> blListener = do_QueryReferent(bl->mListener);
-
-            if (blListener == &aListener && bl->mAttribute == attr) {
-                entry->mListeners.RemoveElementAt(i);
-                delete bl;
-
-                if (entry->mListeners.IsEmpty())
-                    mBroadcasterMap->RemoveEntry(entry);
-
-                break;
-            }
-        }
-    }
-}
-
-nsresult
-XULDocument::ExecuteOnBroadcastHandlerFor(Element* aBroadcaster,
-                                          Element* aListener,
-                                          nsAtom* aAttr)
-{
-    // Now we execute the onchange handler in the context of the
-    // observer. We need to find the observer in order to
-    // execute the handler.
-
-    for (nsIContent* child = aListener->GetFirstChild();
-         child;
-         child = child->GetNextSibling()) {
-
-        // Look for an <observes> element beneath the listener. This
-        // ought to have an |element| attribute that refers to
-        // aBroadcaster, and an |attribute| element that tells us what
-        // attriubtes we're listening for.
-        if (!child->IsXULElement(nsGkAtoms::observes))
-            continue;
-
-        // Is this the element that was listening to us?
-        nsAutoString listeningToID;
-        child->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::element, listeningToID);
-
-        nsAutoString broadcasterID;
-        aBroadcaster->GetAttr(kNameSpaceID_None, nsGkAtoms::id, broadcasterID);
-
-        if (listeningToID != broadcasterID)
-            continue;
-
-        // We are observing the broadcaster, but is this the right
-        // attribute?
-        nsAutoString listeningToAttribute;
-        child->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::attribute,
-                                    listeningToAttribute);
-
-        if (!aAttr->Equals(listeningToAttribute) &&
-            !listeningToAttribute.EqualsLiteral("*")) {
-            continue;
-        }
-
-        // This is the right <observes> element. Execute the
-        // |onbroadcast| event handler
-        WidgetEvent event(true, eXULBroadcast);
-
-        RefPtr<nsPresContext> presContext = GetPresContext();
-        if (presContext) {
-          // Handle the DOM event
-          nsEventStatus status = nsEventStatus_eIgnore;
-          EventDispatcher::Dispatch(child, presContext, &event, nullptr,
-                                    &status);
-        }
-    }
-
-    return NS_OK;
-}
-
-static bool
-ShouldPersistAttribute(Element* aElement, nsAtom* aAttribute)
-{
-    if (aElement->IsXULElement(nsGkAtoms::window)) {
-        // This is not an element of the top document, its owner is
-        // not an nsXULWindow. Persist it.
-        if (aElement->OwnerDoc()->GetParentDocument()) {
-            return true;
-        }
-        // The following attributes of xul:window should be handled in
-        // nsXULWindow::SavePersistentAttributes instead of here.
-        if (aAttribute == nsGkAtoms::screenX ||
-            aAttribute == nsGkAtoms::screenY ||
-            aAttribute == nsGkAtoms::width ||
-            aAttribute == nsGkAtoms::height ||
-            aAttribute == nsGkAtoms::sizemode) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void
-XULDocument::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
-                              nsAtom* aAttribute, int32_t aModType,
-                              const nsAttrValue* aOldValue)
-{
-    NS_ASSERTION(aElement->OwnerDoc() == this, "unexpected doc");
-
-    // Might not need this, but be safe for now.
-    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-
-    // Synchronize broadcast listeners
-    if (mBroadcasterMap &&
-        CanBroadcast(aNameSpaceID, aAttribute)) {
-        auto entry = static_cast<BroadcasterMapEntry*>
-                                (mBroadcasterMap->Search(aElement));
-
-        if (entry) {
-            // We've got listeners: push the value.
-            nsAutoString value;
-            bool attrSet = aElement->GetAttr(kNameSpaceID_None, aAttribute, value);
-
-            for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
-                BroadcastListener* bl = entry->mListeners[i];
-                if ((bl->mAttribute == aAttribute) ||
-                    (bl->mAttribute == nsGkAtoms::_asterisk)) {
-                    nsCOMPtr<Element> listenerEl
-                        = do_QueryReferent(bl->mListener);
-                    if (listenerEl) {
-                        nsAutoString currentValue;
-                        bool hasAttr = listenerEl->GetAttr(kNameSpaceID_None,
-                                                           aAttribute,
-                                                           currentValue);
-                        // We need to update listener only if we're
-                        // (1) removing an existing attribute,
-                        // (2) adding a new attribute or
-                        // (3) changing the value of an attribute.
-                        bool needsAttrChange =
-                            attrSet != hasAttr || !value.Equals(currentValue);
-                        nsDelayedBroadcastUpdate delayedUpdate(aElement,
-                                                               listenerEl,
-                                                               aAttribute,
-                                                               value,
-                                                               attrSet,
-                                                               needsAttrChange);
-
-                        size_t index =
-                            mDelayedAttrChangeBroadcasts.IndexOf(delayedUpdate,
-                                0, nsDelayedBroadcastUpdate::Comparator());
-                        if (index != mDelayedAttrChangeBroadcasts.NoIndex) {
-                            if (mHandlingDelayedAttrChange) {
-                                NS_WARNING("Broadcasting loop!");
-                                continue;
-                            }
-                            mDelayedAttrChangeBroadcasts.RemoveElementAt(index);
-                        }
-
-                        mDelayedAttrChangeBroadcasts.AppendElement(delayedUpdate);
-                    }
-                }
-            }
-        }
-    }
-
-    // checks for modifications in broadcasters
-    CheckBroadcasterHookup(aElement);
-
-    // See if there is anything we need to persist in the localstore.
-    //
-    // XXX Namespace handling broken :-(
-    nsAutoString persist;
-    aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::persist, persist);
-    // Persistence of attributes of xul:window is handled in nsXULWindow.
-    if (ShouldPersistAttribute(aElement, aAttribute) && !persist.IsEmpty() &&
-        // XXXldb This should check that it's a token, not just a substring.
-        persist.Find(nsDependentAtomString(aAttribute)) >= 0) {
-      nsContentUtils::AddScriptRunner(
-        NewRunnableMethod<Element*, int32_t, nsAtom*>(
-          "dom::XULDocument::Persist",
-          this,
-          &XULDocument::Persist,
-          aElement,
-          kNameSpaceID_None,
-          aAttribute));
-    }
-}
-
 void
 XULDocument::ContentAppended(nsIContent* aFirstNewContent)
 {
@@ -829,10 +430,9 @@ XULDocument::ContentAppended(nsIContent* aFirstNewContent)
     nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
     // Update our element map
-    nsresult rv = NS_OK;
-    for (nsIContent* cur = aFirstNewContent; cur && NS_SUCCEEDED(rv);
+    for (nsIContent* cur = aFirstNewContent; cur;
          cur = cur->GetNextSibling()) {
-        rv = AddSubtreeToDocument(cur);
+        AddSubtreeToDocument(cur);
     }
 }
 
@@ -850,12 +450,8 @@ XULDocument::ContentInserted(nsIContent* aChild)
 void
 XULDocument::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling)
 {
-    NS_ASSERTION(aChild->OwnerDoc() == this, "unexpected doc");
-
-    // Might not need this, but be safe for now.
-    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-
-    RemoveSubtreeFromDocument(aChild);
+    // FIXME(emilio): Doesn't this need to remove the l10n links if they go
+    // away, or something?
 }
 
 //----------------------------------------------------------------------
@@ -863,83 +459,7 @@ XULDocument::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling)
 // nsIDocument interface
 //
 
-
 void
-XULDocument::Persist(Element* aElement, int32_t aNameSpaceID,
-                     nsAtom* aAttribute)
-{
-    // For non-chrome documents, persistance is simply broken
-    if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()))
-        return;
-
-    if (!mLocalStore) {
-        mLocalStore = do_GetService("@mozilla.org/xul/xulstore;1");
-        if (NS_WARN_IF(!mLocalStore)) {
-            return;
-        }
-    }
-
-    nsAutoString id;
-
-    aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::id, id);
-    nsAtomString attrstr(aAttribute);
-
-    nsAutoString valuestr;
-    aElement->GetAttr(kNameSpaceID_None, aAttribute, valuestr);
-
-    nsAutoCString utf8uri;
-    nsresult rv = mDocumentURI->GetSpec(utf8uri);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return;
-    }
-    NS_ConvertUTF8toUTF16 uri(utf8uri);
-
-    bool hasAttr;
-    rv = mLocalStore->HasValue(uri, id, attrstr, &hasAttr);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return;
-    }
-
-    if (hasAttr && valuestr.IsEmpty()) {
-        mLocalStore->RemoveValue(uri, id, attrstr);
-        return;
-    }
-
-    // Persisting attributes to top level windows is handled by nsXULWindow.
-    if (aElement->IsXULElement(nsGkAtoms::window)) {
-        if (nsCOMPtr<nsIXULWindow> win = GetXULWindowIfToplevelChrome()) {
-           return;
-        }
-    }
-
-    mLocalStore->SetValue(uri, id, attrstr, valuestr);
-}
-
-nsresult
-XULDocument::AddElementToDocumentPre(Element* aElement)
-{
-    // Do a bunch of work that's necessary when an element gets added
-    // to the XUL Document.
-    nsresult rv;
-
-    // 1. Add the element to the id map, since it seems this can be
-    // called when creating elements from prototypes.
-    nsAtom* id = aElement->GetID();
-    if (id) {
-        // FIXME: Shouldn't BindToTree take care of this?
-        nsAutoScriptBlocker scriptBlocker;
-        AddToIdTable(aElement, id);
-    }
-
-    // 2. Check for a broadcaster hookup attribute, in which case
-    // we'll hook the node up as a listener on a broadcaster.
-    rv = CheckBroadcasterHookup(aElement);
-    if (NS_FAILED(rv)) return rv;
-
-    return NS_OK;
-}
-
-nsresult
 XULDocument::AddElementToDocumentPost(Element* aElement)
 {
     if (aElement == GetRootElement()) {
@@ -951,81 +471,38 @@ XULDocument::AddElementToDocumentPost(Element* aElement)
     } else if (aElement->IsXULElement(nsGkAtoms::linkset)) {
         OnL10nResourceContainerParsed();
     }
-
-    return NS_OK;
 }
 
-nsresult
+void
 XULDocument::AddSubtreeToDocument(nsIContent* aContent)
 {
-    NS_ASSERTION(aContent->GetUncomposedDoc() == this, "Element not in doc!");
+    MOZ_ASSERT(aContent->GetComposedDoc() == this, "Element not in doc!");
+
+    // If the content is not in the document, it must be in a shadow tree.
+    //
+    // The shadow root itself takes care of maintaining the ID tables and such,
+    // and there's no use case for localization links in shadow trees, or at
+    // least they don't work in regular HTML documents either as of today so...
+    if (MOZ_UNLIKELY(!aContent->IsInUncomposedDoc())) {
+        MOZ_ASSERT(aContent->IsInShadowTree());
+        return;
+    }
+
     // From here on we only care about elements.
     Element* aElement = Element::FromNode(aContent);
     if (!aElement) {
-        return NS_OK;
+        return;
     }
-
-    // Do pre-order addition magic
-    nsresult rv = AddElementToDocumentPre(aElement);
-    if (NS_FAILED(rv)) return rv;
 
     // Recurse to children
     for (nsIContent* child = aElement->GetLastChild();
          child;
          child = child->GetPreviousSibling()) {
-
-        rv = AddSubtreeToDocument(child);
-        if (NS_FAILED(rv))
-            return rv;
+        AddSubtreeToDocument(child);
     }
 
     // Do post-order addition magic
-    return AddElementToDocumentPost(aElement);
-}
-
-nsresult
-XULDocument::RemoveSubtreeFromDocument(nsIContent* aContent)
-{
-    // From here on we only care about elements.
-    Element* aElement = Element::FromNode(aContent);
-    if (!aElement) {
-        return NS_OK;
-    }
-
-    // Do a bunch of cleanup to remove an element from the XUL
-    // document.
-    nsresult rv;
-
-    // Remove any children from the document.
-    for (nsIContent* child = aElement->GetLastChild();
-         child;
-         child = child->GetPreviousSibling()) {
-
-        rv = RemoveSubtreeFromDocument(child);
-        if (NS_FAILED(rv))
-            return rv;
-    }
-
-    // Remove the element from the id map, since we added it in
-    // AddElementToDocumentPre().
-    nsAtom* id = aElement->GetID();
-    if (id) {
-        // FIXME: Shouldn't UnbindFromTree take care of this?
-        nsAutoScriptBlocker scriptBlocker;
-        RemoveFromIdTable(aElement, id);
-    }
-
-    // Remove the element from our broadcaster map, since it is no longer
-    // in the document.
-    nsCOMPtr<Element> broadcaster, listener;
-    nsAutoString attribute, broadcasterID;
-    rv = FindBroadcaster(aElement, getter_AddRefs(listener),
-                         broadcasterID, attribute, getter_AddRefs(broadcaster));
-    if (rv == NS_FINDBROADCASTER_FOUND) {
-        RemoveBroadcastListenerFor(*broadcaster, *listener, attribute);
-    }
-
-    return NS_OK;
+    AddElementToDocumentPost(aElement);
 }
 
 //----------------------------------------------------------------------
@@ -1137,145 +614,6 @@ XULDocument::PrepareToLoadPrototype(nsIURI* aURI, const char* aCommand,
     return NS_OK;
 }
 
-
-nsresult
-XULDocument::ApplyPersistentAttributes()
-{
-    // For non-chrome documents, persistance is simply broken
-    if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()))
-        return NS_ERROR_NOT_AVAILABLE;
-
-    // Add all of the 'persisted' attributes into the content
-    // model.
-    if (!mLocalStore) {
-        mLocalStore = do_GetService("@mozilla.org/xul/xulstore;1");
-        if (NS_WARN_IF(!mLocalStore)) {
-            return NS_ERROR_NOT_INITIALIZED;
-        }
-    }
-
-    mApplyingPersistedAttrs = true;
-    ApplyPersistentAttributesInternal();
-    mApplyingPersistedAttrs = false;
-
-    return NS_OK;
-}
-
-
-nsresult
-XULDocument::ApplyPersistentAttributesInternal()
-{
-    nsCOMArray<Element> elements;
-
-    nsAutoCString utf8uri;
-    nsresult rv = mDocumentURI->GetSpec(utf8uri);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-    }
-    NS_ConvertUTF8toUTF16 uri(utf8uri);
-
-    // Get a list of element IDs for which persisted values are available
-    nsCOMPtr<nsIStringEnumerator> ids;
-    rv = mLocalStore->GetIDsEnumerator(uri, getter_AddRefs(ids));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-    }
-
-    while (1) {
-        bool hasmore = false;
-        ids->HasMore(&hasmore);
-        if (!hasmore) {
-            break;
-        }
-
-        nsAutoString id;
-        ids->GetNext(id);
-
-        nsIdentifierMapEntry* entry = mIdentifierMap.GetEntry(id);
-        if (!entry) {
-            continue;
-        }
-
-        // We want to hold strong refs to the elements while applying
-        // persistent attributes, just in case.
-        elements.Clear();
-        elements.SetCapacity(entry->GetIdElements().Length());
-        for (Element* element : entry->GetIdElements()) {
-            elements.AppendObject(element);
-        }
-        if (elements.IsEmpty()) {
-            continue;
-        }
-
-        rv = ApplyPersistentAttributesToElements(id, elements);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-            return rv;
-        }
-    }
-
-    return NS_OK;
-}
-
-nsresult
-XULDocument::ApplyPersistentAttributesToElements(const nsAString &aID,
-                                                 nsCOMArray<Element>& aElements)
-{
-    nsAutoCString utf8uri;
-    nsresult rv = mDocumentURI->GetSpec(utf8uri);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-    }
-    NS_ConvertUTF8toUTF16 uri(utf8uri);
-
-    // Get a list of attributes for which persisted values are available
-    nsCOMPtr<nsIStringEnumerator> attrs;
-    rv = mLocalStore->GetAttributeEnumerator(uri, aID, getter_AddRefs(attrs));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-    }
-
-    while (1) {
-        bool hasmore = PR_FALSE;
-        attrs->HasMore(&hasmore);
-        if (!hasmore) {
-            break;
-        }
-
-        nsAutoString attrstr;
-        attrs->GetNext(attrstr);
-
-        nsAutoString value;
-        rv = mLocalStore->GetValue(uri, aID, attrstr, value);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-            return rv;
-        }
-
-        RefPtr<nsAtom> attr = NS_Atomize(attrstr);
-        if (NS_WARN_IF(!attr)) {
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-
-        uint32_t cnt = aElements.Count();
-        for (int32_t i = int32_t(cnt) - 1; i >= 0; --i) {
-            RefPtr<Element> element = aElements.SafeObjectAt(i);
-            if (!element) {
-                 continue;
-            }
-
-            // Applying persistent attributes to top level windows is handled
-            // by nsXULWindow.
-            if (element->IsXULElement(nsGkAtoms::window)) {
-                if (nsCOMPtr<nsIXULWindow> win = GetXULWindowIfToplevelChrome()) {
-                    continue;
-                }
-            }
-
-            Unused << element->SetAttr(kNameSpaceID_None, attr, value, true);
-        }
-    }
-
-    return NS_OK;
-}
 
 void
 XULDocument::TraceProtos(JSTracer* aTrc)
@@ -1601,9 +939,6 @@ XULDocument::ResumeWalk()
                 rv = element->AppendChildTo(child, false);
                 if (NS_FAILED(rv)) return rv;
 
-                // do pre-order document-level hookup.
-                AddElementToDocumentPre(child);
-
                 // If it has children, push the element onto the context
                 // stack and begin to process them.
                 if (protoele->mChildren.Length() > 0) {
@@ -1702,7 +1037,8 @@ XULDocument::ResumeWalk()
     // If we get here, there is nothing left for us to walk. The content
     // model is built and ready for layout.
 
-    ApplyPersistentAttributes();
+    mXULPersist = new XULPersist(this);
+    mXULPersist->Init();
 
     mStillWalking = false;
     if (mPendingSheets == 0) {
@@ -1802,66 +1138,9 @@ XULDocument::StyleSheetLoaded(StyleSheet* aSheet,
 }
 
 void
-XULDocument::MaybeBroadcast()
-{
-    // Only broadcast when not in an update and when safe to run scripts.
-    if (mUpdateNestLevel == 0 &&
-        (mDelayedAttrChangeBroadcasts.Length() ||
-         mDelayedBroadcasters.Length())) {
-        if (!nsContentUtils::IsSafeToRunScript()) {
-            if (!mInDestructor) {
-              nsContentUtils::AddScriptRunner(
-                NewRunnableMethod("dom::XULDocument::MaybeBroadcast",
-                                  this,
-                                  &XULDocument::MaybeBroadcast));
-            }
-            return;
-        }
-        if (!mHandlingDelayedAttrChange) {
-            mHandlingDelayedAttrChange = true;
-            for (uint32_t i = 0; i < mDelayedAttrChangeBroadcasts.Length(); ++i) {
-                nsAtom* attrName = mDelayedAttrChangeBroadcasts[i].mAttrName;
-                if (mDelayedAttrChangeBroadcasts[i].mNeedsAttrChange) {
-                    nsCOMPtr<Element> listener =
-                        do_QueryInterface(mDelayedAttrChangeBroadcasts[i].mListener);
-                    const nsString& value = mDelayedAttrChangeBroadcasts[i].mAttr;
-                    if (mDelayedAttrChangeBroadcasts[i].mSetAttr) {
-                        listener->SetAttr(kNameSpaceID_None, attrName, value,
-                                          true);
-                    } else {
-                        listener->UnsetAttr(kNameSpaceID_None, attrName,
-                                            true);
-                    }
-                }
-                ExecuteOnBroadcastHandlerFor(mDelayedAttrChangeBroadcasts[i].mBroadcaster,
-                                             mDelayedAttrChangeBroadcasts[i].mListener,
-                                             attrName);
-            }
-            mDelayedAttrChangeBroadcasts.Clear();
-            mHandlingDelayedAttrChange = false;
-        }
-
-        uint32_t length = mDelayedBroadcasters.Length();
-        if (length) {
-            bool oldValue = mHandlingDelayedBroadcasters;
-            mHandlingDelayedBroadcasters = true;
-            nsTArray<nsDelayedBroadcastUpdate> delayedBroadcasters;
-            mDelayedBroadcasters.SwapElements(delayedBroadcasters);
-            for (uint32_t i = 0; i < length; ++i) {
-                SynchronizeBroadcastListener(delayedBroadcasters[i].mBroadcaster,
-                                             delayedBroadcasters[i].mListener,
-                                             delayedBroadcasters[i].mAttr);
-            }
-            mHandlingDelayedBroadcasters = oldValue;
-        }
-    }
-}
-
-void
 XULDocument::EndUpdate()
 {
     XMLDocument::EndUpdate();
-    MaybeBroadcast();
 }
 
 nsresult
@@ -2249,142 +1528,6 @@ XULDocument::AddAttributes(nsXULPrototypeElement* aPrototype,
     return NS_OK;
 }
 
-
-//----------------------------------------------------------------------
-
-nsresult
-XULDocument::FindBroadcaster(Element* aElement,
-                             Element** aListener,
-                             nsString& aBroadcasterID,
-                             nsString& aAttribute,
-                             Element** aBroadcaster)
-{
-    mozilla::dom::NodeInfo *ni = aElement->NodeInfo();
-    *aListener = nullptr;
-    *aBroadcaster = nullptr;
-
-    if (ni->Equals(nsGkAtoms::observes, kNameSpaceID_XUL)) {
-        // It's an <observes> element, which means that the actual
-        // listener is the _parent_ node. This element should have an
-        // 'element' attribute that specifies the ID of the
-        // broadcaster element, and an 'attribute' element, which
-        // specifies the name of the attribute to observe.
-        nsIContent* parent = aElement->GetParent();
-        if (!parent) {
-             // <observes> is the root element
-            return NS_FINDBROADCASTER_NOT_FOUND;
-        }
-
-        *aListener = Element::FromNode(parent);
-        NS_IF_ADDREF(*aListener);
-
-        aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::element, aBroadcasterID);
-        if (aBroadcasterID.IsEmpty()) {
-            return NS_FINDBROADCASTER_NOT_FOUND;
-        }
-        aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::attribute, aAttribute);
-    }
-    else {
-        // It's a generic element, which means that we'll use the
-        // value of the 'observes' attribute to determine the ID of
-        // the broadcaster element, and we'll watch _all_ of its
-        // values.
-        aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::observes, aBroadcasterID);
-
-        // Bail if there's no aBroadcasterID
-        if (aBroadcasterID.IsEmpty()) {
-            // Try the command attribute next.
-            aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::command, aBroadcasterID);
-            if (!aBroadcasterID.IsEmpty()) {
-                // We've got something in the command attribute.  We
-                // only treat this as a normal broadcaster if we are
-                // not a menuitem or a key.
-
-                if (ni->Equals(nsGkAtoms::menuitem, kNameSpaceID_XUL) ||
-                    ni->Equals(nsGkAtoms::key, kNameSpaceID_XUL)) {
-                return NS_FINDBROADCASTER_NOT_FOUND;
-              }
-            }
-            else {
-              return NS_FINDBROADCASTER_NOT_FOUND;
-            }
-        }
-
-        *aListener = aElement;
-        NS_ADDREF(*aListener);
-
-        aAttribute.Assign('*');
-    }
-
-    // Make sure we got a valid listener.
-    NS_ENSURE_TRUE(*aListener, NS_ERROR_UNEXPECTED);
-
-    // Try to find the broadcaster element in the document.
-    *aBroadcaster = GetElementById(aBroadcasterID);
-
-    // The broadcaster element is missing.
-    if (! *aBroadcaster) {
-        return NS_FINDBROADCASTER_NOT_FOUND;
-    }
-
-    NS_ADDREF(*aBroadcaster);
-
-    return NS_FINDBROADCASTER_FOUND;
-}
-
-nsresult
-XULDocument::CheckBroadcasterHookup(Element* aElement)
-{
-    // Resolve a broadcaster hookup. Look at the element that we're
-    // trying to resolve: it could be an '<observes>' element, or just
-    // a vanilla element with an 'observes' attribute on it.
-    nsresult rv;
-
-    nsCOMPtr<Element> listener;
-    nsAutoString broadcasterID;
-    nsAutoString attribute;
-    nsCOMPtr<Element> broadcaster;
-
-    rv = FindBroadcaster(aElement, getter_AddRefs(listener),
-                         broadcasterID, attribute, getter_AddRefs(broadcaster));
-    switch (rv) {
-        case NS_FINDBROADCASTER_NOT_FOUND:
-            return NS_OK;
-        case NS_FINDBROADCASTER_FOUND:
-            break;
-        default:
-            return rv;
-    }
-
-    NS_ENSURE_ARG(broadcaster && listener);
-    ErrorResult domRv;
-    AddBroadcastListenerFor(*broadcaster, *listener, attribute, domRv);
-    if (domRv.Failed()) {
-        return domRv.StealNSResult();
-    }
-
-    // Tell the world we succeeded
-    if (MOZ_LOG_TEST(gXULLog, LogLevel::Debug)) {
-        nsCOMPtr<nsIContent> content =
-            do_QueryInterface(listener);
-
-        NS_ASSERTION(content != nullptr, "not an nsIContent");
-        if (! content)
-            return rv;
-
-        nsAutoCString attributeC,broadcasteridC;
-        LossyCopyUTF16toASCII(attribute, attributeC);
-        LossyCopyUTF16toASCII(broadcasterID, broadcasteridC);
-        MOZ_LOG(gXULLog, LogLevel::Debug,
-               ("xul: broadcaster hookup <%s attribute='%s'> to %s",
-                nsAtomCString(content->NodeInfo()->NameAtom()).get(),
-                attributeC.get(),
-                broadcasteridC.get()));
-    }
-
-    return NS_OK;
-}
-
 //----------------------------------------------------------------------
 //
 // CachedChromeStreamListener
@@ -2444,7 +1587,7 @@ XULDocument::IsDocumentRightToLeft()
     Element* element = GetRootElement();
     if (element) {
         static Element::AttrValuesArray strings[] =
-            {&nsGkAtoms::ltr, &nsGkAtoms::rtl, nullptr};
+            {nsGkAtoms::ltr, nsGkAtoms::rtl, nullptr};
         switch (element->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::localedir,
                                          strings, eCaseMatters)) {
             case 0: return false;

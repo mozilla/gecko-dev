@@ -27,14 +27,12 @@ const OPTIONAL = ["headerURL", "textcolor", "accentcolor",
                   "iconURL", "previewURL", "author", "description",
                   "homepageURL", "updateURL", "version"];
 
-const PERSIST_ENABLED = true;
-const PERSIST_BYPASS_CACHE = false;
-const PERSIST_FILES = {
-  headerURL: "lightweighttheme-header",
-};
-
+ChromeUtils.defineModuleGetter(this, "LightweightThemePersister",
+  "resource://gre/modules/addons/LightweightThemePersister.jsm");
 ChromeUtils.defineModuleGetter(this, "LightweightThemeImageOptimizer",
   "resource://gre/modules/addons/LightweightThemeImageOptimizer.jsm");
+ChromeUtils.defineModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
 ChromeUtils.defineModuleGetter(this, "ServiceRequest",
   "resource://gre/modules/ServiceRequest.jsm");
 
@@ -86,7 +84,7 @@ var LightweightThemeManager = {
   set fallbackThemeData(data) {
     if (data && Object.getOwnPropertyNames(data).length) {
       _fallbackThemeData = Object.assign({}, data);
-      if (PERSIST_ENABLED) {
+      if (LightweightThemePersister.persistEnabled) {
         LightweightThemeImageOptimizer.purge();
         _persistImages(_fallbackThemeData, () => {});
       }
@@ -114,6 +112,13 @@ var LightweightThemeManager = {
     return themes;
   },
 
+  /*
+   * Returns the currently active theme, but doesn't take a potentially
+   * available fallback theme into account.
+   *
+   * This will always return the original theme data and not make use of
+   * locally persisted resources.
+   */
   get currentTheme() {
     let selectedThemeID = _prefs.getStringPref("selectedThemeID", DEFAULT_THEME_ID);
 
@@ -124,26 +129,32 @@ var LightweightThemeManager = {
     return data;
   },
 
-  get currentThemeForDisplay() {
-    var data = this.currentTheme;
+  /*
+   * Returns the currently active theme, taking the fallback theme into account
+   * if we'd be using the default theme otherwise.
+   *
+   * This will always return the original theme data and not make use of
+   * locally persisted resources.
+   */
+  get currentThemeWithFallback() {
+    return _substituteDefaultThemeIfNeeded(this.currentTheme);
+  },
 
-    if (!data || data.id == DEFAULT_THEME_ID) {
-      if (_fallbackThemeData) {
-        return _fallbackThemeData;
-      }
-      if (_defaultThemeIsInDarkMode && _defaultDarkThemeID) {
-        return this.getUsedTheme(_defaultDarkThemeID);
-      }
-    }
+  /*
+   * Returns the currently active theme, taking the fallback theme into account
+   * if we'd be using the default theme otherwise.
+   *
+   * This will rewrite the theme data to use locally persisted resources if
+   * available.
+   *
+   * Unless you have any special requirements, this is what you normally want
+   * to use in order to retrieve the currently active theme for use in the UI.
+   */
+  get currentThemeWithPersistedData() {
+    let data = this.currentThemeWithFallback;
 
-    if (data && PERSIST_ENABLED) {
-      for (let key in PERSIST_FILES) {
-        try {
-          if (data[key] && _prefs.getBoolPref("persisted." + key))
-            data[key] = _getLocalImageURI(PERSIST_FILES[key]).spec
-                        + "?" + data.id + ";" + _version(data);
-        } catch (e) {}
-      }
+    if (data && LightweightThemePersister.persistEnabled) {
+      data = LightweightThemePersister.getPersistedData(data);
     }
 
     return data;
@@ -221,6 +232,8 @@ var LightweightThemeManager = {
   },
 
   previewTheme(aData) {
+    aData = _substituteDefaultThemeIfNeeded(aData);
+
     let cancel = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
     cancel.data = false;
     Services.obs.notifyObservers(cancel, "lightweight-theme-preview-requested",
@@ -243,7 +256,7 @@ var LightweightThemeManager = {
     if (_previewTimer) {
       _previewTimer.cancel();
       _previewTimer = null;
-      _notifyWindows(this.currentThemeForDisplay);
+      _notifyWindows(this.currentThemeWithPersistedData);
     }
   },
 
@@ -293,7 +306,8 @@ var LightweightThemeManager = {
 
     if ("converted_theme" in parsed) {
       const {url, hash} = parsed.converted_theme;
-      let install = await AddonManager.getInstallForURL(url, "application/x-xpinstall", hash);
+      let install = await AddonManager.getInstallForURL(url, "application/x-xpinstall", hash,
+                                                        null, null, null, null, {source: "lwt-converted-theme"});
 
       install.addListener({
         onDownloadEnded() {
@@ -384,10 +398,10 @@ var LightweightThemeManager = {
       let usedThemes = _usedThemesExceptId(themeToSwitchTo.id);
       usedThemes.unshift(themeToSwitchTo);
       _updateUsedThemes(usedThemes);
-      if (PERSIST_ENABLED) {
+      if (LightweightThemePersister.persistEnabled) {
         LightweightThemeImageOptimizer.purge();
         _persistImages(themeToSwitchTo, () => {
-          _notifyWindows(this.currentThemeForDisplay);
+          _notifyWindows(this.currentThemeWithPersistedData);
         });
       }
     }
@@ -489,10 +503,10 @@ var LightweightThemeManager = {
       let usedThemes = _usedThemesExceptId(themeToSwitchTo.id);
       usedThemes.unshift(themeToSwitchTo);
       _updateUsedThemes(usedThemes);
-      if (PERSIST_ENABLED) {
+      if (LightweightThemePersister.persistEnabled) {
         LightweightThemeImageOptimizer.purge();
         _persistImages(themeToSwitchTo, () => {
-          _notifyWindows(this.currentThemeForDisplay);
+          _notifyWindows(this.currentThemeWithPersistedData);
         });
       }
     }
@@ -899,6 +913,19 @@ function _notifyWindows(aThemeData) {
                                JSON.stringify({theme: aThemeData}));
 }
 
+function _substituteDefaultThemeIfNeeded(aThemeData) {
+  if (!aThemeData || aThemeData.id == DEFAULT_THEME_ID) {
+    if (_fallbackThemeData) {
+      return _fallbackThemeData;
+    }
+    if (_defaultThemeIsInDarkMode && _defaultDarkThemeID) {
+      return LightweightThemeManager.getUsedTheme(_defaultDarkThemeID);
+    }
+  }
+
+  return aThemeData;
+}
+
 var _previewTimer;
 var _previewTimerCallback = {
   notify() {
@@ -921,77 +948,10 @@ function _prefObserver(aSubject, aTopic, aData) {
 }
 
 function _persistImages(aData, aCallback) {
-  function onSuccess(key) {
-    return function() {
-      let current = LightweightThemeManager.currentTheme;
-      if (current && current.id == aData.id) {
-        _prefs.setBoolPref("persisted." + key, true);
-      }
-      if (--numFilesToPersist == 0 && aCallback) {
-        aCallback();
-      }
-    };
+  if (AppConstants.platform != "android") {
+    // On Android, the LightweightThemeConsumer is responsible for doing this.
+    LightweightThemePersister.persistImages(aData, aCallback);
   }
-
-  let numFilesToPersist = 0;
-  for (let key in PERSIST_FILES) {
-    _prefs.setBoolPref("persisted." + key, false);
-    if (aData[key]) {
-      numFilesToPersist++;
-      _persistImage(aData[key], PERSIST_FILES[key], onSuccess(key));
-    }
-  }
-}
-
-function _getLocalImageURI(localFileName) {
-  var localFile = Services.dirsvc.get("ProfD", Ci.nsIFile);
-  localFile.append(localFileName);
-  return Services.io.newFileURI(localFile);
-}
-
-function _persistImage(sourceURL, localFileName, successCallback) {
-  if (/^(file|resource):/.test(sourceURL))
-    return;
-
-  var targetURI = _getLocalImageURI(localFileName);
-  var sourceURI = _makeURI(sourceURL);
-
-  var persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-                  .createInstance(Ci.nsIWebBrowserPersist);
-
-  persist.persistFlags =
-    Ci.nsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES |
-    Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION |
-    (PERSIST_BYPASS_CACHE ?
-       Ci.nsIWebBrowserPersist.PERSIST_FLAGS_BYPASS_CACHE :
-       Ci.nsIWebBrowserPersist.PERSIST_FLAGS_FROM_CACHE);
-
-  persist.progressListener = new _persistProgressListener(successCallback);
-
-  let sourcePrincipal = Services.scriptSecurityManager.createCodebasePrincipal(sourceURI, {});
-  persist.saveURI(sourceURI, sourcePrincipal, 0,
-                  null, Ci.nsIHttpChannel.REFERRER_POLICY_UNSET,
-                  null, null, targetURI, null);
-}
-
-function _persistProgressListener(successCallback) {
-  this.onLocationChange = function() {};
-  this.onProgressChange = function() {};
-  this.onStatusChange   = function() {};
-  this.onSecurityChange = function() {};
-  this.onStateChange    = function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    if (aRequest &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-      try {
-        if (aRequest.QueryInterface(Ci.nsIHttpChannel).requestSucceeded) {
-          // success
-          successCallback();
-        }
-      } catch (e) { }
-      // failure
-    }
-  };
 }
 
 AddonManagerPrivate.registerProvider(LightweightThemeManager, [

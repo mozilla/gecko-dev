@@ -19,25 +19,28 @@ using mozilla::FloorLog2;
 LBoxAllocation
 LIRGeneratorARM64::useBoxFixed(MDefinition* mir, Register reg1, Register, bool useAtStart)
 {
-    MOZ_CRASH("useBoxFixed");
+    MOZ_ASSERT(mir->type() == MIRType::Value);
+
+    ensureDefined(mir);
+    return LBoxAllocation(LUse(reg1, mir->virtualRegister(), useAtStart));
 }
 
 LAllocation
 LIRGeneratorARM64::useByteOpRegister(MDefinition* mir)
 {
-    MOZ_CRASH("useByteOpRegister");
+    return useRegister(mir);
 }
 
 LAllocation
 LIRGeneratorARM64::useByteOpRegisterAtStart(MDefinition* mir)
 {
-    MOZ_CRASH("useByteOpRegister");
+    return useRegisterAtStart(mir);
 }
 
 LAllocation
 LIRGeneratorARM64::useByteOpRegisterOrNonDoubleConstant(MDefinition* mir)
 {
-    MOZ_CRASH("useByteOpRegisterOrNonDoubleConstant");
+    return useRegisterOrNonDoubleConstant(mir);
 }
 
 void
@@ -178,12 +181,6 @@ LIRGeneratorARM64::lowerForBitAndAndBranch(LBitAndAndBranch* baab, MInstruction*
                                          MDefinition* lhs, MDefinition* rhs)
 {
     MOZ_CRASH("lowerForBitAndAndBranch");
-}
-
-void
-LIRGeneratorARM64::defineUntypedPhi(MPhi* phi, size_t lirIndex)
-{
-    defineTypedPhi(phi, lirIndex);
 }
 
 void

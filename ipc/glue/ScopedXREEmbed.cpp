@@ -56,7 +56,7 @@ ScopedXREEmbed::Start()
   if (NS_FAILED(rv))
     return;
 
-  localFile = do_QueryInterface(parent);
+  localFile = parent;
   NS_ENSURE_TRUE_VOID(localFile);
 
 #ifdef OS_MACOSX
@@ -67,21 +67,21 @@ ScopedXREEmbed::Start()
     if (NS_FAILED(rv))
       return;
 
-    localFile = do_QueryInterface(parent);
+    localFile = parent;
     NS_ENSURE_TRUE_VOID(localFile);
 
     rv = localFile->GetParent(getter_AddRefs(parent));
     if (NS_FAILED(rv))
       return;
 
-    localFile = do_QueryInterface(parent);
+    localFile = parent;
     NS_ENSURE_TRUE_VOID(localFile);
 
     rv = localFile->GetParent(getter_AddRefs(parent));
     if (NS_FAILED(rv))
       return;
 
-    localFile = do_QueryInterface(parent);
+    localFile = parent;
     NS_ENSURE_TRUE_VOID(localFile);
 
     rv = localFile->SetNativeLeafName(NS_LITERAL_CSTRING("Resources"));

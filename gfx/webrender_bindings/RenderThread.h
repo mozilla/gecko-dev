@@ -13,12 +13,14 @@
 #include "base/message_loop.h"
 #include "nsISupportsImpl.h"
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+#include "mozilla/gfx/Point.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "mozilla/layers/SynchronousTask.h"
+#include "GLContext.h"
 
 #include <list>
 #include <queue>
@@ -56,6 +58,18 @@ public:
 
 protected:
   wr::WrProgramCache* mProgramCache;
+};
+
+class WebRenderShaders {
+public:
+  WebRenderShaders(gl::GLContext* gl, WebRenderProgramCache* programCache);
+  ~WebRenderShaders();
+
+  wr::WrShaders* RawShaders() { return mShaders; }
+
+protected:
+  RefPtr<gl::GLContext> mGL;
+  wr::WrShaders* mShaders;
 };
 
 /// Base class for an event that can be scheduled to run on the render thread.
@@ -126,7 +140,7 @@ public:
   // RenderNotifier implementation
 
   /// Automatically forwarded to the render thread.
-  void NewFrameReady(wr::WindowId aWindowId);
+  void HandleFrame(wr::WindowId aWindowId, bool aRender);
 
   /// Automatically forwarded to the render thread.
   void WakeUp(wr::WindowId aWindowId);
@@ -138,7 +152,12 @@ public:
   void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aCallBack);
 
   /// Can only be called from the render thread.
-  void UpdateAndRender(wr::WindowId aWindowId, const TimeStamp& aStartTime, bool aReadback = false);
+  void UpdateAndRender(wr::WindowId aWindowId,
+                       const TimeStamp& aStartTime,
+                       bool aRender,
+                       const Maybe<gfx::IntSize>& aReadbackSize,
+                       const Maybe<Range<uint8_t>>& aReadbackBuffer,
+                       bool aHadSlowFrame);
 
   void Pause(wr::WindowId aWindowId);
   bool Resume(wr::WindowId aWindowId);
@@ -173,11 +192,21 @@ public:
   /// Can be called from any thread.
   void FrameRenderingComplete(wr::WindowId aWindowId);
 
+  void NotifySlowFrame(wr::WindowId aWindowId);
+
   /// Can be called from any thread.
   WebRenderThreadPool& ThreadPool() { return mThreadPool; }
 
   /// Can only be called from the render thread.
   WebRenderProgramCache* ProgramCache();
+
+  /// Can only be called from the render thread.
+  WebRenderShaders* Shaders() { return mShaders.get(); }
+
+  /// Can only be called from the render thread.
+  gl::GLContext* SharedGL();
+
+  void ClearSharedGL();
 
   /// Can only be called from the render thread.
   void HandleDeviceReset(const char* aWhere, bool aNotify);
@@ -193,7 +222,7 @@ private:
 
   void DeferredRenderTextureHostDestroy();
   void ShutDownTask(layers::SynchronousTask* aTask);
-  void ProgramCacheTask();
+  void InitDeviceTask();
 
   void DoAccumulateMemoryReport(MemoryReport, const RefPtr<MemoryReportPromise::Private>&);
 
@@ -202,7 +231,13 @@ private:
   base::Thread* const mThread;
 
   WebRenderThreadPool mThreadPool;
+
   UniquePtr<WebRenderProgramCache> mProgramCache;
+  UniquePtr<WebRenderShaders> mShaders;
+
+  // An optional shared GLContext to be used for all
+  // windows.
+  RefPtr<gl::GLContext> mSharedGL;
 
   std::map<wr::WindowId, UniquePtr<RendererOGL>> mRenderers;
 
@@ -213,6 +248,7 @@ private:
     // One entry in this queue for each pending frame, so the length
     // should always equal mPendingCount
     std::queue<TimeStamp> mStartTimes;
+    bool mHadSlowFrame = false;
   };
 
   Mutex mFrameCountMapLock;

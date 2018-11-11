@@ -55,6 +55,7 @@
 .ruleview-reveal-panel {
   display: flex;
   overflow: hidden;
+  flex-wrap: wrap;
 }
 
 .ruleview-reveal-panel[hidden] {
@@ -151,7 +152,7 @@
 
 .ruleview-namecontainer {
   cursor: text;
-  margin-left: -25px;
+  margin-left: -35px;
 }
 
 .ruleview-computed > .ruleview-namecontainer {
@@ -315,22 +316,21 @@
 .ruleview-enableproperty {
   position: relative;
   float: left;
-  left: -28px;
+  left: -38px;
+  box-sizing: content-box;
+  border-left: 10px solid transparent;
+  background-clip: content-box;
 }
 
 .ruleview-warning {
-  background-image: url(images/alerticon-warning.png);
-  background-size: 13px 12px;
-  margin-inline-start: 5px;
   display: inline-block;
-  width: 13px;
+  width: 12px;
   height: 12px;
-}
-
-@media (min-resolution: 1.1dppx) {
-  .ruleview-warning {
-    background-image: url(images/alerticon-warning@2x.png);
-  }
+  margin-inline-start: 5px;
+  background-image: url(chrome://devtools/skin/images/alert.svg);
+  background-size: cover;
+  -moz-context-properties: fill;
+  fill: var(--yellow-60);
 }
 
 .ruleview-rule:not(:hover) .ruleview-enableproperty {
@@ -345,9 +345,9 @@
   margin-left: -6px;
 }
 
-.ruleview-rule .ruleview-expander.theme-twisty:dir(rtl) {
+.ruleview-expander.theme-twisty:dir(rtl):not([open]) {
   /* for preventing .theme-twisty's wrong direction in rtl; Bug 1296648 */
-  transform: none;
+  transform: rotate(-90deg);
 }
 
 .ruleview-newproperty {
@@ -422,16 +422,23 @@
 }
 
 .ruleview-flex {
-  background: url("chrome://devtools/skin/images/command-frames.svg");
-  -moz-context-properties: fill;
-  fill: var(--rule-flex-toggle-color);
+  background-image: url("chrome://devtools/skin/images/flexbox-swatch.svg");
+  background-size: 13px 11px;
+  -moz-context-properties: stroke;
+  stroke: var(--rule-flex-toggle-color);
+  width: 13px;
+  height: 11px;
   border-radius: 0;
-  background-size: 1em;
 }
 
 .ruleview-grid {
   background: url("chrome://devtools/skin/images/grid.svg");
   border-radius: 0;
+}
+
+.ruleview-grid[disabled] {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .ruleview-shape-point.active,
@@ -456,7 +463,7 @@
 }
 
 .ruleview-bezierswatch {
-  background: url("chrome://devtools/skin/images/cubic-bezier-swatch.png");
+  background: url("chrome://devtools/skin/images/cubic-bezier-swatch.svg");
   background-size: 1em;
 }
 
@@ -479,13 +486,6 @@
   box-shadow: none;
   width: 1.45em;
   height: 1.45em;
-}
-
-@media (min-resolution: 1.1dppx) {
-  .ruleview-bezierswatch {
-    background: url("chrome://devtools/skin/images/cubic-bezier-swatch@2x.png");
-    background-size: 1em;
-  }
 }
 
 .ruleview-overridden {

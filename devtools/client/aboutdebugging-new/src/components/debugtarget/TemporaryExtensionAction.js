@@ -40,28 +40,30 @@ class TemporaryExtensionAction extends PureComponent {
     const { dispatch, target } = this.props;
 
     return dom.div(
-      {},
+      {
+        className: "toolbar",
+      },
       InspectAction({ dispatch, target }),
       Localized(
         {
-          id: "about-debugging-tmp-extension-reload-button"
+          id: "about-debugging-tmp-extension-reload-button",
         },
         dom.button(
           {
-            className: "aboutdebugging-button",
-            onClick: e => this.reload()
+            className: "default-button",
+            onClick: e => this.reload(),
           },
           "Reload",
         )
       ),
       Localized(
         {
-          id: "about-debugging-tmp-extension-remove-button"
+          id: "about-debugging-tmp-extension-remove-button",
         },
         dom.button(
           {
-            className: "aboutdebugging-button js-temporary-extension-remove-button",
-            onClick: e => this.remove()
+            className: "default-button js-temporary-extension-remove-button",
+            onClick: e => this.remove(),
           },
           "Remove",
         )

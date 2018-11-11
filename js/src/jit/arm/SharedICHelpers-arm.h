@@ -31,7 +31,7 @@ EmitRepushTailCallReg(MacroAssembler& masm)
 }
 
 inline void
-EmitCallIC(CodeOffset* patchOffset, MacroAssembler& masm)
+EmitCallIC(MacroAssembler& masm, CodeOffset* patchOffset, CodeOffset* callOffset)
 {
     // Move ICEntry offset into ICStubReg
     CodeOffset offset = masm.movWithPatch(ImmWord(-1), ICStubReg);
@@ -47,6 +47,7 @@ EmitCallIC(CodeOffset* patchOffset, MacroAssembler& masm)
 
     // Call the stubcode via a direct branch-and-link.
     masm.ma_blx(r0);
+    *callOffset = CodeOffset(masm.currentOffset());
 }
 
 inline void
@@ -70,12 +71,6 @@ inline void
 EmitReturnFromIC(MacroAssembler& masm)
 {
     masm.ma_mov(lr, pc);
-}
-
-inline void
-EmitChangeICReturnAddress(MacroAssembler& masm, Register reg)
-{
-    masm.ma_mov(reg, lr);
 }
 
 inline void

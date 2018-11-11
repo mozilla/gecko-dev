@@ -21,13 +21,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
   }
   gScript.addMessageListener("test-fail", testFailHandler);
 
-  const errorTypesMethods = [{
-    supportedMethods: "basic-card",
-    data: {
-      supportedTypes: ["myType"],
-    },
-  }];
-
   const errorNetworksMethods = [{
     supportedMethods: "basic-card",
     data: {
@@ -55,7 +48,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
       supportedNetworks: ["unionpay", "visa", "mastercard", "amex", "discover",
                           "diners", "jcb", "mir",
       ],
-      supportedTypes: ["prepaid", "debit", "credit"],
     },
   }];
   const defaultDetails = {
@@ -92,23 +84,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
   const defaultOptions = {
     requestPayerName: true,
     requestPayerEmail: false,
-    reqeustPayerPhone: false,
+    requestPayerPhone: false,
     requestShipping: true,
     shippingType: "shipping"
   };
-
-  function testBasicCardRequestWithErrorTypes() {
-    return new Promise((resolve, reject) => {
-      try {
-        const payRequest = new PaymentRequest(errorTypesMethods, defaultDetails, defaultOptions);
-        ok(false, "Expected 'TypeError', but got success construction.");
-        resolve();
-      } catch (e) {
-        is(e.name, "TypeError", "Expected TypeError, but got " + e.name);
-        resolve();
-      }
-    });
-  }
 
   function testBasicCardRequestWithErrorNetworks() {
     return new Promise((resolve, reject) => {
@@ -220,6 +199,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
         is(billingAddress.addressLine.length, 1, "addressLine.length should be 1.");
         is(billingAddress.addressLine[0], "Easton Ave", "addressLine[0] should be 'Easton Ave'.");
         is(billingAddress.region, "CA", "region should be 'CA'.");
+        is(billingAddress.regionCode, "CA", "regionCode should be 'CA'.");
         is(billingAddress.city, "San Bruno", "city should be 'San Bruno'.");
         is(billingAddress.dependentLocality, "", "dependentLocality should be empty.");
         is(billingAddress.postalCode, "94066", "postalCode should be '94066'.");
@@ -236,6 +216,24 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
       }).catch( e => {
         ok(false, "Unexpected error: " + e.name);
         resolve();
+      }).finally(handler.destruct);
+    });
+  }
+
+  function testSpecialAddressResponse() {
+    const handler = SpecialPowers.getDOMWindowUtils(window).setHandlingUserInput(true);
+    gScript.sendAsyncMessage("set-special-address-ui-service");
+    return new Promise((resolve, reject) => {
+      const payRequest = new PaymentRequest(defaultMethods, defaultDetails, defaultOptions);
+      payRequest.show().then(response => {
+        ok(response.details, "BasiccardResponse should exist.");
+        ok(response.details.billingAddress,
+           "BasiccardResponse.billingAddress should exist.");
+        is(response.details.billingAddress.addressLine[0], ":$%@&*",
+           "AddressLine should be ':$%@&*'");
+        response.complete("success").then(()=>{
+          resolve();
+        });
       }).finally(handler.destruct);
     });
   }
@@ -263,14 +261,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1375345
   }
 
   function runTests() {
-    testBasicCardRequestWithErrorTypes()
-    .then(testBasicCardRequestWithErrorNetworks)
+    testBasicCardRequestWithErrorNetworks()
     .then(testBasicCardRequestWithUnconvertableData)
     .then(testBasicCardRequestWithNullData)
     .then(testBasicCardRequestWithEmptyData)
     .then(testCanMakePaymentWithBasicCardRequest)
     .then(testBasicCardSimpleResponse)
     .then(testBasicCardDetailedResponse)
+    .then(testSpecialAddressResponse)
     .then(testBasicCardErrorResponse)
     .then(teardown)
     .catch( e => {

@@ -17,6 +17,7 @@
   --command-paintflashing-image: url(images/command-paintflashing.svg);
   --command-screenshot-image: url(images/command-screenshot.svg);
   --command-responsive-image: url(images/command-responsivemode.svg);
+  --command-replay-image: url(images/command-replay.svg);
   --command-scratchpad-image: url(images/tool-scratchpad.svg);
   --command-pick-image: url(images/command-pick.svg);
   --command-pick-accessibility-image: url(images/command-pick-accessibility.svg);
@@ -44,6 +45,10 @@
   border-bottom: 1px solid var(--theme-splitter-color);
   box-sizing: border-box;
   min-height: 29px;
+}
+
+.dragging #toolbox-panel-iframe-webconsole {
+  pointer-events: none;
 }
 
 .toolbox-tabs-wrapper {
@@ -271,6 +276,22 @@
   min-width: 32px;
 }
 
+#command-button-pick::before {
+  background-image: var(--command-pick-image);
+  -moz-context-properties: fill, stroke;
+  fill: var(--theme-toolbar-photon-icon-color);
+  stroke: none;
+}
+
+#command-button-pick.checked::before {
+  fill: var(--theme-toolbar-checked-color);
+  stroke: var(--theme-toolbar-checked-color);
+}
+
+#command-button-pick.accessibility::before {
+  background-image: var(--command-pick-accessibility-image);
+}
+
 /* Command button images */
 
 #command-button-paintflashing::before {
@@ -283,24 +304,44 @@
 
 #command-button-responsive::before {
   background-image: var(--command-responsive-image);
+  -moz-context-properties: fill, stroke;
   fill: var(--theme-toolbar-photon-icon-color);
-  -moz-context-properties: fill;
+  stroke: none;
 }
 
 #command-button-responsive.checked::before {
+  fill: var(--theme-toolbar-checked-color);
+  stroke: var(--theme-toolbar-checked-color);
+}
+
+#command-button-stop-replay::before, #command-button-replay::before {
+  background-image: var(--command-replay-image);
+  fill: var(--theme-toolbar-photon-icon-color);
+  -moz-context-properties: fill;
+  background-repeat: no-repeat;
+  height: 16px;
+  background-size: contain;
+}
+
+
+#command-button-replay, #command-button-stop-replay {
+  background-color: transparent;
+}
+
+#command-button-replay:hover, #command-button-stop-replay:hover {
+  background: var(--toolbarbutton-background);
+}
+
+#command-button-stop-replay::before {
+  fill: var(--red-60);
+}
+
+#command-button-stop-replay.paused::before{
   fill: currentColor;
 }
 
 #command-button-scratchpad::before {
   background-image: var(--command-scratchpad-image);
-}
-
-#command-button-pick::before {
-  background-image: var(--command-pick-image);
-}
-
-#command-button-pick.accessibility::before {
-  background-image: var(--command-pick-accessibility-image);
 }
 
 #command-button-eyedropper::before {
@@ -317,34 +358,14 @@
 
 #command-button-frames::before {
   background-image: var(--command-frames-image);
+  -moz-context-properties: fill, stroke;
+  fill: var(--theme-toolbar-photon-icon-color);
+  stroke: none;
 }
 
-#command-button-frames {
-  background-image: url("chrome://devtools/skin/images/dropmarker.svg");
-  background-repeat: no-repeat;
-
-  /* Override background-size from the command-button.
-   The drop down arrow is smaller */
-  background-size: 8px 4px !important;
-  min-width: 32px;
-}
-
-#command-button-frames::before {
-  /* The frames button has a drop-down arrow making it asymmetrical.
-   * Drop the margin on the non-arrow side to make it fit more symmetrical. */
-  margin-inline-start: 0px;
-  /* The direction of devtools-button is forced to 'ltr' for text-as-image
-   * buttons. We don't need that here (there's no text in this button) and we
-   * want the logical properties to reflect the text direction so unset it. */
-  direction: unset;
-}
-
-#command-button-frames:-moz-locale-dir(ltr) {
-  background-position: right 2px top 14px;
-}
-
-#command-button-frames:-moz-locale-dir(rtl) {
-  background-position: left 2px top 14px;
+#command-button-frames.checked::before {
+  fill: var(--theme-toolbar-checked-color);
+  stroke: var(--theme-toolbar-checked-color);
 }
 
 /* Tooltip of frames menu  */
@@ -405,3 +426,88 @@
   background-color: var(--theme-toolbar-hover);
   z-index: 1;
 }
+
+
+/*. webreplay */
+
+.webreplay-player {
+  -moz-appearance: none;
+  background: var(--theme-tab-toolbar-background);
+  border-bottom: 1px solid var(--theme-splitter-color);
+  box-sizing: border-box;
+  min-height: 29px;
+
+  --pause-image: url('data:image/svg+xml;utf8,<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><g fill-rule="evenodd"><path d="M5 12.503l.052-9a.5.5 0 0 0-1-.006l-.052 9a.5.5 0 0 0 1 .006zM12 12.497l-.05-9A.488.488 0 0 0 11.474 3a.488.488 0 0 0-.473.503l.05 9a.488.488 0 0 0 .477.497.488.488 0 0 0 .473-.503z"/></g></svg>');
+  --play-image: url('data:image/svg+xml;utf8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g fill-rule="evenodd"><path d="M4 12.5l8-5-8-5v10zm-1 0v-10a1 1 0 0 1 1.53-.848l8 5a1 1 0 0 1 0 1.696l-8 5A1 1 0 0 1 3 12.5z" /></g></svg>');
+}
+
+.webreplay-player .overlay-container {
+  display: flex;
+}
+
+.webreplay-player .progressBar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: #DCDCDC;
+  margin: 11px 10px 11px 0;
+}
+
+.webreplay-player .progress {
+  position: absolute;
+  width: 0;
+  height: 100%;
+  background: #B7B6B6;
+}
+
+.webreplay-player .message {
+  position: absolute;
+  height: 100%;
+  width: 2px;
+  background: var(--blue-50);
+}
+
+.webreplay-player .message:hover {
+  background: var(--blue-40);
+  cursor: pointer;
+}
+
+.webreplay-player .commands {
+  display: flex;
+}
+
+.webreplay-player .command-button {
+  display: flex;
+}
+
+.webreplay-player .command-button:hover {
+  background: #efefef;
+}
+
+.webreplay-player .btn {
+  width: 15px;
+  height: 19px;
+  background: #6A6A6A;
+  mask-size: 15px 19px;
+  align-self: center;
+}
+
+.webreplay-player .play-button {
+  mask-image: var(--play-image);
+  margin-right: 5px;
+  margin-left: 2px;
+}
+
+.webreplay-player .rewind-button {
+  mask-image: var(--play-image);
+  transform: scaleX(-1);
+  margin-left: 5px;
+  margin-right: 2px;
+}
+
+.webreplay-player .pause-button {
+  mask-image: var(--pause-image);
+  margin-left: 5px;
+  margin-right: 10px;      
+}
+

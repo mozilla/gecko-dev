@@ -99,6 +99,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       </field>
 
       <constructor><![CDATA[
+        // UrlbarInput compatibility shims
+        this.document = document;
+        this.window = window;
+        this.textbox = this;
+
         this._prefs = Cc["@mozilla.org/preferences-service;1"]
                         .getService(Ci.nsIPrefService)
                         .getBranch("browser.urlbar.");
@@ -118,7 +123,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         this.speculativeConnectEnabled = this._prefs.getBoolPref("speculativeConnect.enabled");
         this.urlbarSearchSuggestEnabled = this._prefs.getBoolPref("suggest.searches");
         this.timeout = this._prefs.getIntPref("delay");
-        this._formattingEnabled = this._prefs.getBoolPref("formatting.enabled");
         this._mayTrimURLs = this._prefs.getBoolPref("trimURLs");
         this._adoptIntoActiveWindow = this._prefs.getBoolPref("switchTabs.adoptIntoActiveWindow");
         this._ctrlCanonizesURLs = this._prefs.getBoolPref("ctrlCanonizesURLs");
@@ -210,8 +214,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         this.popup.oneOffSearchButtons.textbox = null;
       ]]></destructor>
 
-      <field name="scheme" readonly="true">
-        document.getAnonymousElementByAttribute(this, "anonid", "scheme");
+      <field name="valueFormatter" readonly="true">
+        new UrlbarValueFormatter(this);
       </field>
 
       <field name="goButton">
@@ -368,8 +372,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
           // At this point, no events have been deferred for this search, and we
           // need to decide whether `event` is the first one that should be.
+          if (!this._keyCodesToDefer.has(event.keyCode) &&
+              !(/Mac/.test(navigator.platform) &&
+                event.ctrlKey &&
+                (event.key === "n" || event.key === "p") &&
+                this.popupOpen)) {
 
-          if (!this._keyCodesToDefer.has(event.keyCode)) {
             // Not a key that should trigger deferring.
             return false;
           }
@@ -555,297 +563,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         ]]></body>
       </method>
 
-      <field name="_formattingEnabled">true</field>
-
-      <!--
-        This is used only as an optimization to avoid removing formatting in
-        the _remove* format methods when no formatting is actually applied.
-      -->
-      <field name="_formattingApplied">false</field>
-
       <!--
         This method tries to apply styling to the text in the input, depending
         on the text.  See the _format* methods.
       -->
       <method name="formatValue">
         <body><![CDATA[
-          if (!this.editor || !this.editor.rootElement.firstChild.textContent) {
-            return;
-          }
-
-          // Remove the current formatting.
-          this._removeURLFormat();
-          this._removeSearchAliasFormat();
-          this._formattingApplied = false;
-
-          // Apply new formatting.  Formatter methods should return true if they
-          // successfully formatted the value and false if not.  We apply only
-          // one formatter at a time, so we stop at the first successful one.
-          let formatterMethods = [
-            "_formatURL",
-            "_formatSearchAlias",
-          ];
-          this._formattingApplied = formatterMethods.some(m => this[m]());
-        ]]></body>
-      </method>
-
-      <method name="_removeURLFormat">
-        <body><![CDATA[
-          this.scheme.value = "";
-          if (!this._formattingApplied) {
-            return;
-          }
-          let controller = this.editor.selectionController;
-          let strikeOut =
-            controller.getSelection(controller.SELECTION_URLSTRIKEOUT);
-          strikeOut.removeAllRanges();
-          let selection =
-            controller.getSelection(controller.SELECTION_URLSECONDARY);
-          selection.removeAllRanges();
-          this._formatScheme(controller.SELECTION_URLSTRIKEOUT, true);
-          this._formatScheme(controller.SELECTION_URLSECONDARY, true);
-          this.inputField.style.setProperty("--urlbar-scheme-size", "0px");
-        ]]></body>
-      </method>
-
-      <!--
-        If the input value is a URL and the input is not focused, this
-        formatter method highlights the domain, and if mixed content is present,
-        it crosses out the https scheme.  It also ensures that the host is
-        visible (not scrolled out of sight).
-
-        @param  onlyEnsureFormattedHostVisible
-                Pass true to skip formatting and instead only ensure that the
-                host is visible.
-        @return True if formatting was applied and false if not.
-      -->
-      <method name="_formatURL">
-        <parameter name="onlyEnsureFormattedHostVisible"/>
-        <body><![CDATA[
-          if (this.focused) {
-            return false;
-          }
-
-          let textNode = this.editor.rootElement.firstChild;
-          let value = textNode.textContent;
-
-          // Get the URL from the fixup service:
-          let flags = Services.uriFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS |
-                      Services.uriFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;
-          let uriInfo;
-          try {
-            uriInfo = Services.uriFixup.getFixupURIInfo(value, flags);
-          } catch (ex) {}
-          // Ignore if we couldn't make a URI out of this, the URI resulted in a search,
-          // or the URI has a non-http(s)/ftp protocol.
-          if (!uriInfo ||
-              !uriInfo.fixedURI ||
-              uriInfo.keywordProviderName ||
-              !["http", "https", "ftp"].includes(uriInfo.fixedURI.scheme)) {
-            return false;
-          }
-
-          // If we trimmed off the http scheme, ensure we stick it back on before
-          // trying to figure out what domain we're accessing, so we don't get
-          // confused by user:pass@host http URLs. We later use
-          // trimmedLength to ensure we don't count the length of a trimmed protocol
-          // when determining which parts of the URL to highlight as "preDomain".
-          let trimmedLength = 0;
-          if (uriInfo.fixedURI.scheme == "http" && !value.startsWith("http://")) {
-            value = "http://" + value;
-            trimmedLength = "http://".length;
-          }
-
-          let matchedURL = value.match(/^(([a-z]+:\/\/)(?:[^\/#?]+@)?)(\S+?)(?::\d+)?\s*(?:[\/#?]|$)/);
-          if (!matchedURL) {
-            return false;
-          }
-
-          let [, preDomain, schemeWSlashes, domain] = matchedURL;
-          // We strip http, so we should not show the scheme box for it.
-          if (!this._mayTrimURLs || schemeWSlashes != "http://") {
-            this.scheme.value = schemeWSlashes;
-            this.inputField.style.setProperty("--urlbar-scheme-size",
-                                              schemeWSlashes.length + "ch");
-          }
-
-          // Used to avoid re-entrance in the requestAnimationFrame callback.
-          let instance = this._formatURLInstance = {};
-
-          // Make sure the host is always visible. Since it is aligned on
-          // the first strong directional character, we set scrollLeft
-          // appropriately to ensure the domain stays visible in case of an
-          // overflow.
-          window.requestAnimationFrame(() => {
-            // Check for re-entrance. On focus change this formatting code is
-            // invoked regardless, thus this should be enough.
-            if (this._formatURLInstance != instance) {
-              return;
-            }
-            let directionality = window.windowUtils.getDirectionFromText(domain);
-            // In the future, for example in bug 525831, we may add a forceRTL
-            // char just after the domain, and in such a case we should not
-            // scroll to the left.
-            if (directionality == window.windowUtils.DIRECTION_RTL &&
-                value[preDomain.length + domain.length] != "\u200E") {
-              this.inputField.scrollLeft = this.inputField.scrollLeftMax;
-            }
-          });
-
-          if (onlyEnsureFormattedHostVisible || !this._formattingEnabled) {
-            return false;
-          }
-
-          let controller = this.editor.selectionController;
-
-          this._formatScheme(controller.SELECTION_URLSECONDARY);
-
-          // Strike out the "https" part if mixed active content is loaded.
-          if (this.getAttribute("pageproxystate") == "valid" &&
-              value.startsWith("https:") &&
-              gBrowser.securityUI.state &
-                Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
-            let range = document.createRange();
-            range.setStart(textNode, 0);
-            range.setEnd(textNode, 5);
-            let strikeOut =
-              controller.getSelection(controller.SELECTION_URLSTRIKEOUT);
-            strikeOut.addRange(range);
-            this._formatScheme(controller.SELECTION_URLSTRIKEOUT);
-          }
-
-          let baseDomain = domain;
-          let subDomain = "";
-          try {
-            baseDomain = Services.eTLD.getBaseDomainFromHost(uriInfo.fixedURI.host);
-            if (!domain.endsWith(baseDomain)) {
-              // getBaseDomainFromHost converts its resultant to ACE.
-              let IDNService = Cc["@mozilla.org/network/idn-service;1"]
-                               .getService(Ci.nsIIDNService);
-              baseDomain = IDNService.convertACEtoUTF8(baseDomain);
-            }
-          } catch (e) {}
-          if (baseDomain != domain) {
-            subDomain = domain.slice(0, -baseDomain.length);
-          }
-
-          let selection =
-            controller.getSelection(controller.SELECTION_URLSECONDARY);
-
-          let rangeLength = preDomain.length + subDomain.length - trimmedLength;
-          if (rangeLength) {
-            let range = document.createRange();
-            range.setStart(textNode, 0);
-            range.setEnd(textNode, rangeLength);
-            selection.addRange(range);
-          }
-
-          let startRest = preDomain.length + domain.length - trimmedLength;
-          if (startRest < value.length - trimmedLength) {
-            let range = document.createRange();
-            range.setStart(textNode, startRest);
-            range.setEnd(textNode, value.length - trimmedLength);
-            selection.addRange(range);
-          }
-
-          return true;
-        ]]></body>
-      </method>
-
-      <method name="_formatScheme">
-        <parameter name="selectionType"/>
-        <parameter name="clear"/>
-        <body><![CDATA[
-          let editor = this.scheme.editor;
-          let controller = editor.selectionController;
-          let textNode = editor.rootElement.firstChild;
-          let selection = controller.getSelection(selectionType);
-          if (clear) {
-            selection.removeAllRanges();
-          } else {
-            let r = document.createRange();
-            r.setStart(textNode, 0);
-            r.setEnd(textNode, textNode.textContent.length);
-            selection.addRange(r);
-          }
-        ]]></body>
-      </method>
-
-      <method name="_removeSearchAliasFormat">
-        <body><![CDATA[
-          if (!this._formattingApplied) {
-            return;
-          }
-          let selection = this.editor.selectionController.getSelection(
-            Ci.nsISelectionController.SELECTION_FIND
-          );
-          selection.removeAllRanges();
-        ]]></body>
-      </method>
-
-      <!--
-        If the input value starts with a search alias, this formatter method
-        highlights it.
-
-        @return True if formatting was applied and false if not.
-      -->
-      <method name="_formatSearchAlias">
-        <body><![CDATA[
-          if (!this._formattingEnabled) {
-            return false;
-          }
-
-          let textNode = this.editor.rootElement.firstChild;
-          let value = textNode.textContent;
-          let trimmedValue = value.trimStart();
-
-          // If there's no alias in the results or the first word in the input
-          // value is not that alias, then there's no formatting to do.
-          if (!this.popup.searchAlias ||
-              (trimmedValue.length != this.popup.searchAlias.length &&
-               trimmedValue[this.popup.searchAlias.length] != " ") ||
-              !trimmedValue.startsWith(this.popup.searchAlias)) {
-            return false;
-          }
-
-          let index = value.indexOf(this.popup.searchAlias);
-
-          // We abuse the SELECTION_FIND selection type to do our highlighting.
-          // It's the only type that works with Selection.setColors().
-          let selection = this.editor.selectionController.getSelection(
-            Ci.nsISelectionController.SELECTION_FIND
-          );
-
-          let range = document.createRange();
-          range.setStart(textNode, index);
-          range.setEnd(textNode, index + this.popup.searchAlias.length);
-          selection.addRange(range);
-
-          let fg = "#2362d7";
-          let bg = "#d2e6fd";
-
-          // Selection.setColors() will swap the given foreground and background
-          // colors if it detects that the contrast between the background
-          // color and the frame color is too low.  Normally we don't want that
-          // to happen; we want it to use our colors as given (even if setColors
-          // thinks the contrast is too low).  But it's a nice feature for non-
-          // default themes, where the contrast between our background color and
-          // the input's frame color might actually be too low.  We can
-          // (hackily) force setColors to use our colors as given by passing
-          // them as the alternate colors.  Otherwise, allow setColors to swap
-          // them, which we can do by passing "currentColor".  See
-          // nsTextPaintStyle::GetHighlightColors for details.
-          if (this.querySelector(":-moz-lwtheme") ||
-              (AppConstants.platform == "win" &&
-               window.matchMedia("(-moz-windows-default-theme: 0)").matches)) {
-            // non-default theme(s)
-            selection.setColors(fg, bg, "currentColor", "currentColor");
-          } else {
-            // default themes
-            selection.setColors(fg, bg, fg, bg);
-          }
-
-          return true;
+          this.valueFormatter.update();
         ]]></body>
       </method>
 
@@ -896,7 +620,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             }
             reuseEmpty = true;
           }
-          if (where == "tab" && reuseEmpty && isTabEmpty(gBrowser.selectedTab)) {
+          if (where == "tab" && reuseEmpty && gBrowser.selectedTab.isEmpty) {
             where = "current";
           }
           return where;
@@ -932,9 +656,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             return;
           }
 
-          BrowserUsageTelemetry.recordUrlbarSelectedResultMethod(
-            event, this.userSelectionBehavior);
-
           // Determine whether to use the selected one-off search button.  In
           // one-off search buttons parlance, "selected" means that the button
           // has been navigated to via the keyboard.  So we want to use it if
@@ -959,6 +680,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           if (!url) {
             return;
           }
+
+          BrowserUsageTelemetry.recordUrlbarSelectedResultMethod(
+            event, this.userSelectionBehavior);
 
           let mayInheritPrincipal = false;
           let postData = null;
@@ -997,7 +721,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                 break;
               case "keyword":
                 if (action.params.postData) {
-                  postData = getPostDataStream(action.params.postData);
+                  postData = UrlbarUtils.getPostDataStream(action.params.postData);
                 }
                 mayInheritPrincipal = true;
                 url = action.params.url;
@@ -1012,7 +736,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                   };
 
                   if (switchToTabHavingURI(url, false, loadOpts) &&
-                      isTabEmpty(prevTab)) {
+                      prevTab.isEmpty) {
                     gBrowser.removeTab(prevTab);
                   }
                   return;
@@ -1031,7 +755,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                 }
                 const actionDetails = {
                   isSuggestion: !!action.params.searchSuggestion,
-                  isAlias: !!action.params.alias,
+                  alias: action.params.alias,
                 };
                 [url, postData] = this._parseAndRecordSearchEngineLoad(
                   action.params.engineName,
@@ -1059,7 +783,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
               new URL(url);
             } catch (ex) {
               let lastLocationChange = browser.lastLocationChange;
-              getShortcutOrURIAndPostData(url).then(data => {
+              UrlbarUtils.getShortcutOrURIAndPostData(url).then(data => {
                 if (where != "current" ||
                     browser.lastLocationChange == lastLocationChange) {
                   this._loadURL(data.url, browser, data.postData, where,
@@ -1109,7 +833,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             browser.initialPageLoadedFromURLBar = url;
           }
           try {
-            addToUrlbarHistory(url);
+            UrlbarUtils.addToUrlbarHistory(url, window);
           } catch (ex) {
             // Things may go wrong when adding url to session history,
             // but don't let that interfere with the loading of the url.
@@ -1125,11 +849,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             params.targetBrowser = browser;
             params.indicateErrorPageLoad = true;
             params.allowPinnedTabHostChange = true;
-            params.allowInheritPrincipal = mayInheritPrincipal;
             params.allowPopups = url.startsWith("javascript:");
           } else {
             params.initiatingDoc = document;
           }
+          params.allowInheritPrincipal = mayInheritPrincipal;
 
           if (openUILinkParams) {
             for (let key in openUILinkParams) {
@@ -1476,9 +1200,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
               case "delay":
                 this.timeout = this._prefs.getIntPref(aData);
                 break;
-              case "formatting.enabled":
-                this._formattingEnabled = this._prefs.getBoolPref(aData);
-                break;
               case "ctrlCanonizesURLs":
                 this._ctrlCanonizesURLs = this._prefs.getBoolPref(aData);
                 break;
@@ -1521,8 +1242,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
       <method name="_enableOrDisableOneOffSearches">
         <body><![CDATA[
-          this.popup.oneOffSearchesEnabled =
-            this._prefs.getBoolPref("oneOffSearches");
+          this.popup.toggleOneOffSearches(
+            this._prefs.getBoolPref("oneOffSearches"),
+            "pref"
+          );
         ]]></body>
       </method>
 
@@ -1614,8 +1337,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                 // happen when using special OS resize functions like Win+Arrow.
                 this.closePopup();
 
-                // Make sure the host remains visible in the input field (via
-                // _formatURL) when the window is resized.  We don't want to
+                // Make sure the host remains visible in the input field
+                // when the window is resized.  We don't want to
                 // hurt resize performance though, so do this only after resize
                 // events have stopped and a small timeout has elapsed.
                 if (this._resizeThrottleTimeout) {
@@ -1623,7 +1346,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                 }
                 this._resizeThrottleTimeout = setTimeout(() => {
                   this._resizeThrottleTimeout = null;
-                  this._formatURL(true);
+                  this.valueFormatter.ensureFormattedHostVisible();
                 }, 100);
               }
               break;
@@ -1921,32 +1644,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         @param  value
                 The input's value will be set to this value, and the search will
                 use it as its query.
-        @param  options
-                An optional object with the following optional properties:
-                * disableOneOffButtons: Set to true to hide the one-off search
-                  buttons.
-                * disableSearchSuggestionsNotification: Set to true to hide the
-                  onboarding opt-out search suggestions notification.
       -->
       <method name="search">
         <parameter name="value"/>
-        <parameter name="options"/>
         <body><![CDATA[
-          options = options || {};
-
-          if (options.disableOneOffButtons) {
-            this.popup.addEventListener("popupshowing", () => {
-              if (this.popup.oneOffSearchesEnabled) {
-                this.popup.oneOffSearchesEnabled = false;
-                this.popup.addEventListener("popuphidden", () => {
-                  this.popup.oneOffSearchesEnabled = true;
-                }, {once: true});
-              }
-            }, {once: true});
-          }
-
-          if (options.disableSearchSuggestionsNotification &&
-              this.whichSearchSuggestionsNotification != "none") {
+          // Hide the suggestions notification if the search uses an "@engine"
+          // search engine alias.
+          if (value.trim()[0] == "@") {
             let which = this.whichSearchSuggestionsNotification;
             this._whichSearchSuggestionsNotification = "none";
             this.popup.addEventListener("popuphidden", () => {
@@ -2155,12 +1859,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                        flex="1"/>
       <xul:hbox anonid="footer">
         <children/>
-        <xul:vbox anonid="one-off-search-buttons"
-                  class="search-one-offs"
-                  compact="true"
-                  includecurrentengine="true"
-                  disabletab="true"
-                  flex="1"/>
+        <xul:search-one-offs anonid="one-off-search-buttons"
+                             class="search-one-offs"
+                             compact="true"
+                             includecurrentengine="true"
+                             disabletab="true"
+                             flex="1"/>
       </xul:hbox>
     </content>
 
@@ -2198,8 +1902,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                                                 "one-off-search-buttons");
       </field>
 
-      <field name="_oneOffSearchesEnabled">false</field>
-
       <field name="_overrideValue">null</field>
       <property name="overrideValue"
                 onget="return this._overrideValue;"
@@ -2217,13 +1919,31 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         ]]></body>
       </method>
 
-      <property name="oneOffSearchesEnabled">
-        <getter><![CDATA[
-          return this._oneOffSearchesEnabled;
-        ]]></getter>
-        <setter><![CDATA[
-          this._oneOffSearchesEnabled = !!val;
-          if (val) {
+      <field name="_oneOffSearchesEnabledByReason">new Map()</field>
+
+      <method name="toggleOneOffSearches">
+        <parameter name="enable"/>
+        <parameter name="reason"/>
+        <body><![CDATA[
+          this._oneOffSearchesEnabledByReason.set(reason || "runtime", enable);
+          this._syncOneOffSearchesEnabled();
+        ]]></body>
+      </method>
+
+      <method name="_syncOneOffSearchesEnabled">
+        <body><![CDATA[
+          // If the popup hasn't ever been opened yet, then don't actually do
+          // anything.  (The popup will still be hidden in that case.)  The
+          // input adds a popupshowing listener that will call this method back
+          // and lazily initialize the one-off buttons the first time the popup
+          // opens.  There are performance tests that fail if we don't do this.
+          if (this.hidden) {
+            return;
+          }
+
+          let enable = Array.from(this._oneOffSearchesEnabledByReason.values())
+                            .every(v => v);
+          if (enable) {
             this.oneOffSearchButtons.telemetryOrigin = "urlbar";
             this.oneOffSearchButtons.style.display = "-moz-box";
             // Set .textbox first, since the popup setter will cause
@@ -2236,8 +1956,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             this.oneOffSearchButtons.textbox = null;
             this.oneOffSearchButtons.popup = null;
           }
-          return this._oneOffSearchesEnabled;
-        ]]></setter>
+        ]]></body>
+      </method>
+
+      <property name="oneOffSearchesEnabled" readonly="true">
+        <getter><![CDATA[
+          return this.oneOffSearchButtons.style.display != "none";
+        ]]></getter>
       </property>
 
       <!-- Override this so that navigating between items results in an item
@@ -2634,25 +2359,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         </body>
       </method>
 
-      <method name="_selectedOneOffChanged">
-        <body><![CDATA[
-          // Update all searchengine result items to use the newly selected
-          // engine.
-          for (let item of this.richlistbox.children) {
-            if (item.collapsed) {
-              break;
-            }
-            let url = item.getAttribute("url");
-            if (url) {
-              let action = item._parseActionUrl(url);
-              if (action && action.type == "searchengine") {
-                item._adjustAcItem();
-              }
-            }
-          }
-        ]]></body>
-      </method>
-
       <!-- This handles keypress changes to the selection among the one-off
            search buttons and between the one-offs and the listbox.  It returns
            true if the keypress was consumed and false if not. -->
@@ -2739,38 +2445,32 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         ]]></body>
       </method>
 
-      <!--
-        The search alias of the first (heuristic) result in the popup, if any.
-      -->
-      <field name="searchAlias">null</field>
-
       <method name="onResultsAdded">
         <body>
           <![CDATA[
-            if (!this.input.gotResultForCurrentQuery) {
-              // This is the first result of a new search.  Cache its search
-              // alias, if any.  Do this now, when we get the first result, so
-              // that the cached alias remains available between the time the
-              // previous search ended and now.
-              //
-              // Calling _parseActionUrl and getting params.alias would be
-              // sufficient here, but as an optimization, first check whether
-              // the result is a searchengine result, which is a simple
-              // substring check, to avoid the more expensive _parseActionUrl.
-              let alias =
-                this.input.mController.getStyleAt(0).includes("searchengine") &&
-                this.input._parseActionUrl(this.input.mController.getFinalCompleteValueAt(0)).params.alias;
-              this.searchAlias = alias || null;
-
-              // Format the alias or remove the formatting of the previous alias.
-              this.input.formatValue();
-            }
-
             // If nothing is selected yet, select the first result if it is a
             // pre-selected "heuristic" result.  (See UnifiedComplete.js.)
-            if (this.selectedIndex == -1 && this._isFirstResultHeuristic) {
+            let selectHeuristic =
+              this.selectedIndex == -1 && this._isFirstResultHeuristic;
+            if (selectHeuristic) {
               this.input.controller.setInitiallySelectedIndex(0);
             }
+
+            // If this is the heuristic result of a new search, format its
+            // search alias in the input or remove the formatting of the
+            // previous alias, as necessary.  We need to check selectHeuristic
+            // because the result may have already been added but only now is
+            // being selected, and we need to check gotResultForCurrentQuery
+            // because the result may be from the previous search and already
+            // selected and is now being reused.
+            if (selectHeuristic || !this.input.gotResultForCurrentQuery) {
+              this.input.formatValue();
+
+              // Also, hide the one-off search buttons if the user is using, or
+              // starting to use, an "@engine" search engine alias.
+              this.toggleOneOffSearches(this.input.value.trim()[0] != "@");
+            }
+
             // If this is the first time we get the result from the current
             // search and we are not in the private context, we can speculatively
             // connect to the intended site as a performance optimization.
@@ -2787,7 +2487,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                          this.input.urlbarSearchSuggestEnabled) {
                 // Preconnect to the current search engine only if the search
                 // suggestions are enabled.
-                let engine = Services.search.currentEngine;
+                let engine = Services.search.defaultEngine;
                 engine.speculativeConnect({window,
                                            originAttributes: gBrowser.contentPrincipal.originAttributes});
               }
@@ -2922,7 +2622,33 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
     <handlers>
 
       <handler event="SelectedOneOffButtonChanged"><![CDATA[
-        this._selectedOneOffChanged();
+        // Update all searchengine result items to use the newly selected
+        // engine.
+        for (let item of this.richlistbox.children) {
+          if (item.collapsed) {
+            break;
+          }
+          let url = item.getAttribute("url");
+          if (url) {
+            let action = item._parseActionUrl(url);
+            if (action && action.type == "searchengine") {
+              item._adjustAcItem();
+            }
+          }
+        }
+
+        // If the selection moved from the results to the one-off settings
+        // button, then call formatValue to remove the formatting of the search
+        // alias in the input, if any.  In all other cases the alias formatting
+        // is removed when the input's value setter calls formatValue, but in
+        // this specific case, at the time that formatValue is called,
+        // oneOffSearchButtons.selectedButton is still null, so the formatting
+        // is not removed.  The settings button is selected right after that.
+        if (this.oneOffSearchButtons.selectedButton ==
+              this.oneOffSearchButtons.settingsButtonCompact &&
+            (!event.detail || !event.detail.previousSelectedButton)) {
+          this.input.formatValue();
+        }
       ]]></handler>
 
       <handler event="mousedown"><![CDATA[
@@ -3047,9 +2773,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         <parameter name="aMaxProgress"/>
         <body><![CDATA[
           if (aMaxProgress == -1) {
-            this.progressmeter.setAttribute("mode", "undetermined");
+            this.progressmeter.removeAttribute("value");
           } else {
-            this.progressmeter.setAttribute("mode", "determined");
             this.progressmeter.setAttribute("value", (aProgress * 100) / aMaxProgress);
           }
 
@@ -3119,7 +2844,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
           if (downloadingCount == 0) {
             this.destroy();
-            this.progressmeter.setAttribute("mode", "undetermined");
+            this.progressmeter.removeAttribute("value");
             let status = gNavigatorBundle.getString("addonDownloadVerifying");
             this.progresstext.setAttribute("value", status);
             this.progresstext.setAttribute("tooltiptext", status);

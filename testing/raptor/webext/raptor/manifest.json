@@ -27,14 +27,21 @@
                   "*://*/webaudio/*",
                   "*://*/unity-webgl/index.html*",
                   "*://*/wasm-misc/index.html*",
+                  "*://*/wasm-godot/index.html*",
                   "*://*/assorted-dom/assorted/results.html*"],
       "js": ["benchmark-relay.js"]
     }
   ],
+  "browser_action": {
+    "browser_style": true,
+    "default_icon": "icon.png",
+    "default_title": "Raptor LOADED"
+  },
   "permissions": [
     "<all_urls>",
     "tabs",
     "storage",
-    "alarms"
+    "alarms",
+    "geckoProfiler"
   ]
 }

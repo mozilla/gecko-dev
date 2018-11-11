@@ -260,6 +260,7 @@ class ModuleObject : public NativeObject
         StatusSlot,
         EvaluationErrorSlot,
         MetaObjectSlot,
+        ScriptSourceObjectSlot,
         RequestedModulesSlot,
         ImportEntriesSlot,
         LocalExportEntriesSlot,
@@ -301,6 +302,7 @@ class ModuleObject : public NativeObject
 #endif
     void fixEnvironmentsAfterCompartmentMerge();
 
+    JSScript* maybeScript() const;
     JSScript* script() const;
     Scope* enclosingScope() const;
     ModuleEnvironmentObject& initialEnvironment() const;
@@ -310,6 +312,7 @@ class ModuleObject : public NativeObject
     bool hadEvaluationError() const;
     Value evaluationError() const;
     JSObject* metaObject() const;
+    ScriptSourceObject* scriptSourceObject() const;
     ArrayObject& requestedModules() const;
     ArrayObject& importEntries() const;
     ArrayObject& localExportEntries() const;
@@ -344,7 +347,6 @@ class ModuleObject : public NativeObject
     static void trace(JSTracer* trc, JSObject* obj);
     static void finalize(js::FreeOp* fop, JSObject* obj);
 
-    bool hasScript() const;
     bool hasImportBindings() const;
     FunctionDeclarationVector* functionDeclarations();
 };
@@ -415,7 +417,17 @@ class MOZ_STACK_CLASS ModuleBuilder
 };
 
 JSObject*
-GetOrCreateModuleMetaObject(JSContext* cx, HandleScript script);
+GetOrCreateModuleMetaObject(JSContext* cx, HandleObject module);
+
+JSObject*
+CallModuleResolveHook(JSContext* cx, HandleValue referencingPrivate, HandleString specifier);
+
+JSObject*
+StartDynamicModuleImport(JSContext* cx, HandleValue referencingPrivate, HandleValue specifier);
+
+bool
+FinishDynamicModuleImport(JSContext* cx, HandleValue referencingPrivate, HandleString specifier,
+                          HandleObject promise);
 
 } // namespace js
 

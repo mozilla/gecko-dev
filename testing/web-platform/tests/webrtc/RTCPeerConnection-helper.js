@@ -160,6 +160,16 @@ function generateOffer(options={}) {
   });
 }
 
+async function generateVideoReceiveOnlyOffer(pc)
+{
+    try {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        return pc.createOffer();
+    } catch(e) {
+        return pc.createOffer({ offerToReceiveVideo: true });
+    }
+}
+
 // Helper function to generate answer based on given offer using a freshly
 // created RTCPeerConnection object
 function generateAnswer(offer) {
@@ -281,6 +291,19 @@ function createDataChannelPair(
   });
 }
 
+// Wait for RTP and RTCP stats to arrive
+async function waitForRtpAndRtcpStats(pc) {
+  while (true) {
+    const report = await pc.getStats();
+    const stats = [...report.values()].filter(({type}) => type.endsWith("bound-rtp"));
+    // Each RTP and RTCP stat has a reference
+    // to the matching stat in the other direction
+    if (stats.length && stats.every(({localId, remoteId}) => localId || remoteId)) {
+      break;
+    }
+  }
+}
+
 // Wait for a single message event and return
 // a promise that resolve when the event fires
 function awaitMessage(channel) {
@@ -358,7 +381,7 @@ const trackFactories = {
    */
   canCreate(requested) {
     const supported = {
-      audio: !!window.MediaStreamAudioDestinationNode,
+      audio: !!window.AudioContext && !!window.MediaStreamAudioDestinationNode,
       video: !!HTMLCanvasElement.prototype.captureStream
     };
 
@@ -463,11 +486,13 @@ function getUserMediaTracksAndStreams(count, type = 'audio') {
   });
 }
 
+// Performs an offer exchange caller -> callee.
 async function exchangeOffer(caller, callee) {
   const offer = await caller.createOffer();
   await caller.setLocalDescription(offer);
   return callee.setRemoteDescription(offer);
 }
+// Performs an answer exchange caller -> callee.
 async function exchangeAnswer(caller, callee) {
   const answer = await callee.createAnswer();
   await callee.setLocalDescription(answer);
@@ -477,7 +502,18 @@ async function exchangeOfferAnswer(caller, callee) {
   await exchangeOffer(caller, callee);
   return exchangeAnswer(caller, callee);
 }
-
+// The returned promise is resolved with caller's ontrack event.
+async function exchangeAnswerAndListenToOntrack(t, caller, callee) {
+  const ontrackPromise = addEventListenerPromise(t, caller, 'track');
+  await exchangeAnswer(caller, callee);
+  return ontrackPromise;
+}
+// The returned promise is resolved with callee's ontrack event.
+async function exchangeOfferAndListenToOntrack(t, caller, callee) {
+  const ontrackPromise = addEventListenerPromise(t, callee, 'track');
+  await exchangeOffer(caller, callee);
+  return ontrackPromise;
+}
 
 // The resolver has a |promise| that can be resolved or rejected using |resolve|
 // or |reject|.
@@ -502,4 +538,28 @@ function addEventListenerPromise(t, target, type, listener) {
       resolve(e);
     }));
   });
+}
+
+function createPeerConnectionWithCleanup(t) {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  return pc;
+}
+
+async function createTrackAndStreamWithCleanup(t, kind = 'audio') {
+  let constraints = {};
+  constraints[kind] = true;
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  return [track, stream];
+}
+
+function findTransceiverForSender(pc, sender) {
+  const transceivers = pc.getTransceivers();
+  for (let i = 0; i < transceivers.length; ++i) {
+    if (transceivers[i].sender == sender)
+      return transceivers[i];
+  }
+  return null;
 }

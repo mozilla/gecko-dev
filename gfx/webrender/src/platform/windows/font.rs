@@ -115,7 +115,7 @@ impl FontContext {
             return;
         }
 
-        if let Some(font_file) = dwrote::FontFile::new_from_data(&**data) {
+        if let Some(font_file) = dwrote::FontFile::new_from_data(data) {
             let face = font_file.create_face(index, dwrote::DWRITE_FONT_SIMULATIONS_NONE);
             self.fonts.insert(*font_key, face);
         } else {
@@ -131,9 +131,36 @@ impl FontContext {
         }
 
         let system_fc = dwrote::FontCollection::system();
-        let font = match system_fc.get_font_from_descriptor(&font_handle) {
-            Some(font) => font,
-            None => { panic!("missing descriptor {:?}", font_handle) }
+        // A version of get_font_from_descriptor() that panics early to help with bug 1455848
+        let font = if let Some(family) = system_fc.get_font_family_by_name(&font_handle.family_name) {
+            let font = family.get_first_matching_font(font_handle.weight, font_handle.stretch, font_handle.style);
+            // Exact matches only here
+            if font.weight() == font_handle.weight &&
+                font.stretch() == font_handle.stretch &&
+                font.style() == font_handle.style
+            {
+                font
+            } else {
+                // We can't depend on the family's fonts being in a particular order, so the first match may not
+                // be an exact match, even though it is sufficiently close to be a match. As a slower fallback,
+                // try looking through all of the fonts in the family for an exact match. The caller should have
+                // verified that an exact match exists so that this search shouldn't fail.
+                (0 .. family.get_font_count()).filter_map(|idx| {
+                    let alt = family.get_font(idx);
+                    if alt.weight() == font_handle.weight &&
+                        alt.stretch() == font_handle.stretch &&
+                        alt.style() == font_handle.style
+                    {
+                        Some(alt)
+                    } else {
+                        None
+                    }
+                }).next().unwrap_or_else(|| {
+                    panic!("font mismatch for descriptor {:?} {:?}", font_handle, font.to_descriptor())
+                })
+            }
+        } else {
+            panic!("missing font family for descriptor {:?}", font_handle)
         };
         let face = font.create_font_face();
         self.fonts.insert(*font_key, face);
@@ -142,6 +169,18 @@ impl FontContext {
     pub fn delete_font(&mut self, font_key: &FontKey) {
         if let Some(_) = self.fonts.remove(font_key) {
             self.variations.retain(|k, _| k.0 != *font_key);
+        }
+    }
+
+    pub fn delete_font_instance(&mut self, instance: &FontInstance) {
+        // Ensure we don't keep around excessive amounts of stale variations.
+        if !instance.variations.is_empty() {
+            let sims = if instance.flags.contains(FontInstanceFlags::SYNTHETIC_BOLD) {
+                dwrote::DWRITE_FONT_SIMULATIONS_BOLD
+            } else {
+                dwrote::DWRITE_FONT_SIMULATIONS_NONE
+            };
+            self.variations.remove(&(instance.font_key, sims, instance.variations.clone()));
         }
     }
 
@@ -185,7 +224,8 @@ impl FontContext {
                         sims,
                         &font.variations.iter().map(|var| {
                             dwrote::DWRITE_FONT_AXIS_VALUE {
-                                axisTag: var.tag,
+                                // OpenType tags are big-endian, but DWrite wants little-endian.
+                                axisTag: var.tag.swap_bytes(),
                                 value: var.value,
                             }
                         }).collect::<Vec<_>>(),

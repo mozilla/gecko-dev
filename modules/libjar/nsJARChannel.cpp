@@ -63,7 +63,9 @@ static LazyLogModule gJarProtocolLog("nsJarProtocol");
 class nsJARInputThunk : public nsIInputStream
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
+    // Preserve refcount changes when record/replaying, as otherwise the thread
+    // which destroys the thunk may vary between recording and replaying.
+    NS_DECL_THREADSAFE_ISUPPORTS_WITH_RECORDING(recordreplay::Behavior::Preserve)
     NS_DECL_NSIINPUTSTREAM
 
     nsJARInputThunk(nsIZipReader *zipReader,
@@ -209,8 +211,23 @@ nsJARChannel::nsJARChannel()
 nsJARChannel::~nsJARChannel()
 {
     LOG(("nsJARChannel::~nsJARChannel [this=%p]\n", this));
+    if (NS_IsMainThread()) {
+        return;
+    }
+
+    // Proxy release the following members to main thread.
     NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mLoadInfo",
                                       mLoadInfo.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mCallbacks",
+                                      mCallbacks.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mProgressSink",
+                                      mProgressSink.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mLoadGroup",
+                                      mLoadGroup.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mListener",
+                                      mListener.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsJARChannel::mListenerContext",
+                                      mListenerContext.forget());
 }
 
 NS_IMPL_ISUPPORTS_INHERITED(nsJARChannel,

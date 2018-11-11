@@ -74,10 +74,10 @@ window.gActivityStreamStrings = {
   "topsites_form_image_validation": "Ta’anga nehenyhẽkuái. Eipuru peteĩ URL iñambuéva.",
   "pocket_read_more": "Ñe'ẽmbyrã Ojehayhuvéva:",
   "pocket_read_even_more": "Ahechaseve Mombe'upy",
-  "pocket_more_reccommendations": "More Recommendations",
-  "pocket_learn_more": "Kuaave",
+  "pocket_more_reccommendations": "Hetave je’eporã",
+  "pocket_how_it_works": "Mba’éichapa omba’apo",
   "pocket_cta_button": "Eguereko Pocket",
-  "pocket_cta_text": "Save the stories you love in Pocket, and fuel your mind with fascinating reads.",
+  "pocket_cta_text": "Eñongatu umi eipotáva tembiasakue Pocket-pe ha emombarete ne akã ñemoñe’ẽ ha’evévape.",
   "highlights_empty_state": "Eñepyrũ eikundaha ha rohechaukáta ndéve mba'ehai, mba'erecharã oĩva ha ambue ñandutirenda reikeva'ekue ýrõ rembotechaukava'ekue.",
   "topstories_empty_state": "Ko'ág̃a reikuaapáma ipyahúva. Eikejey ag̃ave ápe eikuaávo mombe'upy pyahu {provider} oikuave'ẽva ndéve. Ndaikatuvéima reha'ãrõ? Eiporavo peteĩ ñe'ẽmbyrã ha emoñe'ẽve oĩvéva ñande yvy ape ári.",
   "manual_migration_explanation2": "Eipuru Firefox reheve techaukaha, tembiasakue ha ñe'ẽñemi ambue kundaharapegua.",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "Mba'epytyvõrã ñemboguata",
   "firstrun_privacy_notice": "Ñemigua purureko",
   "firstrun_continue_to_login": "Eku'ejey",
-  "firstrun_skip_login": "Ehejánte kóva"
+  "firstrun_skip_login": "Ehejánte kóva",
+  "context_menu_title": "Eike poravorãme",
+  "pocket_learn_more": "Kuaave"
 };

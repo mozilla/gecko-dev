@@ -8,6 +8,7 @@
 #include "FetchConsumer.h"
 
 #include "mozilla/dom/BlobBinding.h"
+#include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FileBinding.h"
 #include "mozilla/dom/FileCreatorHelper.h"
@@ -322,21 +323,14 @@ template <class Derived>
 FetchBodyConsumer<Derived>::Create(nsIGlobalObject* aGlobal,
                                    nsIEventTarget* aMainThreadEventTarget,
                                    FetchBody<Derived>* aBody,
+                                   nsIInputStream* aBodyStream,
                                    AbortSignalImpl* aSignalImpl,
                                    FetchConsumeType aType,
                                    ErrorResult& aRv)
 {
   MOZ_ASSERT(aBody);
+  MOZ_ASSERT(aBodyStream);
   MOZ_ASSERT(aMainThreadEventTarget);
-
-  nsCOMPtr<nsIInputStream> bodyStream;
-  aBody->DerivedClass()->GetBody(getter_AddRefs(bodyStream));
-  if (!bodyStream) {
-    aRv = NS_NewCStringInputStream(getter_AddRefs(bodyStream), EmptyCString());
-    if (NS_WARN_IF(aRv.Failed())) {
-      return nullptr;
-    }
-  }
 
   RefPtr<Promise> promise = Promise::Create(aGlobal, aRv);
   if (aRv.Failed()) {
@@ -345,7 +339,7 @@ FetchBodyConsumer<Derived>::Create(nsIGlobalObject* aGlobal,
 
   RefPtr<FetchBodyConsumer<Derived>> consumer =
     new FetchBodyConsumer<Derived>(aMainThreadEventTarget, aGlobal,
-                                   aBody, bodyStream, promise,
+                                   aBody, aBodyStream, promise,
                                    aType);
 
   RefPtr<ThreadSafeWorkerRef> workerRef;
@@ -434,6 +428,7 @@ FetchBodyConsumer<Derived>::FetchBodyConsumer(nsIEventTarget* aMainThreadEventTa
 #endif
   , mBodyStream(aBodyStream)
   , mBlobStorageType(MutableBlobStorage::eOnlyInMemory)
+  , mBodyBlobURISpec(aBody ? aBody->BodyBlobURISpec() : VoidCString())
   , mBodyLocalPath(aBody ? aBody->BodyLocalPath() : VoidString())
   , mGlobal(aGlobalObject)
   , mConsumeType(aType)
@@ -597,11 +592,26 @@ FetchBodyConsumer<Derived>::BeginConsumeBodyMainThread(ThreadSafeWorkerRef* aWor
     return;
   }
 
-  // If we're trying to consume a blob, and the request was for a local
-  // file, then generate and return a File blob.
   if (mConsumeType == CONSUME_BLOB) {
+    nsresult rv;
+
+    // If we're trying to consume a blob, and the request was for a blob URI,
+    // then just consume that URI's blob instance.
+    if (!mBodyBlobURISpec.IsEmpty()) {
+      RefPtr<BlobImpl> blobImpl;
+      rv = NS_GetBlobForBlobURISpec(mBodyBlobURISpec, getter_AddRefs(blobImpl));
+      if (NS_WARN_IF(NS_FAILED(rv)) || !blobImpl) {
+        return;
+      }
+      autoReject.DontFail();
+      ContinueConsumeBlobBody(blobImpl);
+      return;
+    }
+
+    // If we're trying to consume a blob, and the request was for a local
+    // file, then generate and return a File blob.
     nsCOMPtr<nsIFile> file;
-    nsresult rv = GetBodyLocalFile(getter_AddRefs(file));
+    rv = GetBodyLocalFile(getter_AddRefs(file));
     if (!NS_WARN_IF(NS_FAILED(rv)) && file) {
       ChromeFilePropertyBag bag;
       bag.mType = NS_ConvertUTF8toUTF16(mBodyMimeType);
@@ -734,7 +744,7 @@ FetchBodyConsumer<Derived>::ContinueConsumeBody(nsresult aStatus,
 
   // Just a precaution to ensure ContinueConsumeBody is not called out of
   // sync with a body read.
-  MOZ_ASSERT(mBody->BodyUsed());
+  MOZ_ASSERT(mBody->CheckBodyUsed());
 
   MOZ_ASSERT(mConsumePromise);
   RefPtr<Promise> localPromise = mConsumePromise.forget();
@@ -750,7 +760,15 @@ FetchBodyConsumer<Derived>::ContinueConsumeBody(nsresult aStatus,
   }
 
   if (NS_WARN_IF(NS_FAILED(aStatus))) {
-    localPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+    // Per https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
+    // Decoding errors should reject with a TypeError
+    if (aStatus == NS_ERROR_INVALID_CONTENT_ENCODING) {
+      IgnoredErrorResult rv;
+      rv.ThrowTypeError<MSG_DOM_DECODING_FAILED>();
+      localPromise->MaybeReject(rv);
+    } else {
+      localPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+    }
   }
 
   // Don't warn here since we warned above.
@@ -844,7 +862,7 @@ FetchBodyConsumer<Derived>::ContinueConsumeBlobBody(BlobImpl* aBlobImpl,
 
   // Just a precaution to ensure ContinueConsumeBody is not called out of
   // sync with a body read.
-  MOZ_ASSERT(mBody->BodyUsed());
+  MOZ_ASSERT(mBody->CheckBodyUsed());
 
   MOZ_ASSERT(mConsumePromise);
   RefPtr<Promise> localPromise = mConsumePromise.forget();

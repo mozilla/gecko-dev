@@ -12,7 +12,7 @@ from mozpack.files import FileFinder
 
 class FilterPath(object):
     """Helper class to make comparing and matching file paths easier."""
-    def __init__(self, path, exclude=None):
+    def __init__(self, path):
         self.path = os.path.normpath(path)
         self._finder = None
 
@@ -67,25 +67,79 @@ class FilterPath(object):
         return repr(self.path)
 
 
-def filterpaths(paths, linter, **lintargs):
+def collapse(paths, base=None, dotfiles=False):
+    """Given an iterable of paths, collapse them into the smallest possible set
+    of paths that contain the original set (without containing any extra paths).
+
+    For example, if directory 'a' contains two files b.txt and c.txt, calling:
+
+        collapse(['a/b.txt', 'a/c.txt'])
+
+    returns ['a']. But if a third file d.txt also exists, then it will return
+    ['a/b.txt', 'a/c.txt'] since ['a'] would also include that extra file.
+
+    :param paths: An iterable of paths (files and directories) to collapse.
+    :returns: The smallest set of paths (files and directories) that contain
+              the original set of paths and only the original set.
+    """
+    if not paths:
+        if not base:
+            return []
+
+        # Need to test whether directory chain is empty. If it is then bubble
+        # the base back up so that it counts as 'covered'.
+        for _, _, names in os.walk(base):
+            if names:
+                return []
+        return [base]
+
+    if not base:
+        paths = map(mozpath.abspath, paths)
+        base = mozpath.commonprefix(paths)
+
+        if not os.path.isdir(base):
+            base = os.path.dirname(base)
+
+    if base in paths:
+        return [base]
+
+    covered = set()
+    full = set()
+    for name in os.listdir(base):
+        if not dotfiles and name[0] == '.':
+            continue
+
+        path = mozpath.join(base, name)
+        full.add(path)
+
+        if path in paths:
+            # This path was explicitly specified, so just bubble it back up
+            # without recursing down into it (if it was a directory).
+            covered.add(path)
+        elif os.path.isdir(path):
+            new_paths = [p for p in paths if p.startswith(path)]
+            covered.update(collapse(new_paths, base=path, dotfiles=dotfiles))
+
+    if full == covered:
+        # Every file under this base was covered, so we can collapse them all
+        # up into the base path.
+        return [base]
+    return covered
+
+
+def filterpaths(root, paths, include, exclude=None, extensions=None):
     """Filters a list of paths.
 
-    Given a list of paths, and a linter definition plus extra
-    arguments, return the set of paths that should be linted.
+    Given a list of paths and some filtering rules, return the set of paths
+    that should be linted.
 
     :param paths: A starting list of paths to possibly lint.
-    :param linter: A linter definition.
-    :param lintargs: Extra arguments passed to the linter.
-    :returns: A list of file paths to lint.
+    :param include: A list of paths that should be included (required).
+    :param exclude: A list of paths that should be excluded (optional).
+    :param extensions: A list of file extensions which should be considered (optional).
+    :returns: A tuple containing a list of file paths to lint and a list of
+              paths to exclude.
     """
-    include = linter.get('include', [])
-    exclude = lintargs.get('exclude', [])
-    exclude.extend(linter.get('exclude', []))
-    root = lintargs['root']
-
-    if not lintargs.get('use_filters', True) or (not include and not exclude):
-        return paths
-
     def normalize(path):
         if '*' not in path and not os.path.isabs(path):
             path = os.path.join(root, path)
@@ -96,14 +150,13 @@ def filterpaths(paths, linter, **lintargs):
 
     # Exclude paths with and without globs will be handled separately,
     # pull them apart now.
-    exclude = map(normalize, exclude)
+    exclude = map(normalize, exclude or [])
     excludepaths = [p for p in exclude if p.exists]
     excludeglobs = [p.path for p in exclude if not p.exists]
 
-    extensions = linter.get('extensions')
     keep = set()
     discard = set()
-    for path in map(FilterPath, paths):
+    for path in map(normalize, paths):
         # Exclude bad file extensions
         if extensions and path.isfile and path.ext not in extensions:
             continue
@@ -135,6 +188,7 @@ def filterpaths(paths, linter, **lintargs):
                 # no exclude paths in-between them.
                 if not any(e.contains(path) for e in excs):
                     keep.add(path)
+                    discard.update([e for e in excs if path.contains(e)])
 
         # Next expand excludes with globs in them so we can add them to
         # the set of files to discard.
@@ -142,9 +196,7 @@ def filterpaths(paths, linter, **lintargs):
             for p, f in path.finder.find(pattern):
                 discard.add(path.join(p))
 
-    # Only pass paths we couldn't exclude here to the underlying linter
-    lintargs['exclude'] = [f.path for f in discard]
-    return [f.path for f in keep]
+    return [f.path for f in keep], collapse([f.path for f in discard])
 
 
 def findobject(path):

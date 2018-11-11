@@ -6,8 +6,7 @@ codespell:
         - browser/branding/
         - browser/components/newtab/prerendered/locales/en-US/
         - browser/extensions/formautofill/locales/en-US/
-        - browser/extensions/onboarding/locales/en-US/
-        - browser/extensions/pocket/locale/en-US/
+        - browser/components/pocket/locale/en-US/
         - browser/extensions/webcompat-reporter/locales/en-US/
         - browser/locales/en-US/
         - build/docs/
@@ -15,6 +14,8 @@ codespell:
         - devtools/shared/locales/en-US/
         - devtools/startup/locales/en-US/
         - dom/locales/en-US/
+        - gfx/docs/
+        - intl/docs/
         - intl/locales/en-US/
         - layout/tools/layout-debug/ui/locale/en-US/
         - mobile/android/base/locales/en-US/
@@ -33,8 +34,6 @@ codespell:
         - toolkit/components/telemetry/docs/
         - toolkit/crashreporter/docs/
         - tools/lint/
-    exclude:
-        - third_party
     # List of extensions coming from:
     # tools/lint/{flake8,eslint}.yml
     # tools/mach_commands.py (clang-format)

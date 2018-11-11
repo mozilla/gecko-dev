@@ -6,16 +6,14 @@
 
 const Services = require("Services");
 const TextEditor = require("devtools/client/inspector/markup/views/text-editor");
-const {
-  getAutocompleteMaxWidth,
-  flashElementOn,
-  flashElementOff,
-  parseAttributeValues,
-} = require("devtools/client/inspector/markup/utils");
 const { truncateString } = require("devtools/shared/inspector/utils");
 const { editableField, InplaceEditor } = require("devtools/client/shared/inplace-editor");
 const { parseAttribute } = require("devtools/client/shared/node-attribute-parser");
-const { getCssProperties } = require("devtools/shared/fronts/css-properties");
+
+loader.lazyRequireGetter(this, "flashElementOn", "devtools/client/inspector/markup/utils", true);
+loader.lazyRequireGetter(this, "flashElementOff", "devtools/client/inspector/markup/utils", true);
+loader.lazyRequireGetter(this, "getAutocompleteMaxWidth", "devtools/client/inspector/markup/utils", true);
+loader.lazyRequireGetter(this, "parseAttributeValues", "devtools/client/inspector/markup/utils", true);
 
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const INSPECTOR_L10N =
@@ -29,7 +27,7 @@ const COLLAPSE_DATA_URL_LENGTH = 60;
 const HTML_VOID_ELEMENTS = [
   "area", "base", "br", "col", "command", "embed",
   "hr", "img", "input", "keygen", "link", "meta", "param", "source",
-  "track", "wbr"
+  "track", "wbr",
 ];
 
 // Contains only valid computed display property types of the node to display in the
@@ -59,7 +57,7 @@ function ElementEditor(container, node) {
   this.doc = this.markup.doc;
   this.inspector = this.markup.inspector;
   this.highlighters = this.markup.highlighters;
-  this._cssProperties = getCssProperties(this.markup.toolbox);
+  this._cssProperties = this.inspector.cssProperties;
 
   this.attrElements = new Map();
   this.animationTimers = {};
@@ -93,7 +91,7 @@ function ElementEditor(container, node) {
       trigger: "dblclick",
       stopOnReturn: true,
       done: this.onTagEdit,
-      cssProperties: this._cssProperties
+      cssProperties: this._cssProperties,
     });
   }
 
@@ -120,7 +118,7 @@ function ElementEditor(container, node) {
         undoMods.apply();
       });
     },
-    cssProperties: this._cssProperties
+    cssProperties: this._cssProperties,
   });
 
   const displayName = this.node.displayName;
@@ -519,7 +517,7 @@ ElementEditor.prototype = {
           undoMods.apply();
         });
       },
-      cssProperties: this._cssProperties
+      cssProperties: this._cssProperties,
     });
 
     // Figure out where we should place the attribute.
@@ -846,7 +844,7 @@ ElementEditor.prototype = {
       clearTimeout(this.animationTimers[key]);
     }
     this.animationTimers = null;
-  }
+  },
 };
 
 module.exports = ElementEditor;

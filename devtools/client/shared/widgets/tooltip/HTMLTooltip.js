@@ -6,13 +6,13 @@
 
 "use strict";
 
-const EventEmitter = require("devtools/shared/event-emitter");
-const {TooltipToggle} = require("devtools/client/shared/widgets/tooltip/TooltipToggle");
-const {focusableSelector} = require("devtools/client/shared/focus");
-const {getCurrentZoom} = require("devtools/shared/layout/utils");
-const {listenOnce} = require("devtools/shared/async-utils");
-
 const Services = require("Services");
+const EventEmitter = require("devtools/shared/event-emitter");
+
+loader.lazyRequireGetter(this, "focusableSelector", "devtools/client/shared/focus", true);
+loader.lazyRequireGetter(this, "TooltipToggle", "devtools/client/shared/widgets/tooltip/TooltipToggle", true);
+loader.lazyRequireGetter(this, "getCurrentZoom", "devtools/shared/layout/utils", true);
+loader.lazyRequireGetter(this, "listenOnce", "devtools/shared/async-utils", true);
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -329,10 +329,6 @@ function HTMLTooltip(toolboxDoc, {
   this._onMouseup = this._onMouseup.bind(this);
   this._onXulPanelHidden = this._onXulPanelHidden.bind(this);
 
-  this._toggle = new TooltipToggle(this);
-  this.startTogglingOnHover = this._toggle.start.bind(this._toggle);
-  this.stopTogglingOnHover = this._toggle.stop.bind(this._toggle);
-
   this.container = this._createContainer();
 
   if (this.useXulWrapper) {
@@ -378,6 +374,14 @@ HTMLTooltip.prototype = {
    */
   get position() {
     return this.isVisible() ? this._position : null;
+  },
+
+  get toggle() {
+    if (!this._toggle) {
+      this._toggle = new TooltipToggle(this);
+    }
+
+    return this._toggle;
   },
 
   /**
@@ -449,6 +453,14 @@ HTMLTooltip.prototype = {
     }, 0);
   },
 
+  startTogglingOnHover(baseNode, targetNodeCb, options) {
+    this.toggle.start(baseNode, targetNodeCb, options);
+  },
+
+  stopTogglingOnHover() {
+    this.toggle.stop();
+  },
+
   /**
    * Recalculate the dimensions and position of the tooltip in response to
    * changes to its content.
@@ -477,7 +489,7 @@ HTMLTooltip.prototype = {
       anchorRect = this._convertToScreenRect(anchorRect);
     }
 
-    const { viewportRect, windowRect } = this._getBoundingRects();
+    const { viewportRect, windowRect } = this._getBoundingRects(anchorRect);
 
     // Calculate the horizonal position and width
     let preferredWidth;
@@ -601,15 +613,21 @@ HTMLTooltip.prototype = {
    *   window in screen coordinates. Otherwise it will be the same as the
    *   viewport rect.
    *
+   * @param {Object} anchorRect
+   *        DOMRect-like object of the target anchor element.
+   *        We need to pass this to detect the case when the anchor is not in
+   *        the current window (because, the center of the window is in
+   *        a different window to the anchor).
+   *
    * @return {Object} An object with the following properties
    *         viewportRect {Object} DOMRect-like object with the Number
    *                      properties: top, right, bottom, left, width, height
    *                      representing the viewport rect.
    *         windowRect   {Object} DOMRect-like object with the Number
    *                      properties: top, right, bottom, left, width, height
-   *                      representing the viewport rect.
+   *                      representing the window rect.
    */
-  _getBoundingRects: function() {
+  _getBoundingRects: function(anchorRect) {
     let viewportRect;
     let windowRect;
 
@@ -648,6 +666,25 @@ HTMLTooltip.prototype = {
         width: outerWidth,
         height: outerHeight,
       };
+
+      // If the anchor is outside the viewport, it possibly means we have a
+      // multi-monitor environment where the anchor is displayed on a different
+      // monitor to the "current" screen (as determined by the center of the
+      // window). This can happen when, for example, the screen is spread across
+      // two monitors.
+      //
+      // In this case we simply expand viewport in the direction of the anchor
+      // so that we can still calculate the popup position correctly.
+      if (anchorRect.left > viewportRect.right) {
+        const diffWidth = windowRect.right - viewportRect.right;
+        viewportRect.right += diffWidth;
+        viewportRect.width += diffWidth;
+      }
+      if (anchorRect.right < viewportRect.left) {
+        const diffWidth = viewportRect.left - windowRect.left;
+        viewportRect.left -= diffWidth;
+        viewportRect.width += diffWidth;
+      }
     } else {
       viewportRect = windowRect =
         this.doc.documentElement.getBoundingClientRect();
@@ -736,7 +773,10 @@ HTMLTooltip.prototype = {
     if (this.xulPanelWrapper) {
       this.xulPanelWrapper.remove();
     }
-    this._toggle.destroy();
+    if (this._toggle) {
+      this._toggle.destroy();
+      this._toggle = null;
+    }
   },
 
   _createContainer: function() {

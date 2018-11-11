@@ -6,7 +6,6 @@
 #include "mozilla/TextEditor.h"
 
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/EditorUtils.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/SelectionState.h"
 #include "mozilla/dom/DataTransfer.h"
@@ -71,10 +70,9 @@ TextEditor::InsertTextAt(const nsAString& aStringToInsert,
                          int32_t aDestOffset,
                          bool aDoDeleteSelection)
 {
-  if (aDestinationNode) {
-    RefPtr<Selection> selection = GetSelection();
-    NS_ENSURE_STATE(selection);
+  MOZ_ASSERT(IsEditActionDataAvailable());
 
+  if (aDestinationNode) {
     nsCOMPtr<nsINode> targetNode = aDestinationNode;
     int32_t targetOffset = aDestOffset;
 
@@ -89,7 +87,8 @@ TextEditor::InsertTextAt(const nsAString& aStringToInsert,
     }
 
     ErrorResult error;
-    selection->Collapse(RawRangeBoundary(targetNode, targetOffset), error);
+    SelectionRefPtr()->Collapse(RawRangeBoundary(targetNode, targetOffset),
+                                error);
     if (NS_WARN_IF(error.Failed())) {
       return error.StealNSResult();
     }
@@ -108,24 +107,23 @@ TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable)
   nsresult rv = NS_OK;
   nsAutoCString bestFlavor;
   nsCOMPtr<nsISupports> genericDataObj;
-  uint32_t len = 0;
   if (NS_SUCCEEDED(
         aTransferable->GetAnyTransferData(bestFlavor,
-                                          getter_AddRefs(genericDataObj),
-                                          &len)) &&
+                                          getter_AddRefs(genericDataObj))) &&
       (bestFlavor.EqualsLiteral(kUnicodeMime) ||
        bestFlavor.EqualsLiteral(kMozTextInternal))) {
     AutoTransactionsConserveSelection dontChangeMySelection(*this);
-    nsCOMPtr<nsISupportsString> textDataObj ( do_QueryInterface(genericDataObj) );
-    if (textDataObj && len > 0) {
-      nsAutoString stuffToPaste;
-      textDataObj->GetData(stuffToPaste);
-      NS_ASSERTION(stuffToPaste.Length() <= (len/2), "Invalid length!");
 
+    nsAutoString stuffToPaste;
+    if (nsCOMPtr<nsISupportsString> text = do_QueryInterface(genericDataObj)) {
+      text->GetData(stuffToPaste);
+    }
+
+    if (!stuffToPaste.IsEmpty()) {
       // Sanitize possible carriage returns in the string to be inserted
       nsContentUtils::PlatformToDOMLineBreaks(stuffToPaste);
 
-      AutoPlaceholderBatch beginBatching(this);
+      AutoPlaceholderBatch treatAsOneTransaction(*this);
       rv = InsertTextAt(stuffToPaste, nullptr, 0, true);
     }
   }
@@ -155,7 +153,7 @@ TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
     data->GetAsAString(insertText);
     nsContentUtils::PlatformToDOMLineBreaks(insertText);
 
-    AutoPlaceholderBatch beginBatching(this);
+    AutoPlaceholderBatch treatAsOneTransaction(*this);
     return InsertTextAt(insertText, aDestinationNode, aDestOffset, aDoDeleteSelection);
   }
 
@@ -165,9 +163,16 @@ TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
 nsresult
 TextEditor::OnDrop(DragEvent* aDropEvent)
 {
+  if (NS_WARN_IF(!aDropEvent)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   CommitComposition();
 
-  NS_ENSURE_TRUE(aDropEvent, NS_ERROR_FAILURE);
+  AutoEditActionDataSetter editActionData(*this, EditAction::eDrop);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   RefPtr<DataTransfer> dataTransfer = aDropEvent->GetDataTransfer();
   NS_ENSURE_TRUE(dataTransfer, NS_ERROR_FAILURE);
@@ -203,7 +208,7 @@ TextEditor::OnDrop(DragEvent* aDropEvent)
   }
 
   // Combine any deletion and drop insertion into one transaction
-  AutoPlaceholderBatch beginBatching(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
 
   bool deleteSelection = false;
 
@@ -214,22 +219,17 @@ TextEditor::OnDrop(DragEvent* aDropEvent)
 
   int32_t newSelectionOffset = aDropEvent->RangeOffset();
 
-  RefPtr<Selection> selection = GetSelection();
-  NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
-
-  bool isCollapsed = selection->IsCollapsed();
-
   // Check if mouse is in the selection
   // if so, jump through some hoops to determine if mouse is over selection (bail)
   // and whether user wants to copy selection or delete it
-  if (!isCollapsed) {
+  if (!SelectionRefPtr()->IsCollapsed()) {
     // We never have to delete if selection is already collapsed
     bool cursorIsInSelection = false;
 
-    uint32_t rangeCount = selection->RangeCount();
+    uint32_t rangeCount = SelectionRefPtr()->RangeCount();
 
     for (uint32_t j = 0; j < rangeCount; j++) {
-      RefPtr<nsRange> range = selection->GetRangeAt(j);
+      RefPtr<nsRange> range = SelectionRefPtr()->GetRangeAt(j);
       if (!range) {
         // don't bail yet, iterate through them all
         continue;
@@ -295,17 +295,24 @@ TextEditor::OnDrop(DragEvent* aDropEvent)
 }
 
 nsresult
-TextEditor::PasteAsAction(int32_t aClipboardType)
+TextEditor::PasteAsAction(int32_t aClipboardType,
+                          bool aDispatchPasteEvent)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::ePaste);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   if (AsHTMLEditor()) {
-    nsresult rv = AsHTMLEditor()->PasteInternal(aClipboardType);
+    nsresult rv =
+      AsHTMLEditor()->PasteInternal(aClipboardType, aDispatchPasteEvent);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
     return NS_OK;
   }
 
-  if (!FireClipboardEvent(ePaste, aClipboardType)) {
+  if (aDispatchPasteEvent && !FireClipboardEvent(ePaste, aClipboardType)) {
     return NS_OK;
   }
 
@@ -345,6 +352,11 @@ TextEditor::PasteAsAction(int32_t aClipboardType)
 NS_IMETHODIMP
 TextEditor::PasteTransferable(nsITransferable* aTransferable)
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::ePaste);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Use an invalid value for the clipboard type as data comes from aTransferable
   // and we don't currently implement a way to put that in the data transfer yet.
   if (!FireClipboardEvent(ePaste, -1)) {

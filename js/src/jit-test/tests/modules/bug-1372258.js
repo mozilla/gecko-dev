@@ -1,5 +1,4 @@
-if (helperThreadCount() == 0)
-    quit();
+// |jit-test| skip-if: helperThreadCount() === 0
 
 // Overwrite built-in parseModule with off-thread module parser.
 function parseModule(source) {
@@ -24,5 +23,5 @@ for (let i = 0; i < count; i++) {
 }
 let b = moduleRepo['b'] = parseModule(s);
 
-instantiateModule(b);
-evaluateModule(b);
+b.declarationInstantiation();
+b.evaluation();

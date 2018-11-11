@@ -114,6 +114,8 @@ const char* const XPCJSRuntime::mStrings[] = {
     "lastIndex",            // IDX_LASTINDEX
     "then",                 // IDX_THEN
     "isInstance",           // IDX_ISINSTANCE
+    "Infinity",             // IDX_INFINITY
+    "NaN",                  // IDX_NAN
 };
 
 /***************************************************************************/
@@ -453,13 +455,6 @@ Scriptability&
 Scriptability::Get(JSObject* aScope)
 {
     return RealmPrivate::Get(aScope)->scriptability;
-}
-
-/* static */
-Scriptability&
-Scriptability::Get(JSScript* aScript)
-{
-    return RealmPrivate::Get(aScript)->scriptability;
 }
 
 bool
@@ -2783,6 +2778,9 @@ AccumulateTelemetryCallback(int id, uint32_t sample, const char* key)
       case JS_TELEMETRY_WEB_PARSER_COMPILE_LAZY_AFTER_MS:
         Telemetry::Accumulate(Telemetry::JS_WEB_PARSER_COMPILE_LAZY_AFTER_MS, sample);
         break;
+      case JS_TELEMETRY_GC_NURSERY_PROMOTION_RATE:
+        Telemetry::Accumulate(Telemetry::GC_NURSERY_PROMOTION_RATE, sample);
+        break;
       default:
         MOZ_ASSERT_UNREACHABLE("Unexpected JS_TELEMETRY id");
     }
@@ -3359,7 +3357,7 @@ JSObject*
 XPCJSRuntime::LoaderGlobal()
 {
     if (!mLoaderGlobal) {
-        RefPtr<mozJSComponentLoader> loader = mozJSComponentLoader::GetOrCreate();
+        RefPtr<mozJSComponentLoader> loader = mozJSComponentLoader::Get();
 
         dom::AutoJSAPI jsapi;
         jsapi.Init();

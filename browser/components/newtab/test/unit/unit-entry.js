@@ -5,15 +5,6 @@ import chaiJsonSchema from "chai-json-schema";
 import enzyme from "enzyme";
 enzyme.configure({adapter: new Adapter()});
 
-class DownloadElementShell {
-  downloadsCmd_open() {}
-  downloadsCmd_show() {}
-  downloadsCmd_openReferrer() {}
-  downloadsCmd_delete() {}
-  get sizeStrings() { return {stateLabel: "1.5 MB"}; }
-  displayName() {}
-}
-
 // Cause React warnings to make tests that trigger them fail
 const origConsoleError = console.error; // eslint-disable-line no-console
 console.error = function(msg, ...args) { // eslint-disable-line no-console
@@ -78,10 +69,12 @@ const TEST_GLOBAL = {
       markPageAsTyped() {},
       removeObserver() {},
     },
+    "@mozilla.org/updates/update-checker;1": {createInstance() {}},
   },
   Ci: {
     nsIHttpChannel: {REFERRER_POLICY_UNSAFE_URL: 5},
     nsITimer: {TYPE_ONE_SHOT: 1},
+    nsIWebProgressListener: {LOCATION_CHANGE_SAME_DOCUMENT: 1},
   },
   Cu: {
     importGlobalProperties() {},
@@ -92,7 +85,12 @@ const TEST_GLOBAL = {
   fetch() {},
   // eslint-disable-next-line object-shorthand
   Image: function() {}, // NB: This is a function/constructor
-  NewTabUtils: {activityStreamProvider: {getTopFrecentSites: () => []}},
+  NewTabUtils: {
+    activityStreamProvider: {
+      getTopFrecentSites: () => [],
+      executePlacesQuery: async (sql, options) => ({sql, options}),
+    },
+  },
   PlacesUtils: {
     get bookmarks() {
       return TEST_GLOBAL.Cc["@mozilla.org/browser/nav-bookmarks-service;1"];
@@ -100,11 +98,22 @@ const TEST_GLOBAL = {
     get history() {
       return TEST_GLOBAL.Cc["@mozilla.org/browser/nav-history-service;1"];
     },
+    observers: {
+      addListener() {},
+      removeListener() {},
+    },
   },
   PluralForm: {get() {}},
   Preferences: FakePrefs,
   PrivateBrowsingUtils: {isWindowPrivate: () => false},
-  DownloadsViewUI: {DownloadElementShell},
+  DownloadsViewUI: {
+    getDisplayName: () => "filename.ext",
+    getSizeWithUnits: () => "1.5 MB",
+  },
+  FileUtils: {
+    // eslint-disable-next-line object-shorthand
+    File: function() {}, // NB: This is a function/constructor
+  },
   Services: {
     locale: {
       get appLocaleAsLangTag() { return "en-US"; },
@@ -132,6 +141,7 @@ const TEST_GLOBAL = {
       getPrefType() {},
       clearUserPref() {},
       getStringPref() {},
+      setStringPref() {},
       getIntPref() {},
       getBoolPref() {},
       setBoolPref() {},
@@ -173,7 +183,7 @@ const TEST_GLOBAL = {
     search: {
       init(cb) { cb(); },
       getVisibleEngines: () => [{identifier: "google"}, {identifier: "bing"}],
-      defaultEngine: {identifier: "google"},
+      defaultEngine: {identifier: "google", searchForm: "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b"},
       currentEngine: {identifier: "google", searchForm: "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b"},
     },
     scriptSecurityManager: {
@@ -196,6 +206,7 @@ const TEST_GLOBAL = {
     defineLazyModuleGetter() {},
     defineLazyModuleGetters() {},
     defineLazyServiceGetter() {},
+    defineLazyServiceGetters() {},
     generateQI() { return {}; },
   },
   EventEmitter,

@@ -17,8 +17,13 @@ import sys
 # The first argument is the atom's identifier.
 # The second argument is the atom's string value.
 #
+# Please keep the Atom() definitions on one line as this is parsed by the
+#   htmlparser: parser/html/java/htmlparser
+# Please keep "START ATOMS" and "END ATOMS" comments as the parser uses them.
+#
 # It is not possible to conditionally define static atoms with #ifdef etc.
 STATIC_ATOMS = [
+    # START ATOMS
     # --------------------------------------------------------------------------
     # Generic atoms
     # --------------------------------------------------------------------------
@@ -34,6 +39,7 @@ STATIC_ATOMS = [
     Atom("moztype", "_moz-type"),
     Atom("mozdirty", "_moz_dirty"),
     Atom("mozdisallowselectionprint", "mozdisallowselectionprint"),
+    Atom("mozpersist", "mozpersist"),
     Atom("mozdonotsend", "moz-do-not-send"),
     Atom("mozeditorbogusnode", "_moz_editor_bogus_node"),
     Atom("mozgeneratedcontentbefore", "_moz_generated_content_before"),
@@ -63,6 +69,7 @@ STATIC_ATOMS = [
     Atom("after", "after"),
     Atom("align", "align"),
     Atom("alink", "alink"),
+    Atom("allow", "allow"),
     Atom("allowdirs", "allowdirs"),
     Atom("allowevents", "allowevents"),
     Atom("allowforms", "allow-forms"),
@@ -74,8 +81,7 @@ STATIC_ATOMS = [
     Atom("allowpopupstoescapesandbox", "allow-popups-to-escape-sandbox"),
     Atom("allowpopups", "allow-popups"),
     Atom("allowpresentation", "allow-presentation"),
-    Atom("allowstorageaccessbyuseractivatetion",
-         "allow-storage-access-by-user-activation"),
+    Atom("allowstorageaccessbyuseractivatetion", "allow-storage-access-by-user-activation"),
     Atom("allowsameorigin", "allow-same-origin"),
     Atom("allowscripts", "allow-scripts"),
     Atom("allowscriptstoclose", "allowscriptstoclose"),
@@ -164,6 +170,7 @@ STATIC_ATOMS = [
     Atom("bindToUntrustedContent", "bindToUntrustedContent"),
     Atom("block", "block"),
     Atom("blockquote", "blockquote"),
+    Atom("blur", "blur"),
     Atom("body", "body"),
     Atom("boolean", "boolean"),
     Atom("border", "border"),
@@ -950,7 +957,7 @@ STATIC_ATOMS = [
     Atom("rem", "rem"),
     Atom("remote", "remote"),
     Atom("removeelement", "removeelement"),
-    Atom("renderingobserverlist", "renderingobserverlist"),
+    Atom("renderingobserverset", "renderingobserverset"),
     Atom("repeat", "repeat"),
     Atom("replace", "replace"),
     Atom("requestcontextid", "requestcontextid"),
@@ -990,6 +997,10 @@ STATIC_ATOMS = [
     Atom("rubyTextContainer", "ruby-text-container"),
     Atom("rules", "rules"),
     Atom("s", "s"),
+    Atom("safe_area_inset_top", "safe-area-inset-top"),
+    Atom("safe_area_inset_bottom", "safe-area-inset-bottom"),
+    Atom("safe_area_inset_left", "safe-area-inset-left"),
+    Atom("safe_area_inset_right", "safe-area-inset-right"),
     Atom("samp", "samp"),
     Atom("sandbox", "sandbox"),
     Atom("sbattr", "sbattr"),
@@ -1239,7 +1250,6 @@ STATIC_ATOMS = [
     Atom("colorDodge", "color-dodge"),
     Atom("colorInterpolation", "color-interpolation"),
     Atom("colorInterpolationFilters", "color-interpolation-filters"),
-    Atom("colorpicker", "colorpicker"),
     Atom("colorProfile", "color-profile"),
     Atom("cursor", "cursor"),
     Atom("cx", "cx"),
@@ -2065,6 +2075,7 @@ STATIC_ATOMS = [
     # Scroll origins without smooth-scrolling prefs
     Atom("apz",        "apz"),
     Atom("restore",    "restore"),
+    Atom("relative",    "relative"),
 
     Atom("alert", "alert"),
     Atom("alertdialog", "alertdialog"),
@@ -2188,7 +2199,7 @@ STATIC_ATOMS = [
     Atom("onaddsourcebuffer", "onaddsourcebuffer"),
     Atom("onremovesourcebuffer", "onremovesourcebuffer"),
 
-    # RDF
+    # RDF (not used by mozilla-central, but still used by comm-central)
     Atom("about", "about"),
     Atom("ID", "ID"),
     Atom("nodeID", "nodeID"),
@@ -2265,6 +2276,7 @@ STATIC_ATOMS = [
     NonInheritingAnonBoxAtom("AnonBox_tableColGroup", ":-moz-table-column-group"),
     NonInheritingAnonBoxAtom("AnonBox_tableCol", ":-moz-table-column"),
     NonInheritingAnonBoxAtom("AnonBox_pageBreak", ":-moz-pagebreak"),
+    NonInheritingAnonBoxAtom("AnonBox_columnSpanWrapper", ":-moz-column-span-wrapper"),
     InheritingAnonBoxAtom("AnonBox_mozText", ":-moz-text"),
     InheritingAnonBoxAtom("AnonBox_firstLetterContinuation", ":-moz-first-letter-continuation"),
     InheritingAnonBoxAtom("AnonBox_mozBlockInsideInlineWrapper", ":-moz-block-inside-inline-wrapper"),
@@ -2290,6 +2302,7 @@ STATIC_ATOMS = [
     InheritingAnonBoxAtom("AnonBox_scrolledContent", ":-moz-scrolled-content"),
     InheritingAnonBoxAtom("AnonBox_scrolledCanvas", ":-moz-scrolled-canvas"),
     InheritingAnonBoxAtom("AnonBox_scrolledPageSequence", ":-moz-scrolled-page-sequence"),
+    InheritingAnonBoxAtom("AnonBox_columnSet", ":-moz-column-set"),
     InheritingAnonBoxAtom("AnonBox_columnContent", ":-moz-column-content"),
     InheritingAnonBoxAtom("AnonBox_viewport", ":-moz-viewport"),
     InheritingAnonBoxAtom("AnonBox_viewportScroll", ":-moz-viewport-scroll"),
@@ -2315,6 +2328,7 @@ STATIC_ATOMS = [
     InheritingAnonBoxAtom("AnonBox_mozSVGOuterSVGAnonChild", ":-moz-svg-outer-svg-anon-child"),
     InheritingAnonBoxAtom("AnonBox_mozSVGForeignContent", ":-moz-svg-foreign-content"),
     InheritingAnonBoxAtom("AnonBox_mozSVGText", ":-moz-svg-text"),
+    # END ATOMS
 ] + HTML_PARSER_ATOMS
 
 

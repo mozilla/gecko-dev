@@ -1,5 +1,42 @@
 /* eslint-env mozilla/frame-script */
 
+function injectErrorPageFrame(tab, src) {
+  return ContentTask.spawn(tab.linkedBrowser, {frameSrc: src}, async function({frameSrc}) {
+    let loaded = ContentTaskUtils.waitForEvent(content.wrappedJSObject, "DOMFrameContentLoaded");
+    let iframe = content.document.createElement("iframe");
+    iframe.src = frameSrc;
+    content.document.body.appendChild(iframe);
+    await loaded;
+    // We will have race conditions when accessing the frame content after setting a src,
+    // so we can't wait for AboutNetErrorLoad. Let's wait for the certerror class to
+    // appear instead (which should happen at the same time as AboutNetErrorLoad).
+    await ContentTaskUtils.waitForCondition(() =>
+      iframe.contentDocument.body.classList.contains("certerror"));
+  });
+}
+
+async function openErrorPage(src, useFrame) {
+  let dummyPage = getRootDirectory(gTestPath).replace("chrome://mochitests/content", "https://example.com") + "dummy_page.html";
+
+  let tab;
+  if (useFrame) {
+    info("Loading cert error page in an iframe");
+    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, dummyPage);
+    await injectErrorPageFrame(tab, src);
+  } else {
+    let certErrorLoaded;
+    tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, () => {
+      gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, src);
+      let browser = gBrowser.selectedBrowser;
+      certErrorLoaded = BrowserTestUtils.waitForErrorPage(browser);
+    }, false);
+    info("Loading and waiting for the cert error");
+    await certErrorLoaded;
+  }
+
+  return tab;
+}
+
 function waitForCondition(condition, nextTest, errorMsg, retryTimes) {
   retryTimes = typeof retryTimes !== "undefined" ? retryTimes : 30;
   var tries = 0;
@@ -129,17 +166,44 @@ function waitForDocLoadAndStopIt(aExpectedURL, aBrowser = gBrowser.selectedBrows
     });
   }
 
-  return new Promise((resolve, reject) => {
-    function complete({ data }) {
-      is(data.uri, aExpectedURL, "waitForDocLoadAndStopIt: The expected URL was loaded");
-      mm.removeMessageListener("Test:WaitForDocLoadAndStopIt", complete);
-      resolve();
-    }
+  // We are deferring the setup of this promise because there is a possibility
+  // that a process flip will occur as we transition from page to page. This is
+  // a little convoluted because we have a very small window of time in which to
+  // send down the content_script frame script before the expected page actually
+  // loads. The best time to send down the script, it seems, is right after the
+  // TabRemotenessUpdate event.
+  //
+  // So, we abstract out the content_script handling into a helper stoppedDocLoadPromise
+  // promise so that we can account for the process flipping case, and jam in the
+  // content_script at just the right time in the TabRemotenessChange handler.
+  let stoppedDocLoadPromise = () => {
+    return new Promise((resolve, reject) => {
+      function complete({ data }) {
+        is(data.uri, aExpectedURL, "waitForDocLoadAndStopIt: The expected URL was loaded");
+        mm.removeMessageListener("Test:WaitForDocLoadAndStopIt", complete);
+        resolve();
+      }
 
-    let mm = aBrowser.messageManager;
-    mm.loadFrameScript("data:,(" + content_script.toString() + ")(" + aStopFromProgressListener + ");", true);
-    mm.addMessageListener("Test:WaitForDocLoadAndStopIt", complete);
-    info("waitForDocLoadAndStopIt: Waiting for URL: " + aExpectedURL);
+      let mm = aBrowser.messageManager;
+      mm.loadFrameScript("data:,(" + content_script.toString() + ")(" + aStopFromProgressListener + ");", true);
+      mm.addMessageListener("Test:WaitForDocLoadAndStopIt", complete);
+      info("waitForDocLoadAndStopIt: Waiting for URL: " + aExpectedURL);
+    });
+  };
+
+  let win = aBrowser.ownerGlobal;
+  let tab = win.gBrowser.getTabForBrowser(aBrowser);
+  let { mustChangeProcess } = E10SUtils.shouldLoadURIInBrowser(aBrowser, aExpectedURL);
+  if (!tab ||
+      !win.gMultiProcessBrowser ||
+      !mustChangeProcess) {
+    return stoppedDocLoadPromise();
+  }
+
+  return new Promise((resolve, reject) => {
+    tab.addEventListener("TabRemotenessChange", function() {
+      stoppedDocLoadPromise().then(resolve, reject);
+    }, {once: true});
   });
 }
 
@@ -167,7 +231,7 @@ function promiseNewEngine(basename) {
   info("Waiting for engine to be added: " + basename);
   return new Promise((resolve, reject) => {
     let url = getRootDirectory(gTestPath) + basename;
-    Services.search.addEngine(url, null, "", false, {
+    Services.search.addEngine(url, "", false, {
       onSuccess(engine) {
         info("Search engine added: " + basename);
         registerCleanupFunction(() => {

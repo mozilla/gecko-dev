@@ -51,6 +51,7 @@ from ..frontend.data import (
     HostProgram,
     HostSimpleProgram,
     RustLibrary,
+    RustProgram,
     SharedLibrary,
     Sources,
     StaticLibrary,
@@ -184,10 +185,7 @@ class BackendTupfile(object):
         for srcs, compiler, flags, dash_c, prefix in compilers:
             for src in sorted(srcs):
                 self.export_icecc()
-                # AS can be set to $(CC), so we need to call expand_variables on
-                # the compiler to get the real value.
-                compiler_value = self.variables.get(compiler, self.environment.substs[compiler])
-                cmd = [expand_variables(compiler_value, self.environment.substs)]
+                cmd = [self.variables.get(compiler, self.environment.substs[compiler])]
                 cmd.extend(shell_quote(f) for f in self.local_flags[flags])
                 cmd.extend(shell_quote(f) for f in self.per_source_flags[src])
                 cmd.extend([dash_c, '%f', '-o', '%o'])
@@ -298,6 +296,11 @@ class TupBackend(CommonBackend):
         return env
 
     def build(self, config, output, jobs, verbose, what=None):
+        if len(what) == 1 and what[0] in ('binaries', 'faster'):
+            print("\nNOTE: `binaries` and `faster` targets are subsumed by the "
+                  "top-level build command in the Tup backend. Running `build` "
+                  "with no parameters instead.\n")
+            what = None
         if not what:
             what = ['%s/<default>' % config.topobjdir]
         else:
@@ -657,7 +660,7 @@ class TupBackend(CommonBackend):
             backend_file.host_sources[obj.canonical_suffix].extend(obj.files)
         elif isinstance(obj, VariablePassthru):
             backend_file.variables = obj.variables
-        elif isinstance(obj, RustLibrary):
+        elif isinstance(obj, (RustLibrary, RustProgram)):
             self._gen_rust_rules(obj, backend_file)
         elif isinstance(obj, StaticLibrary):
             backend_file.static_lib = obj
@@ -752,25 +755,37 @@ class TupBackend(CommonBackend):
             self._cmd.run_process(cwd=tup_base_dir, log_name='tup', args=[tup, 'init', '--no-sync'])
 
     def _get_cargo_flags(self, obj):
+
+        def output_flags(obj):
+            if isinstance(obj, RustLibrary):
+                return ['--lib']
+            if isinstance(obj, RustProgram):
+                return ['--bin', obj.name]
+
+        def feature_flags(obj):
+            if isinstance(obj, RustLibrary) and obj.features:
+                return ['--features', ' '.join(obj.features)]
+            return []
+
         cargo_flags = ['--build-plan', '-Z', 'unstable-options']
-        if not self.environment.substs.get('MOZ_DEBUG_RUST'):
+        if not obj.config.substs.get('MOZ_DEBUG_RUST'):
             cargo_flags += ['--release']
         cargo_flags += [
             '--frozen',
             '--manifest-path', mozpath.join(obj.srcdir, 'Cargo.toml'),
-            '--lib',
+        ] + output_flags(obj) + [
             '--target=%s' % self.environment.substs['RUST_TARGET'],
-        ]
-        if obj.features:
-            cargo_flags += [
-                '--features', ' '.join(obj.features)
-            ]
+        ] + feature_flags(obj)
+
         return cargo_flags
 
     def _get_cargo_env(self, lib, backend_file):
+        cargo_target_dir = mozpath.normpath(lib.objdir)
+        if isinstance(lib, RustLibrary):
+            cargo_target_dir = mozpath.normpath(mozpath.join(cargo_target_dir,
+                                                             lib.target_dir))
         env = {
-            'CARGO_TARGET_DIR': mozpath.normpath(mozpath.join(lib.objdir,
-                                                              lib.target_dir)),
+            'CARGO_TARGET_DIR': cargo_target_dir,
             'RUSTC': self.environment.substs['RUSTC'],
             'MOZ_SRC': self.environment.topsrcdir,
             'MOZ_DIST': self.environment.substs['DIST'],
@@ -810,9 +825,15 @@ class TupBackend(CommonBackend):
 
         return env
 
-    def _gen_cargo_rules(self, backend_file, build_plan, cargo_env, output_group):
+    def _gen_cargo_rules(self, obj,  build_plan, cargo_env, output_group):
         invocations = build_plan['invocations']
         processed = set()
+
+        # Enable link-time optimization for release builds.
+        cargo_library_flags = []
+        if (not obj.config.substs.get('DEVELOPER_OPTIONS') and
+            not obj.config.substs.get('MOZ_DEBUG_RUST')):
+            cargo_library_flags += ['-C', 'lto']
 
         rust_build_home = mozpath.join(self.environment.topobjdir,
                                        'toolkit/library/rust')
@@ -858,6 +879,14 @@ class TupBackend(CommonBackend):
             command.append(invocation['program'])
             command.extend(cargo_quote(a.replace('dep-info,', ''))
                            for a in invocation['args'])
+
+            # This is equivalent to `cargo_rustc_flags` in the make backend,
+            # which are passed to the top-level crate's rustc invocation, in
+            # our case building the static lib.
+            if (invocation['target_kind'][0] == 'staticlib' and
+                obj.basename == shortname):
+                command += cargo_library_flags
+
             outputs = invocation['outputs']
 
             invocation['full-deps'] = set()
@@ -937,7 +966,7 @@ class TupBackend(CommonBackend):
             invocation['full-deps'].update(inputs)
             invocation['full-deps'].update(invocation['outputs'])
 
-            cmd_key = ' '.join(command)
+            cmd_key = ' '.join(outputs)
             if cmd_key not in self._rust_cmds:
                 self._rust_cmds.add(cmd_key)
                 # We have some custom build scripts that depend on python code
@@ -965,6 +994,14 @@ class TupBackend(CommonBackend):
 
                 for dst, link in invocation['links'].iteritems():
                     rust_backend_file.symlink_rule(link, dst, output_group)
+                    if invocation['target_kind'][0] == 'bin' and link in outputs:
+                        # Additionally link the program to its final target.
+                        rust_backend_file.symlink_rule(link,
+                                                       mozpath.join(self.environment.topobjdir,
+                                                                    obj.install_target,
+                                                                    obj.name),
+                                                       output_group)
+
 
         for val in enumerate(invocations):
             _process(*val)
@@ -989,9 +1026,10 @@ class TupBackend(CommonBackend):
 
         cargo_plan = json.loads(''.join(output_lines))
 
-        self._gen_cargo_rules(backend_file, cargo_plan, cargo_env,
-                              self._rust_output_group(obj.output_category) or
-                              self._rust_libs)
+        output_group = self._rust_libs
+        if isinstance(obj, RustLibrary) and obj.output_category:
+            output_group = self._rust_output_group(obj.output_category)
+        self._gen_cargo_rules(obj, cargo_plan, cargo_env, output_group)
         self.backend_input_files |= set(cargo_plan['inputs'])
 
 
@@ -1078,7 +1116,7 @@ class TupBackend(CommonBackend):
             if not path:
                 raise Exception("Cannot install to " + target)
 
-        js_shell = self.environment.substs.get('JS_SHELL_NAME')
+        js_shell = obj.config.substs.get('JS_SHELL_NAME')
         if js_shell:
             js_shell = '%s%s' % (js_shell,
                                  self.environment.substs['BIN_SUFFIX'])
@@ -1117,7 +1155,12 @@ class TupBackend(CommonBackend):
                                     if '*' not in p:
                                         yield p + '/'
                             prefix = ''.join(_prefix(f.full_path))
-                            self.backend_input_files.add(prefix)
+
+                            # The rest of the build system will not complain if
+                            # there is a wildcard referring to an empty source
+                            # directory, so guard against that here.
+                            if os.path.exists(prefix):
+                                self.backend_input_files.add(prefix)
 
                             output_dir = ''
                             # If we have a RenamedSourcePath here, the common backend

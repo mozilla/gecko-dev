@@ -37,14 +37,14 @@ const { connect } = require("devtools/client/shared/vendor/react-redux");
 // History Modules
 const {
   getHistory,
-  getHistoryValue
+  getHistoryValue,
 } = require("devtools/client/webconsole/selectors/history");
 const historyActions = require("devtools/client/webconsole/actions/history");
 
 // Constants used for defining the direction of JSTerm input history navigation.
 const {
   HISTORY_BACK,
-  HISTORY_FORWARD
+  HISTORY_FORWARD,
 } = require("devtools/client/webconsole/constants");
 
 /**
@@ -144,7 +144,7 @@ class JSTerm extends Component {
       onClick: this.acceptProposedCompletion.bind(this),
       listId: "webConsole_autocompletePopupListBox",
       position: "bottom",
-      autoSelect: true
+      autoSelect: true,
     };
 
     const doc = this.hud.document;
@@ -200,6 +200,7 @@ class JSTerm extends Component {
           styleActiveLine: false,
           tabIndex: "0",
           viewportMargin: Infinity,
+          disableSearchAddon: true,
           extraKeys: {
             "Enter": () => {
               // No need to handle shift + Enter as it's natively handled by CodeMirror.
@@ -365,7 +366,7 @@ class JSTerm extends Component {
             "Esc": false,
             "Cmd-F": false,
             "Ctrl-F": false,
-          }
+          },
         });
 
         this.editor.on("changes", this._inputEventHandler);
@@ -475,7 +476,7 @@ class JSTerm extends Component {
           this.props.clearHistory();
           break;
         case "inspectObject":
-          this.inspectObjectActor(helperResult.object);
+          this.hud.inspectObjectActor(helperResult.object);
           break;
         case "error":
           try {
@@ -511,16 +512,6 @@ class JSTerm extends Component {
     }
 
     return null;
-  }
-
-  inspectObjectActor(objectActor) {
-    this.hud.consoleOutput.dispatchMessageAdd({
-      helperResult: {
-        type: "inspectObject",
-        object: objectActor
-      }
-    }, true);
-    return this.hud.consoleOutput;
   }
 
   screenshotNotify(results) {
@@ -560,6 +551,7 @@ class JSTerm extends Component {
     const { ConsoleCommand } = require("devtools/client/webconsole/types");
     const cmdMessage = new ConsoleCommand({
       messageText: executeString,
+      timeStamp: Date.now(),
     });
     this.hud.proxy.dispatchMessageAdd(cmdMessage);
 
@@ -575,7 +567,7 @@ class JSTerm extends Component {
     const options = {
       frame: this.SELECTED_FRAME,
       selectedNodeActor,
-      mapped: mappedExpressionRes ? mappedExpressionRes.mapped : null
+      mapped: mappedExpressionRes ? mappedExpressionRes.mapped : null,
     };
 
     // Even if requestEvaluation rejects (because of webConsoleClient.evaluateJSAsync),
@@ -616,7 +608,7 @@ class JSTerm extends Component {
     // Send telemetry event. If we are in the browser toolbox we send -1 as the
     // toolbox session id.
     this.props.serviceContainer.recordTelemetryEvent("execute_js", {
-      "lines": str.split(/\n/).length
+      "lines": str.split(/\n/).length,
     });
 
     let frameActor = null;
@@ -725,7 +717,7 @@ class JSTerm extends Component {
           const lines = newValue.split("\n");
           this.editor.setCursor({
             line: lines.length - 1,
-            ch: lines[lines.length - 1].length
+            ch: lines[lines.length - 1].length,
           });
           this.editor.setAutoCompletionText();
         });
@@ -1461,7 +1453,7 @@ class JSTerm extends Component {
       // Set the cursor on the same line it was already at, after the autocompleted text
       this.editor.setCursor({
         line: editorCursor.line,
-        ch: editorCursor.ch + str.length - numberOfCharsToReplaceCharsBeforeCursor
+        ch: editorCursor.ch + str.length - numberOfCharsToReplaceCharsBeforeCursor,
       });
     }
   }
@@ -1588,13 +1580,7 @@ class JSTerm extends Component {
   }
 
   onContextMenu(e) {
-    // The toolbox does it's own edit menu handling with
-    // toolbox-textbox-context-popup and friends. For now, fall
-    // back to use that if running inside the toolbox, but use our
-    // own menu when running in the Browser Console (see Bug 1476097).
-    if (this.props.hud.isBrowserConsole) {
-      this.props.serviceContainer.openEditContextMenu(e);
-    }
+    this.props.serviceContainer.openEditContextMenu(e);
   }
 
   destroy() {
@@ -1645,7 +1631,7 @@ class JSTerm extends Component {
     }
 
     const {
-      onPaste
+      onPaste,
     } = this.props;
 
     return (

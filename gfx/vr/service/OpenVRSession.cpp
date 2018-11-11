@@ -4,7 +4,9 @@
 #if defined(XP_WIN)
 #include <d3d11.h>
 #include "mozilla/gfx/DeviceManagerDx.h"
-#endif // defined(XP_WIN)
+#elif defined(XP_MACOSX)
+#include "mozilla/gfx/MacIOSurface.h"
+#endif
 
 #include "mozilla/dom/GamepadEventTypes.h"
 #include "mozilla/dom/GamepadBinding.h"
@@ -79,24 +81,6 @@ UpdateButton(VRControllerState& aState, const ::vr::VRControllerState_t& aContro
   }
 }
 
-void
-UpdateTrigger(VRControllerState& aState, uint32_t aButtonIndex, float aValue, float aThreshold)
-{
-  // For OpenVR, the threshold value of ButtonPressed and ButtonTouched is 0.55.
-  // We prefer to let developers to set their own threshold for the adjustment.
-  // Therefore, we don't check ButtonPressed and ButtonTouched with ButtonMask here.
-  // we just check the button value is larger than the threshold value or not.
-  uint64_t mask = (1ULL << aButtonIndex);
-  aState.triggerValue[aButtonIndex] = aValue;
-  if (aValue > aThreshold) {
-    aState.buttonPressed |= mask;
-    aState.buttonTouched |= mask;
-  } else {
-    aState.buttonPressed &= ~mask;
-    aState.buttonTouched &= ~mask;
-  }
-}
-
 }; // anonymous namespace
 
 OpenVRSession::OpenVRSession()
@@ -107,7 +91,6 @@ OpenVRSession::OpenVRSession()
   , mControllerDeviceIndex{}
   , mHapticPulseRemaining{}
   , mHapticPulseIntensity{}
-  , mShouldQuit(false)
   , mIsWindowsMR(false)
   , mControllerHapticStateMutex("OpenVRSession::mControllerHapticStateMutex")
 {
@@ -121,6 +104,9 @@ OpenVRSession::~OpenVRSession()
 bool
 OpenVRSession::Initialize(mozilla::gfx::VRSystemState& aSystemState)
 {
+  if (!gfxPrefs::VREnabled() || !gfxPrefs::VROpenVREnabled()) {
+    return false;
+  }
   if (mVRSystem != nullptr) {
     // Already initialized
     return true;
@@ -171,8 +157,10 @@ OpenVRSession::Initialize(mozilla::gfx::VRSystemState& aSystemState)
     return false;
   }
 
-  StartHapticThread();
-  StartHapticTimer();
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+    "OpenVRSession::StartHapticThread", [this]() {
+      StartHapticThread();
+  }));
   
   // Succeeded
   return true;
@@ -781,12 +769,6 @@ OpenVRSession::StartFrame(mozilla::gfx::VRSystemState& aSystemState)
   UpdateTelemetry(aSystemState);
 }
 
-bool
-OpenVRSession::ShouldQuit() const
-{
-  return mShouldQuit;
-}
-
 void
 OpenVRSession::ProcessEvents(mozilla::gfx::VRSystemState& aSystemState)
 {
@@ -832,73 +814,47 @@ OpenVRSession::ProcessEvents(mozilla::gfx::VRSystemState& aSystemState)
   }
 }
 
-bool
-OpenVRSession::SubmitFrame(const mozilla::gfx::VRLayer_Stereo_Immersive& aLayer)
-{
 #if defined(XP_WIN)
-
-  if (aLayer.mTextureType == VRLayerTextureType::LayerTextureType_D3D10SurfaceDescriptor) {
-      RefPtr<ID3D11Texture2D> dxTexture;
-      HRESULT hr = mDevice->OpenSharedResource((HANDLE)aLayer.mTextureHandle,
-        __uuidof(ID3D11Texture2D),
-        (void**)(ID3D11Texture2D**)getter_AddRefs(dxTexture));
-      if (FAILED(hr) || !dxTexture) {
-        NS_WARNING("Failed to open shared texture");
-        return false;
-      }
-
-      // Similar to LockD3DTexture in TextureD3D11.cpp
-      RefPtr<IDXGIKeyedMutex> mutex;
-      dxTexture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mutex));
-      if (mutex) {
-        HRESULT hr = mutex->AcquireSync(0, 1000);
-        if (hr == WAIT_TIMEOUT) {
-          gfxDevCrash(LogReason::D3DLockTimeout) << "D3D lock mutex timeout";
-        }
-        else if (hr == WAIT_ABANDONED) {
-          gfxCriticalNote << "GFX: D3D11 lock mutex abandoned";
-        }
-        if (FAILED(hr)) {
-          NS_WARNING("Failed to lock the texture");
-          return false;
-        }
-      }
-      bool success = SubmitFrame((void *)dxTexture,
+bool
+OpenVRSession::SubmitFrame(const mozilla::gfx::VRLayer_Stereo_Immersive& aLayer,
+                           ID3D11Texture2D* aTexture)
+{
+  return SubmitFrame((void *)aTexture,
                      ::vr::ETextureType::TextureType_DirectX,
                      aLayer.mLeftEyeRect, aLayer.mRightEyeRect);
-      if (mutex) {
-        HRESULT hr = mutex->ReleaseSync(0);
-        if (FAILED(hr)) {
-          NS_WARNING("Failed to unlock the texture");
-        }
-      }
-      if (!success) {
-        return false;
-      }
-      return true;
-  }
-
+}
 #elif defined(XP_MACOSX)
-
-  if (aLayer.mTextureType == VRLayerTextureType::LayerTextureType_MacIOSurface) {
-    return SubmitFrame(aLayer.mTextureHandle,
-                       ::vr::ETextureType::TextureType_IOSurface,
-                       aLayer.mLeftEyeRect, aLayer.mRightEyeRect);
-  }
-
+bool
+OpenVRSession::SubmitFrame(const mozilla::gfx::VRLayer_Stereo_Immersive& aLayer,
+                           const VRLayerTextureHandle& aTexture)
+{
+  return SubmitFrame(aTexture,
+                     ::vr::ETextureType::TextureType_IOSurface,
+                     aLayer.mLeftEyeRect, aLayer.mRightEyeRect);
+}
 #endif
 
-  return false;
-}
-
 bool
-OpenVRSession::SubmitFrame(void* aTextureHandle,
+OpenVRSession::SubmitFrame(const VRLayerTextureHandle& aTextureHandle,
                            ::vr::ETextureType aTextureType,
                            const VRLayerEyeRect& aLeftEyeRect,
                            const VRLayerEyeRect& aRightEyeRect)
 {
   ::vr::Texture_t tex;
+#if defined(XP_MACOSX)
+  // We get aTextureHandle from get_SurfaceDescriptorMacIOSurface() at VRDisplayExternal.
+  // scaleFactor and opaque are skipped because they always are 1.0 and false.
+  RefPtr<MacIOSurface> surf = MacIOSurface::LookupSurface(aTextureHandle);
+  if (!surf) {
+    NS_WARNING("OpenVRSession::SubmitFrame failed to get a MacIOSurface");
+    return false;
+  }
+
+  const void* ioSurface = surf->GetIOSurfacePtr();
+  tex.handle = (void *)ioSurface;
+#else
   tex.handle = aTextureHandle;
+#endif
   tex.eType = aTextureType;
   tex.eColorSpace = ::vr::EColorSpace::ColorSpace_Auto;
 
@@ -935,11 +891,6 @@ OpenVRSession::StopPresentation()
 
   ::vr::Compositor_CumulativeStats stats;
   mVRCompositor->GetCumulativeStats(&stats, sizeof(::vr::Compositor_CumulativeStats));
-  // TODO - Need to send telemetry back to browser.
-  // Bug 1473398 will refactor this original gfxVROpenVR code:
-  //   const uint32_t droppedFramesPerSec = (stats.m_nNumReprojectedFrames -
-  //                                      mTelemetry.mLastDroppedFrameCount) / duration.ToSeconds();
-  // Telemetry::Accumulate(Telemetry::WEBVR_DROPPED_FRAMES_IN_OPENVR, droppedFramesPerSec);
 }
 
 bool
@@ -978,17 +929,23 @@ OpenVRSession::VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
 void
 OpenVRSession::StartHapticThread()
 {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!mHapticThread) {
     mHapticThread = new VRThread(NS_LITERAL_CSTRING("VR_OpenVR_Haptics"));
   }
   mHapticThread->Start();
+  StartHapticTimer();
 }
 
 void
 OpenVRSession::StopHapticThread()
 {
   if (mHapticThread) {
-    mHapticThread->Shutdown();
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "mHapticThread::Shutdown",
+      [thread = mHapticThread]() {
+        thread->Shutdown();
+    }));
     mHapticThread = nullptr;
   }
 }

@@ -11,6 +11,7 @@
 #include "CSFLog.h"
 #include "MediaEngineTabVideoSource.h"
 #include "MediaEngineRemoteVideoSource.h"
+#include "MediaEngineWebRTCAudio.h"
 #include "MediaTrackConstraints.h"
 #include "mozilla/dom/MediaDeviceInfo.h"
 #include "mozilla/Logging.h"
@@ -25,8 +26,6 @@ static mozilla::LazyLogModule sGetUserMediaLog("GetUserMedia");
 #define LOG(args) MOZ_LOG(sGetUserMediaLog, mozilla::LogLevel::Debug, args)
 
 namespace mozilla {
-
-using namespace CubebUtils;
 
 MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs &aPrefs)
   : mMutex("mozilla::MediaEngineWebRTC")
@@ -138,7 +137,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(uint64_t aWindowId,
        break;
       }
       LOG(("type=%d width=%d height=%d maxFPS=%d",
-           cap.rawType, cap.width, cap.height, cap.maxFPS ));
+           static_cast<int>(cap.videoType), cap.width, cap.height,
+           cap.maxFPS ));
     }
 #endif
 
@@ -166,7 +166,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(uint64_t aWindowId,
     aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                               vSource,
                               vSource->GetName(),
-                              NS_ConvertUTF8toUTF16(vSource->GetUUID())));
+                              NS_ConvertUTF8toUTF16(vSource->GetUUID()),
+                              NS_LITERAL_STRING("")));
   }
 
   if (mHasTabVideoSource || dom::MediaSourceEnum::Browser == aMediaSource) {
@@ -174,7 +175,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(uint64_t aWindowId,
     aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                               tabVideoSource,
                               tabVideoSource->GetName(),
-                              NS_ConvertUTF8toUTF16(tabVideoSource->GetUUID())));
+                              NS_ConvertUTF8toUTF16(tabVideoSource->GetUUID()),
+                              NS_LITERAL_STRING("")));
   }
 }
 
@@ -184,9 +186,7 @@ MediaEngineWebRTC::EnumerateMicrophoneDevices(uint64_t aWindowId,
 {
   mMutex.AssertCurrentThreadOwns();
 
-  if (!mEnumerator) {
-    mEnumerator.reset(new CubebDeviceEnumerator());
-  }
+  mEnumerator = CubebDeviceEnumerator::GetInstance();
 
   nsTArray<RefPtr<AudioDeviceInfo>> devices;
   mEnumerator->EnumerateAudioInputDevices(devices);
@@ -218,7 +218,8 @@ MediaEngineWebRTC::EnumerateMicrophoneDevices(uint64_t aWindowId,
       RefPtr<MediaDevice> device = MakeRefPtr<MediaDevice>(
                                      source,
                                      source->GetName(),
-                                     NS_ConvertUTF8toUTF16(source->GetUUID()));
+                                     NS_ConvertUTF8toUTF16(source->GetUUID()),
+                                     NS_LITERAL_STRING(""));
       if (devices[i]->Preferred()) {
 #ifdef DEBUG
         if (!foundPreferredDevice) {
@@ -241,8 +242,12 @@ void
 MediaEngineWebRTC::EnumerateSpeakerDevices(uint64_t aWindowId,
                                            nsTArray<RefPtr<MediaDevice> >* aDevices)
 {
+  if (!mEnumerator) {
+    mEnumerator = CubebDeviceEnumerator::GetInstance();
+  }
   nsTArray<RefPtr<AudioDeviceInfo>> devices;
-  CubebUtils::GetDeviceCollection(devices, CubebUtils::Output);
+  mEnumerator->EnumerateAudioOutputDevices(devices);
+
   for (auto& device : devices) {
     if (device->State() == CUBEB_DEVICE_STATE_ENABLED) {
       MOZ_ASSERT(device->Type() == CUBEB_DEVICE_TYPE_OUTPUT);
@@ -251,10 +256,7 @@ MediaEngineWebRTC::EnumerateSpeakerDevices(uint64_t aWindowId,
       // would be the same for both which ends up to create the same
       // deviceIDs (in JS).
       uuid.Append(NS_LITERAL_STRING("_Speaker"));
-      aDevices->AppendElement(MakeRefPtr<MediaDevice>(
-                                device->Name(),
-                                dom::MediaDeviceKind::Audiooutput,
-                                uuid));
+      aDevices->AppendElement(MakeRefPtr<MediaDevice>(device, uuid));
     }
   }
 }
@@ -278,7 +280,8 @@ MediaEngineWebRTC::EnumerateDevices(uint64_t aWindowId,
     aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                               audioCaptureSource,
                               audioCaptureSource->GetName(),
-                              NS_ConvertUTF8toUTF16(audioCaptureSource->GetUUID())));
+                              NS_ConvertUTF8toUTF16(audioCaptureSource->GetUUID()),
+                              NS_LITERAL_STRING("")));
   } else if (aMediaSource == dom::MediaSourceEnum::Microphone) {
     MOZ_ASSERT(aMediaSource == dom::MediaSourceEnum::Microphone);
     EnumerateMicrophoneDevices(aWindowId, aDevices);
@@ -356,107 +359,6 @@ MediaEngineWebRTC::Shutdown()
   mEnumerator = nullptr;
 
   mozilla::camera::Shutdown();
-}
-
-CubebDeviceEnumerator::CubebDeviceEnumerator()
-  : mMutex("CubebDeviceListMutex")
-  , mManualInvalidation(false)
-{
-  int rv = cubeb_register_device_collection_changed(GetCubebContext(),
-     CUBEB_DEVICE_TYPE_INPUT,
-     &mozilla::CubebDeviceEnumerator::AudioDeviceListChanged_s,
-     this);
-
-  if (rv != CUBEB_OK) {
-    NS_WARNING("Could not register the audio input"
-               " device collection changed callback.");
-    mManualInvalidation = true;
-  }
-}
-
-CubebDeviceEnumerator::~CubebDeviceEnumerator()
-{
-  int rv = cubeb_register_device_collection_changed(GetCubebContext(),
-                                                    CUBEB_DEVICE_TYPE_INPUT,
-                                                    nullptr,
-                                                    this);
-  if (rv != CUBEB_OK) {
-    NS_WARNING("Could not unregister the audio input"
-               " device collection changed callback.");
-  }
-}
-
-void
-CubebDeviceEnumerator::EnumerateAudioInputDevices(nsTArray<RefPtr<AudioDeviceInfo>>& aOutDevices)
-{
-  aOutDevices.Clear();
-
-  cubeb* context = GetCubebContext();
-  if (!context) {
-    return;
-  }
-
-  MutexAutoLock lock(mMutex);
-
-#ifdef ANDROID
-  if (mDevices.IsEmpty()) {
-    // Bug 1473346: enumerating devices is not supported on Android in cubeb,
-    // simply state that there is a single mic, that it is the default, and has a
-    // single channel. All the other values are made up and are not to be used.
-    RefPtr<AudioDeviceInfo> info = new AudioDeviceInfo(nullptr,
-                                                       NS_ConvertUTF8toUTF16(""),
-                                                       NS_ConvertUTF8toUTF16(""),
-                                                       NS_ConvertUTF8toUTF16(""),
-                                                       CUBEB_DEVICE_TYPE_INPUT,
-                                                       CUBEB_DEVICE_STATE_ENABLED,
-                                                       CUBEB_DEVICE_PREF_ALL,
-                                                       CUBEB_DEVICE_FMT_ALL,
-                                                       CUBEB_DEVICE_FMT_S16NE,
-                                                       1,
-                                                       44100,
-                                                       44100,
-                                                       41000,
-                                                       410,
-                                                       128);
-    mDevices.AppendElement(info);
-  }
-#else
-  if (mDevices.IsEmpty() || mManualInvalidation) {
-    mDevices.Clear();
-    CubebUtils::GetDeviceCollection(mDevices, CubebUtils::Input);
-  }
-#endif
-
-  aOutDevices.AppendElements(mDevices);
-}
-
-already_AddRefed<AudioDeviceInfo>
-CubebDeviceEnumerator::DeviceInfoFromID(CubebUtils::AudioDeviceID aID)
-{
-  MutexAutoLock lock(mMutex);
-
-  for (uint32_t i  = 0; i < mDevices.Length(); i++) {
-    if (mDevices[i]->DeviceID() == aID) {
-      RefPtr<AudioDeviceInfo> other = mDevices[i];
-      return other.forget();
-    }
-  }
-  return nullptr;
-}
-
-void
-CubebDeviceEnumerator::AudioDeviceListChanged_s(cubeb* aContext, void* aUser)
-{
-  CubebDeviceEnumerator* self = reinterpret_cast<CubebDeviceEnumerator*>(aUser);
-  self->AudioDeviceListChanged();
-}
-
-void
-CubebDeviceEnumerator::AudioDeviceListChanged()
-{
-  MutexAutoLock lock(mMutex);
-
-  mDevices.Clear();
 }
 
 }

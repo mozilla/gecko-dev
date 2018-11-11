@@ -33,9 +33,7 @@ async function test_opensearch(shouldWork) {
   let oneOffsContainer = document.getAnonymousElementByAttribute(searchPopup,
                                                                  "anonid",
                                                                  "search-one-off-buttons");
-  let engineListElement = document.getAnonymousElementByAttribute(oneOffsContainer,
-                                                                  "anonid",
-                                                                  "add-engines");
+  let engineListElement = oneOffsContainer.querySelector(".search-add-engines");
   if (shouldWork) {
     ok(engineListElement.firstElementChild,
        "There should be search engines available to add");
@@ -161,6 +159,10 @@ add_task(async function test_opensearch_disabled() {
 });
 
 add_task(async function test_AddSearchProvider() {
+  if (!Services.prefs.getBoolPref("dom.sidebar.enabled", false)) {
+    return;
+  }
+
   // Mock the modal error dialog
   let mockPrompter = {
     promptCount: 0,

@@ -13,9 +13,11 @@
 #include "gfxUtils.h"
 #include "nsWindow.h"
 #include "nsWindowDefs.h"
+#include "InputDeviceUtils.h"
 #include "KeyboardLayout.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BackgroundHangMonitor.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
@@ -433,6 +435,7 @@ struct CoTaskMemFreePolicy
 
 SetThreadDpiAwarenessContextProc WinUtils::sSetThreadDpiAwarenessContext = NULL;
 EnableNonClientDpiScalingProc WinUtils::sEnableNonClientDpiScaling = NULL;
+GetSystemMetricsForDpiProc WinUtils::sGetSystemMetricsForDpi = NULL;
 
 /* static */
 void
@@ -454,6 +457,9 @@ WinUtils::Initialize()
         sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
           ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
       }
+
+      sGetSystemMetricsForDpi = (GetSystemMetricsForDpiProc)
+        ::GetProcAddress(user32Dll, "GetSystemMetricsForDpi");
     }
   }
 }
@@ -669,6 +675,27 @@ WinUtils::MonitorFromRect(const gfx::Rect& rect)
   };
 
   return ::MonitorFromRect(&globalWindowBounds, MONITOR_DEFAULTTONEAREST);
+}
+
+/* static */
+bool
+WinUtils::HasSystemMetricsForDpi()
+{
+  return (sGetSystemMetricsForDpi != NULL);
+}
+
+/* static */
+int
+WinUtils::GetSystemMetricsForDpi(int nIndex, UINT dpi)
+{
+  if (HasSystemMetricsForDpi()) {
+    return sGetSystemMetricsForDpi(nIndex, dpi);
+  } else {
+    double scale = IsPerMonitorDPIAware()
+      ? dpi / SystemDPI()
+      : 1.0;
+    return NSToIntRound(::GetSystemMetrics(nIndex) * scale);
+  }
 }
 
 #ifdef ACCESSIBILITY
@@ -1765,6 +1792,103 @@ WinUtils::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray,
   }
 }
 
+/* static */
+nsresult
+WinUtils::WriteBitmap(nsIFile* aFile, imgIContainer* aImage)
+{
+  RefPtr<SourceSurface> surface =
+    aImage->GetFrame(imgIContainer::FRAME_FIRST,
+                     imgIContainer::FLAG_SYNC_DECODE);
+  NS_ENSURE_TRUE(surface, NS_ERROR_FAILURE);
+
+  return WriteBitmap(aFile, surface);
+}
+
+/* static */
+nsresult
+WinUtils::WriteBitmap(nsIFile* aFile, SourceSurface* surface)
+{
+  nsresult rv;
+
+  // For either of the following formats we want to set the biBitCount member
+  // of the BITMAPINFOHEADER struct to 32, below. For that value the bitmap
+  // format defines that the A8/X8 WORDs in the bitmap byte stream be ignored
+  // for the BI_RGB value we use for the biCompression member.
+  MOZ_ASSERT(surface->GetFormat() == SurfaceFormat::B8G8R8A8 ||
+             surface->GetFormat() == SurfaceFormat::B8G8R8X8);
+
+  RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
+  NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+
+  int32_t width = dataSurface->GetSize().width;
+  int32_t height = dataSurface->GetSize().height;
+  int32_t bytesPerPixel = 4 * sizeof(uint8_t);
+  uint32_t bytesPerRow = bytesPerPixel * width;
+
+  // initialize these bitmap structs which we will later
+  // serialize directly to the head of the bitmap file
+  BITMAPINFOHEADER bmi;
+  bmi.biSize = sizeof(BITMAPINFOHEADER);
+  bmi.biWidth = width;
+  bmi.biHeight = height;
+  bmi.biPlanes = 1;
+  bmi.biBitCount = (WORD)bytesPerPixel*8;
+  bmi.biCompression = BI_RGB;
+  bmi.biSizeImage = bytesPerRow * height;
+  bmi.biXPelsPerMeter = 0;
+  bmi.biYPelsPerMeter = 0;
+  bmi.biClrUsed = 0;
+  bmi.biClrImportant = 0;
+
+  BITMAPFILEHEADER bf;
+  bf.bfType = 0x4D42; // 'BM'
+  bf.bfReserved1 = 0;
+  bf.bfReserved2 = 0;
+  bf.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+  bf.bfSize = bf.bfOffBits + bmi.biSizeImage;
+
+  // get a file output stream
+  nsCOMPtr<nsIOutputStream> stream;
+  rv = NS_NewLocalFileOutputStream(getter_AddRefs(stream), aFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  DataSourceSurface::MappedSurface map;
+  if (!dataSurface->Map(DataSourceSurface::MapType::READ, &map)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // write the bitmap headers and rgb pixel data to the file
+  rv = NS_ERROR_FAILURE;
+  if (stream) {
+    uint32_t written;
+    stream->Write((const char*)&bf, sizeof(BITMAPFILEHEADER), &written);
+    if (written == sizeof(BITMAPFILEHEADER)) {
+      stream->Write((const char*)&bmi, sizeof(BITMAPINFOHEADER), &written);
+      if (written == sizeof(BITMAPINFOHEADER)) {
+        // write out the image data backwards because the desktop won't
+        // show bitmaps with negative heights for top-to-bottom
+        uint32_t i = map.mStride * height;
+        do {
+          i -= map.mStride;
+          stream->Write(((const char*)map.mData) + i, bytesPerRow, &written);
+          if (written == bytesPerRow) {
+            rv = NS_OK;
+          } else {
+            rv = NS_ERROR_FAILURE;
+            break;
+          }
+        } while (i != 0);
+      }
+    }
+
+    stream->Close();
+  }
+
+  dataSurface->Unmap();
+
+  return rv;
+}
+
 // This is in use here and in dom/events/TouchEvent.cpp
 /* static */
 uint32_t
@@ -1875,7 +1999,26 @@ IsTabletDevice()
 static bool
 IsMousePresent()
 {
-  return ::GetSystemMetrics(SM_MOUSEPRESENT);
+  if (!::GetSystemMetrics(SM_MOUSEPRESENT)) {
+    return false;
+  }
+
+  DWORD count = InputDeviceUtils::CountMouseDevices();
+  if (!count) {
+    return false;
+  }
+
+  // If there is a mouse device and if this machine is a tablet or has a
+  // digitizer, that's counted as the mouse device.
+  // FIXME: Bug 1495938:  We should drop this heuristic way once we find out a
+  // reliable way to tell there is no mouse or not.
+  if (count == 1 &&
+      (WinUtils::IsTouchDeviceSupportPresent() ||
+       IsTabletDevice())) {
+    return false;
+  }
+
+  return true;
 }
 
 /* static */
@@ -1887,7 +2030,7 @@ WinUtils::GetPrimaryPointerCapabilities()
   }
 
   if (IsMousePresent()) {
-    return PointerCapabilities::Fine|
+    return PointerCapabilities::Fine |
            PointerCapabilities::Hover;
   }
 
@@ -2010,26 +2153,73 @@ WinUtils::RunningFromANetworkDrive()
 
 /* static */
 bool
-WinUtils::SanitizePath(const wchar_t* aInputPath, nsAString& aOutput)
+WinUtils::GetModuleFullPath(HMODULE aModuleHandle, nsAString& aPath)
 {
-  aOutput.Truncate();
-  wchar_t buffer[MAX_PATH + 1] = {0};
-  if (!PathCanonicalizeW(buffer, aInputPath)) {
+  size_t bufferSize = MAX_PATH;
+  size_t len = 0;
+  while (true) {
+    aPath.SetLength(bufferSize);
+    len = (size_t)::GetModuleFileNameW(aModuleHandle,
+                                       (char16ptr_t)aPath.BeginWriting(),
+                                       bufferSize);
+    if (!len) {
+      return false;
+    }
+    if (len == bufferSize && ::GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      bufferSize *= 2;
+      continue;
+    }
+    aPath.Truncate(len);
+    break;
+  }
+  return true;
+}
+
+/* static */
+bool WinUtils::CanonicalizePath(nsAString& aPath)
+{
+  wchar_t tempPath[MAX_PATH + 1];
+  if (!PathCanonicalizeW(tempPath,
+                         (char16ptr_t)PromiseFlatString(aPath).get())) {
     return false;
   }
-  wchar_t longBuffer[MAX_PATH + 1] = {0};
-  DWORD longResult = GetLongPathNameW(buffer, longBuffer, MAX_PATH);
-  if (longResult == 0 || longResult > MAX_PATH - 1) {
+  aPath = tempPath;
+  MOZ_ASSERT(aPath.Length() <= MAX_PATH);
+  return true;
+}
+
+/* static */
+bool WinUtils::MakeLongPath(nsAString& aPath)
+{
+  wchar_t tempPath[MAX_PATH + 1];
+  DWORD longResult = GetLongPathNameW((char16ptr_t)PromiseFlatString(aPath).get(),
+                                      tempPath,
+                                      ArrayLength(tempPath));
+  if (longResult > ArrayLength(tempPath)) {
+    // Our buffer is too short, and we're guaranteeing <= MAX_PATH results.
     return false;
+  } else if (longResult) {
+    // Success.
+    aPath = tempPath;
+    MOZ_ASSERT(aPath.Length() <= MAX_PATH);
   }
-  aOutput.SetLength(MAX_PATH + 1);
-  wchar_t* output = reinterpret_cast<wchar_t*>(aOutput.BeginWriting());
-  if (!PathUnExpandEnvStringsW(longBuffer, output, MAX_PATH)) {
-    return false;
+  // GetLongPathNameW returns 0 if the path is not found or is not rooted,
+  // but we shouldn't consider that a failure condition.
+  return true;
+}
+
+/* static */
+bool WinUtils::UnexpandEnvVars(nsAString& aPath)
+{
+  wchar_t tempPath[MAX_PATH + 1];
+  // PathUnExpandEnvStringsW returns false if it doesn't make any
+  // substitutions. Silently continue using the unaltered path.
+  if (PathUnExpandEnvStringsW((char16ptr_t)PromiseFlatString(aPath).get(),
+                              tempPath,
+                              ArrayLength(tempPath))) {
+    aPath = tempPath;
+    MOZ_ASSERT(aPath.Length() <= MAX_PATH);
   }
-  // Truncate to correct length
-  aOutput.Truncate(wcslen(char16ptr_t(aOutput.BeginReading())));
-  MOZ_ASSERT(aOutput.Length() <= MAX_PATH);
   return true;
 }
 
@@ -2042,19 +2232,27 @@ WinUtils::SanitizePath(const wchar_t* aInputPath, nsAString& aOutput)
  * necessary. Otherwise, the consumer should replace the system path with the
  * substitution.
  *
- * @see GetAppInitDLLs for an example of its usage.
+ * @see PreparePathForTelemetry for an example of its usage.
  */
 /* static */
-void
-WinUtils::GetWhitelistedPaths(
-    nsTArray<mozilla::Pair<nsString,nsDependentString>>& aOutput)
+const nsTArray<mozilla::Pair<nsString, nsDependentString>>&
+WinUtils::GetWhitelistedPaths()
 {
-  aOutput.Clear();
-  aOutput.AppendElement(mozilla::MakePair(
-                          nsString(NS_LITERAL_STRING("%ProgramFiles%")),
-                          nsDependentString()));
+  // We know the maximum number of items this array will hold, so avoid a heap
+  // allocation by using AutoTArray<T,N>
+  static const size_t kMaxWhitelistedItems = 2;
+  static StaticAutoPtr<AutoTArray<Pair<nsString, nsDependentString>,
+                                  kMaxWhitelistedItems>> sWhitelist;
+  if (sWhitelist) {
+    return *sWhitelist;
+  }
+  sWhitelist = new AutoTArray<Pair<nsString, nsDependentString>,
+                              kMaxWhitelistedItems>();
+  sWhitelist->AppendElement(mozilla::MakePair(
+                            nsString(NS_LITERAL_STRING("%ProgramFiles%")),
+                            nsDependentString()));
   // When no substitution is required, set the void flag
-  aOutput.LastElement().second().SetIsVoid(true);
+  sWhitelist->LastElement().second().SetIsVoid(true);
   wchar_t tmpPath[MAX_PATH + 1] = {0};
   if (GetTempPath(MAX_PATH, tmpPath)) {
     // GetTempPath's result always ends with a backslash, which we don't want
@@ -2062,12 +2260,18 @@ WinUtils::GetWhitelistedPaths(
     if (tmpPathLen) {
       tmpPath[tmpPathLen - 1] = 0;
     }
-    nsAutoString cleanTmpPath;
-    if (SanitizePath(tmpPath, cleanTmpPath)) {
-      aOutput.AppendElement(mozilla::MakePair(nsString(cleanTmpPath),
-                              nsDependentString(L"%TEMP%")));
+    nsAutoString cleanTmpPath(tmpPath);
+    if (UnexpandEnvVars(cleanTmpPath)) {
+      sWhitelist->AppendElement(mozilla::MakePair(nsString(cleanTmpPath),
+                                                  nsDependentString(L"%TEMP%")));
     }
   }
+  ClearOnShutdown(&sWhitelist);
+
+  // If we add more items to the whitelist, ensure we still don't invoke an
+  // unnecessary heap allocation.
+  MOZ_ASSERT(sWhitelist->Length() <= kMaxWhitelistedItems);
+  return *sWhitelist;
 }
 
 /**
@@ -2118,52 +2322,73 @@ WinUtils::GetAppInitDLLs(nsAString& aOutput)
   if (status != ERROR_SUCCESS) {
     return false;
   }
-  nsTArray<mozilla::Pair<nsString,nsDependentString>> whitelistedPaths;
-  GetWhitelistedPaths(whitelistedPaths);
   // For each token, split up the filename components and then check the
   // name of the file.
   const wchar_t kDelimiters[] = L", ";
   wchar_t* tokenContext = nullptr;
   wchar_t* token = wcstok_s(data.get(), kDelimiters, &tokenContext);
   while (token) {
-    nsAutoString cleanPath;
+    nsAutoString cleanPath(token);
     // Since these paths are short paths originating from the registry, we need
     // to canonicalize them, lengthen them, and sanitize them before we can
     // check them against the whitelist
-    if (SanitizePath(token, cleanPath)) {
-      bool needsStrip = true;
-      for (uint32_t i = 0; i < whitelistedPaths.Length(); ++i) {
-        const nsString& testPath = whitelistedPaths[i].first();
-        const nsDependentString& substitution = whitelistedPaths[i].second();
-        if (StringBeginsWith(cleanPath, testPath,
-                             nsCaseInsensitiveStringComparator())) {
-          if (!substitution.IsVoid()) {
-            cleanPath.Replace(0, testPath.Length(), substitution);
-          }
-          // Whitelisted paths may be used as-is provided that they have been
-          // previously sanitized.
-          needsStrip = false;
-          break;
-        }
-      }
+    if (PreparePathForTelemetry(cleanPath)) {
       if (!aOutput.IsEmpty()) {
         aOutput += L";";
       }
-      // For non-whitelisted paths, we strip the path component and just leave
-      // the filename.
-      if (needsStrip) {
-        // nsLocalFile doesn't like non-absolute paths. Since these paths might
-        // contain environment variables instead of roots, we can't use it.
-        wchar_t tmpPath[MAX_PATH + 1] = {0};
-        wcsncpy(tmpPath, cleanPath.get(), cleanPath.Length());
-        PathStripPath(tmpPath);
-        aOutput += tmpPath;
-      } else {
-        aOutput += cleanPath;
-      }
+      aOutput += cleanPath;
     }
     token = wcstok_s(nullptr, kDelimiters, &tokenContext);
   }
+  return true;
+}
+
+/* static */
+bool
+WinUtils::PreparePathForTelemetry(nsAString& aPath, PathTransformFlags aFlags)
+{
+  if (aFlags & PathTransformFlags::Canonicalize) {
+    if (!CanonicalizePath(aPath)) {
+      return false;
+    }
+  }
+  if (aFlags & PathTransformFlags::Lengthen) {
+    if (!MakeLongPath(aPath)) {
+      return false;
+    }
+  }
+  if (aFlags & PathTransformFlags::UnexpandEnvVars) {
+    if (!UnexpandEnvVars(aPath)) {
+      return false;
+    }
+  }
+
+  const nsTArray<Pair<nsString, nsDependentString>>& whitelistedPaths =
+      GetWhitelistedPaths();
+
+  for (uint32_t i = 0; i < whitelistedPaths.Length(); ++i) {
+    const nsString& testPath = whitelistedPaths[i].first();
+    const nsDependentString& substitution = whitelistedPaths[i].second();
+    if (StringBeginsWith(aPath, testPath,
+                         nsCaseInsensitiveStringComparator())) {
+      if (!substitution.IsVoid()) {
+        aPath.Replace(0, testPath.Length(), substitution);
+      }
+      return true;
+    }
+  }
+
+  // For non-whitelisted paths, we strip the path component and just leave
+  // the filename. We can't use nsLocalFile to do this because these paths may
+  // begin with environment variables, and nsLocalFile doesn't like
+  // non-absolute paths.
+  MOZ_ASSERT(aPath.Length() <= MAX_PATH);
+  wchar_t tmpPath[MAX_PATH + 1] = {0};
+  if (wcsncpy_s(tmpPath, ArrayLength(tmpPath), (char16ptr_t)aPath.BeginReading(),
+                aPath.Length())) {
+    return false;
+  }
+  aPath.Assign((char16ptr_t)::PathFindFileNameW(tmpPath));
   return true;
 }
 

@@ -17,7 +17,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-stack",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              testSameBreakpoint();
                            });
@@ -33,7 +33,7 @@ const testSameBreakpoint = async function() {
 
   // Whole line
   const wholeLineLocation = {
-    line: 2
+    line: 2,
   };
 
   let [, firstBpClient] = await setBreakpoint(source, wholeLineLocation);
@@ -46,7 +46,7 @@ const testSameBreakpoint = async function() {
 
   const columnLocation = {
     line: 2,
-    column: 6
+    column: 6,
   };
 
   [, firstBpClient] = await setBreakpoint(source, columnLocation);

@@ -24,19 +24,22 @@ graph_config_schema = Schema({
     # (See http://firefox-source-docs.mozilla.org/taskcluster/taskcluster/parameters.html#push-information  # noqa
     # and http://firefox-source-docs.mozilla.org/taskcluster/taskcluster/parameters.html#comm-push-information)  # noqa
     Required('project-repo-param-prefix'): basestring,
+    # This specifies the top level directory of the application being built.
+    # ie. "browser/" for Firefox, "comm/mail/" for Thunderbird.
+    Required('product-dir'): basestring,
     Required('treeherder'): {
         # Mapping of treeherder group symbols to descriptive names
         Required('group-names'): {basestring: basestring}
     },
     Required('index'): {
-        Required('products'): [basestring],
+        Required('products'): [basestring]
     },
     Required('try'): {
         # We have a few platforms for which we want to do some "extra" builds, or at
         # least build-ish things.  Sort of.  Anyway, these other things are implemented
         # as different "platforms".  These do *not* automatically ride along with "-p
         # all"
-        Required('ridealong-builds', default={}): {basestring: [basestring]},
+        Required('ridealong-builds'): {basestring: [basestring]},
     },
     Required('release-promotion'): {
         Required('products'): [basestring],
@@ -86,7 +89,7 @@ class GraphConfig(object):
 
 
 def validate_graph_config(config):
-    return validate_schema(graph_config_schema, config, "Invalid graph configuration:")
+    validate_schema(graph_config_schema, config, "Invalid graph configuration:")
 
 
 def load_graph_config(root_dir):

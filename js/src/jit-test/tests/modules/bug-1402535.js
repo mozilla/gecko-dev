@@ -1,7 +1,6 @@
-if (!('stackTest' in this))
-   quit();
+// |jit-test| skip-if: !('stackTest' in this)
 
 stackTest(function() {
     let m = parseModule(``);
-    instantiateModule(m);
+    m.declarationInstantiation();
 });

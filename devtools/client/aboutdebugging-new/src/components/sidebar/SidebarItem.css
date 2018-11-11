@@ -3,49 +3,44 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 .sidebar-item {
-  /* Import css variables from common.css */
-  --sidebar-text-color: var(--in-content-category-text);
-  --sidebar-selected-color: var(--in-content-category-text-selected);
-  --sidebar-background-hover: var(--in-content-category-background-hover);
+  --sidebar-text-color: var(--category-text);
+  --sidebar-selected-color: var(--category-text-selected);
+  --sidebar-background-hover: var(--category-background-hover);
 }
 
-/*
- * Layout of a sidebar item
- *
- *  +--------+----------------+---------------------------+
- *  | Icon   | Name           | Connect button (optional) |
- *  +--------+----------------+---------------------------+
- */
 .sidebar-item {
-  align-items: center;
-  border-radius: 2px;
   color: var(--sidebar-text-color);
-  display: grid;
-  grid-template-columns: 34px auto max-content;
-  font-size: 16px;
-  height: 48px;
-  padding-inline-end: 10px;
-  padding-inline-start: 10px;
-  transition: background-color 150ms;
+  border-radius: 2px;
+  height: var(--category-height);
+  padding-inline-end: var(--category-padding);
+  padding-inline-start: var(--category-padding);
+  transition: background-color var(--category-transition-duration);
   -moz-user-select: none;
 }
 
+.sidebar-item__link {
+  display: block;
+  height: 100%;
+}
+
+.sidebar-item__link,
+.sidebar-item__link:hover {
+  color: inherit; /* do not apply usual link colors, but grab this element parent's */
+}
+
 .sidebar-item:not(.sidebar-item--selectable) {
-  opacity: 0.5;
+  color: var(--grey-40);
 }
 
 .sidebar-item--selectable:hover {
   background-color: var(--sidebar-background-hover);
 }
 
-.sidebar-item__icon {
-  fill: currentColor;
-  height: 24px;
-  margin-inline-end: 9px;
-  width: 24px;
-  -moz-context-properties: fill;
-}
-
 .sidebar-item--selected {
   color: var(--sidebar-selected-color);
+}
+
+.sidebar-item--breathe {
+  margin-block-start: calc(2 * var(--base-distance));
+  margin-block-end: calc(2 * var(--base-distance));
 }

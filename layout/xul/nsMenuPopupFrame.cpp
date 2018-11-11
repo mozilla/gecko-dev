@@ -18,7 +18,6 @@
 #include "nsMenuBarFrame.h"
 #include "nsPopupSetFrame.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDOMXULMenuListElement.h"
 #include "nsIPresShell.h"
 #include "nsFrameManager.h"
 #include "nsIDocument.h"
@@ -223,7 +222,7 @@ nsMenuPopupFrame::PopupLevel(bool aIsNoAutoHide) const
 
   // If the level attribute has been set, use that.
   static Element::AttrValuesArray strings[] =
-    {&nsGkAtoms::top, &nsGkAtoms::parent, &nsGkAtoms::floating, nullptr};
+    {nsGkAtoms::top, nsGkAtoms::parent, nsGkAtoms::floating, nullptr};
   switch (mContent->AsElement()->FindAttrValueIn(kNameSpaceID_None,
                                                  nsGkAtoms::level, strings,
                                                  eCaseMatters)) {
@@ -619,12 +618,8 @@ bool
 nsMenuPopupFrame::IsMenuList()
 {
   nsIFrame* parentMenu = GetParent();
-  if (!parentMenu) {
-    return false;
-  }
-
-  nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(parentMenu->GetContent());
-  return menulist != nullptr;
+  return (parentMenu && parentMenu->GetContent() &&
+          parentMenu->GetContent()->IsXULElement(nsGkAtoms::menulist));
 }
 
 nsIContent*

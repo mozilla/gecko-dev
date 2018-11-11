@@ -26,7 +26,7 @@ function run_test_with_server(server, callback) {
   gClient = new DebuggerClient(server.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-stack",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_simple_breakpoint();
                            });
@@ -37,7 +37,7 @@ function test_simple_breakpoint() {
   gThreadClient.addOneTimeListener("paused", function(event, packet) {
     const source = gThreadClient.source(packet.frame.where.source);
     const location = {
-      line: gDebuggee.line0 + 3
+      line: gDebuggee.line0 + 3,
     };
 
     source.setBreakpoint(location).then(function([response, bpClient]) {

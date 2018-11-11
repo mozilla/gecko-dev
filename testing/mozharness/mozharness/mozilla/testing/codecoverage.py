@@ -39,12 +39,6 @@ code_coverage_config_options = [
       "default": False,
       "help": "Whether test run should package and upload code coverage data."
       }],
-    [["--jsd-code-coverage"],
-     {"action": "store_true",
-      "dest": "jsd_code_coverage",
-      "default": False,
-      "help": "Whether JSDebugger code coverage should be run."
-      }],
     [["--java-code-coverage"],
      {"action": "store_true",
       "dest": "java_code_coverage",
@@ -258,11 +252,10 @@ class CodeCoverageMixin(SingleTestMixin):
         self.gcov_dir = tempfile.mkdtemp()
         env['GCOV_PREFIX'] = self.gcov_dir
 
-        # Set the GCOV directory where counters will be dumped in per-test mode.
-        # Resetting/dumping is only available on Linux for the time being
-        # (https://bugzilla.mozilla.org/show_bug.cgi?id=1471576).
-        if self.per_test_coverage and not is_baseline_test and self._is_linux():
+        # Set the GCOV/JSVM directories where counters will be dumped in per-test mode.
+        if self.per_test_coverage and not is_baseline_test:
             env['GCOV_RESULTS_DIR'] = tempfile.mkdtemp()
+            env['JSVM_RESULTS_DIR'] = tempfile.mkdtemp()
 
         # Set JSVM directory.
         self.jsvm_dir = tempfile.mkdtemp()
@@ -341,9 +334,10 @@ class CodeCoverageMixin(SingleTestMixin):
 
     def add_per_test_coverage_report(self, env, suite, test):
         gcov_dir = env['GCOV_RESULTS_DIR'] if 'GCOV_RESULTS_DIR' in env else self.gcov_dir
+        jsvm_dir = env['JSVM_RESULTS_DIR'] if 'JSVM_RESULTS_DIR' in env else self.jsvm_dir
 
         grcov_file = self.parse_coverage_artifacts(
-            gcov_dir, self.jsvm_dir, merge=True, output_format='coveralls',
+            gcov_dir, jsvm_dir, merge=True, output_format='coveralls',
             filter_covered=True,
         )
 
@@ -364,9 +358,11 @@ class CodeCoverageMixin(SingleTestMixin):
         self.per_test_reports[suite][test] = report_file
 
         if 'GCOV_RESULTS_DIR' in env:
-            # In this case, parse_coverage_artifacts has removed GCOV_RESULTS_DIR
-            # so we need to remove GCOV_PREFIX.
+            assert 'JSVM_RESULTS_DIR' in env
+            # In this case, parse_coverage_artifacts has removed GCOV_RESULTS_DIR and
+            # JSVM_RESULTS_DIR so we need to remove GCOV_PREFIX and JS_CODE_COVERAGE_OUTPUT_DIR.
             shutil.rmtree(self.gcov_dir)
+            shutil.rmtree(self.jsvm_dir)
 
     def is_covered(self, sf):
         # For C/C++ source files, we can consider a file as being uncovered
@@ -388,23 +384,6 @@ class CodeCoverageMixin(SingleTestMixin):
     @PostScriptAction('run-tests')
     def _package_coverage_data(self, action, success=None):
         dirs = self.query_abs_dirs()
-
-        if self.jsd_code_coverage_enabled:
-            # Setup the command for compression
-            jsdcov_dir = dirs['abs_blob_upload_dir']
-            zipFile = os.path.join(jsdcov_dir, "jsdcov_artifacts.zip")
-
-            self.info("Beginning compression of JSDCov artifacts...")
-            with zipfile.ZipFile(zipFile, 'w', zipfile.ZIP_DEFLATED) as z:
-                for filename in os.listdir(jsdcov_dir):
-                    if filename.startswith("jscov") and filename.endswith(".json"):
-                        path = os.path.join(jsdcov_dir, filename)
-                        z.write(path, filename)
-                        # Delete already compressed JSCov artifacts.
-                        os.remove(path)
-
-            self.info("Completed compression of JSDCov artifacts!")
-            self.info("Path to JSDCov compressed artifacts: " + zipFile)
 
         if not self.code_coverage_enabled:
             return

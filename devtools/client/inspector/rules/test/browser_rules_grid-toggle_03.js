@@ -23,6 +23,7 @@ const TEST_URI = `
 `;
 
 add_task(async function() {
+  await pushPref("devtools.gridinspector.maxHighlighters", 1);
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
   const {inspector, view} = await openRuleView();
   const highlighters = view.highlighters;
@@ -34,7 +35,7 @@ add_task(async function() {
 
   info("Checking the state of the CSS grid toggle for the first grid container in the " +
     "rule-view.");
-  ok(gridToggle, "Grid highlighter toggle is visible.");
+  ok(!gridToggle.hasAttribute("disabled"), "Grid highlighter toggle is not disabled.");
   ok(!gridToggle.classList.contains("active"),
     "Grid highlighter toggle button is not active.");
   ok(!highlighters.gridHighlighters.size, "No CSS grid highlighter is shown.");
@@ -47,6 +48,7 @@ add_task(async function() {
 
   info("Checking the CSS grid highlighter is created and toggle button is active in " +
     "the rule-view.");
+  ok(!gridToggle.hasAttribute("disabled"), "Grid highlighter toggle is not disabled.");
   ok(gridToggle.classList.contains("active"),
     "Grid highlighter toggle is active.");
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");
@@ -59,7 +61,7 @@ add_task(async function() {
 
   info("Checking the state of the CSS grid toggle for the second grid container in the " +
     "rule-view.");
-  ok(gridToggle, "Grid highlighter toggle is visible.");
+  ok(!gridToggle.hasAttribute("disabled"), "Grid highlighter toggle is not disabled.");
   ok(!gridToggle.classList.contains("active"),
     "Grid highlighter toggle button is not active.");
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is still shown.");
@@ -84,7 +86,7 @@ add_task(async function() {
 
   info("Checking the state of the CSS grid toggle for the first grid container in the " +
     "rule-view.");
-  ok(gridToggle, "Grid highlighter toggle is visible.");
+  ok(!gridToggle.hasAttribute("disabled"), "Grid highlighter toggle is not disabled.");
   ok(!gridToggle.classList.contains("active"),
     "Grid highlighter toggle button is not active.");
 });

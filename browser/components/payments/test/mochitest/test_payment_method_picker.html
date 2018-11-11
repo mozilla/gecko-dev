@@ -10,7 +10,6 @@ Test the payment-method-picker component
   <script type="application/javascript" src="/tests/SimpleTest/AddTask.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <script src="payments_common.js"></script>
-  <script src="../../res/vendor/custom-elements.min.js"></script>
   <script src="../../res/unprivileged-fallbacks.js"></script>
 
   <link rel="stylesheet" type="text/css" href="../../res/containers/rich-picker.css"/>
@@ -21,6 +20,7 @@ Test the payment-method-picker component
 <body>
   <p id="display">
     <payment-method-picker id="picker1"
+                           data-invalid-label="picker1: Missing or invalid"
                            selected-state-key="selectedPaymentCard"></payment-method-picker>
   </p>
 <div id="content" style="display: none">
@@ -44,7 +44,7 @@ add_task(async function test_empty() {
 });
 
 add_task(async function test_initialSet() {
-  picker1.requestStore.setState({
+  await picker1.requestStore.setState({
     savedBasicCards: {
       "48bnds6854t": {
         "cc-exp": "2017-02",
@@ -54,6 +54,7 @@ add_task(async function test_initialSet() {
         "cc-number": "************9999",
         "cc-type": "mastercard",
         "guid": "48bnds6854t",
+        timeLastUsed: 300,
       },
       "68gjdh354j": {
         "cc-exp": "2017-08",
@@ -63,6 +64,7 @@ add_task(async function test_initialSet() {
         "cc-number": "***********1234",
         "cc-type": "visa",
         "guid": "68gjdh354j",
+        timeLastUsed: 100,
       },
       "123456789abc": {
         "cc-name": "Jane Fields",
@@ -71,19 +73,20 @@ add_task(async function test_initialSet() {
         "cc-family-name": "Fields",
         "cc-number": "************9876",
         "guid": "123456789abc",
+        timeLastUsed: 200,
       },
     },
   });
   await asyncElementRendered();
   let options = picker1.dropdown.popupBox.children;
   is(options.length, 3, "Check dropdown has all three cards");
-  ok(options[0].textContent.includes("John Doe"), "Check first card");
-  ok(options[1].textContent.includes("J Smith"), "Check second card");
-  ok(options[2].textContent.includes("Jane Fields"), "Check third card");
+  ok(options[0].textContent.includes("John Doe"), "Check first card based on timeLastUsed");
+  ok(options[1].textContent.includes("Jane Fields"), "Check second card based on timeLastUsed");
+  ok(options[2].textContent.includes("J Smith"), "Check third card based on timeLastUsed");
 });
 
 add_task(async function test_update() {
-  picker1.requestStore.setState({
+  await picker1.requestStore.setState({
     savedBasicCards: {
       "48bnds6854t": {
         // Same GUID, different values to trigger an update
@@ -153,6 +156,7 @@ add_task(async function test_change_selected_card() {
   is(selectedPaymentCardSecurityCode, null, "store should have empty security code");
   ok(picker1.classList.contains("invalid-selected-option"), "Missing fields for the third option");
   ok(!isHidden(picker1.invalidLabel), "The invalid label should be visible");
+  is(picker1.invalidLabel.innerText, picker1.dataset.invalidLabel, "Check displayed error text");
 
   await SimpleTest.promiseFocus();
   picker1.dropdown.popupBox.focus();
@@ -174,15 +178,15 @@ add_task(async function test_change_selected_card() {
   let stateChangePromise = promiseStateChange(picker1.requestStore);
 
   // Type in the security code field
-  picker1.securityCodeInput.focus();
+  picker1.securityCodeInput.querySelector("input").focus();
   sendString("836");
   sendKey("Tab");
   let state = await stateChangePromise;
-  ok(state.selectedPaymentCardSecurityCode, "836", "Check security code in state");
+  is(state.selectedPaymentCardSecurityCode, "836", "Check security code in state");
 });
 
 add_task(async function test_delete() {
-  picker1.requestStore.setState({
+  await picker1.requestStore.setState({
     savedBasicCards: {
       // 48bnds6854t was deleted
       "68gjdh354j": {
@@ -249,6 +253,7 @@ add_task(async function test_supportedNetworks_tempCards() {
 
   ok(picker1.classList.contains("invalid-selected-option"),
      "Check discover is recognized as not supported");
+  is(picker1.invalidLabel.innerText, picker1.dataset.invalidLabel, "Check displayed error text");
 
   info("change the card to be a visa");
   await picker1.requestStore.setState({

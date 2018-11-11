@@ -8,6 +8,7 @@
 
 #include "nsString.h"
 #include "ipc/ChildInternal.h"
+#include "ipc/ParentInternal.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/StaticMutex.h"
 #include "InfallibleVector.h"
@@ -125,6 +126,7 @@ NewCheckpoint(bool aTemporary)
 {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
+  MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
   MOZ_RELEASE_ASSERT(IsReplaying() || !aTemporary);
 
   navigation::BeforeCheckpoint();
@@ -192,7 +194,18 @@ DivergeFromRecording()
 
   Thread* thread = Thread::Current();
   MOZ_RELEASE_ASSERT(thread->IsMainThread());
-  thread->DivergeFromRecording();
+
+  if (!thread->HasDivergedFromRecording()) {
+    // Reset middleman call state whenever we first diverge from the recording.
+    child::SendResetMiddlemanCalls();
+
+    // Make sure all non-main threads are idle before we begin diverging. This
+    // thread's new behavior can change values used by other threads and induce
+    // recording mismatches.
+    Thread::WaitForIdleThreads();
+
+    thread->DivergeFromRecording();
+  }
 
   gUnhandledDivergeAllowed = true;
 }
@@ -218,9 +231,18 @@ DisallowUnhandledDivergeFromRecording()
 void
 EnsureNotDivergedFromRecording()
 {
-  MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
+  // If we have diverged from the recording and encounter an operation we can't
+  // handle, rewind to the last checkpoint.
+  AssertEventsAreNotPassedThrough();
   if (HasDivergedFromRecording()) {
     MOZ_RELEASE_ASSERT(gUnhandledDivergeAllowed);
+
+    // Crash instead of rewinding if a repaint is about to fail and is not
+    // allowed.
+    if (child::CurrentRepaintCannotFail()) {
+      MOZ_CRASH("Recording divergence while repainting");
+    }
+
     PrintSpew("Unhandled recording divergence, restoring checkpoint...\n");
     RestoreCheckpointAndResume(gRewindInfo->mSavedCheckpoints.back().mCheckpoint);
     Unreachable();
@@ -252,8 +274,8 @@ void
 PauseMainThreadAndServiceCallbacks()
 {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
+  AssertEventsAreNotPassedThrough();
 
   // Whether there is a PauseMainThreadAndServiceCallbacks frame on the stack.
   static bool gMainThreadIsPaused = false;

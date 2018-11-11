@@ -19,7 +19,9 @@
 #include "nsReadableUtils.h"
 #include "nsContentUtils.h"
 #include "nsISHistory.h"
+#include "mozilla/dom/Location.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/RefPtr.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -126,8 +128,7 @@ nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
     return;
   }
 
-  nsCOMPtr<nsIDocument> doc =
-    do_QueryInterface(win->GetExtantDoc());
+  nsCOMPtr<nsIDocument> doc = win->GetExtantDoc();
   if (!doc) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
     return;
@@ -183,6 +184,21 @@ nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
       nsPresContext *pcx;
       if (doc && (pcx = doc->GetPresContext())) {
         pcx->RebuildAllStyleData(NS_STYLE_HINT_REFLOW, eRestyle_Subtree);
+      }
+
+      return;
+    }
+
+    // https://html.spec.whatwg.org/multipage/history.html#the-history-interface
+    // "When the go(delta) method is invoked, if delta is zero, the user agent
+    // must act as if the location.reload() method was called instead."
+    RefPtr<Location> location = window ? window->GetLocation() : nullptr;
+
+    if (location) {
+      nsresult rv = location->Reload(false);
+
+      if (NS_FAILED(rv)) {
+        aRv.Throw(NS_ERROR_FAILURE);
       }
 
       return;

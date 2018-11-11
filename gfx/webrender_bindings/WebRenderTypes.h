@@ -7,7 +7,6 @@
 #ifndef GFX_WEBRENDERTYPES_H
 #define GFX_WEBRENDERTYPES_H
 
-#include "FrameMetrics.h"
 #include "ImageTypes.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/Maybe.h"
@@ -15,6 +14,7 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/layers/LayersTypes.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Range.h"
 #include "mozilla/Variant.h"
@@ -43,6 +43,7 @@ typedef wr::WrEpoch Epoch;
 typedef wr::WrExternalImageId ExternalImageId;
 typedef wr::WrDebugFlags DebugFlags;
 
+typedef mozilla::Maybe<mozilla::wr::IdNamespace> MaybeIdNamespace;
 typedef mozilla::Maybe<mozilla::wr::WrImageMask> MaybeImageMask;
 typedef Maybe<ExternalImageId> MaybeExternalImageId;
 
@@ -114,8 +115,8 @@ struct ImageDescriptor: public wr::WrImageDescriptor {
     width = aSize.width;
     height = aSize.height;
     stride = 0;
-    opacity = gfx::IsOpaqueFormat(aFormat) ? OpacityType::Opaque
-                                           : OpacityType::HasAlphaChannel;
+    opacity = gfx::IsOpaque(aFormat) ? OpacityType::Opaque
+                                     : OpacityType::HasAlphaChannel;
   }
 
   ImageDescriptor(const gfx::IntSize& aSize, uint32_t aByteStride, gfx::SurfaceFormat aFormat)
@@ -124,8 +125,8 @@ struct ImageDescriptor: public wr::WrImageDescriptor {
     width = aSize.width;
     height = aSize.height;
     stride = aByteStride;
-    opacity = gfx::IsOpaqueFormat(aFormat) ? OpacityType::Opaque
-                                           : OpacityType::HasAlphaChannel;
+    opacity = gfx::IsOpaque(aFormat) ? OpacityType::Opaque
+                                     : OpacityType::HasAlphaChannel;
   }
 
   ImageDescriptor(const gfx::IntSize& aSize,
@@ -502,6 +503,31 @@ static inline wr::BorderRadius ToBorderRadius(const mozilla::LayoutDeviceSize& t
   return br;
 }
 
+static inline wr::ComplexClipRegion ToComplexClipRegion(
+  const nsRect& aRect,
+  const nscoord* aRadii,
+  int32_t aAppUnitsPerDevPixel)
+{
+  wr::ComplexClipRegion ret;
+  ret.rect = ToRoundedLayoutRect(
+    LayoutDeviceRect::FromAppUnits(aRect, aAppUnitsPerDevPixel));
+  ret.radii = ToBorderRadius(
+    LayoutDeviceSize::FromAppUnits(
+      nsSize(aRadii[eCornerTopLeftX], aRadii[eCornerTopLeftY]),
+      aAppUnitsPerDevPixel),
+    LayoutDeviceSize::FromAppUnits(
+      nsSize(aRadii[eCornerTopRightX], aRadii[eCornerTopRightY]),
+      aAppUnitsPerDevPixel),
+    LayoutDeviceSize::FromAppUnits(
+      nsSize(aRadii[eCornerBottomLeftX], aRadii[eCornerBottomLeftY]),
+      aAppUnitsPerDevPixel),
+    LayoutDeviceSize::FromAppUnits(
+      nsSize(aRadii[eCornerBottomRightX], aRadii[eCornerBottomRightY]),
+      aAppUnitsPerDevPixel));
+  ret.mode = ClipMode::Clip;
+  return ret;
+}
+
 static inline wr::LayoutSideOffsets ToBorderWidths(float top, float right, float bottom, float left)
 {
   wr::LayoutSideOffsets bw;
@@ -863,6 +889,8 @@ static inline wr::WrColorDepth ToWrColorDepth(gfx::ColorDepth aColorDepth) {
       return wr::WrColorDepth::Color10;
     case gfx::ColorDepth::COLOR_12:
       return wr::WrColorDepth::Color12;
+    case gfx::ColorDepth::COLOR_16:
+      return wr::WrColorDepth::Color16;
     default:
       MOZ_ASSERT_UNREACHABLE("Tried to convert invalid color depth value.");
   }

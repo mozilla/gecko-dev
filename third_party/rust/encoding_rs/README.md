@@ -110,12 +110,11 @@ There are currently three optional cargo features:
 ### `simd-accel`
 
 Enables SSE2 acceleration on x86 and x86_64 and NEON acceleration on Aarch64
-and ARMv7. Requires nightly Rust. _Enabling this cargo feature is recommended
-when building for x86, x86_64, ARMv7 or Aarch64 on nightly Rust._ The intention
-is for the functionality enabled by this feature to become the normal
-on-by-default behavior once
-[portable SIMD](https://github.com/rust-lang/rfcs/pull/2366) becames available
-on all Rust release channels.
+and ARMv7. _Enabling this cargo feature is recommended when building for x86,
+x86_64, ARMv7 or Aarch64._ The intention is for the functionality enabled by
+this feature to become the normal on-by-default behavior once
+[portable SIMD](https://github.com/rust-lang/rfcs/pull/2366) becames part of
+stable Rust.
 
 Enabling this feature breaks the build unless the target is x86 with SSE2
 (Rust's default 32-bit x86 target, `i686`, has SSE2, but Linux distros may
@@ -243,6 +242,23 @@ used in Firefox.
 - [ ] Add actually fast CJK encode options.
 
 ## Release Notes
+
+### 0.8.9
+
+* Made `--features simd-accel` work with stable-channel compiler to
+  simplify the Firefox build system.
+
+### 0.8.8
+
+* Made the `is_foo_bidi()` not treat U+FEFF (ZERO WIDTH NO-BREAK SPACE
+  aka. BYTE ORDER MARK) as right-to-left.
+* Made the `is_foo_bidi()` functions report `true` if the input contains
+  Hebrew presentations forms (which are right-to-left but not in a
+  right-to-left-roadmapped block).
+
+### 0.8.7
+
+* Fixed a panic in the UTF-16LE/UTF-16BE decoder when decoding to UTF-8.
 
 ### 0.8.6
 

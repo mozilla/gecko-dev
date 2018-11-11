@@ -59,7 +59,7 @@
  * it should be implemented in the appropriate Parser<ParseHandler> (described
  * further below).
  *
- * == GeneralParser<ParseHandler, CharT> → PerHandlerParser<ParseHandler> ==
+ * == GeneralParser<ParseHandler, Unit> → PerHandlerParser<ParseHandler> ==
  *
  * Most parsing behavior varies across the character-type axis (and possibly
  * along the full/syntax axis).  For example:
@@ -88,12 +88,12 @@
  *
  * Everything in PerHandlerParser *could* be folded into GeneralParser (below)
  * if desired.  We don't fold in this manner because all such functions would
- * be instantiated once per CharT -- but if exactly equivalent code would be
- * generated (because PerHandlerParser functions have no awareness of CharT),
+ * be instantiated once per Unit -- but if exactly equivalent code would be
+ * generated (because PerHandlerParser functions have no awareness of Unit),
  * it's risky to *depend* upon the compiler coalescing the instantiations into
  * one in the final binary.  PerHandlerParser guarantees no duplication.
  *
- * == Parser<ParseHandler, CharT> final → GeneralParser<ParseHandler, CharT> ==
+ * == Parser<ParseHandler, Unit> final → GeneralParser<ParseHandler, Unit> ==
  *
  * The final (pun intended) axis of complexity lies in Parser.
  *
@@ -102,7 +102,7 @@
  * attempting to parse the source text of a module will do so in full parsing
  * but immediately fail in syntax parsing -- so the former is a mess'o'code
  * while the latter is effectively |return null();|.  Such functionality is
- * defined in Parser<SyntaxParseHandler or FullParseHandler, CharT> as
+ * defined in Parser<SyntaxParseHandler or FullParseHandler, Unit> as
  * appropriate.
  *
  * There's a crucial distinction between GeneralParser and Parser, that
@@ -110,7 +110,7 @@
  * parameters, and despite GeneralParser and Parser existing in a one-to-one
  * relationship).  GeneralParser is one unspecialized template class:
  *
- *   template<class ParseHandler, typename CharT>
+ *   template<class ParseHandler, typename Unit>
  *   class GeneralParser : ...
  *   {
  *     ...parsing functions...
@@ -120,20 +120,20 @@
  * specializations:
  *
  *   // Declare, but do not define.
- *   template<class ParseHandler, typename CharT> class Parser;
+ *   template<class ParseHandler, typename Unit> class Parser;
  *
  *   // Define a syntax-parsing specialization.
- *   template<typename CharT>
- *   class Parser<SyntaxParseHandler, CharT> final
- *     : public GeneralParser<SyntaxParseHandler, CharT>
+ *   template<typename Unit>
+ *   class Parser<SyntaxParseHandler, Unit> final
+ *     : public GeneralParser<SyntaxParseHandler, Unit>
  *   {
  *     ...parsing functions...
  *   };
  *
  *   // Define a full-parsing specialization.
- *   template<typename CharT>
- *   class Parser<SyntaxParseHandler, CharT> final
- *     : public GeneralParser<SyntaxParseHandler, CharT>
+ *   template<typename Unit>
+ *   class Parser<SyntaxParseHandler, Unit> final
+ *     : public GeneralParser<SyntaxParseHandler, Unit>
  *   {
  *     ...parsing functions...
  *   };
@@ -142,26 +142,26 @@
  * partial function specialization:
  *
  *   // BAD: You can only specialize a template function if you specify *every*
- *   //      template parameter, i.e. ParseHandler *and* CharT.
- *   template<typename CharT>
+ *   //      template parameter, i.e. ParseHandler *and* Unit.
+ *   template<typename Unit>
  *   void
- *   GeneralParser<SyntaxParseHandler, CharT>::foo() {}
+ *   GeneralParser<SyntaxParseHandler, Unit>::foo() {}
  *
  * But if you specialize Parser *as a class*, then this is allowed:
  *
- *   template<typename CharT>
+ *   template<typename Unit>
  *   void
- *   Parser<SyntaxParseHandler, CharT>::foo() {}
+ *   Parser<SyntaxParseHandler, Unit>::foo() {}
  *
- *   template<typename CharT>
+ *   template<typename Unit>
  *   void
- *   Parser<FullParseHandler, CharT>::foo() {}
+ *   Parser<FullParseHandler, Unit>::foo() {}
  *
- * because the only template parameter on the function is CharT -- and so all
+ * because the only template parameter on the function is Unit -- and so all
  * template parameters *are* varying, not a strict subset of them.
  *
  * So -- any parsing functionality that is differently defined for different
- * ParseHandlers, *but* is defined textually identically for different CharT
+ * ParseHandlers, *but* is defined textually identically for different Unit
  * (even if different code ends up generated for them by the compiler), should
  * reside in Parser.
  */
@@ -190,42 +190,19 @@ namespace frontend {
 
 class ParserBase;
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class GeneralParser;
 
 class SourceParseContext: public ParseContext
 {
 public:
-    template<typename ParseHandler, typename CharT>
-    SourceParseContext(GeneralParser<ParseHandler, CharT>* prs, SharedContext* sc,
+    template<typename ParseHandler, typename Unit>
+    SourceParseContext(GeneralParser<ParseHandler, Unit>* prs, SharedContext* sc,
                        Directives* newDirectives)
       : ParseContext(prs->context, prs->pc, sc, prs->tokenStream, prs->usedNames, newDirectives,
                      mozilla::IsSame<ParseHandler, FullParseHandler>::value)
     { }
 };
-
-template <typename T>
-inline T&
-ParseContext::Statement::as()
-{
-    MOZ_ASSERT(is<T>());
-    return static_cast<T&>(*this);
-}
-
-inline ParseContext::Scope::BindingIter
-ParseContext::Scope::bindings(ParseContext* pc)
-{
-    // In function scopes with parameter expressions, function special names
-    // (like '.this') are declared as vars in the function scope, despite its
-    // not being the var scope.
-    return BindingIter(*this, pc->varScope_ == this || pc->functionScope_.ptrOr(nullptr) == this);
-}
-
-inline
-Directives::Directives(ParseContext* parent)
-  : strict_(parent->sc()->strict()),
-    asmJS_(parent->useAsmOrInsideUseAsm())
-{}
 
 enum VarContext { HoistVars, DontHoistVars };
 enum PropListType { ObjectLiteral, ClassBody, DerivedClassBody };
@@ -240,15 +217,16 @@ enum class PropertyType {
     AsyncMethod,
     AsyncGeneratorMethod,
     Constructor,
-    DerivedConstructor
+    DerivedConstructor,
+    Field,
 };
 
 enum AwaitHandling : uint8_t { AwaitIsName, AwaitIsKeyword, AwaitIsModuleKeyword };
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class AutoAwaitIsKeyword;
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class AutoInParametersOfAsyncFunction;
 
 class MOZ_STACK_CLASS ParserBase
@@ -417,36 +395,6 @@ class MOZ_STACK_CLASS ParserBase
     MOZ_MUST_USE bool setSourceMapInfo();
 };
 
-inline
-ParseContext::Scope::Scope(ParserBase* parser)
-  : Nestable<Scope>(&parser->pc->innermostScope_),
-    declared_(parser->context->frontendCollectionPool()),
-    possibleAnnexBFunctionBoxes_(parser->context->frontendCollectionPool()),
-    id_(parser->usedNames.nextScopeId())
-{ }
-
-inline
-ParseContext::Scope::Scope(JSContext* cx, ParseContext* pc, UsedNameTracker& usedNames)
-  : Nestable<Scope>(&pc->innermostScope_),
-    declared_(cx->frontendCollectionPool()),
-    possibleAnnexBFunctionBoxes_(cx->frontendCollectionPool()),
-    id_(usedNames.nextScopeId())
-{ }
-
-inline
-ParseContext::VarScope::VarScope(ParserBase* parser)
-  : Scope(parser)
-{
-    useAsVarScope(parser->pc);
-}
-
-inline
-ParseContext::VarScope::VarScope(JSContext* cx, ParseContext* pc, UsedNameTracker& usedNames)
-  : Scope(cx, pc, usedNames)
-{
-    useAsVarScope(pc);
-}
-
 enum FunctionCallBehavior {
     PermitAssignmentToFunctionCalls,
     ForbidAssignmentToFunctionCalls
@@ -479,10 +427,10 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     //   syntax parse was aborted. If null, then lazy parsing was aborted due
     //   to encountering unsupported language constructs.
     //
-    // |internalSyntaxParser_| is really a |Parser<SyntaxParseHandler, CharT>*|
-    // where |CharT| varies per |Parser<ParseHandler, CharT>|.  But this
-    // template class doesn't know |CharT|, so we store a |void*| here and make
-    // |GeneralParser<ParseHandler, CharT>::getSyntaxParser| impose the real type.
+    // |internalSyntaxParser_| is really a |Parser<SyntaxParseHandler, Unit>*|
+    // where |Unit| varies per |Parser<ParseHandler, Unit>|.  But this
+    // template class doesn't know |Unit|, so we store a |void*| here and make
+    // |GeneralParser<ParseHandler, Unit>::getSyntaxParser| impose the real type.
     void* internalSyntaxParser_;
 
   private:
@@ -495,10 +443,10 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
                      void* internalSyntaxParser);
 
   protected:
-    template<typename CharT>
+    template<typename Unit>
     PerHandlerParser(JSContext* cx, LifoAlloc& alloc, const JS::ReadOnlyCompileOptions& options,
                      bool foldConstants, UsedNameTracker& usedNames,
-                     GeneralParser<SyntaxParseHandler, CharT>* syntaxParser,
+                     GeneralParser<SyntaxParseHandler, Unit>* syntaxParser,
                      LazyScript* lazyOuterFunction, ScriptSourceObject* sourceObject,
                      ParseGoal parseGoal)
       : PerHandlerParser(cx, alloc, options, foldConstants, usedNames, lazyOuterFunction,
@@ -679,19 +627,19 @@ enum InHandling { InAllowed, InProhibited };
 enum DefaultHandling { NameRequired, AllowDefaultName };
 enum TripledotHandling { TripledotAllowed, TripledotProhibited };
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class Parser;
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class MOZ_STACK_CLASS GeneralParser
   : public PerHandlerParser<ParseHandler>
 {
   public:
-    using TokenStream = TokenStreamSpecific<CharT, ParserAnyCharsAccess<GeneralParser>>;
+    using TokenStream = TokenStreamSpecific<Unit, ParserAnyCharsAccess<GeneralParser>>;
 
   private:
     using Base = PerHandlerParser<ParseHandler>;
-    using FinalParser = Parser<ParseHandler, CharT>;
+    using FinalParser = Parser<ParseHandler, Unit>;
     using Node = typename ParseHandler::Node;
 
 #define DECLARE_TYPE(typeName, longTypeName, asMethodName) \
@@ -700,7 +648,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 #undef DECLARE_TYPE
 
     using typename Base::InvokedPrediction;
-    using SyntaxParser = Parser<SyntaxParseHandler, CharT>;
+    using SyntaxParser = Parser<SyntaxParseHandler, Unit>;
 
   protected:
     using Modifier = TokenStreamShared::Modifier;
@@ -805,19 +753,22 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
      *   PossibleError possibleError(*this);
      *   possibleError.setPendingExpressionErrorAt(pos, JSMSG_BAD_PROP_ID);
      *   // A JSMSG_BAD_PROP_ID ParseError is reported, returns false.
-     *   if (!possibleError.checkForExpressionError())
+     *   if (!possibleError.checkForExpressionError()) {
      *       return false; // we reach this point with a pending exception
+     *   }
      *
      *   PossibleError possibleError(*this);
      *   possibleError.setPendingExpressionErrorAt(pos, JSMSG_BAD_PROP_ID);
      *   // Returns true, no error is reported.
-     *   if (!possibleError.checkForDestructuringError())
+     *   if (!possibleError.checkForDestructuringError()) {
      *       return false; // not reached, no pending exception
+     *   }
      *
      *   PossibleError possibleError(*this);
      *   // Returns true, no error is reported.
-     *   if (!possibleError.checkForExpressionError())
+     *   if (!possibleError.checkForExpressionError()) {
      *       return false; // not reached, no pending exception
+     *   }
      */
     class MOZ_STACK_CLASS PossibleError
     {
@@ -834,7 +785,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
             unsigned errorNumber_;
         };
 
-        GeneralParser<ParseHandler, CharT>& parser_;
+        GeneralParser<ParseHandler, Unit>& parser_;
         Error exprError_;
         Error destructuringError_;
         Error destructuringWarning_;
@@ -864,7 +815,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
         void transferErrorTo(ErrorKind kind, PossibleError* other);
 
       public:
-        explicit PossibleError(GeneralParser<ParseHandler, CharT>& parser);
+        explicit PossibleError(GeneralParser<ParseHandler, Unit>& parser);
 
         // Return true if a pending destructuring error is present.
         bool hasPendingDestructuringError();
@@ -911,7 +862,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 
   public:
     GeneralParser(JSContext* cx, LifoAlloc& alloc, const JS::ReadOnlyCompileOptions& options,
-                  const CharT* chars, size_t length, bool foldConstants,
+                  const Unit* units, size_t length, bool foldConstants,
                   UsedNameTracker& usedNames, SyntaxParser* syntaxParser,
                   LazyScript* lazyOuterFunction,
                   ScriptSourceObject* sourceObject,
@@ -924,6 +875,71 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
      * Parse a top-level JS script.
      */
     ListNodeType parse();
+
+  private:
+    /*
+     * Gets the next token and checks if it matches to the given `condition`.
+     * If it matches, returns true.
+     * If it doesn't match, calls `errorReport` to report the error, and
+     * returns false.
+     * If other error happens, it returns false but `errorReport` may not be
+     * called and other error will be thrown in that case.
+     *
+     * In any case, the already gotten token is not ungotten.
+     *
+     * The signature of `condition` is [...](TokenKind actual) -> bool, and
+     * the signature of `errorReport` is [...](TokenKind actual).
+     */
+    template<typename ConditionT, typename ErrorReportT>
+    MOZ_MUST_USE bool mustMatchTokenInternal(ConditionT condition, Modifier modifier,
+                                             ErrorReportT errorReport);
+
+  public:
+    /*
+     * The following mustMatchToken variants follow the behavior and parameter
+     * types of mustMatchTokenInternal above.
+     *
+     * If modifier is omitted, `None` is used.
+     * If TokenKind is passed instead of `condition`, it checks if the next
+     * token is the passed token.
+     * If error number is passed instead of `errorReport`, it reports an
+     * error with the passed errorNumber.
+     */
+    MOZ_MUST_USE bool mustMatchToken(TokenKind expected, Modifier modifier, JSErrNum errorNumber) {
+        return mustMatchTokenInternal([expected](TokenKind actual) {
+                                          return actual == expected;
+                                      },
+                                      modifier,
+                                      [this, errorNumber](TokenKind) {
+                                          this->error(errorNumber);
+                                      });
+    }
+
+    MOZ_MUST_USE bool mustMatchToken(TokenKind excpected, JSErrNum errorNumber) {
+        return mustMatchToken(excpected, TokenStream::None, errorNumber);
+    }
+
+    template<typename ConditionT>
+    MOZ_MUST_USE bool mustMatchToken(ConditionT condition, JSErrNum errorNumber) {
+        return mustMatchTokenInternal(condition, TokenStream::None,
+                                      [this, errorNumber](TokenKind) {
+                                          this->error(errorNumber);
+                                      });
+    }
+
+    template<typename ErrorReportT>
+    MOZ_MUST_USE bool mustMatchToken(TokenKind expected, Modifier modifier,
+                                     ErrorReportT errorReport) {
+        return mustMatchTokenInternal([expected](TokenKind actual) {
+                                          return actual == expected;
+                                      },
+                                      modifier, errorReport);
+    }
+
+    template<typename ErrorReportT>
+    MOZ_MUST_USE bool mustMatchToken(TokenKind expected, ErrorReportT errorReport) {
+        return mustMatchToken(expected, TokenStream::None, errorReport);
+    }
 
     /* Report the given error at the current offset. */
     void error(unsigned errorNumber, ...);
@@ -1240,7 +1256,9 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     bool checkLexicalDeclarationDirectlyWithinBlock(ParseContext::Statement& stmt,
                                                     DeclarationKind kind, TokenPos pos);
 
+    enum PropertyNameContext { PropertyNameInLiteral, PropertyNameInPattern, PropertyNameInClass };
     Node propertyName(YieldHandling yieldHandling,
+                      PropertyNameContext propertyNameContext,
                       const mozilla::Maybe<DeclarationKind>& maybeDecl,
                       ListNodeType propList,
                       PropertyType* propType, MutableHandleAtom propAtom);
@@ -1304,11 +1322,11 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     inline bool asmJS(ListNodeType list);
 };
 
-template <typename CharT>
-class MOZ_STACK_CLASS Parser<SyntaxParseHandler, CharT> final
-  : public GeneralParser<SyntaxParseHandler, CharT>
+template <typename Unit>
+class MOZ_STACK_CLASS Parser<SyntaxParseHandler, Unit> final
+  : public GeneralParser<SyntaxParseHandler, Unit>
 {
-    using Base = GeneralParser<SyntaxParseHandler, CharT>;
+    using Base = GeneralParser<SyntaxParseHandler, Unit>;
     using Node = SyntaxParseHandler::Node;
 
 #define DECLARE_TYPE(typeName, longTypeName, asMethodName) \
@@ -1316,7 +1334,7 @@ class MOZ_STACK_CLASS Parser<SyntaxParseHandler, CharT> final
 FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 #undef DECLARE_TYPE
 
-    using SyntaxParser = Parser<SyntaxParseHandler, CharT>;
+    using SyntaxParser = Parser<SyntaxParseHandler, Unit>;
 
     // Numerous Base::* functions have bodies like
     //
@@ -1324,7 +1342,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     //
     // and must be able to call functions here.  Add a friendship relationship
     // so functions here can be hidden when appropriate.
-    friend class GeneralParser<SyntaxParseHandler, CharT>;
+    friend class GeneralParser<SyntaxParseHandler, Unit>;
 
   public:
     using Base::Base;
@@ -1349,6 +1367,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 #if DEBUG
     using Base::checkOptionsCalled;
 #endif
+    using Base::mustMatchToken;
     using Base::error;
     using Base::errorAt;
     using Base::finishFunctionScopes;
@@ -1385,7 +1404,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
         return Base::bindingIdentifier(yieldHandling);
     }
 
-    // Functions present in both Parser<ParseHandler, CharT> specializations.
+    // Functions present in both Parser<ParseHandler, Unit> specializations.
 
     inline void setAwaitHandling(AwaitHandling awaitHandling);
     inline void setInParametersOfAsyncFunction(bool inParameters);
@@ -1418,14 +1437,14 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 
     bool asmJS(ListNodeType list);
 
-    // Functions present only in Parser<SyntaxParseHandler, CharT>.
+    // Functions present only in Parser<SyntaxParseHandler, Unit>.
 };
 
-template <typename CharT>
-class MOZ_STACK_CLASS Parser<FullParseHandler, CharT> final
-  : public GeneralParser<FullParseHandler, CharT>
+template <typename Unit>
+class MOZ_STACK_CLASS Parser<FullParseHandler, Unit> final
+  : public GeneralParser<FullParseHandler, Unit>
 {
-    using Base = GeneralParser<FullParseHandler, CharT>;
+    using Base = GeneralParser<FullParseHandler, Unit>;
     using Node = FullParseHandler::Node;
 
 #define DECLARE_TYPE(typeName, longTypeName, asMethodName) \
@@ -1433,7 +1452,7 @@ class MOZ_STACK_CLASS Parser<FullParseHandler, CharT> final
 FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 #undef DECLARE_TYPE
 
-    using SyntaxParser = Parser<SyntaxParseHandler, CharT>;
+    using SyntaxParser = Parser<SyntaxParseHandler, Unit>;
 
     // Numerous Base::* functions have bodies like
     //
@@ -1441,7 +1460,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     //
     // and must be able to call functions here.  Add a friendship relationship
     // so functions here can be hidden when appropriate.
-    friend class GeneralParser<FullParseHandler, CharT>;
+    friend class GeneralParser<FullParseHandler, Unit>;
 
   public:
     using Base::Base;
@@ -1473,6 +1492,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     using Base::checkOptionsCalled;
 #endif
     using Base::context;
+    using Base::mustMatchToken;
     using Base::error;
     using Base::errorAt;
     using Base::finishFunctionScopes;
@@ -1508,12 +1528,12 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
         return Base::bindingIdentifier(yieldHandling);
     }
 
-    // Functions present in both Parser<ParseHandler, CharT> specializations.
+    // Functions present in both Parser<ParseHandler, Unit> specializations.
 
-    friend class AutoAwaitIsKeyword<SyntaxParseHandler, CharT>;
+    friend class AutoAwaitIsKeyword<SyntaxParseHandler, Unit>;
     inline void setAwaitHandling(AwaitHandling awaitHandling);
 
-    friend class AutoInParametersOfAsyncFunction<SyntaxParseHandler, CharT>;
+    friend class AutoInParametersOfAsyncFunction<SyntaxParseHandler, Unit>;
     inline void setInParametersOfAsyncFunction(bool inParameters);
 
     RegExpLiteralType newRegExp();
@@ -1542,7 +1562,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
     bool skipLazyInnerFunction(CodeNodeType funNode, uint32_t toStringStart,
                                FunctionSyntaxKind kind, bool tryAnnexB);
 
-    // Functions present only in Parser<FullParseHandler, CharT>.
+    // Functions present only in Parser<FullParseHandler, Unit>.
 
     // Parse the body of an eval.
     //
@@ -1631,10 +1651,10 @@ ParserAnyCharsAccess<Parser>::anyChars(GeneralTokenStreamChars* ts)
     return const_cast<TokenStreamAnyChars&>(anyCharsConst);
 }
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class MOZ_STACK_CLASS AutoAwaitIsKeyword
 {
-    using GeneralParser = frontend::GeneralParser<ParseHandler, CharT>;
+    using GeneralParser = frontend::GeneralParser<ParseHandler, Unit>;
 
   private:
     GeneralParser* parser_;
@@ -1657,10 +1677,10 @@ class MOZ_STACK_CLASS AutoAwaitIsKeyword
     }
 };
 
-template <class ParseHandler, typename CharT>
+template <class ParseHandler, typename Unit>
 class MOZ_STACK_CLASS AutoInParametersOfAsyncFunction
 {
-    using GeneralParser = frontend::GeneralParser<ParseHandler, CharT>;
+    using GeneralParser = frontend::GeneralParser<ParseHandler, Unit>;
 
   private:
     GeneralParser* parser_;

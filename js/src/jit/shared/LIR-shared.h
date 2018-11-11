@@ -4799,16 +4799,44 @@ class LStringReplace: public LCallInstructionHelper<1, 3, 0>
     }
 };
 
-class LBinaryCache : public LInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 2>
+class LBinaryValueCache : public LInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 2>
 {
   public:
-    LIR_HEADER(BinaryCache)
+    LIR_HEADER(BinaryValueCache)
 
     // Takes two temps: these are intendend to be FloatReg0 and FloatReg1
     // To allow the actual cache code to safely clobber those values without
     // save and restore.
-    LBinaryCache(const LBoxAllocation& lhs, const LBoxAllocation& rhs,
-                 const LDefinition& temp0, const LDefinition& temp1)
+    LBinaryValueCache(const LBoxAllocation& lhs,
+                      const LBoxAllocation& rhs,
+                      const LDefinition& temp0,
+                      const LDefinition& temp1)
+      : LInstructionHelper(classOpcode)
+    {
+        setBoxOperand(LhsInput, lhs);
+        setBoxOperand(RhsInput, rhs);
+        setTemp(0, temp0);
+        setTemp(1, temp1);
+    }
+
+    const MBinaryCache* mir() const { return mir_->toBinaryCache(); }
+
+    static const size_t LhsInput = 0;
+    static const size_t RhsInput = BOX_PIECES;
+};
+
+class LBinaryBoolCache : public LInstructionHelper<1, 2 * BOX_PIECES, 2>
+{
+  public:
+    LIR_HEADER(BinaryBoolCache)
+
+    // Takes two temps: these are intendend to be FloatReg0 and FloatReg1
+    // To allow the actual cache code to safely clobber those values without
+    // save and restore.
+    LBinaryBoolCache(const LBoxAllocation& lhs,
+                     const LBoxAllocation& rhs,
+                     const LDefinition& temp0,
+                     const LDefinition& temp1)
       : LInstructionHelper(classOpcode)
     {
         setBoxOperand(LhsInput, lhs);
@@ -4859,6 +4887,41 @@ class LClassConstructor : public LCallInstructionHelper<1, 0, 0>
     LClassConstructor()
       : LCallInstructionHelper(classOpcode)
     {}
+};
+
+class LModuleMetadata : public LCallInstructionHelper<1, 0, 0>
+{
+  public:
+    LIR_HEADER(ModuleMetadata)
+
+    const MModuleMetadata* mir() const {
+        return mir_->toModuleMetadata();
+    }
+
+    LModuleMetadata()
+      : LCallInstructionHelper(classOpcode)
+    {}
+};
+
+class LDynamicImport : public LCallInstructionHelper<1, 2 * BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(DynamicImport)
+
+    static const size_t ReferencingPrivateIndex = 0;
+    static const size_t SpecifierIndex = BOX_PIECES;
+
+    explicit LDynamicImport(const LBoxAllocation& referencingPrivate,
+                            const LBoxAllocation& specifier)
+      : LCallInstructionHelper(classOpcode)
+    {
+        setBoxOperand(ReferencingPrivateIndex, referencingPrivate);
+        setBoxOperand(SpecifierIndex, specifier);
+    }
+
+    const MDynamicImport* mir() const {
+        return mir_->toDynamicImport();
+    }
 };
 
 class LLambdaForSingleton : public LCallInstructionHelper<1, 1, 0>
@@ -8708,7 +8771,8 @@ class LAsmJSLoadHeap : public LInstructionHelper<1, 3, 0>
 {
   public:
     LIR_HEADER(AsmJSLoadHeap);
-    explicit LAsmJSLoadHeap(const LAllocation& ptr, const LAllocation& boundsCheckLimit = LAllocation(),
+    explicit LAsmJSLoadHeap(const LAllocation& ptr,
+                            const LAllocation& boundsCheckLimit,
                             const LAllocation& memoryBase = LAllocation())
       : LInstructionHelper(classOpcode)
     {
@@ -8734,8 +8798,9 @@ class LAsmJSStoreHeap : public LInstructionHelper<0, 4, 0>
 {
   public:
     LIR_HEADER(AsmJSStoreHeap);
-    LAsmJSStoreHeap(const LAllocation& ptr, const LAllocation& value,
-                    const LAllocation& boundsCheckLimit = LAllocation(),
+    LAsmJSStoreHeap(const LAllocation& ptr,
+                    const LAllocation& value,
+                    const LAllocation& boundsCheckLimit,
                     const LAllocation& memoryBase = LAllocation())
       : LInstructionHelper(classOpcode)
     {

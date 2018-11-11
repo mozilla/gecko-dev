@@ -247,6 +247,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="PlaybackDirection",
     custom_consts=animation_direction_custom_consts,
     extra_prefixes=animation_extra_prefixes,
+    gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
     allowed_in_keyframe_block=False,
 )}
@@ -258,6 +259,7 @@ ${helpers.single_keyword(
     animation_value_type="none",
     vector=True,
     extra_prefixes=animation_extra_prefixes,
+    gecko_enum_prefix="StyleAnimationPlayState",
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
     allowed_in_keyframe_block=False,
 )}
@@ -270,6 +272,7 @@ ${helpers.single_keyword(
     vector=True,
     gecko_enum_prefix="FillMode",
     extra_prefixes=animation_extra_prefixes,
+    gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
     allowed_in_keyframe_block=False,
 )}
@@ -367,7 +370,7 @@ ${helpers.predefined_type(
     "generics::transform::Translate::None",
     animation_value_type="ComputedValue",
     boxed=True,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
     servo_restyle_damage="reflow_out_of_flow",
@@ -601,7 +604,6 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
     products="gecko",
-    gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",
@@ -612,7 +614,6 @@ ${helpers.predefined_type(
     "NonNegativeLengthOrPercentage",
     "computed::NonNegativeLengthOrPercentage::zero()",
     products="gecko",
-    gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="NonNegativeLengthOrPercentage",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-margin-property",
@@ -624,7 +625,6 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     boxed=True,
-    gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",

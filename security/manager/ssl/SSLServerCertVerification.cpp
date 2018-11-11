@@ -130,8 +130,8 @@
 #include "nsString.h"
 #include "nsURLHelper.h"
 #include "nsXPCOMCIDInternal.h"
-#include "pkix/pkix.h"
-#include "pkix/pkixnss.h"
+#include "mozpkix/pkix.h"
+#include "mozpkix/pkixnss.h"
 #include "secerr.h"
 #include "secoidt.h"
 #include "secport.h"
@@ -1294,7 +1294,7 @@ GatherCertificateTransparencyTelemetry(const UniqueCERTCertList& certList,
 
   // Handle the histogram of SCTs counts.
   uint32_t sctsCount =
-    static_cast<uint32_t>(info.verifyResult.verifiedScts.length());
+    static_cast<uint32_t>(info.verifyResult.verifiedScts.size());
   // Note that sctsCount can also be 0 in case we've received SCT binary data,
   // but it failed to parse (e.g. due to unsupported CT protocol version).
   Telemetry::Accumulate(Telemetry::SSL_SCTS_PER_CONNECTION, sctsCount);

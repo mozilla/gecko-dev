@@ -238,6 +238,10 @@ void
 nsHostRecord::SetExpiration(const mozilla::TimeStamp& now, unsigned int valid, unsigned int grace)
 {
     mValidStart = now;
+    if ((valid + grace) < 60) {
+        grace = 60 - valid;
+        LOG(("SetExpiration: artificially bumped grace to %d\n", grace));
+    }
     mGraceStart = now + TimeDuration::FromSeconds(valid);
     mValidEnd = now + TimeDuration::FromSeconds(valid + grace);
 }
@@ -511,10 +515,17 @@ AddrHostRecord::ResolveComplete()
             // TRR is disabled on request, which is a next-level back-off method.
             Telemetry::Accumulate(Telemetry::DNS_TRR_DISABLED, mNativeSuccess);
         } else {
-            AccumulateCategorical(mTRRSuccess?
-                                  Telemetry::LABELS_DNS_TRR_FIRST::TRRWorked :
-                                  ((mNativeSuccess ? Telemetry::LABELS_DNS_TRR_FIRST::NativeFallback :
-                                    Telemetry::LABELS_DNS_TRR_FIRST::BothFailed)));
+            if (mTRRSuccess) {
+                AccumulateCategorical(Telemetry::LABELS_DNS_TRR_FIRST2::TRR);
+            } else if(mNativeSuccess) {
+                if (mTRRUsed) {
+                    AccumulateCategorical(Telemetry::LABELS_DNS_TRR_FIRST2::NativeAfterTRR);
+                } else {
+                    AccumulateCategorical(Telemetry::LABELS_DNS_TRR_FIRST2::Native);
+                }
+            } else {
+                AccumulateCategorical(Telemetry::LABELS_DNS_TRR_FIRST2::BothFailed);
+            }
         }
     }
 
@@ -538,7 +549,7 @@ AddrHostRecord::ResolveComplete()
     }
 
     if (mTRRUsed && !mTRRSuccess && mNativeSuccess && gTRRService) {
-        gTRRService->TRRBlacklist(nsCString(host), pb, true);
+        gTRRService->TRRBlacklist(nsCString(host), originSuffix, pb, true);
     }
 }
 
@@ -732,7 +743,8 @@ nsHostResolver::ClearPendingQueue(LinkedList<RefPtr<nsHostRecord>>& aPendingQ)
         for (RefPtr<nsHostRecord> rec : aPendingQ) {
             rec->Cancel();
             if (rec->IsAddrRecord()) {
-                CompleteLookup(rec, NS_ERROR_ABORT, nullptr, rec->pb);
+                CompleteLookup(rec, NS_ERROR_ABORT, nullptr, rec->pb,
+                               rec->originSuffix);
             } else {
                 CompleteLookupByType(rec, NS_ERROR_ABORT, nullptr, 0, rec->pb);
             }
@@ -838,28 +850,16 @@ nsHostResolver::Shutdown()
     for (auto iter = mRecordDB.Iter(); !iter.Done(); iter.Next()) {
         iter.UserData()->Cancel();
     }
-#ifdef NS_BUILD_REFCNT_LOGGING
 
-    // Logically join the outstanding worker threads with a timeout.
-    // Use this approach instead of PR_JoinThread() because that does
-    // not allow a timeout which may be necessary for a semi-responsive
-    // shutdown if the thread is blocked on a very slow DNS resolution.
-    // mActiveTaskCount is read outside of mLock, but the worst case
-    // scenario for that race is one extra 25ms sleep.
-
-    PRIntervalTime delay = PR_MillisecondsToInterval(25);
-    PRIntervalTime stopTime = PR_IntervalNow() + PR_SecondsToInterval(20);
-    while (mActiveTaskCount && PR_IntervalNow() < stopTime)
-        PR_Sleep(delay);
-#endif
+    // Shutdown the resolver threads, but with a timeout of 20 seconds.
+    // If the timeout is exceeded, any stuck threads will be leaked.
+    mResolverThreads->ShutdownWithTimeout(20 * 1000);
 
     {
         mozilla::DebugOnly<nsresult> rv = GetAddrInfoShutdown();
         NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                              "Failed to shutdown GetAddrInfo");
     }
-
-    mResolverThreads->Shutdown();
 }
 
 nsresult
@@ -1787,7 +1787,8 @@ nsHostResolver::AddToEvictionQ(nsHostRecord* rec)
 // returns LOOKUP_RESOLVEAGAIN, but only if 'status' is not NS_ERROR_ABORT.
 // takes ownership of AddrInfo parameter
 nsHostResolver::LookupStatus
-nsHostResolver::CompleteLookup(nsHostRecord* rec, nsresult status, AddrInfo* aNewRRSet, bool pb)
+nsHostResolver::CompleteLookup(nsHostRecord* rec, nsresult status, AddrInfo* aNewRRSet, bool pb,
+                               const nsACString & aOriginsuffix)
 {
     MutexAutoLock lock(mLock);
     MOZ_ASSERT(rec);
@@ -2220,7 +2221,8 @@ nsHostResolver::ThreadFunc()
              rec->host.get(),
              ai ? "success" : "failure: unknown host"));
 
-        if (LOOKUP_RESOLVEAGAIN == CompleteLookup(rec, status, ai, rec->pb)) {
+        if (LOOKUP_RESOLVEAGAIN == CompleteLookup(rec, status, ai, rec->pb,
+                                                  rec->originSuffix)) {
             // leave 'rec' assigned and loop to make a renewed host resolve
             LOG(("DNS lookup thread - Re-resolving host [%s].\n", rec->host.get()));
         } else {

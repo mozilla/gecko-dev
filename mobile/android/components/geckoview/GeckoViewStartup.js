@@ -3,18 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/GeckoViewUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   ActorManagerParent: "resource://gre/modules/ActorManagerParent.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   FileSource: "resource://gre/modules/L10nRegistry.jsm",
   GeckoViewTelemetryController: "resource://gre/modules/GeckoViewTelemetryController.jsm",
-  GeckoViewUtils: "resource://gre/modules/GeckoViewUtils.jsm",
   L10nRegistry: "resource://gre/modules/L10nRegistry.jsm",
+  Preferences: "resource://gre/modules/Preferences.jsm",
   Services: "resource://gre/modules/Services.jsm",
 });
 
-const {debug, warn} = GeckoViewUtils.initLogging("GeckoViewStartup", this);
+/* global debug:false, warn:false */
+GeckoViewUtils.initLogging("Startup", this);
 
 function GeckoViewStartup() {
 }
@@ -76,13 +78,13 @@ GeckoViewStartup.prototype = {
           this.setResourceSubstitutions();
 
           Services.mm.loadFrameScript(
-              "chrome://geckoview/content/GeckoViewPromptContent.js", true);
+              "chrome://geckoview/content/GeckoViewPromptChild.js", true);
 
           GeckoViewUtils.addLazyGetter(this, "ContentCrashHandler", {
             module: "resource://gre/modules/ContentCrashHandler.jsm",
             observers: [
               "ipc:content-shutdown",
-            ]
+            ],
           });
         }
         break;
@@ -124,11 +126,38 @@ GeckoViewStartup.prototype = {
         L10nRegistry.registerSource(greSource);
 
         // Listen for global EventDispatcher messages
-        EventDispatcher.instance.registerListener(
-          (aEvent, aData, aCallback) => Services.locale.requestedLocales = [aData.languageTag],
-          "GeckoView:SetLocale");
+        EventDispatcher.instance.registerListener(this,
+          ["GeckoView:ResetUserPrefs",
+           "GeckoView:SetDefaultPrefs",
+           "GeckoView:SetLocale"]);
         break;
       }
+    }
+  },
+
+  onEvent(aEvent, aData, aCallback) {
+    debug `onEvent ${aEvent}`;
+
+    switch (aEvent) {
+      case "GeckoView:ResetUserPrefs": {
+        const prefs = new Preferences();
+        prefs.reset(aData.names);
+        break;
+      }
+      case "GeckoView:SetDefaultPrefs": {
+        const prefs = new Preferences({ defaultBranch: true });
+        for (const name of Object.keys(aData)) {
+          try {
+            prefs.set(name, aData[name]);
+          } catch (e) {
+            warn `Failed to set preference ${name}: ${e}`;
+          }
+        }
+        break;
+      }
+      case "GeckoView:SetLocale":
+        Services.locale.requestedLocales = [aData.languageTag];
+        break;
     }
   },
 };

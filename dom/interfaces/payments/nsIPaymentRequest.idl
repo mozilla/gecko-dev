@@ -30,7 +30,6 @@ interface nsIPaymentItem : nsISupports
   readonly attribute AString label;
   readonly attribute nsIPaymentCurrencyAmount amount;
   readonly attribute boolean pending;
-  readonly attribute AString type;
 };
 
 [scriptable, builtinclass, uuid(74259861-c318-40e8-b3d5-518e701bed80)]
@@ -82,7 +81,7 @@ interface nsIPaymentOptions : nsISupports
 [scriptable, builtinclass, uuid(2fa36783-d684-4487-b7a8-9def6ae3128f)]
 interface nsIPaymentRequest : nsISupports
 {
-  readonly attribute uint64_t tabId;
+  readonly attribute uint64_t topOuterWindowId;
   readonly attribute nsIPrincipal topLevelPrincipal;
   readonly attribute AString requestId;
   readonly attribute AString completeStatus;

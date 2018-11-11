@@ -350,6 +350,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     void Push(RegisterOrSP reg);
 #endif
 
+    // clang-format off
     //{{{ check_macroassembler_decl_style
   public:
     // ===============================================================
@@ -1497,14 +1498,13 @@ class MacroAssembler : public MacroAssemblerSpecific
     void wasmReserveStackChecked(uint32_t amount, wasm::BytecodeOffset trapOffset);
 
     // Emit a bounds check against the wasm heap limit, jumping to 'label' if
-    // 'cond' holds. Required when WASM_HUGE_MEMORY is not defined. If
-    // JitOptions.spectreMaskIndex is true, in speculative executions 'index' is
-    // saturated in-place to 'boundsCheckLimit'.
+    // 'cond' holds. If JitOptions.spectreMaskIndex is true, in speculative
+    // executions 'index' is saturated in-place to 'boundsCheckLimit'.
     void wasmBoundsCheck(Condition cond, Register index, Register boundsCheckLimit, Label* label)
-        DEFINED_ON(arm, arm64, mips32, mips64, x86);
+        DEFINED_ON(arm, arm64, mips32, mips64, x86_shared);
 
     void wasmBoundsCheck(Condition cond, Register index, Address boundsCheckLimit, Label* label)
-        DEFINED_ON(arm, arm64, mips32, mips64, x86);
+        DEFINED_ON(arm, arm64, mips32, mips64, x86_shared);
 
     // Each wasm load/store instruction appends its own wasm::Trap::OutOfBounds.
     void wasmLoad(const wasm::MemoryAccessDesc& access, Operand srcAddr, AnyRegister out) DEFINED_ON(x86, x64);
@@ -2057,6 +2057,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     void speculationBarrier() PER_SHARED_ARCH;
 
     //}}} check_macroassembler_decl_style
+    // clang-format on
   public:
 
     // Emits a test of a value against all types in a TypeSet. A scratch
@@ -2770,6 +2771,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void performPendingReadBarriers();
 
+    void touchFrameValues(Register numStackValues, Register scratch1, Register scratch2);
+
   private:
     // Methods to get a singleton object or object group from a type set without
     // a read barrier, and record the result so that we can perform the barrier
@@ -2820,6 +2823,7 @@ class IonHeapMacroAssembler : public MacroAssembler
     }
 };
 
+// clang-format off
 //{{{ check_macroassembler_style
 inline uint32_t
 MacroAssembler::framePushed() const
@@ -2848,6 +2852,7 @@ MacroAssembler::implicitPop(uint32_t bytes)
     adjustFrame(-int32_t(bytes));
 }
 //}}} check_macroassembler_style
+// clang-format on
 
 static inline Assembler::DoubleCondition
 JSOpToDoubleCondition(JSOp op)

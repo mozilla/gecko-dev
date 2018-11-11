@@ -675,22 +675,6 @@ gfxDWriteFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle)
     bool needsBold = aFontStyle->NeedsSyntheticBold(this);
     DWRITE_FONT_SIMULATIONS sims =
         needsBold ? DWRITE_FONT_SIMULATIONS_BOLD : DWRITE_FONT_SIMULATIONS_NONE;
-    if (HasVariations() && !aFontStyle->variationSettings.IsEmpty()) {
-        // If we need to apply variations, we can't use the cached mUnscaledFont
-        // or mUnscaledFontBold here.
-        // XXX todo: consider caching a small number of variation instances?
-        RefPtr<IDWriteFontFace> fontFace;
-        nsresult rv = CreateFontFace(getter_AddRefs(fontFace),
-                                     aFontStyle,
-                                     sims);
-        if (NS_FAILED(rv)) {
-            return nullptr;
-        }
-        RefPtr<UnscaledFontDWrite> unscaledFont =
-            new UnscaledFontDWrite(fontFace, mIsSystemFont ? mFont : nullptr, sims);
-        return new gfxDWriteFont(unscaledFont, this, aFontStyle);
-    }
-
     ThreadSafeWeakPtr<UnscaledFontDWrite>& unscaledFontPtr =
         needsBold ? mUnscaledFontBold : mUnscaledFont;
     RefPtr<UnscaledFontDWrite> unscaledFont(unscaledFontPtr);
@@ -705,7 +689,16 @@ gfxDWriteFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle)
                                    mIsSystemFont ? mFont : nullptr, sims);
         unscaledFontPtr = unscaledFont;
     }
-    return new gfxDWriteFont(unscaledFont, this, aFontStyle);
+    RefPtr<IDWriteFontFace> fontFace;
+    if (HasVariations() && !aFontStyle->variationSettings.IsEmpty()) {
+        nsresult rv = CreateFontFace(getter_AddRefs(fontFace),
+                                     aFontStyle,
+                                     sims);
+        if (NS_FAILED(rv)) {
+            return nullptr;
+        }
+    }
+    return new gfxDWriteFont(unscaledFont, this, aFontStyle, fontFace);
 }
 
 nsresult
@@ -1064,8 +1057,10 @@ gfxDWriteFontList::InitFontListForPlatform()
     mFontSubstitutes.Clear();
     mNonExistingFonts.Clear();
 
-    hr = Factory::GetDWriteFactory()->
-        GetGdiInterop(getter_AddRefs(mGDIInterop));
+    RefPtr<IDWriteFactory> factory =
+        Factory::GetDWriteFactory();
+
+    hr = factory->GetGdiInterop(getter_AddRefs(mGDIInterop));
     if (FAILED(hr)) {
         Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
                               uint32_t(errGDIInterop));
@@ -1074,13 +1069,10 @@ gfxDWriteFontList::InitFontListForPlatform()
 
     QueryPerformanceCounter(&t2); // base-class/interop initialization
 
-    RefPtr<IDWriteFactory> factory =
-        Factory::GetDWriteFactory();
+    mSystemFonts = Factory::GetDWriteSystemFonts(true);
+    NS_ASSERTION(mSystemFonts != nullptr, "GetSystemFontCollection failed!");
 
-    hr = factory->GetSystemFontCollection(getter_AddRefs(mSystemFonts));
-    NS_ASSERTION(SUCCEEDED(hr), "GetSystemFontCollection failed!");
-
-    if (FAILED(hr)) {
+    if (!mSystemFonts) {
         Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
                               uint32_t(errSystemFontCollection));
         return NS_ERROR_FAILURE;

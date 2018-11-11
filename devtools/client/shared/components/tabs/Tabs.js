@@ -7,10 +7,9 @@
 "use strict";
 
 define(function(require, exports, module) {
-  const { Component } = require("devtools/client/shared/vendor/react");
+  const { Component, createRef } = require("devtools/client/shared/vendor/react");
   const dom = require("devtools/client/shared/vendor/react-dom-factories");
   const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const { findDOMNode } = require("devtools/client/shared/vendor/react-dom");
 
   /**
    * Renders simple 'tab' widget.
@@ -38,7 +37,7 @@ define(function(require, exports, module) {
         className: PropTypes.oneOfType([
           PropTypes.array,
           PropTypes.string,
-          PropTypes.object
+          PropTypes.object,
         ]),
         tabActive: PropTypes.number,
         onMount: PropTypes.func,
@@ -46,7 +45,7 @@ define(function(require, exports, module) {
         onAfterChange: PropTypes.func,
         children: PropTypes.oneOfType([
           PropTypes.array,
-          PropTypes.element
+          PropTypes.element,
         ]).isRequired,
         showAllTabsMenu: PropTypes.bool,
         onAllTabsMenuClick: PropTypes.func,
@@ -90,6 +89,8 @@ define(function(require, exports, module) {
         overflow: false,
       };
 
+      this.tabsEl = createRef();
+
       this.onOverflow = this.onOverflow.bind(this);
       this.onUnderflow = this.onUnderflow.bind(this);
       this.onKeyDown = this.onKeyDown.bind(this);
@@ -100,7 +101,7 @@ define(function(require, exports, module) {
     }
 
     componentDidMount() {
-      const node = findDOMNode(this);
+      const node = this.tabsEl.current;
       node.addEventListener("keydown", this.onKeyDown);
 
       // Register overflow listeners to manage visibility
@@ -163,7 +164,7 @@ define(function(require, exports, module) {
     }
 
     componentWillUnmount() {
-      const node = findDOMNode(this);
+      const node = this.tabsEl.current;
       node.removeEventListener("keydown", this.onKeyDown);
 
       if (this.props.showAllTabsMenu) {
@@ -177,7 +178,7 @@ define(function(require, exports, module) {
     onOverflow(event) {
       if (event.target.classList.contains("tabs-menu")) {
         this.setState({
-          overflow: true
+          overflow: true,
         });
       }
     }
@@ -185,7 +186,7 @@ define(function(require, exports, module) {
     onUnderflow(event) {
       if (event.target.classList.contains("tabs-menu")) {
         this.setState({
-          overflow: false
+          overflow: false,
         });
       }
     }
@@ -246,8 +247,7 @@ define(function(require, exports, module) {
 
       this.setState(newState, () => {
         // Properly set focus on selected tab.
-        const node = findDOMNode(this);
-        const selectedTab = node.querySelector(".is-active > a");
+        const selectedTab = this.tabsEl.current.querySelector(".is-active > a");
         if (selectedTab) {
           selectedTab.focus();
         }
@@ -410,7 +410,10 @@ define(function(require, exports, module) {
 
     render() {
       return (
-        dom.div({ className: ["tabs", this.props.className].join(" ") },
+        dom.div({
+          className: ["tabs", this.props.className].join(" "),
+          ref: this.tabsEl,
+        },
           this.renderMenuItems(),
           this.renderPanels()
         )
@@ -429,8 +432,8 @@ define(function(require, exports, module) {
         title: PropTypes.string.isRequired,
         children: PropTypes.oneOfType([
           PropTypes.array,
-          PropTypes.element
-        ]).isRequired
+          PropTypes.element,
+        ]).isRequired,
       };
     }
 

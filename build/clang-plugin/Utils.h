@@ -38,7 +38,7 @@ inline bool hasSideEffectAssignment(const Expr *Expression) {
 template <class T>
 inline bool ASTIsInSystemHeader(const ASTContext &AC, const T &D) {
   auto &SourceManager = AC.getSourceManager();
-  auto ExpansionLoc = SourceManager.getExpansionLoc(D.getLocStart());
+  auto ExpansionLoc = SourceManager.getExpansionLoc(D.getBeginLoc());
   if (ExpansionLoc.isInvalid()) {
     return false;
   }
@@ -201,7 +201,7 @@ inline bool isIgnoredPathForImplicitConversion(const Decl *Declaration) {
 
 inline bool isIgnoredPathForSprintfLiteral(const CallExpr *Call,
                                            const SourceManager &SM) {
-  SourceLocation Loc = Call->getLocStart();
+  SourceLocation Loc = Call->getBeginLoc();
   SmallString<1024> FileName = SM.getFilename(Loc);
   llvm::sys::fs::make_absolute(FileName);
   llvm::sys::path::reverse_iterator Begin = llvm::sys::path::rbegin(FileName),
@@ -345,9 +345,21 @@ inline bool isPlacementNew(const CXXNewExpr *Expression) {
   return true;
 }
 
+extern DenseMap<unsigned, bool> InThirdPartyPathCache;
+
 inline bool inThirdPartyPath(SourceLocation Loc, const SourceManager &SM) {
-  SmallString<1024> FileName = SM.getFilename(Loc);
-  llvm::sys::fs::make_absolute(FileName);
+  Loc = SM.getFileLoc(Loc);
+
+  unsigned id = SM.getFileID(Loc).getHashValue();
+  auto pair = InThirdPartyPathCache.find(id);
+  if (pair != InThirdPartyPathCache.end()) {
+    return pair->second;
+  }
+
+  SmallString<1024> RawFileName = SM.getFilename(Loc);
+  llvm::sys::fs::make_absolute(RawFileName);
+  SmallString<1024> FileName;
+  llvm::sys::fs::real_path(RawFileName, FileName);
 
   for (uint32_t i = 0; i < MOZ_THIRD_PARTY_PATHS_COUNT; ++i) {
     auto PathB = sys::path::begin(FileName);
@@ -370,11 +382,13 @@ inline bool inThirdPartyPath(SourceLocation Loc, const SourceManager &SM) {
 
       // We found a match!
       if (IThirdPartyB == ThirdPartyE) {
+        InThirdPartyPathCache.insert(std::make_pair(id, true));
         return true;
       }
     }
   }
 
+  InThirdPartyPathCache.insert(std::make_pair(id, false));
   return false;
 }
 
@@ -414,7 +428,7 @@ inline bool inThirdPartyPath(const Decl *D) {
 }
 
 inline bool inThirdPartyPath(const Stmt *S, ASTContext *context) {
-  SourceLocation Loc = S->getLocStart();
+  SourceLocation Loc = S->getBeginLoc();
   const SourceManager &SM = context->getSourceManager();
   auto ExpansionLoc = SM.getExpansionLoc(Loc);
   if (ExpansionLoc.isInvalid()) {

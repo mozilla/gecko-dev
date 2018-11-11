@@ -190,6 +190,7 @@ public:
     DECODER_STATE_DORMANT,
     DECODER_STATE_DECODING_FIRSTFRAME,
     DECODER_STATE_DECODING,
+    DECODER_STATE_LOOPING_DECODING,
     DECODER_STATE_SEEKING,
     DECODER_STATE_BUFFERING,
     DECODER_STATE_COMPLETED,
@@ -296,12 +297,15 @@ public:
   // Sets the video decode mode. Used by the suspend-video-decoder feature.
   void SetVideoDecodeMode(VideoDecodeMode aMode);
 
+  RefPtr<GenericPromise> InvokeSetSink(RefPtr<AudioDeviceInfo> aSink);
+
 private:
   class StateObject;
   class DecodeMetadataState;
   class DormantState;
   class DecodingFirstFrameState;
   class DecodingState;
+  class LoopingDecodingState;
   class SeekingState;
   class AccurateSeekingState;
   class NextFrameSeekingState;
@@ -368,6 +372,16 @@ private:
                                                TrackInfo::kVideoTrack));
 
   void SetVideoDecodeModeInternal(VideoDecodeMode aMode);
+
+  // Set new sink device and restart MediaSink if playback is started.
+  // Returned promise will be resolved with true if the playback is
+  // started and false if playback is stopped after setting the new sink.
+  // Returned promise will be rejected with value NS_ERROR_ABORT
+  // if the action fails or it is not supported.
+  // If there are multiple pending requests only the last one will be
+  // executed, for all previous requests the promise will be resolved
+  // with true or false similar to above.
+  RefPtr<GenericPromise> SetSink(RefPtr<AudioDeviceInfo> aSink);
 
 protected:
   virtual ~MediaDecoderStateMachine();
@@ -447,7 +461,8 @@ protected:
   // Create and start the media sink.
   // The decoder monitor must be held with exactly one lock count.
   // Called on the state machine thread.
-  void StartMediaSink();
+  // If start fails an NS_ERROR_FAILURE is returned.
+  nsresult StartMediaSink();
 
   // Notification method invoked when mPlayState changes.
   void PlayStateChanged();
@@ -699,6 +714,11 @@ private:
 
   bool mSeamlessLoopingAllowed;
 
+  // If media was in looping and had reached to the end before, then we need
+  // to adjust sample time from clock time to media time.
+  void AdjustByLooping(media::TimeUnit& aTime) const;
+  Maybe<media::TimeUnit> mAudioDecodedDuration;
+
   // Current playback position in the stream in bytes.
   int64_t mPlaybackOffset = 0;
 
@@ -738,6 +758,9 @@ private:
 
   // Used to distinguish whether the audio is producing sound.
   Canonical<bool> mIsAudioDataAudible;
+
+  // Used to count the number of pending requests to set a new sink.
+  Atomic<int> mSetSinkRequestsCount;
 
 public:
   AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() const;

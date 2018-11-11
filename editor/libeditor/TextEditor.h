@@ -118,8 +118,11 @@ public:
    *
    * @param aClipboardType      nsIClipboard::kGlobalClipboard or
    *                            nsIClipboard::kSelectionClipboard.
+   * @param aDispatchPasteEvent true if this should dispatch ePaste event
+   *                            before pasting.  Otherwise, false.
    */
-  nsresult PasteAsAction(int32_t aClipboardType);
+  nsresult PasteAsAction(int32_t aClipboardType,
+                         bool aDispatchPasteEvent);
 
   /**
    * InsertTextAsAction() inserts aStringToInsert at selection.
@@ -138,8 +141,11 @@ public:
    *
    * @param aClipboardType      nsIClipboard::kGlobalClipboard or
    *                            nsIClipboard::kSelectionClipboard.
+   * @param aDispatchPasteEvent true if this should dispatch ePaste event
+   *                            before pasting.  Otherwise, false.
    */
-  virtual nsresult PasteAsQuotationAsAction(int32_t aClipboardType);
+  virtual nsresult PasteAsQuotationAsAction(int32_t aClipboardType,
+                                            bool aDispatchPasteEvent);
 
   /**
    * DeleteSelectionAsAction() removes selection content or content around
@@ -181,10 +187,10 @@ public:
                                nsRange* aReplaceRange = nullptr);
 
   /**
-   * OnInputParagraphSeparator() is called when user tries to separate current
-   * paragraph with Enter key press or something.
+   * InsertLineBreakAsAction() is called when user inputs a line break with
+   * Enter or something.
    */
-  nsresult OnInputParagraphSeparator();
+  virtual nsresult InsertLineBreakAsAction();
 
   /**
    * OnCompositionStart() is called when editor receives eCompositionStart
@@ -213,6 +219,7 @@ public:
    * OnDrop() is called from EditorEventListener::Drop that is handler of drop
    * event.
    */
+  MOZ_CAN_RUN_SCRIPT
   nsresult OnDrop(dom::DragEvent* aDropEvent);
 
   /**
@@ -225,6 +232,10 @@ public:
   nsresult ComputeTextValue(uint32_t aDocumentEncoderFlags,
                             nsAString& aOutputString) const
   {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
     return ComputeValueInternal(NS_LITERAL_STRING("text/plain"),
                                 aDocumentEncoderFlags, aOutputString);
   }
@@ -303,7 +314,6 @@ protected: // May be called by friends.
    * before aPointToInsert.  Then, tries to collapse selection at or after the
    * new <br> node if aSelect is not eNone.
    *
-   * @param aSelection          The selection of this editor.
    * @param aPointToInsert      The DOM point where should be <br> node inserted
    *                            before.
    * @param aSelect             If eNone, this won't change selection.
@@ -317,7 +327,6 @@ protected: // May be called by friends.
   template<typename PT, typename CT>
   already_AddRefed<Element>
   InsertBrElementWithTransaction(
-    Selection& aSelection,
     const EditorDOMPointBase<PT, CT>& aPointToInsert,
     EDirection aSelect = eNone);
 
@@ -326,8 +335,15 @@ protected: // May be called by friends.
    * If done, also update aAction to what's actually left to do after the
    * extension.
    */
-  nsresult ExtendSelectionForDelete(Selection* aSelection,
-                                    nsIEditor::EDirection* aAction);
+  nsresult ExtendSelectionForDelete(nsIEditor::EDirection* aAction);
+
+  /**
+   * HideLastPasswordInput() is called by timer callback of TextEditRules.
+   * This should be called only by TextEditRules::Notify().
+   * When this is called, the TextEditRules wants to call its
+   * HideLastPasswordInput() with AutoEditActionDataSetter instance.
+   */
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult HideLastPasswordInput();
 
   static void GetDefaultEditorPrefs(int32_t& aNewLineHandling,
                                     int32_t& aCaretStyle);
@@ -350,7 +366,7 @@ protected: // Shouldn't be used by friend classes
   /**
    * Make the given selection span the entire document.
    */
-  virtual nsresult SelectEntireDocument(Selection* aSelection) override;
+  virtual nsresult SelectEntireDocument() override;
 
   /**
    * OnInputText() is called when user inputs text with keyboard or something.
@@ -360,13 +376,10 @@ protected: // Shouldn't be used by friend classes
   nsresult OnInputText(const nsAString& aStringToInsert);
 
   /**
-   * InsertParagraphSeparatorAsAction() inserts a line break if it's TextEditor
-   * or inserts new paragraph if it's HTMLEditor and it's possible.
-   * Although, this method is implementation of
-   * nsIPlaintextEditor.insertLineBreak(), this treats the input is an edit
-   * action.
+   * InsertLineBreakAsSubAction() inserts a line break, i.e., \n if it's
+   * TextEditor or <br> if it's HTMLEditor.
    */
-  nsresult InsertParagraphSeparatorAsAction();
+  nsresult InsertLineBreakAsSubAction();
 
   nsresult InsertTextAt(const nsAString& aStringToInsert,
                         nsINode* aDestinationNode,

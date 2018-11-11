@@ -38,10 +38,12 @@ import org.mozilla.gecko.text.TextSelection;
 import org.mozilla.gecko.util.ActivityUtils;
 import org.mozilla.gecko.util.ColorUtil;
 import org.mozilla.gecko.widget.ActionModePresenter;
+import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
+import org.mozilla.geckoview.WebRequestError;
 
 public class WebAppActivity extends AppCompatActivity
                             implements ActionModePresenter,
@@ -377,20 +379,19 @@ public class WebAppActivity extends AppCompatActivity
     }
 
     @Override
-    public GeckoResult<Boolean> onLoadRequest(final GeckoSession session, final String urlStr,
-                                              final int target,
-                                              final int flags) {
-        final Uri uri = Uri.parse(urlStr);
+    public GeckoResult<AllowOrDeny> onLoadRequest(final GeckoSession session,
+                                                  final LoadRequest request) {
+        final Uri uri = Uri.parse(request.uri);
         if (uri == null) {
             // We can't really handle this, so deny it?
-            Log.w(LOGTAG, "Failed to parse URL for navigation: " + urlStr);
-            return GeckoResult.fromValue(true);
+            Log.w(LOGTAG, "Failed to parse URL for navigation: " + request.uri);
+            return GeckoResult.fromValue(AllowOrDeny.DENY);
         }
 
-        if (mManifest.isInScope(uri) && target != TARGET_WINDOW_NEW) {
+        if (mManifest.isInScope(uri) && request.target != TARGET_WINDOW_NEW) {
             // This is in scope and wants to load in the same frame, so
             // let Gecko handle it.
-            return GeckoResult.fromValue(false);
+            return GeckoResult.fromValue(AllowOrDeny.ALLOW);
         }
 
         if ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()) ||
@@ -415,11 +416,11 @@ public class WebAppActivity extends AppCompatActivity
             try {
                 startActivity(intent);
             } catch (ActivityNotFoundException e) {
-                Log.w(LOGTAG, "No activity handler found for: " + urlStr);
+                Log.w(LOGTAG, "No activity handler found for: " + request.uri);
             }
         }
 
-        return GeckoResult.fromValue(true);
+        return GeckoResult.fromValue(AllowOrDeny.DENY);
     }
 
     @Override
@@ -430,7 +431,7 @@ public class WebAppActivity extends AppCompatActivity
 
     @Override
     public GeckoResult<String> onLoadError(final GeckoSession session, final String urlStr,
-                                           final int category, final int error) {
+                                           final WebRequestError error) {
         return null;
     }
 

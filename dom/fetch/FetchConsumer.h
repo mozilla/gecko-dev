@@ -39,6 +39,7 @@ public:
   Create(nsIGlobalObject* aGlobal,
          nsIEventTarget* aMainThreadEventTarget,
          FetchBody<Derived>* aBody,
+         nsIInputStream* aBodyStream,
          AbortSignalImpl* aSignalImpl,
          FetchConsumeType aType,
          ErrorResult& aRv);
@@ -102,6 +103,7 @@ private:
   MutableBlobStorage::MutableBlobStorageType mBlobStorageType;
   nsCString mBodyMimeType;
 
+  nsCString mBodyBlobURISpec;
   nsString mBodyLocalPath;
 
   nsCOMPtr<nsIGlobalObject> mGlobal;

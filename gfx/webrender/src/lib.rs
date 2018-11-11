@@ -40,6 +40,16 @@ they're nestable.
 [notifier]: renderer/struct.Renderer.html#method.set_render_notifier
 */
 
+// Cribbed from the |matches| crate, for simplicity.
+macro_rules! matches {
+    ($expression:expr, $($pattern:tt)+) => {
+        match $expression {
+            $($pattern)+ => true,
+            _ => false
+        }
+    }
+}
+
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -99,6 +109,7 @@ mod scene_builder;
 mod segment;
 mod shade;
 mod spatial_node;
+mod surface;
 mod texture_allocator;
 mod texture_cache;
 mod tiling;
@@ -182,11 +193,13 @@ pub extern crate webrender_api;
 #[doc(hidden)]
 pub use device::{build_shader_strings, ReadPixelsFormat, UploadMethod, VertexUsageHint};
 pub use device::{ProgramBinary, ProgramCache, ProgramCacheObserver, ProgramSources};
+pub use device::{Device, total_gpu_bytes_allocated};
 pub use frame_builder::ChasePrimitive;
 pub use renderer::{AsyncPropertySampler, CpuProfile, DebugFlags, OutputImageHandler, RendererKind};
 pub use renderer::{ExternalImage, ExternalImageHandler, ExternalImageSource, GpuProfile};
 pub use renderer::{GraphicsApi, GraphicsApiInfo, PipelineInfo, Renderer, RendererOptions};
-pub use renderer::{RendererStats, SceneBuilderHooks, ThreadListener};
+pub use renderer::{RendererStats, SceneBuilderHooks, ThreadListener, ShaderPrecacheFlags};
 pub use renderer::MAX_VERTEX_TEXTURE_WIDTH;
+pub use shade::{Shaders, WrShaders};
 pub use webrender_api as api;
 pub use resource_cache::intersect_for_tile;

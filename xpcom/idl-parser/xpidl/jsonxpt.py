@@ -38,7 +38,6 @@ TypeMap = {
     'wstring':            'TD_PWSTRING',
     # special types
     'nsid':               'TD_PNSIID',
-    'domstring':          'TD_DOMSTRING',
     'astring':            'TD_ASTRING',
     'utf8string':         'TD_UTF8STRING',
     'cstring':            'TD_CSTRING',
@@ -106,6 +105,10 @@ def get_type(type, calltype, iid_is=None, size_is=None):
         else:
             return {'tag': 'TD_VOID'}
 
+    if isinstance(type, xpidl.CEnum):
+        # As far as XPConnect is concerned, cenums are just unsigned integers.
+        return {'tag': 'TD_UINT%d' % type.width}
+
     raise Exception("Unknown type!")
 
 
@@ -167,6 +170,14 @@ def build_interface(iface):
             'value': c.getValue(),  # All of our consts are numbers
         })
 
+    def build_cenum(b):
+        for var in b.variants:
+            consts.append({
+                'name': var.name,
+                'type': get_type(b, 'in'),
+                'value': var.value,
+            })
+
     def build_method(m):
         params = []
         for p in m.params:
@@ -211,6 +222,8 @@ def build_interface(iface):
             build_attr(member)
         elif isinstance(member, xpidl.Method):
             build_method(member)
+        elif isinstance(member, xpidl.CEnum):
+            build_cenum(member)
         elif isinstance(member, xpidl.CDATA):
             pass
         else:

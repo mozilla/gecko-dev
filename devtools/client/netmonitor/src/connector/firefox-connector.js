@@ -9,12 +9,8 @@ const { ACTIVITY_TYPE, EVENTS } = require("../constants");
 const FirefoxDataProvider = require("./firefox-data-provider");
 const { getDisplayedTimingMarker } = require("../selectors/index");
 
-// To be removed once FF60 is deprecated
-loader.lazyRequireGetter(this, "TimelineFront", "devtools/shared/fronts/timeline", true);
-
 // Network throttling
 loader.lazyRequireGetter(this, "throttlingProfiles", "devtools/client/shared/components/throttling/profiles");
-loader.lazyRequireGetter(this, "EmulationFront", "devtools/shared/fronts/emulation", true);
 
 /**
  * Connector to Firefox backend.
@@ -27,7 +23,6 @@ class FirefoxConnector {
     this.willNavigate = this.willNavigate.bind(this);
     this.navigate = this.navigate.bind(this);
     this.displayCachedEvents = this.displayCachedEvents.bind(this);
-    this.onDocLoadingMarker = this.onDocLoadingMarker.bind(this);
     this.onDocEvent = this.onDocEvent.bind(this);
     this.sendHTTPRequest = this.sendHTTPRequest.bind(this);
     this.setPreferences = this.setPreferences.bind(this);
@@ -80,8 +75,7 @@ class FirefoxConnector {
       this.tabTarget.on("navigate", this.navigate);
 
       // Initialize Emulation front for network throttling.
-      const { tab } = await this.tabTarget.client.getTab();
-      this.emulationFront = EmulationFront(this.tabTarget.client, tab);
+      this.emulationFront = this.tabTarget.getFront("emulation");
     }
 
     // Displaying cache events is only intended for the UI panel.
@@ -128,32 +122,14 @@ class FirefoxConnector {
       this.dataProvider.onNetworkEventUpdate);
     this.webConsoleClient.on("documentEvent", this.onDocEvent);
 
-    // With FF60+ console actor supports listening to document events like
-    // DOMContentLoaded and load. We used to query Timeline actor, but it was too CPU
-    // intensive.
-    const { startedListeners } = await this.webConsoleClient.startListeners(
-      ["DocumentEvents"]);
-    // Allows to know if we are on FF60 and support these events.
-    const supportsDocEvents = startedListeners.includes("DocumentEvents");
-
-    // Don't start up waiting for timeline markers if the server isn't
-    // recent enough (<FF45) to emit the markers we're interested in.
-    if (!supportsDocEvents && !this.timelineFront &&
-        this.tabTarget.getTrait("documentLoadingMarkers")) {
-      this.timelineFront = new TimelineFront(this.tabTarget.client, this.tabTarget.form);
-      this.timelineFront.on("doc-loading", this.onDocLoadingMarker);
-      await this.timelineFront.start({ withDocLoadingEvents: true });
-    }
+    // The console actor supports listening to document events like
+    // DOMContentLoaded and load.
+    await this.webConsoleClient.startListeners(["DocumentEvents"]);
   }
 
   async removeListeners() {
     if (this.tabTarget) {
       this.tabTarget.off("close");
-    }
-    if (this.timelineFront) {
-      this.timelineFront.off("doc-loading", this.onDocLoadingMarker);
-      await this.timelineFront.destroy();
-      this.timelineFront = null;
     }
     if (this.webConsoleClient) {
       this.webConsoleClient.off("networkEvent");
@@ -234,32 +210,7 @@ class FirefoxConnector {
   }
 
   /**
-   * The "DOMContentLoaded" and "Load" events sent by the timeline actor.
-   *
-   * To be removed once FF60 is deprecated.
-   *
-   * @param {object} marker
-   */
-  onDocLoadingMarker(marker) {
-    // Translate marker into event similar to newer "docEvent" event sent by the console
-    // actor
-    const event = {
-      name: marker.name == "document::DOMContentLoaded" ?
-            "dom-interactive" : "dom-complete",
-      time: marker.unixTime / 1000
-    };
-
-    if (this.actions) {
-      this.actions.addTimingMarker(event);
-    }
-
-    this.emit(EVENTS.TIMELINE_EVENT, event);
-  }
-
-  /**
    * The "DOMContentLoaded" and "Load" events sent by the console actor.
-   *
-   * Only used by FF60+.
    *
    * @param {object} marker
    */
@@ -318,7 +269,7 @@ class FirefoxConnector {
 
     // Reconfigures the tab, optionally triggering a reload.
     const reconfigureTab = options => {
-      return this.tabTarget.activeTab.reconfigure(options);
+      return this.tabTarget.activeTab.reconfigure({ options });
     };
 
     // Reconfigures the tab and waits for the target to finish navigating.

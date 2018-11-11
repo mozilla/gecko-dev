@@ -6,6 +6,7 @@
 
 DIRS += [
     'addon',
+    'targets',
 ]
 
 DevToolsModules(
@@ -13,6 +14,7 @@ DevToolsModules(
     'actor-registry.js',
     'animation.js',
     'canvas.js',
+    'changes.js',
     'css-properties.js',
     'csscoverage.js',
     'device.js',
@@ -30,12 +32,12 @@ DevToolsModules(
     'preference.js',
     'promises.js',
     'reflow.js',
+    'root.js',
     'screenshot.js',
     'storage.js',
     'string.js',
     'styles.js',
     'stylesheets.js',
-    'timeline.js',
     'webaudio.js',
     'webgl.js'
 )

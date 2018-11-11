@@ -157,6 +157,24 @@ TLTextIdIsTreeEvent(uint32_t id)
            id >= TraceLogger_Last;
 }
 
+inline bool
+TLTextIdIsLogEvent(uint32_t id)
+{
+    // These id's do not have start & stop events.
+    return (id > TraceLogger_TreeItemEnd && id < TraceLogger_Last);
+}
+
+inline bool
+TLTextIdIsInternalEvent(uint32_t id)
+{
+    // Id's used for bookkeeping.  Does not correspond to real events.
+    return (id == TraceLogger_Error       ||
+            id == TraceLogger_Last        ||
+            id == TraceLogger_TreeItemEnd ||
+            id == TraceLogger_Internal    ||
+            id == TraceLogger_Stop);
+}
+
 template <class T>
 class ContinuousSpace {
     T* data_;
@@ -275,6 +293,19 @@ class ContinuousSpace {
         size_ = 0;
     }
 
+    bool reset() {
+        size_t oldCapacity = data_ ? capacity_ : 0;
+        capacity_ = 64;
+        size_ = 0;
+        data_ = js_pod_realloc<T>(data_, oldCapacity, capacity_);
+
+        if (!data_) {
+            return false;
+        }
+
+        return true;
+    }
+
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         return mallocSizeOf(data_);
     }
@@ -283,11 +314,11 @@ class ContinuousSpace {
 // The layout of the event log in memory and in the log file.
 // Readable by JS using TypedArrays.
 struct EventEntry {
-    uint64_t time;
+    mozilla::TimeStamp time;
     uint32_t textId;
-    EventEntry(uint64_t time, uint32_t textId)
-      : time(time), textId(textId)
-    { }
+    EventEntry()
+      : textId(0)
+    {}
 };
 
 #endif /* TraceLoggingTypes_h */

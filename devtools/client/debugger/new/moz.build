@@ -5,8 +5,11 @@
 
 DIRS += [
   'dist',
+  'images',
   'src',
 ]
+
+include('node-templates.mozbuild')
 
 DevToolsModules(
     'panel.js',

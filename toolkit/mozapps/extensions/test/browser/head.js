@@ -233,7 +233,7 @@ var get_tooltip_info = async function(addon) {
   await promise;
 
   let expectedName = addon.getAttribute("name");
-  ok(tiptext.substring(0, expectedName.length), expectedName,
+  is(tiptext.substring(0, expectedName.length), expectedName,
      "Tooltip should always start with the expected name");
 
   if (expectedName.length == tiptext.length) {
@@ -1385,5 +1385,52 @@ function promiseNotification(id = "addon-webext-permissions") {
       }
     }
     PopupNotifications.panel.addEventListener("popupshown", popupshown);
+  });
+}
+
+/**
+ * Wait for the given PopupNotification to display
+ *
+ * @param {string} name
+ *        The name of the notification to wait for.
+ *
+ * @returns {Promise}
+ *          Resolves with the notification window.
+ */
+function promisePopupNotificationShown(name = "addon-webext-permissions") {
+  return new Promise(resolve => {
+    function popupshown() {
+      let notification = PopupNotifications.getNotification(name);
+      if (!notification) { return; }
+
+      ok(notification, `${name} notification shown`);
+      ok(PopupNotifications.isPanelOpen, "notification panel open");
+
+      PopupNotifications.panel.removeEventListener("popupshown", popupshown);
+      resolve(PopupNotifications.panel.firstChild);
+    }
+    PopupNotifications.panel.addEventListener("popupshown", popupshown);
+  });
+}
+
+function acceptAppMenuNotificationWhenShown(id) {
+  ChromeUtils.import("resource://gre/modules/AppMenuNotifications.jsm");
+  return new Promise(resolve => {
+    function popupshown() {
+      let notification = AppMenuNotifications.activeNotification;
+      if (!notification) { return; }
+
+      is(notification.id, id, `${id} notification shown`);
+      ok(PanelUI.isNotificationPanelOpen, "notification panel open");
+
+      PanelUI.notificationPanel.removeEventListener("popupshown", popupshown);
+
+      let popupnotificationID = PanelUI._getPopupId(notification);
+      let popupnotification = document.getElementById(popupnotificationID);
+      popupnotification.button.click();
+
+      resolve();
+    }
+    PanelUI.notificationPanel.addEventListener("popupshown", popupshown);
   });
 }

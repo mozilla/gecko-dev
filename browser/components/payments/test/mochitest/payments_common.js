@@ -50,7 +50,9 @@ function promiseContentToChromeMessage(messageType) {
  * @param {HTMLElement} destinationEl - Where to append the copied resources
  */
 function importDialogDependencies(templateFrame, destinationEl) {
-  for (let template of templateFrame.contentDocument.querySelectorAll("template")) {
+  let templates = templateFrame.contentDocument.querySelectorAll("template");
+  isnot(templates, null, "Check some templates found");
+  for (let template of templates) {
     let imported = document.importNode(template, true);
     destinationEl.appendChild(imported);
   }
@@ -111,9 +113,10 @@ SpecialPowers.registerConsoleListener(function onConsoleMessage(msg) {
     // Ignore unknown CSP error.
     return;
   }
-  if (msg.message.includes("Security Error: Content at http://mochi.test:8888")) {
+  if (msg.message && msg.message.includes("Security Error: Content at http://mochi.test:8888")) {
     // Check for same-origin policy violations and ignore specific errors
     if (msg.message.includes("icon-credit-card-generic.svg") ||
+        msg.message.includes("accepted-cards.css") ||
         msg.message.includes("editDialog-shared.css") ||
         msg.message.includes("editAddress.css") ||
         msg.message.includes("editDialog.css") ||

@@ -10,7 +10,7 @@
 var gDebuggee;
 var gClient;
 var gThreadClient;
-var gTabClient;
+var gTargetFront;
 
 const {SourceNode} = require("source-map");
 
@@ -20,9 +20,9 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-source-map",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
-                             gTabClient = tabClient;
+                             gTargetFront = targetFront;
                              setup_code();
                            });
   });
@@ -43,7 +43,7 @@ function setup_code() {
                             getFileUrl(TEMP_FILE_1, true),
                             "function temporary1() {}\n");
   let { code, map } = node.toStringWithSourceMap({
-    file: getFileUrl(TEMP_GENERATED_SOURCE, true)
+    file: getFileUrl(TEMP_GENERATED_SOURCE, true),
   });
 
   code += "//# sourceMappingURL=" + getFileUrl(MAP_FILE_NAME, true);
@@ -64,7 +64,7 @@ function test_initial_sources() {
     sources = sources.filter(source => source.url);
     Assert.equal(sources.length, 1);
     Assert.equal(sources[0].url, getFileUrl(TEMP_FILE_1, true));
-    reload(gTabClient).then(setup_new_code);
+    reload(gTargetFront).then(setup_new_code);
   });
 }
 
@@ -73,7 +73,7 @@ function setup_new_code() {
                             getFileUrl(TEMP_FILE_2, true),
                             "function temporary2() {}\n");
   let { code, map } = node.toStringWithSourceMap({
-    file: getFileUrl(TEMP_GENERATED_SOURCE, true)
+    file: getFileUrl(TEMP_GENERATED_SOURCE, true),
   });
 
   code += "\n//# sourceMappingURL=" + getFileUrl(MAP_FILE_NAME, true);

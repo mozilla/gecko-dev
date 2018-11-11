@@ -1,5 +1,4 @@
 config = {
-    'base_name': 'Android GeckoView docs %(branch)s',
     'stage_platform': 'android-geckoview-docs',
     'src_mozconfig': 'mobile/android/config/mozconfigs/android-api-16-frontend/nightly',
     'multi_locale_config_platform': 'android',
@@ -12,7 +11,7 @@ config = {
          '--upload', 'mozilla/geckoview',
          '--upload-branch', 'gh-pages/javadoc/{project}',
          '--upload-message', 'Update {project} javadoc to rev {revision}',
-         '--variant', 'officialWithGeckoBinariesNoMinApiRelease',
+         '--variant', 'withGeckoBinariesRelease',
         ],
     ],
     'artifact_flag_build_variant_in_try': None, # There's no artifact equivalent.

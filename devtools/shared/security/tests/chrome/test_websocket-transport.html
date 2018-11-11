@@ -16,6 +16,7 @@ window.onload = function() {
   const Services = require("Services");
   const {DebuggerClient} = require("devtools/shared/client/debugger-client");
   const {DebuggerServer} = require("devtools/server/main");
+  const { SocketListener } = require("devtools/shared/security/socket");
 
   Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
   Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
@@ -31,17 +32,19 @@ window.onload = function() {
 
     is(DebuggerServer.listeningSockets, 0, "0 listening sockets");
 
-    const listener = DebuggerServer.createListener();
+    const socketOptions = {
+      portOrPath: -1,
+      webSocket: true,
+    };
+    const listener = new SocketListener(DebuggerServer, socketOptions);
     ok(listener, "Socket listener created");
-    listener.portOrPath = -1;
-    listener.webSocket = true;
     await listener.open();
     is(DebuggerServer.listeningSockets, 1, "1 listening socket");
 
     const transport = await DebuggerClient.socketConnect({
       host: "127.0.0.1",
       port: listener.port,
-      webSocket: true
+      webSocket: true,
     });
     ok(transport, "Client transport created");
 
@@ -56,11 +59,7 @@ window.onload = function() {
 
     // Send a message the server that will echo back
     const message = "message";
-    const reply = await client.request({
-      to: "root",
-      type: "echo",
-      message
-    });
+    const reply = await client.mainRoot.echo({ message });
     is(reply.message, message, "Echo message matches");
 
     client.removeListener("closed", onUnexpectedClose);

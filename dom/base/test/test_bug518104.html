@@ -15,12 +15,18 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=518104
 <script class="testbody" type="text/javascript">
 
 /** Test for Bug 518104 **/
+// data: version at parser/htmlparser/tests/mochitest/test_bug1364399.html
 SimpleTest.waitForExplicitFinish();
 
 function done() {
+  // document.write should have gotten ignored due to the
+  // ignore-destructive-writes counter. Then document.close should
+  // have gotten ignored due to the parser still being not-script-created.
   var iframe = document.getElementById("iframe");
-  var divs = iframe.contentWindow.document.getElementsByTagName("p").length;
-  is(divs, 0, "<p> got written.")
+  var divs = iframe.contentWindow.document.getElementsByTagName("div").length;
+  is(divs, 2, "<div>s are still there.")
+  var ps = iframe.contentWindow.document.getElementsByTagName("p").length;
+  is(ps, 0, "<p> did not get written.")
   SimpleTest.finish();
 }
 

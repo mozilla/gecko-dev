@@ -8,7 +8,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import logging
-import requests
 import os
 import re
 
@@ -28,8 +27,6 @@ from taskgraph.util.taskcluster import (
 
 logger = logging.getLogger(__name__)
 
-PUSHLOG_TMPL = '{}/json-pushes?version=2&changeset={}&tipsonly=1&full=1'
-
 
 def find_decision_task(parameters, graph_config):
     """Given the parameters for this action, find the taskId of the decision
@@ -38,24 +35,6 @@ def find_decision_task(parameters, graph_config):
         graph_config['trust-domain'],
         parameters['project'],
         parameters['pushlog_id']))
-
-
-def find_hg_revision_pushlog_id(parameters, graph_config, revision):
-    """Given the parameters for this action and a revision, find the
-    pushlog_id of the revision."""
-
-    repo_param = '{}head_repository'.format(graph_config['project-repo-param-prefix'])
-    pushlog_url = PUSHLOG_TMPL.format(parameters[repo_param], revision)
-    r = requests.get(pushlog_url)
-    r.raise_for_status()
-    pushes = r.json()['pushes'].keys()
-    if len(pushes) != 1:
-        raise RuntimeError(
-            "Unable to find a single pushlog_id for {} revision {}: {}".format(
-                parameters['head_repository'], revision, pushes
-            )
-        )
-    return pushes[0]
 
 
 def find_existing_tasks_from_previous_kinds(full_task_graph, previous_graph_ids,
@@ -87,12 +66,27 @@ def fetch_graph_and_labels(parameters, graph_config):
         graph_config['trust-domain'],
         parameters['project'],
         parameters['pushlog_id'])
-    for action in list_tasks(namespace):
+    for task_id in list_tasks(namespace):
+        logger.info('fetching label-to-taskid.json for action task {}'.format(task_id))
         try:
-            run_label_to_id = get_artifact(action, "public/label-to-taskid.json")
+            run_label_to_id = get_artifact(task_id, "public/label-to-taskid.json")
             label_to_taskid.update(run_label_to_id)
         except HTTPError as e:
-            logger.info('Skipping {} due to missing artifact! Error: {}'.format(action, e))
+            logger.debug('No label-to-taskid.json found for {}: {}'.format(task_id, e))
+            continue
+
+    # Similarly for cron tasks..
+    namespace = '{}.v2.{}.revision.{}.cron'.format(
+        graph_config['trust-domain'],
+        parameters['project'],
+        parameters['head_rev'])
+    for task_id in list_tasks(namespace):
+        logger.info('fetching label-to-taskid.json for cron task {}'.format(task_id))
+        try:
+            run_label_to_id = get_artifact(task_id, "public/label-to-taskid.json")
+            label_to_taskid.update(run_label_to_id)
+        except HTTPError as e:
+            logger.debug('No label-to-taskid.json found for {}: {}'.format(task_id, e))
             continue
 
     return (decision_task_id, full_task_graph, label_to_taskid)

@@ -29,6 +29,7 @@
 #include "nsIDOMWindow.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptError.h"
+#include "nsIWeakReferenceUtils.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsGkAtoms.h"
@@ -106,16 +107,31 @@ nsXBLPrototypeHandler::nsXBLPrototypeHandler(const char16_t* aEvent,
 }
 
 nsXBLPrototypeHandler::nsXBLPrototypeHandler(Element* aHandlerElement, XBLReservedKey aReserved)
-  : mHandlerElement(nullptr),
-    mLineNumber(0),
-    mReserved(aReserved),
-    mNextHandler(nullptr),
-    mPrototypeBinding(nullptr)
+  : mHandlerElement(nullptr)
+  , mLineNumber(0)
+  , mReserved(aReserved)
+  , mNextHandler(nullptr)
+  , mPrototypeBinding(nullptr)
 {
   Init();
 
   // Make sure our prototype is initialized.
   ConstructPrototype(aHandlerElement);
+}
+
+nsXBLPrototypeHandler::nsXBLPrototypeHandler(ShortcutKeyData* aKeyData)
+  : mHandlerText(nullptr),
+    mLineNumber(0),
+    mReserved(XBLReservedKey_False),
+    mNextHandler(nullptr),
+    mPrototypeBinding(nullptr)
+{
+  Init();
+
+  ConstructPrototype(nullptr, aKeyData->event, nullptr, nullptr,
+                     aKeyData->command, aKeyData->keycode, aKeyData->key,
+                     aKeyData->modifiers, nullptr, nullptr, nullptr, nullptr,
+                     nullptr);
 }
 
 nsXBLPrototypeHandler::nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding)
@@ -859,7 +875,7 @@ nsXBLPrototypeHandler::ConstructPrototype(Element* aKeyElement,
   if (aKeyElement) {
     mType |= NS_HANDLER_TYPE_XUL;
     MOZ_ASSERT(!mPrototypeBinding);
-    nsCOMPtr<nsIWeakReference> weak = do_GetWeakReference(aKeyElement);
+    nsWeakPtr weak = do_GetWeakReference(aKeyElement);
     if (!weak) {
       return;
     }

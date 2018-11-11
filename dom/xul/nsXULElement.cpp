@@ -81,6 +81,7 @@
 
 #include "mozilla/dom/XULElementBinding.h"
 #include "mozilla/dom/BoxObject.h"
+#include "mozilla/dom/XULBroadcastManager.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/XULCommandEvent.h"
@@ -146,11 +147,19 @@ nsXULElement* NS_NewBasicXULElement(already_AddRefed<mozilla::dom::NodeInfo>&& a
 nsXULElement* nsXULElement::Construct(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
 {
   RefPtr<mozilla::dom::NodeInfo> nodeInfo = aNodeInfo;
+  if (nodeInfo->Equals(nsGkAtoms::label) ||
+      nodeInfo->Equals(nsGkAtoms::description)) {
+    return new XULTextElement(nodeInfo.forget());
+  }
+
   if (nodeInfo->Equals(nsGkAtoms::menupopup) ||
       nodeInfo->Equals(nsGkAtoms::popup) ||
-      nodeInfo->Equals(nsGkAtoms::panel) ||
-      nodeInfo->Equals(nsGkAtoms::tooltip)) {
+      nodeInfo->Equals(nsGkAtoms::panel)) {
     return NS_NewXULPopupElement(nodeInfo.forget());
+  }
+
+  if (nodeInfo->Equals(nsGkAtoms::tooltip)) {
+    return NS_NewXULTooltipElement(nodeInfo.forget());
   }
 
   if (nodeInfo->Equals(nsGkAtoms::iframe) ||
@@ -520,10 +529,7 @@ nsXULElement::HasMenu()
 void
 nsXULElement::OpenMenu(bool aOpenFlag)
 {
-  nsCOMPtr<nsIDocument> doc = GetUncomposedDoc();
-  if (doc) {
-    doc->FlushPendingNotifications(FlushType::Frames);
-  }
+  nsMenuFrame* menu = do_QueryFrame(GetPrimaryFrame(FlushType::Frames));
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm) {
@@ -531,13 +537,10 @@ nsXULElement::OpenMenu(bool aOpenFlag)
       // Nothing will happen if this element isn't a menu.
       pm->ShowMenu(this, false, false);
     }
-    else {
-      nsMenuFrame* menu = do_QueryFrame(GetPrimaryFrame());
-      if (menu) {
-        nsMenuPopupFrame* popupFrame = menu->GetPopup();
-        if (popupFrame) {
-          pm->HidePopup(popupFrame->GetContent(), false, true, false, false);
-        }
+    else if (menu) {
+      nsMenuPopupFrame* popupFrame = menu->GetPopup();
+      if (popupFrame) {
+        pm->HidePopup(popupFrame->GetContent(), false, true, false, false);
       }
     }
   }
@@ -752,6 +755,14 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
       AddTooltipSupport();
   }
 
+  if (doc && XULBroadcastManager::MayNeedListener(*this)) {
+    if (!doc->HasXULBroadcastManager()) {
+      doc->InitializeXULBroadcastManager();
+    }
+    XULBroadcastManager* broadcastManager = doc->GetXULBroadcastManager();
+    broadcastManager->AddListener(this);
+  }
+
   return rv;
 }
 
@@ -764,6 +775,13 @@ nsXULElement::UnbindFromTree(bool aDeep, bool aNullParent)
 
     if (NeedTooltipSupport(*this)) {
         RemoveTooltipSupport();
+    }
+
+    nsIDocument* doc = GetComposedDoc();
+    if (doc && doc->HasXULBroadcastManager() &&
+        XULBroadcastManager::MayNeedListener(*this)) {
+        RefPtr<XULBroadcastManager> broadcastManager = doc->GetXULBroadcastManager();
+        broadcastManager->RemoveListener(this);
     }
 
     // mControllers can own objects that are implemented
@@ -828,14 +846,18 @@ nsXULElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
                (aName == nsGkAtoms::command || aName == nsGkAtoms::observes) &&
                IsInUncomposedDoc()) {
 //         XXX sXBL/XBL2 issue! Owner or current document?
+        // XXX Why does this not also remove broadcast listeners if the
+        // "element" attribute was changed on an <observer>?
         nsAutoString oldValue;
         GetAttr(kNameSpaceID_None, nsGkAtoms::observes, oldValue);
         if (oldValue.IsEmpty()) {
           GetAttr(kNameSpaceID_None, nsGkAtoms::command, oldValue);
         }
 
-        if (!oldValue.IsEmpty()) {
-          RemoveBroadcaster(oldValue);
+        nsIDocument* doc = GetUncomposedDoc();
+        if (!oldValue.IsEmpty() && doc->HasXULBroadcastManager()) {
+            RefPtr<XULBroadcastManager> broadcastManager = doc->GetXULBroadcastManager();
+            broadcastManager->RemoveListener(this);
         }
     } else if (aNamespaceID == kNameSpaceID_None &&
                aValue &&
@@ -963,6 +985,19 @@ nsXULElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                 }
             }
         }
+        nsIDocument* doc = GetComposedDoc();
+        if (doc && doc->HasXULBroadcastManager()) {
+            RefPtr<XULBroadcastManager> broadcastManager = doc->GetXULBroadcastManager();
+            broadcastManager->AttributeChanged(this, aNamespaceID, aName);
+        }
+        if (doc && XULBroadcastManager::MayNeedListener(*this)) {
+            if (!doc->HasXULBroadcastManager()) {
+                doc->InitializeXULBroadcastManager();
+            }
+            XULBroadcastManager* broadcastManager = doc->GetXULBroadcastManager();
+            broadcastManager->AddListener(this);
+        }
+
         // XXX need to check if they're changing an event handler: if
         // so, then we need to unhook the old one.  Or something.
     }
@@ -1008,19 +1043,6 @@ nsXULElement::ParseAttribute(int32_t aNamespaceID,
     }
 
     return true;
-}
-
-void
-nsXULElement::RemoveBroadcaster(const nsAString & broadcasterId)
-{
-    nsIDocument* doc = OwnerDoc();
-    if (!doc->IsXULDocument()) {
-      return;
-    }
-    if (Element* broadcaster = doc->GetElementById(broadcasterId)) {
-        doc->AsXULDocument()->RemoveBroadcastListenerFor(
-           *broadcaster, *this, NS_LITERAL_STRING("*"));
-    }
 }
 
 void
@@ -2268,9 +2290,8 @@ nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
     }
     JSContext* cx = jsapi.cx();
 
-    nsresult rv;
     nsAutoCString urlspec;
-    nsContentUtils::GetWrapperSafeScriptFilename(aDocument, aURI, urlspec, &rv);
+    nsresult rv = aURI->GetSpec(urlspec);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }

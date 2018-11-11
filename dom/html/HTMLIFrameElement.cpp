@@ -6,18 +6,40 @@
 
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/HTMLIFrameElementBinding.h"
+#include "mozilla/dom/FeaturePolicy.h"
 #include "mozilla/MappedDeclarations.h"
+#include "mozilla/NullPrincipal.h"
+#include "mozilla/StaticPrefs.h"
 #include "nsMappedAttributes.h"
 #include "nsAttrValueInlines.h"
 #include "nsError.h"
 #include "nsStyleConsts.h"
 #include "nsContentUtils.h"
 #include "nsSandboxFlags.h"
+#include "nsNetUtil.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(IFrame)
 
 namespace mozilla {
 namespace dom {
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLIFrameElement)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLIFrameElement,
+                                                  nsGenericHTMLFrameElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFeaturePolicy)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLIFrameElement,
+                                                nsGenericHTMLFrameElement)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFeaturePolicy)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_ADDREF_INHERITED(HTMLIFrameElement, nsGenericHTMLFrameElement)
+NS_IMPL_RELEASE_INHERITED(HTMLIFrameElement, nsGenericHTMLFrameElement)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HTMLIFrameElement)
+NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLFrameElement)
 
 // static
 const DOMTokenListSupportedToken HTMLIFrameElement::sSupportedSandboxTokens[] = {
@@ -31,6 +53,8 @@ HTMLIFrameElement::HTMLIFrameElement(already_AddRefed<mozilla::dom::NodeInfo>&& 
                                      FromParser aFromParser)
   : nsGenericHTMLFrameElement(std::move(aNodeInfo), aFromParser)
 {
+  // We always need a featurePolicy, even if not exposed.
+  mFeaturePolicy = new FeaturePolicy(this);
 }
 
 HTMLIFrameElement::~HTMLIFrameElement()
@@ -38,6 +62,22 @@ HTMLIFrameElement::~HTMLIFrameElement()
 }
 
 NS_IMPL_ELEMENT_CLONE(HTMLIFrameElement)
+
+nsresult
+HTMLIFrameElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent)
+{
+  nsresult rv = nsGenericHTMLFrameElement::BindToTree(aDocument, aParent,
+                                                      aBindingParent);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (StaticPrefs::dom_security_featurePolicy_enabled()) {
+    RefreshFeaturePolicy(true /* parse the feature policy attribute */);
+  }
+  return NS_OK;
+}
 
 bool
 HTMLIFrameElement::ParseAttribute(int32_t aNamespaceID,
@@ -109,9 +149,9 @@ NS_IMETHODIMP_(bool)
 HTMLIFrameElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
-    { &nsGkAtoms::width },
-    { &nsGkAtoms::height },
-    { &nsGkAtoms::frameborder },
+    { nsGkAtoms::width },
+    { nsGkAtoms::height },
+    { nsGkAtoms::frameborder },
     { nullptr },
   };
 
@@ -150,6 +190,18 @@ HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         mFrameLoader->ApplySandboxFlags(GetSandboxFlags());
       }
     }
+
+    if (StaticPrefs::dom_security_featurePolicy_enabled()) {
+      if (aName == nsGkAtoms::allow ||
+          aName == nsGkAtoms::src ||
+          aName == nsGkAtoms::srcdoc ||
+          aName == nsGkAtoms::sandbox) {
+        RefreshFeaturePolicy(true /* parse the feature policy attribute */);
+      } else if (aName == nsGkAtoms::allowfullscreen ||
+                 aName == nsGkAtoms::allowpaymentrequest) {
+        RefreshFeaturePolicy(false /* parse the feature policy attribute */);
+      }
+    }
   }
   return nsGenericHTMLFrameElement::AfterSetAttr(aNameSpaceID, aName,
                                                  aValue, aOldValue,
@@ -183,7 +235,7 @@ HTMLIFrameElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
 }
 
 uint32_t
-HTMLIFrameElement::GetSandboxFlags()
+HTMLIFrameElement::GetSandboxFlags() const
 {
   const nsAttrValue* sandboxAttr = GetParsedAttr(nsGkAtoms::sandbox);
   // No sandbox attribute, no sandbox flags.
@@ -197,6 +249,71 @@ JSObject*
 HTMLIFrameElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
   return HTMLIFrameElement_Binding::Wrap(aCx, this, aGivenProto);
+}
+
+FeaturePolicy*
+HTMLIFrameElement::Policy() const
+{
+  return mFeaturePolicy;
+}
+
+already_AddRefed<nsIPrincipal>
+HTMLIFrameElement::GetFeaturePolicyDefaultOrigin() const
+{
+  nsCOMPtr<nsIPrincipal> principal;
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::srcdoc)) {
+    principal = NodePrincipal();
+    return principal.forget();
+  }
+
+  nsCOMPtr<nsIURI> nodeURI;
+  if (GetURIAttr(nsGkAtoms::src, nullptr, getter_AddRefs(nodeURI)) &&
+      nodeURI) {
+    principal =
+      BasePrincipal::CreateCodebasePrincipal(nodeURI,
+                                             BasePrincipal::Cast(NodePrincipal())->OriginAttributesRef());
+  }
+
+  if (!principal) {
+    principal = NodePrincipal();
+  }
+
+  return principal.forget();
+}
+
+void
+HTMLIFrameElement::RefreshFeaturePolicy(bool aParseAllowAttribute)
+{
+  MOZ_ASSERT(StaticPrefs::dom_security_featurePolicy_enabled());
+
+  if (aParseAllowAttribute) {
+    mFeaturePolicy->ResetDeclaredPolicy();
+
+    // The origin can change if 'src' and 'srcdoc' attributes change.
+    nsCOMPtr<nsIPrincipal> origin = GetFeaturePolicyDefaultOrigin();
+    MOZ_ASSERT(origin);
+    mFeaturePolicy->SetDefaultOrigin(origin);
+
+    nsAutoString allow;
+    GetAttr(nsGkAtoms::allow, allow);
+
+    if (!allow.IsEmpty()) {
+      // Set or reset the FeaturePolicy directives.
+      mFeaturePolicy->SetDeclaredPolicy(OwnerDoc(), allow, NodePrincipal(),
+                                        origin);
+    }
+
+    mFeaturePolicy->InheritPolicy(OwnerDoc()->Policy());
+  }
+
+  if (AllowPaymentRequest()) {
+    mFeaturePolicy->MaybeSetAllowedPolicy(NS_LITERAL_STRING("payment"));
+  }
+
+  if (AllowFullscreen()) {
+    mFeaturePolicy->MaybeSetAllowedPolicy(NS_LITERAL_STRING("fullscreen"));
+  }
 }
 
 } // namespace dom

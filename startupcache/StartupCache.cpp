@@ -26,7 +26,6 @@
 #include "nsITimer.h"
 #include "nsIZipWriter.h"
 #include "nsIZipReader.h"
-#include "nsWeakReference.h"
 #include "nsZipArchive.h"
 #include "mozilla/Omnijar.h"
 #include "prenv.h"
@@ -189,7 +188,7 @@ StartupCache::Init()
 
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mFile = do_QueryInterface(file);
+    mFile = file;
   }
 
   NS_ENSURE_TRUE(mFile, NS_ERROR_UNEXPECTED);

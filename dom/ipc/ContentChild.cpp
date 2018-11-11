@@ -68,7 +68,6 @@
 #include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/ContentProcessController.h"
 #include "mozilla/layers/ImageBridgeChild.h"
-#include "mozilla/layout/RenderFrameChild.h"
 #include "mozilla/loader/ScriptCacheActors.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/CookieServiceChild.h"
@@ -119,7 +118,7 @@
 
 #include "mozInlineSpellChecker.h"
 #include "nsDocShell.h"
-#include "nsDocShellLoadInfo.h"
+#include "nsDocShellLoadState.h"
 #include "nsIConsoleListener.h"
 #include "nsIContentViewer.h"
 #include "nsICycleCollectorListener.h"
@@ -145,7 +144,6 @@
 #include "nsLayoutStylesheetCache.h"
 #include "nsThreadManager.h"
 #include "nsAnonymousTemporaryFile.h"
-#include "nsISpellChecker.h"
 #include "nsClipboardProxy.h"
 #include "nsDirectoryService.h"
 #include "nsDirectoryServiceUtils.h"
@@ -194,6 +192,7 @@
 #endif
 
 #if defined(XP_MACOSX)
+#include "nsMacUtilsImpl.h"
 #include <CoreServices/CoreServices.h>
 // Info.plist key associated with the developer repo path
 #define MAC_DEV_REPO_KEY "MozillaDeveloperRepoPath"
@@ -774,19 +773,19 @@ ContentChild::ProvideWindow(mozIDOMWindowProxy* aParent,
                             const nsAString& aName,
                             const nsACString& aFeatures,
                             bool aForceNoOpener,
-                            nsDocShellLoadInfo* aLoadInfo,
+                            nsDocShellLoadState* aLoadState,
                             bool* aWindowIsNew,
                             mozIDOMWindowProxy** aReturn)
 {
   return ProvideWindowCommon(nullptr, aParent, false, aChromeFlags,
                              aCalledFromJS, aPositionSpecified,
                              aSizeSpecified, aURI, aName, aFeatures,
-                             aForceNoOpener, aLoadInfo, aWindowIsNew, aReturn);
+                             aForceNoOpener, aLoadState, aWindowIsNew, aReturn);
 }
 
 static nsresult
 GetCreateWindowParams(mozIDOMWindowProxy* aParent,
-                      nsDocShellLoadInfo* aLoadInfo,
+                      nsDocShellLoadState* aLoadState,
                       nsACString& aBaseURIString, float* aFullZoom,
                       uint32_t* aReferrerPolicy,
                       nsIPrincipal** aTriggeringPrincipal)
@@ -814,11 +813,11 @@ GetCreateWindowParams(mozIDOMWindowProxy* aParent,
 
   baseURI->GetSpec(aBaseURIString);
 
-  if (aLoadInfo) {
-    if (!aLoadInfo->SendReferrer()) {
+  if (aLoadState) {
+    if (!aLoadState->SendReferrer()) {
       *aReferrerPolicy = mozilla::net::RP_No_Referrer;
     } else {
-      *aReferrerPolicy = aLoadInfo->ReferrerPolicy();
+      *aReferrerPolicy = aLoadState->ReferrerPolicy();
     }
   }
 
@@ -849,7 +848,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
                                   const nsAString& aName,
                                   const nsACString& aFeatures,
                                   bool aForceNoOpener,
-                                  nsDocShellLoadInfo* aLoadInfo,
+                                  nsDocShellLoadState* aLoadState,
                                   bool* aWindowIsNew,
                                   mozIDOMWindowProxy** aReturn)
 {
@@ -896,7 +895,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     float fullZoom;
     nsCOMPtr<nsIPrincipal> triggeringPrincipal;
     uint32_t referrerPolicy = mozilla::net::RP_Unset;
-    rv = GetCreateWindowParams(aParent, aLoadInfo, baseURIString, &fullZoom,
+    rv = GetCreateWindowParams(aParent, aLoadState, baseURIString, &fullZoom,
                                &referrerPolicy,
                                getter_AddRefs(triggeringPrincipal));
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -971,9 +970,6 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     tabId, TabId(0), *ipcContext, aChromeFlags,
     GetID(), IsForBrowser());
 
-
-  PRenderFrameChild* renderFrame = newChild->SendPRenderFrameConstructor();
-
   nsCOMPtr<nsPIDOMWindowInner> parentTopInnerWindow;
   if (aParent) {
     nsCOMPtr<nsPIDOMWindowOuter> parentTopWindow =
@@ -994,9 +990,6 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     *aWindowIsNew = info.windowOpened();
     nsTArray<FrameScriptInfo> frameScripts(info.frameScripts());
     nsCString urlToLoad = info.urlToLoad();
-    TextureFactoryIdentifier textureFactoryIdentifier = info.textureFactoryIdentifier();
-    layers::LayersId layersId = info.layersId();
-    CompositorOptions compositorOptions = info.compositorOptions();
     uint32_t maxTouchPoints = info.maxTouchPoints();
     DimensionInfo dimensionInfo = info.dimensions();
     bool hasSiblings = info.hasSiblings();
@@ -1023,10 +1016,6 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     if (NS_WARN_IF(!newChild->IPCOpen() || newChild->IsDestroyed())) {
       rv = NS_ERROR_ABORT;
       return;
-    }
-
-    if (!layersId.IsValid()) { // if renderFrame is invalid.
-      renderFrame = nullptr;
     }
 
     ShowInfo showInfo(EmptyString(), false, false, true, false, 0, 0, 0);
@@ -1057,8 +1046,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
 
     // Unfortunately we don't get a window unless we've shown the frame.  That's
     // pretty bogus; see bug 763602.
-    newChild->DoFakeShow(textureFactoryIdentifier, layersId, compositorOptions,
-                        renderFrame, showInfo);
+    newChild->DoFakeShow(showInfo);
 
     newChild->RecvUpdateDimensions(dimensionInfo);
 
@@ -1101,7 +1089,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
 
     // NOTE: BrowserFrameOpenWindowPromise is the same type as
     // CreateWindowPromise, and this code depends on that fact.
-    newChild->SendBrowserFrameOpenWindow(aTabOpener, renderFrame,
+    newChild->SendBrowserFrameOpenWindow(aTabOpener,
                                          NS_ConvertUTF8toUTF16(url),
                                          name, NS_ConvertUTF8toUTF16(features),
                                          std::move(resolve), std::move(reject));
@@ -1110,7 +1098,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     float fullZoom;
     nsCOMPtr<nsIPrincipal> triggeringPrincipal;
     uint32_t referrerPolicy = mozilla::net::RP_Unset;
-    rv = GetCreateWindowParams(aParent, aLoadInfo, baseURIString, &fullZoom,
+    rv = GetCreateWindowParams(aParent, aLoadState, baseURIString, &fullZoom,
                                &referrerPolicy,
                                getter_AddRefs(triggeringPrincipal));
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1124,7 +1112,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
       uriToLoad = mozilla::void_t();
     }
 
-    SendCreateWindow(aTabOpener, newChild, renderFrame,
+    SendCreateWindow(aTabOpener, newChild,
                      aChromeFlags, aCalledFromJS, aPositionSpecified,
                      aSizeSpecified, uriToLoad, features, baseURIString,
                      fullZoom, Principal(triggeringPrincipal), referrerPolicy,
@@ -1523,110 +1511,6 @@ ContentChild::RecvReinitRenderingForDeviceReset()
 }
 
 #if defined(XP_MACOSX) && defined(MOZ_CONTENT_SANDBOX)
-
-#include <stdlib.h>
-
-static bool
-GetAppPaths(nsCString &aAppPath, nsCString &aAppBinaryPath, nsCString &aAppDir)
-{
-  nsAutoCString appPath;
-  nsAutoCString appBinaryPath(
-    (CommandLine::ForCurrentProcess()->argv()[0]).c_str());
-
-  nsAutoCString::const_iterator start, end;
-  appBinaryPath.BeginReading(start);
-  appBinaryPath.EndReading(end);
-  if (RFindInReadable(NS_LITERAL_CSTRING(".app/Contents/MacOS/"), start, end)) {
-    end = start;
-    ++end; ++end; ++end; ++end;
-    appBinaryPath.BeginReading(start);
-    appPath.Assign(Substring(start, end));
-  } else {
-    return false;
-  }
-
-  nsCOMPtr<nsIFile> app, appBinary;
-  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(appPath),
-                                true, getter_AddRefs(app));
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(appBinaryPath),
-                       true, getter_AddRefs(appBinary));
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  nsCOMPtr<nsIFile> appDir;
-  nsCOMPtr<nsIProperties> dirSvc =
-    do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
-  if (!dirSvc) {
-    return false;
-  }
-  rv = dirSvc->Get(NS_GRE_DIR,
-                   NS_GET_IID(nsIFile), getter_AddRefs(appDir));
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  bool exists;
-  rv = appDir->Exists(&exists);
-  if (NS_FAILED(rv) || !exists) {
-    return false;
-  }
-
-  // appDir points to .app/Contents/Resources, for our purposes we want
-  // .app/Contents.
-  nsCOMPtr<nsIFile> appDirParent;
-  rv = appDir->GetParent(getter_AddRefs(appDirParent));
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  rv = app->Normalize();
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  app->GetNativePath(aAppPath);
-
-  rv = appBinary->Normalize();
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  appBinary->GetNativePath(aAppBinaryPath);
-
-  rv = appDirParent->Normalize();
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  appDirParent->GetNativePath(aAppDir);
-
-  return true;
-}
-
-// This function is only used in an |#ifdef DEBUG| path.
-#ifdef DEBUG
-// Given a path to a file, return the directory which contains it.
-static nsAutoCString
-GetDirectoryPath(const char *aPath) {
-  nsCOMPtr<nsIFile> file = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-  if (!file ||
-      NS_FAILED(file->InitWithNativePath(nsDependentCString(aPath)))) {
-    MOZ_CRASH("Failed to create or init an nsIFile");
-  }
-  nsCOMPtr<nsIFile> directoryFile;
-  if (NS_FAILED(file->GetParent(getter_AddRefs(directoryFile))) ||
-      !directoryFile) {
-    MOZ_CRASH("Failed to get parent for an nsIFile");
-  }
-  directoryFile->Normalize();
-  nsAutoCString directoryPath;
-  if (NS_FAILED(directoryFile->GetNativePath(directoryPath))) {
-    MOZ_CRASH("Failed to get path for an nsIFile");
-  }
-  return directoryPath;
-}
-#endif // DEBUG
-
 extern "C" {
 CGError
 CGSSetDenyWindowServerConnections(bool);
@@ -1658,9 +1542,15 @@ StartMacOSContentSandbox()
 #endif
   }
 
-  nsAutoCString appPath, appBinaryPath, appDir;
-  if (!GetAppPaths(appPath, appBinaryPath, appDir)) {
-    MOZ_CRASH("Error resolving child process path");
+  // If the sandbox is already enabled, there's nothing more to do here.
+  if (Preferences::GetBool("security.sandbox.content.mac.earlyinit") &&
+      !recordreplay::IsRecordingOrReplaying()) {
+    return true;
+  }
+
+  nsAutoCString appPath;
+  if (!nsMacUtilsImpl::GetAppPath(appPath)) {
+    MOZ_CRASH("Error resolving child process app path");
   }
 
   ContentChild* cc = ContentChild::GetSingleton();
@@ -1686,11 +1576,11 @@ StartMacOSContentSandbox()
   info.shouldLog = Preferences::GetBool("security.sandbox.logging.enabled") ||
                    PR_GetEnv("MOZ_SANDBOX_LOGGING");
   info.appPath.assign(appPath.get());
-  info.appBinaryPath.assign(appBinaryPath.get());
-  info.appDir.assign(appDir.get());
   info.hasAudio = !Preferences::GetBool("media.cubeb.sandbox");
+  info.hasWindowServer = !Preferences::GetBool(
+      "security.sandbox.content.mac.disconnect-windowserver");
 
-  // These paths are used to whitelist certain directories used by the testing
+  // These paths are used to allowlist certain directories used by the testing
   // system. They should not be considered a public API, and are only intended
   // for use in automation.
   nsAutoCString testingReadPath1;
@@ -1742,7 +1632,8 @@ StartMacOSContentSandbox()
   if (bloatLog != nullptr) {
     // |bloatLog| points to a specific file, but we actually write to a sibling
     // of that path.
-    nsAutoCString bloatDirectoryPath = GetDirectoryPath(bloatLog);
+    nsAutoCString bloatDirectoryPath =
+      nsMacUtilsImpl::GetDirectoryPath(bloatLog);
     info.debugWriteDir.assign(bloatDirectoryPath.get());
   }
 #endif // DEBUG
@@ -3052,17 +2943,17 @@ ContentChild::RecvDomainSetChanged(const uint32_t& aSetType,
 
   nsCOMPtr<nsIDomainSet> set;
   switch(aSetType) {
-    case BLACKLIST:
-      mPolicy->GetBlacklist(getter_AddRefs(set));
+    case BLOCKLIST:
+      mPolicy->GetBlocklist(getter_AddRefs(set));
       break;
-    case SUPER_BLACKLIST:
-      mPolicy->GetSuperBlacklist(getter_AddRefs(set));
+    case SUPER_BLOCKLIST:
+      mPolicy->GetSuperBlocklist(getter_AddRefs(set));
       break;
-    case WHITELIST:
-      mPolicy->GetWhitelist(getter_AddRefs(set));
+    case ALLOWLIST:
+      mPolicy->GetAllowlist(getter_AddRefs(set));
       break;
-    case SUPER_WHITELIST:
-      mPolicy->GetSuperWhitelist(getter_AddRefs(set));
+    case SUPER_ALLOWLIST:
+      mPolicy->GetSuperAllowlist(getter_AddRefs(set));
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected setType");
@@ -3100,7 +2991,7 @@ ContentChild::StartForceKillTimer()
     return;
   }
 
-  int32_t timeoutSecs = Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
+  int32_t timeoutSecs = StaticPrefs::dom_ipc_tabs_shutdownTimeoutSecs();
   if (timeoutSecs > 0) {
     NS_NewTimerWithFuncCallback(getter_AddRefs(mForceKillTimer),
                                 ContentChild::ForceKillTimerCallback,
@@ -3805,22 +3696,10 @@ ContentChild::RecvShareCodeCoverageMutex(const CrossProcessMutexHandle& aHandle)
 }
 
 mozilla::ipc::IPCResult
-ContentChild::RecvDumpCodeCoverageCounters(DumpCodeCoverageCountersResolver&& aResolver)
+ContentChild::RecvFlushCodeCoverageCounters(FlushCodeCoverageCountersResolver&& aResolver)
 {
 #ifdef MOZ_CODE_COVERAGE
-  CodeCoverageHandler::DumpCounters();
-  aResolver(/* unused */ true);
-  return IPC_OK();
-#else
-  MOZ_CRASH("Shouldn't receive this message in non-code coverage builds!");
-#endif
-}
-
-mozilla::ipc::IPCResult
-ContentChild::RecvResetCodeCoverageCounters(ResetCodeCoverageCountersResolver&& aResolver)
-{
-#ifdef MOZ_CODE_COVERAGE
-  CodeCoverageHandler::ResetCounters();
+  CodeCoverageHandler::FlushCounters();
   aResolver(/* unused */ true);
   return IPC_OK();
 #else

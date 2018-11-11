@@ -35,6 +35,9 @@ using mozilla::NotNull;
 
 class nsThreadEnumerator;
 
+// See https://www.w3.org/TR/longtasks
+#define LONGTASK_BUSY_WINDOW_MS 50
+
 // A native thread
 class nsThread
   : public nsIThreadInternal
@@ -152,6 +155,9 @@ public:
 
   static uint32_t MaxActiveThreads();
 
+  const mozilla::TimeStamp& LastLongTaskEnd() { return mLastLongTaskEnd; }
+  const mozilla::TimeStamp& LastLongNonIdleTaskEnd() { return mLastLongNonIdleTaskEnd; }
+
 private:
   void DoMainThreadSpecificProcessing(bool aReallyWait);
 
@@ -175,6 +181,7 @@ protected:
   struct nsThreadShutdownContext* ShutdownInternal(bool aSync);
 
   friend class nsThreadManager;
+  friend class nsThreadPool;
 
   static mozilla::OffTheBooksMutex& ThreadListMutex();
   static mozilla::LinkedList<nsThread>& ThreadList();
@@ -199,7 +206,8 @@ protected:
   RefPtr<mozilla::ThreadEventTarget> mEventTarget;
 
   // The shutdown contexts for any other threads we've asked to shut down.
-  nsTArray<nsAutoPtr<struct nsThreadShutdownContext>> mRequestedShutdownContexts;
+  using ShutdownContexts = nsTArray<nsAutoPtr<struct nsThreadShutdownContext>>;
+  ShutdownContexts mRequestedShutdownContexts;
   // The shutdown context for ourselves.
   struct nsThreadShutdownContext* mShutdownContext;
 
@@ -212,6 +220,9 @@ protected:
 
   uint32_t  mNestedEventLoopDepth;
   uint32_t  mCurrentEventLoopDepth;
+
+  mozilla::TimeStamp mLastLongTaskEnd;
+  mozilla::TimeStamp mLastLongNonIdleTaskEnd;
 
   mozilla::Atomic<bool> mShutdownRequired;
 

@@ -40,14 +40,6 @@ interface FrameLoader {
   readonly attribute ParentSHistory? parentSHistory;
 
   /**
-   * Adds a blocking promise for the current cross process navigation.
-   * This method can only be called while the "BrowserWillChangeProcess" event
-   * is being fired.
-   */
-  [Throws]
-  void addProcessChangeBlockingPromise(Promise<any> aPromise);
-
-  /**
    * Find out whether the loader's frame is at too great a depth in
    * the frame tree.  This can be used to decide what operations may
    * or may not be allowed on the loader's docshell.
@@ -98,12 +90,6 @@ interface FrameLoader {
   void requestNotifyAfterRemotePaint();
 
   /**
-   * Close the window through the ownerElement.
-   */
-  [Throws]
-  void requestFrameLoaderClose();
-
-  /**
    * Force a remote browser to recompute its dimension and screen position.
    */
   [Throws]
@@ -123,18 +109,35 @@ interface FrameLoader {
              optional nsIWebProgressListener? aProgressListener = null);
 
   /**
+   * Renders a region of the frame into an image bitmap.
+   *
+   * @param x
+   * @param y
+   * @param w
+   * @param h Specify the area of the window to render, in CSS
+   * pixels. This is relative to the current scroll position.
+   * @param scale The scale to render the window at. Use devicePixelRatio
+   * to have comparable rendering to the OS.
+   * @param backgroundColor The background color to use.
+   *
+   * This API can only be used in the parent process, as content processes
+   * cannot access the rendering of out of process iframes. This API works
+   * with remote and local frames.
+   */
+  [Throws]
+  Promise<ImageBitmap> drawSnapshot(double x,
+                                    double y,
+                                    double w,
+                                    double h,
+                                    double scale,
+                                    DOMString backgroundColor);
+
+  /**
    * If false, then the subdocument is not clipped to its CSS viewport, and the
    * subdocument's viewport scrollbar(s) are not rendered.
    * Defaults to true.
    */
   attribute boolean clipSubdocument;
-
-  /**
-   * If false, then the subdocument's scroll coordinates will not be clamped
-   * to their scroll boundaries.
-   * Defaults to true.
-   */
-  attribute boolean clampScrollPosition;
 
   /**
    * The element which owns this frame loader.

@@ -138,9 +138,8 @@ include('/ipc/chromium/chromium-config.mozbuild')
 FINAL_LIBRARY = 'xul'
 
 if CONFIG['MOZ_ENABLE_SKIA_PDF']:
+  LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
   LOCAL_INCLUDES += [
-    '/gfx/skia/skia/include/config',
-    '/gfx/skia/skia/include/core',
     '/modules/pdfium/pdfium/public',
   ]
   TEST_DIRS += ['gtest']
@@ -170,7 +169,13 @@ OS_LIBS += [
 ]
 
 if CONFIG['CC_TYPE'] in ('msvc', 'clang-cl'):
+    SOURCES += [
+        'ToastNotification.cpp',
+        'ToastNotificationHandler.cpp',
+    ]
     # C5038: Suppress initializer list order warnings from wrl.h
+    SOURCES['ToastNotification.cpp'].flags += ['-wd5038']
+    SOURCES['ToastNotificationHandler.cpp'].flags += ['-wd5038']
     SOURCES['WindowsUIUtils.cpp'].flags += ['-wd5038']
 
 if CONFIG['CC_TYPE'] == 'clang-cl':

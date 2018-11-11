@@ -2055,6 +2055,14 @@ OpIter<Policy>::readMemOrTableCopy(bool isMem, Value* dst, Value* src, Value* le
         }
     }
 
+    uint8_t memOrTableFlags;
+    if (!readFixedU8(&memOrTableFlags)) {
+        return fail(isMem ? "unable to read memory flags" : "unable to read table flags");
+    }
+    if (memOrTableFlags != 0) {
+        return fail(isMem ? "memory flags must be zero" : "table flags must be zero");
+    }
+
     if (!popWithType(ValType::I32, len)) {
         return false;
     }
@@ -2077,15 +2085,18 @@ OpIter<Policy>::readMemOrTableDrop(bool isMem, uint32_t* segIndex)
     MOZ_ASSERT(Classify(op_) == OpKind::MemOrTableDrop);
 
     if (isMem) {
-        if (!env_.usesMemory())
+        if (!env_.usesMemory()) {
             return fail("can't touch memory without memory");
+        }
     } else {
-        if (env_.tables.length() == 0)
+        if (env_.tables.length() == 0) {
             return fail("can't table.drop without a table");
+        }
     }
 
-    if (!readVarU32(segIndex))
+    if (!readVarU32(segIndex)) {
         return false;
+    }
 
     if (isMem) {
         // We can't range-check *segIndex at this point since we don't yet
@@ -2093,8 +2104,9 @@ OpIter<Policy>::readMemOrTableDrop(bool isMem, uint32_t* segIndex)
         // defer the actual check for now.
         dvs_.lock()->notifyDataSegmentIndex(*segIndex, d_.currentOffset());
      } else {
-        if (*segIndex >= env_.elemSegments.length())
+        if (*segIndex >= env_.elemSegments.length()) {
             return fail("table.drop index out of range");
+        }
     }
 
     return true;
@@ -2108,6 +2120,14 @@ OpIter<Policy>::readMemFill(Value* start, Value* val, Value* len)
 
     if (!env_.usesMemory()) {
         return fail("can't touch memory without memory");
+    }
+
+    uint8_t memoryFlags;
+    if (!readFixedU8(&memoryFlags)) {
+        return fail("unable to read memory flags");
+    }
+    if (memoryFlags != 0) {
+        return fail("memory flags must be zero");
     }
 
     if (!popWithType(ValType::I32, len)) {
@@ -2133,31 +2153,46 @@ OpIter<Policy>::readMemOrTableInit(bool isMem, uint32_t* segIndex,
     MOZ_ASSERT(Classify(op_) == OpKind::MemOrTableInit);
 
     if (isMem) {
-        if (!env_.usesMemory())
+        if (!env_.usesMemory()) {
             return fail("can't touch memory without memory");
+        }
     } else {
-        if (env_.tables.length() == 0)
+        if (env_.tables.length() == 0) {
             return fail("can't table.init without a table");
+        }
     }
 
-    if (!popWithType(ValType::I32, len))
+    if (!popWithType(ValType::I32, len)) {
         return false;
+    }
 
-    if (!popWithType(ValType::I32, src))
+    if (!popWithType(ValType::I32, src)) {
         return false;
+    }
 
-    if (!popWithType(ValType::I32, dst))
+    if (!popWithType(ValType::I32, dst)) {
         return false;
+    }
 
-    if (!readVarU32(segIndex))
+    uint8_t memOrTableFlags;
+    if (!readFixedU8(&memOrTableFlags)) {
+        return fail(isMem ? "unable to read memory flags" : "unable to read table flags");
+    }
+    if (memOrTableFlags != 0) {
+        return fail(isMem ? "memory flags must be zero" : "table flags must be zero");
+    }
+
+    if (!readVarU32(segIndex)) {
         return false;
+    }
 
     if (isMem) {
         // Same comment as for readMemOrTableDrop.
         dvs_.lock()->notifyDataSegmentIndex(*segIndex, d_.currentOffset());
     } else {
-        if (*segIndex >= env_.elemSegments.length())
+        if (*segIndex >= env_.elemSegments.length()) {
             return fail("table.init index out of range");
+        }
     }
 
     return true;

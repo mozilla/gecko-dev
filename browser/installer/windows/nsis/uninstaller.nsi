@@ -606,8 +606,15 @@ FunctionEnd
 
 Function un.preFinish
   ; Need to give the survey (readme) checkbox a few extra DU's of height
-  ; to accommodate a potentially multi-line label.
-  WriteINIStr "$PLUGINSDIR\ioSpecial.ini" "Field 4" Bottom "120"
+  ; to accommodate a potentially multi-line label. If the reboot flag is set,
+  ; then we're not showing the survey checkbox and Field 4 is the "reboot now"
+  ; radio button; setting it to go from 90 to 120 (instead of 90 to 100) would
+  ; cover up Field 5 which is "reboot later", running from 110 to 120. For
+  ; whatever reason child windows get created at the bottom of the z-order, so
+  ; 4 overlaps 5.
+  ${IfNot} ${RebootFlag}
+    WriteINIStr "$PLUGINSDIR\ioSpecial.ini" "Field 4" Bottom "120"
+  ${EndIf}
 FunctionEnd
 
 ################################################################################
@@ -656,16 +663,17 @@ Function un.onGUIEnd
     ; not going to go around starting elevated web browsers. But to start an
     ; unelevated process directly from here we need a pretty nasty hack; see
     ; the ExecInExplorer plugin code itself for the details.
+    ; If we were the default browser and we've now been uninstalled, we need
+    ; to take steps to make sure the user doesn't see an "open with" dialog;
+    ; they're helping us out by answering this survey, they don't need more
+    ; friction. Sometimes Windows 7 and 8 automatically switch the default to
+    ; IE, but it isn't reliable, so we'll manually invoke IE in that case.
+    ; Windows 10 always seems to just clear the default browser, so for it
+    ; we'll manually invoke Edge using Edge's custom URI scheme.
     ${If} ${AtLeastWin10}
-      ; If we were the default browser and we've now been uninstalled, we need
-      ; to take steps to make sure the user doesn't see an "open with" dialog;
-      ; they're helping us out by answering this survey, they don't need more
-      ; friction. Windows 7 and 8 automatically switch the default to IE, so
-      ; nothing to do for those, but 10 leaves the default empty and does show
-      ; the dialog, so we have to force Edge there.
       ExecInExplorer::Exec "microsoft-edge:$R1"
     ${Else}
-      ExecInExplorer::Exec "$R1"
+      ExecInExplorer::Exec "iexplore.exe" /cmdargs "$R1"
     ${EndIf}
   ${EndIf}
 FunctionEnd

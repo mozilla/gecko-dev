@@ -106,14 +106,16 @@ Response::Redirect(const GlobalObject& aGlobal, const nsAString& aUrl,
       baseURI = doc->GetBaseURI();
     }
     nsCOMPtr<nsIURI> resolvedURI;
-    aRv = NS_NewURI(getter_AddRefs(resolvedURI), aUrl, nullptr, baseURI);
-    if (NS_WARN_IF(aRv.Failed())) {
+    nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI), aUrl, nullptr, baseURI);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aRv.ThrowTypeError<MSG_INVALID_URL>(aUrl);
       return nullptr;
     }
 
     nsAutoCString spec;
-    aRv = resolvedURI->GetSpec(spec);
-    if (NS_WARN_IF(aRv.Failed())) {
+    rv = resolvedURI->GetSpec(spec);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aRv.ThrowTypeError<MSG_INVALID_URL>(aUrl);
       return nullptr;
     }
 
@@ -140,6 +142,7 @@ Response::Redirect(const GlobalObject& aGlobal, const nsAString& aUrl,
   Optional<Nullable<fetch::ResponseBodyInit>> body;
   ResponseInit init;
   init.mStatus = aStatus;
+  init.mStatusText.AssignASCII("");
   RefPtr<Response> r = Response::Constructor(aGlobal, body, init, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -236,29 +239,40 @@ Response::Constructor(const GlobalObject& aGlobal,
 
     const fetch::ResponseBodyInit& body = aBody.Value().Value();
     if (body.IsReadableStream()) {
+      aRv.MightThrowJSException();
+
+      JSContext* cx = aGlobal.Context();
       const ReadableStream& readableStream = body.GetAsReadableStream();
 
-      JS::Rooted<JSObject*> readableStreamObj(aGlobal.Context(),
-                                              readableStream.Obj());
+      JS::Rooted<JSObject*> readableStreamObj(cx, readableStream.Obj());
 
-      if (JS::ReadableStreamIsDisturbed(readableStreamObj) ||
-          JS::ReadableStreamIsLocked(readableStreamObj) ||
-          !JS::ReadableStreamIsReadable(readableStreamObj)) {
+      bool disturbed;
+      bool locked;
+      if (!JS::ReadableStreamIsDisturbed(cx, readableStreamObj, &disturbed) ||
+          !JS::ReadableStreamIsLocked(cx, readableStreamObj, &locked)) {
+        aRv.StealExceptionFromJSContext(cx);
+        return nullptr;
+      }
+      if (disturbed || locked) {
         aRv.ThrowTypeError<MSG_FETCH_BODY_CONSUMED_ERROR>();
         return nullptr;
       }
 
-      r->SetReadableStreamBody(aGlobal.Context(), readableStreamObj);
+      r->SetReadableStreamBody(cx, readableStreamObj);
 
-      if (JS::ReadableStreamGetMode(readableStreamObj) ==
-            JS::ReadableStreamMode::ExternalSource) {
+      JS::ReadableStreamMode streamMode;
+      if (!JS::ReadableStreamGetMode(cx, readableStreamObj, &streamMode)) {
+        aRv.StealExceptionFromJSContext(cx);
+        return nullptr;
+      }
+      if (streamMode == JS::ReadableStreamMode::ExternalSource) {
         // If this is a DOM generated ReadableStream, we can extract the
         // inputStream directly.
         void* underlyingSource = nullptr;
-        if (!JS::ReadableStreamGetExternalUnderlyingSource(aGlobal.Context(),
+        if (!JS::ReadableStreamGetExternalUnderlyingSource(cx,
                                                            readableStreamObj,
                                                            &underlyingSource)) {
-          aRv.StealExceptionFromJSContext(aGlobal.Context());
+          aRv.StealExceptionFromJSContext(cx);
           return nullptr;
         }
 
@@ -269,7 +283,10 @@ Response::Constructor(const GlobalObject& aGlobal,
 
         // The releasing of the external source is needed in order to avoid an
         // extra stream lock.
-        JS::ReadableStreamReleaseExternalUnderlyingSource(readableStreamObj);
+        if (!JS::ReadableStreamReleaseExternalUnderlyingSource(cx, readableStreamObj)) {
+          aRv.StealExceptionFromJSContext(cx);
+          return nullptr;
+        }
         if (NS_WARN_IF(aRv.Failed())) {
           return nullptr;
         }
@@ -320,7 +337,34 @@ Response::Constructor(const GlobalObject& aGlobal,
 already_AddRefed<Response>
 Response::Clone(JSContext* aCx, ErrorResult& aRv)
 {
-  if (BodyUsed()) {
+  bool bodyUsed = GetBodyUsed(aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  if (!bodyUsed && mReadableStreamBody) {
+    aRv.MightThrowJSException();
+
+    AutoJSAPI jsapi;
+    if (!jsapi.Init(mOwner)) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
+    JSContext* cx = jsapi.cx();
+    JS::Rooted<JSObject*> body(cx, mReadableStreamBody);
+    bool locked;
+    // We just need to check the 'locked' state because GetBodyUsed() already
+    // checked the 'disturbed' state.
+    if (!JS::ReadableStreamIsLocked(cx, body, &locked)) {
+      aRv.StealExceptionFromJSContext(cx);
+      return nullptr;
+    }
+
+    bodyUsed = locked;
+  }
+
+  if (bodyUsed) {
     aRv.ThrowTypeError<MSG_FETCH_BODY_CONSUMED_ERROR>();
     return nullptr;
   }
@@ -362,7 +406,7 @@ Response::Clone(JSContext* aCx, ErrorResult& aRv)
 already_AddRefed<Response>
 Response::CloneUnfiltered(JSContext* aCx, ErrorResult& aRv)
 {
-  if (BodyUsed()) {
+  if (GetBodyUsed(aRv)) {
     aRv.ThrowTypeError<MSG_FETCH_BODY_CONSUMED_ERROR>();
     return nullptr;
   }
@@ -405,7 +449,7 @@ Response::CloneUnfiltered(JSContext* aCx, ErrorResult& aRv)
 void
 Response::SetBody(nsIInputStream* aBody, int64_t aBodySize)
 {
-  MOZ_ASSERT(!BodyUsed());
+  MOZ_ASSERT(!CheckBodyUsed());
   mInternalResponse->SetBody(aBody, aBodySize);
 }
 

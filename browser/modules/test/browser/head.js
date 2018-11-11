@@ -127,6 +127,10 @@ function getAndClearKeyedHistogram(name) {
  */
 function checkKeyedHistogram(h, key, expectedValue) {
   const snapshot = h.snapshot();
+  if (expectedValue === undefined) {
+    Assert.ok(!(key in snapshot), `The histogram must not contain ${key}.`);
+    return;
+  }
   Assert.ok(key in snapshot, `The histogram must contain ${key}.`);
   Assert.equal(snapshot[key].sum, expectedValue, `The key ${key} must contain ${expectedValue}.`);
 }
@@ -279,6 +283,6 @@ function getPopupNotificationNode() {
  */
 async function disableNonReleaseActions() {
   if (AppConstants.MOZ_DEV_EDITION || AppConstants.NIGHTLY_BUILD) {
-    await SpecialPowers.pushPrefEnv({set: [["extensions.webcompat-reporter.enabled", false]]});
+    SpecialPowers.Services.prefs.setBoolPref("extensions.webcompat-reporter.enabled", false);
   }
 }

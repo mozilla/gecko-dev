@@ -5,7 +5,7 @@ module.exports = {
   "env": {
     "browser": true,
     "mozilla/browser-window": true,
-    "mozilla/simpletest": true
+    "mozilla/simpletest": true,
     // "node": true
   },
 
@@ -43,6 +43,7 @@ module.exports = {
     "isnot": false,
     "ok": false,
     "privateNoteIntentionalCrash": false,
+    "record": false,
     "registerCleanupFunction": false,
     "requestLongerTimeout": false,
     "setExpectedFailuresForSelfTest": false,
@@ -51,17 +52,17 @@ module.exports = {
     "todo_isnot": false,
     "waitForClipboard": false,
     "waitForExplicitFinish": false,
-    "waitForFocus": false
+    "waitForFocus": false,
   },
 
   "plugins": [
-    "mozilla"
+    "mozilla",
   ],
 
   "rules": {
     "mozilla/import-content-task-globals": "error",
     "mozilla/import-headjs-globals": "error",
     "mozilla/mark-test-function-used": "error",
-    "mozilla/no-arbitrary-setTimeout": "error"
-  }
+    "mozilla/no-arbitrary-setTimeout": "error",
+  },
 };

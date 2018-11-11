@@ -22,6 +22,7 @@ const {
   console,
   HeapSnapshot,
   StructuredCloneHolder,
+  TelemetryStopwatch,
 } = Cu.getGlobalForObject(jsmScope);
 
 // Create a single Sandbox to access global properties needed in this module.
@@ -63,7 +64,7 @@ const {
     "TextEncoder",
     "URL",
     "XMLHttpRequest",
-  ]
+  ],
 });
 
 /**
@@ -90,12 +91,12 @@ function defineLazyGetter(object, name, lambda) {
         value,
         writable: true,
         configurable: true,
-        enumerable: true
+        enumerable: true,
       });
       return value;
     },
     configurable: true,
-    enumerable: true
+    enumerable: true,
   });
 }
 
@@ -197,12 +198,12 @@ function lazyRequireGetter(obj, property, module, destructure) {
         value,
         writable: true,
         configurable: true,
-        enumerable: true
+        enumerable: true,
       });
       return value;
     },
     configurable: true,
-    enumerable: true
+    enumerable: true,
   });
 }
 
@@ -218,6 +219,7 @@ exports.modules = {
   // pull it is destroyed. See bug 1402779.
   Promise,
   Services: Object.create(Services),
+  TelemetryStopwatch,
 };
 
 defineLazyGetter(exports.modules, "Debugger", () => {
@@ -248,7 +250,7 @@ defineLazyGetter(exports.modules, "Timer", () => {
   // Do not return Cu.import result, as DevTools loader would freeze Timer.jsm globals...
   return {
     setTimeout,
-    clearTimeout
+    clearTimeout,
   };
 });
 
@@ -291,7 +293,7 @@ exports.globals = {
     lazyServiceGetter: defineLazyServiceGetter,
     lazyRequireGetter: lazyRequireGetter,
     // Defined by Loader.jsm
-    id: null
+    id: null,
   },
   Node,
   reportError: Cu.reportError,
@@ -314,7 +316,7 @@ function lazyGlobal(name, getter) {
       return globals[name];
     },
     configurable: true,
-    enumerable: true
+    enumerable: true,
   });
 }
 

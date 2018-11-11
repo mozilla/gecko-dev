@@ -36,9 +36,6 @@ public:
 
   bool IsValid() const { return mValid; }
 
-  // Return the index (in samples) from the beginning of the track.
-  int64_t Index() const { return mIndex; }
-
   // Parse the current packet and check that it made a valid flac frame header.
   // From https://xiph.org/flac/format.html#frame_header
   // A valid header is one that can be decoded without error and that has a
@@ -87,11 +84,11 @@ public:
     }
 
     // Sample or frame count.
-    int64_t frame_or_sample_num = br.ReadUTF8();
-    if (frame_or_sample_num < 0) {
-      // Sample/frame number invalid.
+    int64_t frameOrSampleNum = br.ReadUTF8();
+    if (frameOrSampleNum < 0) {
       return false;
     }
+    mFrameOrSampleNum = frameOrSampleNum;
 
     // Blocksize
     if (bs_code == 0) {
@@ -104,13 +101,6 @@ public:
     } else {
       mBlocksize = FlacBlocksizeTable[bs_code];
     }
-
-    // The sample index is either:
-    // 1- coded sample number if blocksize is variable or
-    // 2- coded frame number if blocksize is known.
-    // A frame is made of Blocksize sample.
-    mIndex = mVariableBlockSize ? frame_or_sample_num
-                                : frame_or_sample_num * mBlocksize;
 
     // Sample rate.
     if (sr_code < 12) {
@@ -152,8 +142,11 @@ private:
     FLAC_CHMODE_MID_SIDE,
   };
   AudioInfo mInfo;
-  // Index in samples from start;
-  int64_t mIndex = 0;
+  // mFrameOrSampleNum is either:
+  // 1- coded sample number if blocksize is variable or
+  // 2- coded frame number if blocksize is fixed.
+  // A frame is made of Blocksize sample.
+  uint64_t mFrameOrSampleNum = 0;
   bool mVariableBlockSize = false;
   uint32_t mBlocksize = 0;;
   uint32_t mSize = 0;
@@ -268,6 +261,8 @@ public:
   {
     static const int BUFFER_SIZE = 4096;
 
+    uint32_t previousBlocksize = Header().mBlocksize;
+
     Reset();
 
     nsTArray<char> buffer;
@@ -290,6 +285,7 @@ public:
 
       if (foundOffset >= 0) {
         SetOffset(aResource, foundOffset + offset);
+        SetIndex(previousBlocksize);
         return true;
       }
 
@@ -318,10 +314,13 @@ public:
 
   void SetEndOffset(int64_t aOffset) { mSize = aOffset - mOffset; }
 
-  void SetEndTime(int64_t aIndex)
+  // Return the index (in samples) from the beginning of the track.
+  uint64_t Index() const { return mIndex; }
+
+  void SetEndTime(uint64_t aIndex)
   {
-    if (aIndex > Header().mIndex) {
-      mDuration = aIndex - Header().mIndex;
+    if (aIndex > Index()) {
+      mDuration = aIndex - Index();
     }
   }
 
@@ -333,7 +332,7 @@ public:
       return TimeUnit::Invalid();
     }
     MOZ_ASSERT(Header().Info().mRate, "Invalid Frame. Need Header");
-    return FramesToTimeUnit(Header().mIndex, Header().Info().mRate);
+    return FramesToTimeUnit(Index(), Header().Info().mRate);
   }
 
   TimeUnit Duration() const
@@ -368,6 +367,24 @@ private:
     aResource.Seek(SEEK_SET, mOffset);
   }
 
+  void SetIndex(uint32_t aPreviousBlocksize)
+  {
+    // Make sure the header has been parsed.
+    MOZ_ASSERT(Header().mBlocksize);
+
+    // If the blocksize is fixed, the frame's starting sample number will be
+    // the frame number times the blocksize. However, the last block may be
+    // shorter than the stream blocksize. Its starting sample number will be
+    // calculated as the frame number times the previous frame's blocksize,
+    // or zero if it is the first frame(mFrameOrSampleNum is 0 in that case).
+    mIndex = Header().mVariableBlockSize
+      ? Header().mFrameOrSampleNum
+      : Header().mFrameOrSampleNum * std::max(Header().mBlocksize,
+                                              aPreviousBlocksize);
+  }
+
+  // The index in samples from start.
+  uint64_t mIndex = 0;
   // The offset to the start of the header.
   int64_t mOffset = 0;
   uint32_t mSize = 0;
@@ -376,7 +393,6 @@ private:
 
   // The currently parsed frame header.
   FrameHeader mHeader;
-
 };
 
 class FrameParser
@@ -413,7 +429,7 @@ public:
         mFrame.SetEndOffset(aResource.Tell());
       } else if (mNextFrame.IsValid()) {
         mFrame.SetEndOffset(mNextFrame.Offset());
-        mFrame.SetEndTime(mNextFrame.Header().Index());
+        mFrame.SetEndTime(mNextFrame.Index());
       }
     }
 

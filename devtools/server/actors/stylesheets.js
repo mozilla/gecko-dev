@@ -12,8 +12,6 @@ const {LongStringActor} = require("devtools/server/actors/string");
 const {fetch} = require("devtools/shared/DevToolsUtils");
 const {mediaRuleSpec, styleSheetSpec,
        styleSheetsSpec} = require("devtools/shared/specs/stylesheets");
-const {
-  addPseudoClassLock, removePseudoClassLock } = require("devtools/server/actors/highlighters/utils/markup");
 const InspectorUtils = require("InspectorUtils");
 
 loader.lazyRequireGetter(this, "CssLogic", "devtools/shared/inspector/css-logic");
@@ -114,7 +112,7 @@ var MediaRuleActor = protocol.ActorClassWithSpec(mediaRuleSpec, {
       matches: this.matches,
       line: this.line,
       column: this.column,
-      parentStyleSheet: this.parentActor.actorID
+      parentStyleSheet: this.parentActor.actorID,
     };
 
     return form;
@@ -122,7 +120,7 @@ var MediaRuleActor = protocol.ActorClassWithSpec(mediaRuleSpec, {
 
   _matchesChange: function() {
     this.emit("matches-change", this.matches);
-  }
+  },
 });
 
 function getSheetText(sheet, consoleActor) {
@@ -188,7 +186,7 @@ async function fetchStylesheet(sheet, consoleActor) {
   const options = {
     loadFromCache: true,
     policy: Ci.nsIContentPolicy.TYPE_INTERNAL_STYLESHEET,
-    charset: getCSSCharset(sheet)
+    charset: getCSSCharset(sheet),
   };
 
   // Bug 1282660 - We use the system principal to load the default internal
@@ -580,7 +578,7 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
     this._transitionTimeout = null;
     removePseudoClassLock(this.document.documentElement, TRANSITION_PSEUDO_CLASS);
     this.emit("style-applied", kind, this);
-  }
+  },
 });
 
 exports.StyleSheetActor = StyleSheetActor;
@@ -851,7 +849,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
 
     const actor = this.parentActor.createStyleSheetActor(style.sheet);
     return actor;
-  }
+  },
 });
 
 exports.StyleSheetsActor = StyleSheetsActor;

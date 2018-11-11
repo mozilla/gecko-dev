@@ -132,10 +132,12 @@ reserved = set((
     'prio',
     'protocol',
     'refcounted',
+    'moveonly',
     'returns',
     'struct',
     'sync',
     'union',
+    'UniquePtr',
     'upto',
     'using',
     'verify'))
@@ -288,13 +290,20 @@ def p_MaybeRefcounted(p):
     p[0] = 2 == len(p)
 
 
+def p_MaybeMoveOnly(p):
+    """MaybeMoveOnly : MOVEONLY
+                       |"""
+    p[0] = 2 == len(p)
+
+
 def p_UsingStmt(p):
-    """UsingStmt : USING MaybeRefcounted UsingKind CxxType FROM STRING"""
+    """UsingStmt : USING MaybeRefcounted MaybeMoveOnly UsingKind CxxType FROM STRING"""
     p[0] = UsingStmt(locFromTok(p, 1),
                      refcounted=p[2],
-                     kind=p[3],
-                     cxxTypeSpec=p[4],
-                     cxxHeader=p[6])
+                     moveonly=p[3],
+                     kind=p[4],
+                     cxxTypeSpec=p[5],
+                     cxxHeader=p[7])
 
 # --------------------
 # Namespaced stuff
@@ -659,12 +668,18 @@ def p_Type(p):
 
 def p_BasicType(p):
     """BasicType : CxxID
-                 | CxxID '[' ']'"""
+                 | CxxID '[' ']'
+                 | CxxUniquePtrInst"""
     # ID == CxxType; we forbid qnames here,
     # in favor of the |using| declaration
     if not isinstance(p[1], TypeSpec):
-        loc, id = p[1]
+        assert (len(p[1]) == 2) or (len(p[1]) == 3)
+        if 2 == len(p[1]):
+            # p[1] is CxxID. isunique = 0
+            p[1] = p[1] + (0,)
+        loc, id, isunique = p[1]
         p[1] = TypeSpec(loc, QualifiedId(loc, id))
+        p[1].uniqueptr = isunique
     if 4 == len(p):
         p[1].array = 1
     p[0] = p[1]
@@ -714,6 +729,11 @@ def p_CxxID(p):
 def p_CxxTemplateInst(p):
     """CxxTemplateInst : ID '<' ID '>'"""
     p[0] = (locFromTok(p, 1), str(p[1]) + '<' + str(p[3]) + '>')
+
+
+def p_CxxUniquePtrInst(p):
+    """CxxUniquePtrInst : UNIQUEPTR '<' ID '>'"""
+    p[0] = (locFromTok(p, 1), str(p[3]), 1)
 
 
 def p_error(t):

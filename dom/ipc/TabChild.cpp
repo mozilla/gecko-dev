@@ -26,6 +26,7 @@
 #include "mozilla/dom/MessageManagerBinding.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/PaymentRequestChild.h"
+#include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/layers/APZChild.h"
@@ -41,8 +42,6 @@
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
-#include "mozilla/layout/RenderFrameChild.h"
-#include "mozilla/layout/RenderFrameParent.h"
 #include "mozilla/plugins/PPluginWidgetChild.h"
 #include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/LookAndFeel.h"
@@ -92,7 +91,7 @@
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "nsViewManager.h"
-#include "nsWeakReference.h"
+#include "nsIWeakReferenceUtils.h"
 #include "nsWindowWatcher.h"
 #include "PermissionMessageUtils.h"
 #include "PuppetWidget.h"
@@ -103,7 +102,6 @@
 #include "mozilla/gfx/Matrix.h"
 #include "UnitTransforms.h"
 #include "ClientLayerManager.h"
-#include "LayersLogging.h"
 #include "nsColorPickerProxy.h"
 #include "nsContentPermissionHelper.h"
 #include "nsNetUtil.h"
@@ -123,7 +121,7 @@
 #include "nsString.h"
 #include "nsISupportsPrimitives.h"
 #include "mozilla/Telemetry.h"
-#include "nsDocShellLoadInfo.h"
+#include "nsDocShellLoadState.h"
 #include "nsWebBrowser.h"
 
 #ifdef XP_WIN
@@ -243,38 +241,36 @@ TabChildBase::DispatchMessageManagerMessage(const nsAString& aMessageName,
 }
 
 bool
-TabChildBase::UpdateFrameHandler(const FrameMetrics& aFrameMetrics)
+TabChildBase::UpdateFrameHandler(const RepaintRequest& aRequest)
 {
-  MOZ_ASSERT(aFrameMetrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID);
+  MOZ_ASSERT(aRequest.GetScrollId() != ScrollableLayerGuid::NULL_SCROLL_ID);
 
-  if (aFrameMetrics.IsRootContent()) {
+  if (aRequest.IsRootContent()) {
     if (nsCOMPtr<nsIPresShell> shell = GetPresShell()) {
       // Guard against stale updates (updates meant for a pres shell which
       // has since been torn down and destroyed).
-      if (aFrameMetrics.GetPresShellId() == shell->GetPresShellId()) {
-        ProcessUpdateFrame(aFrameMetrics);
+      if (aRequest.GetPresShellId() == shell->GetPresShellId()) {
+        ProcessUpdateFrame(aRequest);
         return true;
       }
     }
   } else {
-    // aFrameMetrics.mIsRoot is false, so we are trying to update a subframe.
+    // aRequest.mIsRoot is false, so we are trying to update a subframe.
     // This requires special handling.
-    FrameMetrics newSubFrameMetrics(aFrameMetrics);
-    APZCCallbackHelper::UpdateSubFrame(newSubFrameMetrics);
+    APZCCallbackHelper::UpdateSubFrame(aRequest);
     return true;
   }
   return true;
 }
 
 void
-TabChildBase::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
+TabChildBase::ProcessUpdateFrame(const RepaintRequest& aRequest)
 {
-    if (!mTabChildMessageManager) {
-        return;
-    }
+  if (!mTabChildMessageManager) {
+      return;
+  }
 
-    FrameMetrics newMetrics = aFrameMetrics;
-    APZCCallbackHelper::UpdateRootFrame(newMetrics);
+  APZCCallbackHelper::UpdateRootFrame(aRequest);
 }
 
 NS_IMETHODIMP
@@ -399,7 +395,6 @@ TabChild::TabChild(nsIContentChild* aManager,
                    uint32_t aChromeFlags)
   : TabContext(aContext)
   , mTabGroup(aTabGroup)
-  , mRemoteFrame(nullptr)
   , mManager(aManager)
   , mChromeFlags(aChromeFlags)
   , mMaxTouchPoints(0)
@@ -553,16 +548,13 @@ TabChild::Init()
 
   // Directly create our web browser object and store it, so we can start
   // eliminating QIs.
-  mWebBrowser = new nsWebBrowser();
+  mWebBrowser = new nsWebBrowser(nsIDocShellTreeItem::typeContentWrapper);
   nsIWebBrowser* webBrowser = mWebBrowser;
 
   webBrowser->SetContainerWindow(this);
   webBrowser->SetOriginAttributes(OriginAttributesRef());
   mWebNav = do_QueryInterface(webBrowser);
   NS_ASSERTION(mWebNav, "nsWebBrowser doesn't implement nsIWebNavigation?");
-
-  nsCOMPtr<nsIDocShellTreeItem> docShellItem(do_QueryInterface(WebNavigation()));
-  docShellItem->SetItemType(nsIDocShellTreeItem::typeContentWrapper);
 
   nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(WebNavigation());
   if (!baseWindow) {
@@ -720,22 +712,6 @@ TabChild::SetStatus(uint32_t aStatusType, const char16_t* aStatus)
 }
 
 NS_IMETHODIMP
-TabChild::GetWebBrowser(nsIWebBrowser** aWebBrowser)
-{
-  NS_WARNING("TabChild::GetWebBrowser not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TabChild::SetWebBrowser(nsIWebBrowser* aWebBrowser)
-{
-  NS_WARNING("TabChild::SetWebBrowser not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 TabChild::GetChromeFlags(uint32_t* aChromeFlags)
 {
   *aChromeFlags = mChromeFlags;
@@ -746,14 +722,6 @@ NS_IMETHODIMP
 TabChild::SetChromeFlags(uint32_t aChromeFlags)
 {
   NS_WARNING("trying to SetChromeFlags from content process?");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TabChild::DestroyBrowserWindow()
-{
-  NS_WARNING("TabChild::DestroyBrowserWindow not supported in TabChild");
 
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -815,14 +783,6 @@ TabChild::RemoteDropLinks(uint32_t aLinksCount,
 }
 
 NS_IMETHODIMP
-TabChild::SizeBrowserTo(int32_t aWidth, int32_t aHeight)
-{
-  NS_WARNING("TabChild::SizeBrowserTo not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 TabChild::ShowAsModal()
 {
   NS_WARNING("TabChild::ShowAsModal not supported in TabChild");
@@ -838,22 +798,14 @@ TabChild::IsWindowModal(bool* aRetVal)
 }
 
 NS_IMETHODIMP
-TabChild::ExitModalEventLoop(nsresult aStatus)
-{
-  NS_WARNING("TabChild::ExitModalEventLoop not supported in TabChild");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 TabChild::SetStatusWithContext(uint32_t aStatusType,
                                const nsAString& aStatusText,
                                nsISupports* aStatusContext)
 {
-  // We can only send the status after the ipc machinery is set up,
-  // mRemoteFrame is a good indicator.
-  if (mRemoteFrame)
+  // We can only send the status after the ipc machinery is set up
+  if (IPCOpen()) {
     SendSetStatus(aStatusType, nsString(aStatusText));
+  }
   return NS_OK;
 }
 
@@ -999,7 +951,7 @@ TabChild::ProvideWindow(mozIDOMWindowProxy* aParent,
                         bool aPositionSpecified, bool aSizeSpecified,
                         nsIURI* aURI, const nsAString& aName,
                         const nsACString& aFeatures, bool aForceNoOpener,
-                        nsDocShellLoadInfo* aLoadInfo, bool* aWindowIsNew,
+                        nsDocShellLoadState* aLoadState, bool* aWindowIsNew,
                         mozIDOMWindowProxy** aReturn)
 {
     *aReturn = nullptr;
@@ -1043,7 +995,7 @@ TabChild::ProvideWindow(mozIDOMWindowProxy* aParent,
                                    aName,
                                    aFeatures,
                                    aForceNoOpener,
-                                   aLoadInfo,
+                                   aLoadState,
                                    aWindowIsNew,
                                    aReturn);
 }
@@ -1068,18 +1020,11 @@ TabChild::DestroyWindow()
     if (baseWindow)
         baseWindow->Destroy();
 
-    // NB: the order of mPuppetWidget->Destroy() and mRemoteFrame->Destroy()
-    // is important: we want to kill off remote layers before their
-    // frames
     if (mPuppetWidget) {
         mPuppetWidget->Destroy();
     }
 
-    if (mRemoteFrame) {
-        mRemoteFrame->Destroy();
-        mRemoteFrame = nullptr;
-    }
-
+    mLayersConnected = Nothing();
 
     if (mLayersId.IsValid()) {
       StaticMutexAutoLock lock(sTabChildrenMutex);
@@ -1171,13 +1116,8 @@ TabChild::RecvLoadURL(const nsCString& aURI,
 }
 
 void
-TabChild::DoFakeShow(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
-                     const layers::LayersId& aLayersId,
-                     const CompositorOptions& aCompositorOptions,
-                     PRenderFrameChild* aRenderFrame, const ShowInfo& aShowInfo)
+TabChild::DoFakeShow(const ShowInfo& aShowInfo)
 {
-  mLayersConnected = aRenderFrame ? Some(true) : Some(false);
-  InitRenderingState(aTextureFactoryIdentifier, aLayersId, aCompositorOptions, aRenderFrame);
   RecvShow(ScreenIntSize(0, 0), aShowInfo, mParentIsActive, nsSizeMode_Normal);
   mDidFakeShow = true;
 }
@@ -1265,10 +1205,10 @@ TabChild::RecvShow(const ScreenIntSize& aSize,
   }
 
   // We have now done enough initialization for the record/replay system to
-  // create checkpoints. Try to create the initial checkpoint now, in case this
-  // process never paints later on (the usual place where checkpoints occur).
+  // create checkpoints. Create a checkpoint now, in case this process never
+  // paints later on (the usual place where checkpoints occur).
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::MaybeCreateInitialCheckpoint();
+    recordreplay::child::CreateCheckpoint();
   }
 
   return IPC_OK();
@@ -1278,13 +1218,10 @@ mozilla::ipc::IPCResult
 TabChild::RecvInitRendering(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
                             const layers::LayersId& aLayersId,
                             const CompositorOptions& aCompositorOptions,
-                            const bool& aLayersConnected,
-                            PRenderFrameChild* aRenderFrame)
+                            const bool& aLayersConnected)
 {
-  MOZ_ASSERT((!mDidFakeShow && aRenderFrame) || (mDidFakeShow && !aRenderFrame));
-
   mLayersConnected = Some(aLayersConnected);
-  InitRenderingState(aTextureFactoryIdentifier, aLayersId, aCompositorOptions, aRenderFrame);
+  InitRenderingState(aTextureFactoryIdentifier, aLayersId, aCompositorOptions);
   return IPC_OK();
 }
 
@@ -1293,7 +1230,7 @@ TabChild::RecvUpdateDimensions(const DimensionInfo& aDimensionInfo)
 {
     // When recording/replaying we need to make sure the dimensions are up to
     // date on the compositor used in this process.
-    if (!mRemoteFrame && !recordreplay::IsRecordingOrReplaying()) {
+    if (mLayersConnected.isNothing() && !recordreplay::IsRecordingOrReplaying()) {
         return IPC_OK();
     }
 
@@ -1342,9 +1279,9 @@ TabChild::RecvSizeModeChanged(const nsSizeMode& aSizeMode)
 }
 
 bool
-TabChild::UpdateFrame(const FrameMetrics& aFrameMetrics)
+TabChild::UpdateFrame(const RepaintRequest& aRequest)
 {
-  return TabChildBase::UpdateFrameHandler(aFrameMetrics);
+  return TabChildBase::UpdateFrameHandler(aRequest);
 }
 
 mozilla::ipc::IPCResult
@@ -1472,7 +1409,7 @@ TabChild::StartScrollbarDrag(const layers::AsyncDragMetrics& aDragMetrics)
 
 void
 TabChild::ZoomToRect(const uint32_t& aPresShellId,
-                     const FrameMetrics::ViewID& aViewId,
+                     const ScrollableLayerGuid::ViewID& aViewId,
                      const CSSRect& aRect,
                      const uint32_t& aFlags)
 {
@@ -1618,12 +1555,8 @@ TabChild::RecvRealMouseMoveEvent(const WidgetMouseEvent& aEvent,
                                  const uint64_t& aInputBlockId)
 {
   if (mCoalesceMouseMoveEvents && mCoalescedMouseEventFlusher) {
-    CoalescedMouseData* data = nullptr;
-    mCoalescedMouseData.Get(aEvent.pointerId, &data);
-    if (!data) {
-      data = new CoalescedMouseData();
-      mCoalescedMouseData.Put(aEvent.pointerId, data);
-    }
+    CoalescedMouseData* data = mCoalescedMouseData.LookupOrAdd(aEvent.pointerId);
+    MOZ_ASSERT(data);
     if (data->CanCoalesce(aEvent, aGuid, aInputBlockId)) {
       data->Coalesce(aEvent, aGuid, aInputBlockId);
       mCoalescedMouseEventFlusher->StartObserver();
@@ -1632,7 +1565,6 @@ TabChild::RecvRealMouseMoveEvent(const WidgetMouseEvent& aEvent,
     // Can't coalesce current mousemove event. Put the coalesced mousemove data
     // with the same pointer id to mToBeDispatchedMouseData, coalesce the
     // current one, and process all pending data in mToBeDispatchedMouseData.
-    MOZ_ASSERT(data);
     UniquePtr<CoalescedMouseData> dispatchData =
       MakeUnique<CoalescedMouseData>();
 
@@ -2713,6 +2645,31 @@ TabChild::RecvRenderLayers(const bool& aEnabled, const bool& aForceRepaint, cons
 }
 
 mozilla::ipc::IPCResult
+TabChild::RecvRequestRootPaint(const IntRect& aRect, const float& aScale, const nscolor& aBackgroundColor, RequestRootPaintResolver&& aResolve)
+{
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  if (!docShell) {
+    return IPC_OK();
+  }
+
+  aResolve(gfx::PaintFragment::Record(docShell, aRect, aScale, aBackgroundColor));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+TabChild::RecvRequestSubPaint(const float& aScale, const nscolor& aBackgroundColor, RequestSubPaintResolver&& aResolve)
+{
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  if (!docShell) {
+    return IPC_OK();
+  }
+
+  gfx::IntRect rect = gfx::RoundedIn(gfx::Rect(0.0f, 0.0f, mUnscaledInnerSize.width, mUnscaledInnerSize.height));
+  aResolve(gfx::PaintFragment::Record(docShell, rect, aScale, aBackgroundColor));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
 TabChild::RecvNavigateByKey(const bool& aForward, const bool& aForDocumentNavigation)
 {
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -2753,19 +2710,6 @@ TabChild::RecvHandledWindowedPluginKeyEvent(
   return IPC_OK();
 }
 
-PRenderFrameChild*
-TabChild::AllocPRenderFrameChild()
-{
-    return new RenderFrameChild();
-}
-
-bool
-TabChild::DeallocPRenderFrameChild(PRenderFrameChild* aFrame)
-{
-    delete aFrame;
-    return true;
-}
-
 bool
 TabChild::InitTabChildMessageManager()
 {
@@ -2802,16 +2746,9 @@ TabChild::InitTabChildMessageManager()
 void
 TabChild::InitRenderingState(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
                              const layers::LayersId& aLayersId,
-                             const CompositorOptions& aCompositorOptions,
-                             PRenderFrameChild* aRenderFrame)
+                             const CompositorOptions& aCompositorOptions)
 {
     mPuppetWidget->InitIMEState();
-
-    if (!aRenderFrame) {
-      mLayersConnected = Some(false);
-      NS_WARNING("failed to construct RenderFrame");
-      return;
-    }
 
     MOZ_ASSERT(aLayersId.IsValid());
     mTextureFactoryIdentifier = aTextureFactoryIdentifier;
@@ -2827,7 +2764,6 @@ TabChild::InitRenderingState(const TextureFactoryIdentifier& aTextureFactoryIden
 
     mCompositorOptions = Some(aCompositorOptions);
 
-    mRemoteFrame = static_cast<RenderFrameChild*>(aRenderFrame);
     if (aLayersId.IsValid()) {
       StaticMutexAutoLock lock(sTabChildrenMutex);
 
@@ -2945,7 +2881,7 @@ TabChild::NotifyPainted()
     if (!mNotified) {
         // Recording/replaying processes have a compositor but not a remote frame.
         if (!recordreplay::IsRecordingOrReplaying()) {
-            mRemoteFrame->SendNotifyCompositorTransaction();
+            SendNotifyCompositorTransaction();
         }
         mNotified = true;
     }
@@ -3211,6 +3147,25 @@ TabChild::InvalidateLayers()
 }
 
 void
+TabChild::SchedulePaint()
+{
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  if (!docShell) {
+    return;
+  }
+
+  // We don't use TabChildBase::GetPresShell() here because that would create
+  // a content viewer if one doesn't exist yet. Creating a content viewer can
+  // cause JS to run, which we want to avoid. nsIDocShell::GetPresShell
+  // returns null if no content viewer exists yet.
+  if (nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell()) {
+    if (nsIFrame* root = presShell->GetRootFrame()) {
+      root->SchedulePaint();
+    }
+  }
+}
+
+void
 TabChild::ReinitRendering()
 {
   MOZ_ASSERT(mLayersId.IsValid());
@@ -3305,7 +3260,7 @@ TabChild::RecvRequestNotifyAfterRemotePaint()
 
   // Tell the CompositorBridgeChild that, when it gets a RemotePaintIsReady
   // message that it should forward it us so that we can bounce it to our
-  // RenderFrameParent.
+  // TabParent.
   compositor->RequestNotifyAfterRemotePaint(this);
   return IPC_OK();
 }
@@ -3406,6 +3361,21 @@ mozilla::ipc::IPCResult
 TabChild::RecvSetWidgetNativeData(const WindowsHandle& aWidgetNativeData)
 {
   mWidgetNativeData = aWidgetNativeData;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+TabChild::RecvGetContentBlockingLog(GetContentBlockingLogResolver&& aResolve)
+{
+  bool success = false;
+  nsAutoString result;
+
+  if (nsCOMPtr<nsIDocument> doc = GetDocument()) {
+    result = doc->GetContentBlockingLog()->Stringify();
+    success = true;
+  }
+
+  aResolve(Tuple<const nsString&, const bool&>(result, success));
   return IPC_OK();
 }
 

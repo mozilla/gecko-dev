@@ -7,6 +7,12 @@ var gDebuggee;
 var gClient;
 var gThreadClient;
 
+Services.prefs.setBoolPref("security.allow_eval_with_system_principal", true);
+
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("security.allow_eval_with_system_principal");
+});
+
 function run_test() {
   initTestDebuggerServer();
   gDebuggee = addTestGlobal("test-grips");
@@ -17,7 +23,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(
-      gClient, "test-grips", function(response, tabClient, threadClient) {
+      gClient, "test-grips", function(response, targetFront, threadClient) {
         gThreadClient = threadClient;
         test_longstring_grip();
       });
@@ -34,7 +40,7 @@ function test_longstring_grip() {
         type: "longString",
         length: 1000000,
         actor: "123fakeActor123",
-        initial: ""
+        initial: "",
       };
       const longStringClient = gThreadClient.pauseLongString(fakeLongStringGrip);
       longStringClient.substring(22, 28, function(response) {

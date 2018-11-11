@@ -37,7 +37,6 @@
 #include "nsMemoryImpl.h"
 #include "nsDebugImpl.h"
 #include "nsTraceRefcnt.h"
-#include "nsErrorService.h"
 
 #include "nsArray.h"
 #include "nsINIParserImpl.h"
@@ -199,7 +198,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsSupportsDouble)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSupportsInterfacePointer)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsConsoleService, Init)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimer)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBinaryOutputStream)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBinaryInputStream)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsStorageStream)
@@ -278,7 +276,7 @@ CreateINIParserFactory(const mozilla::Module& aModule,
 #define COMPONENT(NAME, Ctor) { &kNS_##NAME##_CID, false, nullptr, Ctor },
 #define COMPONENT_M(NAME, Ctor, Selector) { &kNS_##NAME##_CID, false, nullptr, Ctor, Selector },
 const mozilla::Module::CIDEntry kXPCOMCIDEntries[] = {
-  { &kComponentManagerCID, true, nullptr, nsComponentManagerImpl::Create, Module::ALLOW_IN_GPU_PROCESS },
+  { &kComponentManagerCID, true, nullptr, nsComponentManagerImpl::Create, Module::ALLOW_IN_GPU_AND_VR_PROCESS },
   { &kINIParserFactoryCID, false, CreateINIParserFactory },
 #include "XPCOMModule.inc"
   { &kNS_CHROMEREGISTRY_CID, false, nullptr, nsChromeRegistryConstructor },
@@ -314,7 +312,7 @@ const mozilla::Module kXPCOMModule = {
   nullptr,
   nullptr,
   nullptr,
-  Module::ALLOW_IN_GPU_PROCESS
+  Module::ALLOW_IN_GPU_AND_VR_PROCESS
 };
 
 // gDebug will be freed during shutdown.
@@ -710,11 +708,6 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
 
   // Init SharedThreadPool (which needs the service manager).
   SharedThreadPool::InitStatics();
-
-  // Force layout to spin up so that nsContentUtils is available for cx stack
-  // munging.
-  nsCOMPtr<nsISupports> componentLoader =
-    do_GetService("@mozilla.org/moz/jsloader;1");
 
   mozilla::ScriptPreloader::GetSingleton();
   mozilla::scache::StartupCache::GetSingleton();

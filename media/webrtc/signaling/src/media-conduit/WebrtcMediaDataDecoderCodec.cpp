@@ -9,7 +9,7 @@
 #include "VideoUtils.h"
 #include "mozilla/media/MediaUtils.h"
 #include "mozilla/layers/ImageBridgeChild.h"
-#include "webrtc/base/keep_ref_until_done.h"
+#include "webrtc/rtc_base/keep_ref_until_done.h"
 
 namespace mozilla {
 
@@ -26,8 +26,6 @@ WebrtcMediaDataDecoder::WebrtcMediaDataDecoder()
 
 WebrtcMediaDataDecoder::~WebrtcMediaDataDecoder()
 {
-  mTaskQueue->BeginShutdown();
-  mTaskQueue->AwaitShutdownAndIdle();
 }
 
 int32_t
@@ -159,14 +157,10 @@ WebrtcMediaDataDecoder::RegisterDecodeCompleteCallback(
 int32_t
 WebrtcMediaDataDecoder::Release()
 {
-  RefPtr<ShutdownPromise> p =
-    mDecoder->Flush()->Then(mTaskQueue,
-                            __func__,
-                            [this]() { return mDecoder->Shutdown(); },
-                            [this]() { return mDecoder->Shutdown(); });
-  media::Await(do_AddRef(mThreadPool), p);
+  RefPtr<MediaDataDecoder> decoder = mDecoder.forget();
+  decoder->Flush()->Then(
+    mTaskQueue, __func__, [decoder]() { decoder->Shutdown(); });
 
-  mDecoder = nullptr;
   mNeedKeyframe = true;
 
   return WEBRTC_VIDEO_CODEC_OK;
@@ -176,38 +170,6 @@ bool
 WebrtcMediaDataDecoder::OnTaskQueue() const
 {
   return OwnerThread()->IsCurrentThreadIn();
-}
-
-ImageBuffer::ImageBuffer(RefPtr<layers::Image>&& aImage)
-  : webrtc::NativeHandleBuffer(aImage,
-                               aImage->GetSize().width,
-                               aImage->GetSize().height)
-  , mImage(std::move(aImage))
-{
-}
-
-rtc::scoped_refptr<webrtc::VideoFrameBuffer>
-ImageBuffer::NativeToI420Buffer()
-{
-  RefPtr<layers::PlanarYCbCrImage> image = mImage->AsPlanarYCbCrImage();
-  if (!image) {
-    // TODO. YUV420 ReadBack, Image only provides a RGB readback.
-    return nullptr;
-  }
-  rtc::scoped_refptr<layers::PlanarYCbCrImage> refImage(image);
-  const layers::PlanarYCbCrData* data = image->GetData();
-  rtc::scoped_refptr<webrtc::VideoFrameBuffer> buf(
-    new rtc::RefCountedObject<webrtc::WrappedI420Buffer>(
-      data->mPicSize.width,
-      data->mPicSize.height,
-      data->mYChannel,
-      data->mYStride,
-      data->mCbChannel,
-      data->mCbCrStride,
-      data->mCrChannel,
-      data->mCbCrStride,
-      rtc::KeepRefUntilDone(refImage)));
-  return buf;
 }
 
 } // namespace mozilla

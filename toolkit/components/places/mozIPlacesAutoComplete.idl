@@ -19,6 +19,9 @@ interface mozIPlacesAutoComplete : nsISupports
   //////////////////////////////////////////////////////////////////////////////
   //// Matching Constants
 
+  // A few of these are not used in Firefox, but are still referenced in
+  // comm-central.
+
   /**
    * Match anywhere in each searchable term.
    */
@@ -82,6 +85,7 @@ interface mozIPlacesAutoComplete : nsISupports
 
   /**
    * Search for typed pages.
+   * No more supported by Firefox, it is still being used by comm-central clients.
    */
   const long BEHAVIOR_TYPED = 1 << 5;
 
@@ -105,36 +109,7 @@ interface mozIPlacesAutoComplete : nsISupports
   /**
    * Include search suggestions from the currently selected search provider.
    */
-  const long BEHAVIOR_SEARCHES = 1 << 9;
-
-  /**
-   * Mark a page as being currently open.
-   *
-   * @note Pages will not be automatically unregistered when Private Browsing
-   *       mode is entered or exited.  Therefore, consumers MUST unregister or
-   *       register themselves.
-   *
-   * @param aURI
-   *        The URI to register as an open page.
-   * @param aUserContextId
-   *        The Container Id of the tab.
-   */
-  void registerOpenPage(in nsIURI aURI, in uint32_t aUserContextId);
-
-  /**
-   * Mark a page as no longer being open (either by closing the window or tab,
-   * or by navigating away from that page).
-   *
-   * @note Pages will not be automatically unregistered when Private Browsing
-   *       mode is entered or exited.  Therefore, consumers MUST unregister or
-   *       register themselves.
-   *
-   * @param aURI
-   *        The URI to unregister as an open page.
-   * @param aUserContextId
-   *        The Container Id of the tab.
-   */
-  void unregisterOpenPage(in nsIURI aURI, in uint32_t aUserContextId);
+  const long BEHAVIOR_SEARCH = 1 << 9;
 
   /**
    * Populate list of Preloaded Sites from JSON.

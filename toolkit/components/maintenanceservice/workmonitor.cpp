@@ -27,6 +27,7 @@
 #include "updatehelper.h"
 #include "pathhash.h"
 #include "errors.h"
+#include "commonupdatedir.h"
 
 #define PATCH_DIR_PATH L"\\updates\\0"
 
@@ -94,8 +95,8 @@ static bool
 IsUpdateBeingStaged(int argc, LPWSTR *argv)
 {
   // PID will be set to -1 if we're supposed to stage an update.
-  return argc == 4 && !wcscmp(argv[3], L"-1") ||
-         argc == 5 && !wcscmp(argv[4], L"-1");
+  return (argc == 4 && !wcscmp(argv[3], L"-1")) ||
+         (argc == 5 && !wcscmp(argv[4], L"-1"));
 }
 
 /**
@@ -128,8 +129,8 @@ IsDigits(WCHAR *str)
 static bool
 IsOldCommandline(int argc, LPWSTR *argv)
 {
-  return argc == 4 && !wcscmp(argv[3], L"-1") ||
-         argc >= 4 && (wcsstr(argv[3], L"/replace") || IsDigits(argv[3]));
+  return (argc == 4 && !wcscmp(argv[3], L"-1")) ||
+         (argc >= 4 && (wcsstr(argv[3], L"/replace") || IsDigits(argv[3])));
 }
 
 /**
@@ -187,7 +188,7 @@ StartUpdateProcess(int argc,
   LOG(("Starting update process as the service in session 0."));
   STARTUPINFO si = {0};
   si.cb = sizeof(STARTUPINFO);
-  si.lpDesktop = L"winsta0\\Default";
+  si.lpDesktop = const_cast<LPWSTR>(L"winsta0\\Default"); // -Wwritable-strings
   PROCESS_INFORMATION pi = {0};
 
   // The updater command line is of the form:
@@ -205,7 +206,7 @@ StartUpdateProcess(int argc,
   // across all OS if it's of no harm.
   if (argc >= index) {
     // Setting the desktop to blank will ensure no GUI is displayed
-    si.lpDesktop = L"";
+    si.lpDesktop = const_cast<LPWSTR>(L""); // -Wwritable-strings
     si.dwFlags |= STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
   }
@@ -690,6 +691,15 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
       return FALSE;
     }
 
+    mozilla::UniquePtr<wchar_t[]> updateDir;
+    HRESULT permResult = GetCommonUpdateDirectory(installDir,
+                                                  SetPermissionsOf::AllFilesAndDirs,
+                                                  updateDir);
+    if (FAILED(permResult)) {
+      LOG_WARN(("Unable to set the permissions on the update directory ('%S'): %d",
+               updateDir.get(), permResult));
+    }
+
     if (!DoesFallbackKeyExist()) {
       WCHAR maintenanceServiceKey[MAX_PATH + 1];
       if (CalculateRegistryPathFromFilePath(installDir, maintenanceServiceKey)) {
@@ -768,6 +778,23 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
     // because the service self updates itself and the service
     // installer will stop the service.
     LOG(("Service command %ls complete.", argv[2]));
+  } else if (!lstrcmpi(argv[2], L"fix-update-directory-perms")) {
+    bool gotInstallDir = true;
+    mozilla::UniquePtr<wchar_t[]> updateDir;
+    if (argc <= 3) {
+      LOG_WARN(("Didn't get an install dir for fix-update-directory-perms"));
+      gotInstallDir = false;
+    }
+    HRESULT permResult = GetCommonUpdateDirectory(gotInstallDir ? argv[3]
+                                                                : nullptr,
+                           SetPermissionsOf::AllFilesAndDirs, updateDir);
+    if (FAILED(permResult)) {
+      LOG_WARN(("Unable to set the permissions on the update directory "
+                "('%S'): %d", updateDir.get(), permResult));
+      result = FALSE;
+    } else {
+      result = TRUE;
+    }
   } else {
     LOG_WARN(("Service command not recognized: %ls.", argv[2]));
     // result is already set to FALSE
@@ -775,5 +802,5 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
 
   LOG(("service command %ls complete with result: %ls.",
        argv[1], (result ? L"Success" : L"Failure")));
-  return TRUE;
+  return result;
 }

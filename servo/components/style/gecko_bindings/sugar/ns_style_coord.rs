@@ -6,7 +6,7 @@
 
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsStyleCoord, nsStyleCoord_Calc, nsStyleCoord_CalcValue};
-use gecko_bindings::structs::{nscoord, nsStyleCorners, nsStyleSides, nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::{nsStyleCorners, nsStyleSides, nsStyleUnion, nsStyleUnit, nscoord};
 use std::mem;
 
 impl nsStyleCoord {
@@ -200,12 +200,6 @@ pub enum CoordDataValue {
     Factor(f32),
     /// eStyleUnit_Degree
     Degree(f32),
-    /// eStyleUnit_Grad
-    Grad(f32),
-    /// eStyleUnit_Radian
-    Radian(f32),
-    /// eStyleUnit_Turn
-    Turn(f32),
     /// eStyleUnit_FlexFraction
     FlexFraction(f32),
     /// eStyleUnit_Coord
@@ -283,8 +277,8 @@ pub unsafe trait CoordDataMut: CoordData {
     #[inline(always)]
     /// Sets the inner value.
     fn set_value(&mut self, value: CoordDataValue) {
-        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         self.reset();
         unsafe {
             let (unit, union) = self.values_mut();
@@ -315,18 +309,6 @@ pub unsafe trait CoordDataMut: CoordData {
                 },
                 Degree(f) => {
                     *unit = eStyleUnit_Degree;
-                    *union.mFloat.as_mut() = f;
-                },
-                Grad(f) => {
-                    *unit = eStyleUnit_Grad;
-                    *union.mFloat.as_mut() = f;
-                },
-                Radian(f) => {
-                    *unit = eStyleUnit_Radian;
-                    *union.mFloat.as_mut() = f;
-                },
-                Turn(f) => {
-                    *unit = eStyleUnit_Turn;
                     *union.mFloat.as_mut() = f;
                 },
                 FlexFraction(f) => {
@@ -382,8 +364,8 @@ pub unsafe trait CoordData {
     #[inline(always)]
     /// Get the appropriate value for this object.
     fn as_value(&self) -> CoordDataValue {
-        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         unsafe {
             match self.unit() {
                 eStyleUnit_Null => Null,
@@ -393,9 +375,6 @@ pub unsafe trait CoordData {
                 eStyleUnit_Percent => Percent(self.get_float()),
                 eStyleUnit_Factor => Factor(self.get_float()),
                 eStyleUnit_Degree => Degree(self.get_float()),
-                eStyleUnit_Grad => Grad(self.get_float()),
-                eStyleUnit_Radian => Radian(self.get_float()),
-                eStyleUnit_Turn => Turn(self.get_float()),
                 eStyleUnit_FlexFraction => FlexFraction(self.get_float()),
                 eStyleUnit_Coord => Coord(self.get_integer()),
                 eStyleUnit_Integer => Integer(self.get_integer()),
@@ -413,9 +392,6 @@ pub unsafe trait CoordData {
             self.unit() == eStyleUnit_Percent ||
                 self.unit() == eStyleUnit_Factor ||
                 self.unit() == eStyleUnit_Degree ||
-                self.unit() == eStyleUnit_Grad ||
-                self.unit() == eStyleUnit_Radian ||
-                self.unit() == eStyleUnit_Turn ||
                 self.unit() == eStyleUnit_FlexFraction
         );
         *self.union().mFloat.as_ref()

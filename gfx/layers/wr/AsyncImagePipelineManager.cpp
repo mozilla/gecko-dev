@@ -31,11 +31,13 @@ AsyncImagePipelineManager::AsyncImagePipeline::AsyncImagePipeline()
 AsyncImagePipelineManager::AsyncImagePipelineManager(already_AddRefed<wr::WebRenderAPI>&& aApi)
  : mApi(aApi)
  , mIdNamespace(mApi->GetNamespace())
+ , mUseTripleBuffering(mApi->GetUseTripleBuffering())
  , mResourceId(0)
  , mAsyncImageEpoch{0}
  , mWillGenerateFrame(false)
  , mDestroyed(false)
  , mUpdatesLock("UpdatesLock")
+ , mUpdatesCount(0)
 {
   MOZ_COUNT_CTOR(AsyncImagePipelineManager);
 }
@@ -280,6 +282,8 @@ AsyncImagePipelineManager::UpdateImageKeys(const wr::Epoch& aEpoch,
   }
 
   if (aPipeline->mWrTextureWrapper) {
+    // Force frame rendering, since WebRenderTextureHost update its data outside of WebRender.
+    aMaybeFastTxn.InvalidateRenderedFrame();
     HoldExternalImage(aPipelineId, aEpoch, aPipeline->mWrTextureWrapper);
   }
 
@@ -540,23 +544,38 @@ AsyncImagePipelineManager::HoldExternalImage(const wr::PipelineId& aPipelineId, 
 }
 
 void
-AsyncImagePipelineManager::NotifyPipelinesUpdated(wr::WrPipelineInfo aInfo)
+AsyncImagePipelineManager::NotifyPipelinesUpdated(wr::WrPipelineInfo aInfo, bool aRender)
 {
   // This is called on the render thread, so we just stash the data into
-  // mUpdatesQueue and process it later on the compositor thread.
+  // UpdatesQueue and process it later on the compositor thread.
   MOZ_ASSERT(wr::RenderThread::IsInRenderThread());
 
-  MutexAutoLock lock(mUpdatesLock);
+  // Increment the count when render happens.
+  uint64_t currCount = aRender ? ++mUpdatesCount : mUpdatesCount;
+  auto updates = MakeUnique<PipelineUpdates>(currCount, aRender);
+
   for (uintptr_t i = 0; i < aInfo.epochs.length; i++) {
-    mUpdatesQueue.push(std::make_pair(
+    updates->mQueue.emplace(std::make_pair(
         aInfo.epochs.data[i].pipeline_id,
         Some(aInfo.epochs.data[i].epoch)));
   }
   for (uintptr_t i = 0; i < aInfo.removed_pipelines.length; i++) {
-    mUpdatesQueue.push(std::make_pair(
+    updates->mQueue.emplace(std::make_pair(
         aInfo.removed_pipelines.data[i],
         Nothing()));
   }
+
+  {
+    // Scope lock to push UpdatesQueue to mUpdatesQueues.
+    MutexAutoLock lock(mUpdatesLock);
+    mUpdatesQueues.push(std::move(updates));
+  }
+
+  if (!aRender) {
+    // Do not post ProcessPipelineUpdate when rendering did not happen.
+    return;
+  }
+
   // Queue a runnable on the compositor thread to process the queue
   layers::CompositorThreadHolder::Loop()->PostTask(
       NewRunnableMethod("ProcessPipelineUpdates",
@@ -573,30 +592,53 @@ AsyncImagePipelineManager::ProcessPipelineUpdates()
     return;
   }
 
-  while (true) {
-    wr::PipelineId pipelineId;
-    Maybe<wr::Epoch> epoch;
+  UniquePtr<PipelineUpdates> updates;
 
-    { // scope lock to extract one item from the queue
+  while (true) {
+    // Clear updates if it is empty. It is a preparation for next PipelineUpdates handling.
+    if (updates && updates->mQueue.empty()) {
+      updates = nullptr;
+    }
+
+    // Get new PipelineUpdates if necessary.
+    if (!updates) {
+      // Scope lock to extract UpdatesQueue from mUpdatesQueues.
       MutexAutoLock lock(mUpdatesLock);
-      if (mUpdatesQueue.empty()) {
+      if (mUpdatesQueues.empty()) {
+        // No more PipelineUpdates to process for now.
         break;
       }
-      pipelineId = mUpdatesQueue.front().first;
-      epoch = mUpdatesQueue.front().second;
-      mUpdatesQueue.pop();
+      // Check if PipelineUpdates is ready to process.
+      uint64_t currCount = mUpdatesCount;
+      if (mUpdatesQueues.front()->NeedsToWait(currCount)) {
+        // PipelineUpdates is not ready for processing for now.
+        break;
+      }
+      updates = std::move(mUpdatesQueues.front());
+      mUpdatesQueues.pop();
+    }
+    MOZ_ASSERT(updates);
+
+    if (updates->mQueue.empty()) {
+      // Try next PipelineUpdates.
+      continue;
     }
 
+    wr::PipelineId pipelineId = updates->mQueue.front().first;
+    Maybe<wr::Epoch> epoch = updates->mQueue.front().second;
+    updates->mQueue.pop();
+
     if (epoch.isSome()) {
-      ProcessPipelineRendered(pipelineId, *epoch);
+      ProcessPipelineRendered(pipelineId, *epoch, updates->mUpdatesCount);
     } else {
-      ProcessPipelineRemoved(pipelineId);
+      ProcessPipelineRemoved(pipelineId, updates->mUpdatesCount);
     }
   }
+  CheckForTextureHostsNotUsedByGPU();
 }
 
 void
-AsyncImagePipelineManager::ProcessPipelineRendered(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch)
+AsyncImagePipelineManager::ProcessPipelineRendered(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch, const uint64_t aUpdatesCount)
 {
   if (auto entry = mPipelineTexturesHolders.Lookup(wr::AsUint64(aPipelineId))) {
     PipelineTexturesHolder* holder = entry.Data();
@@ -605,6 +647,8 @@ AsyncImagePipelineManager::ProcessPipelineRendered(const wr::PipelineId& aPipeli
       if (aEpoch <= holder->mTextureHosts.front().mEpoch) {
         break;
       }
+      // Need to extend holding TextureHost if it is direct bounded texture.
+      HoldUntilNotUsedByGPU(holder->mTextureHosts.front().mTexture, aUpdatesCount);
       holder->mTextureHosts.pop();
     }
     while (!holder->mTextureHostWrappers.empty()) {
@@ -626,7 +670,7 @@ AsyncImagePipelineManager::ProcessPipelineRendered(const wr::PipelineId& aPipeli
 }
 
 void
-AsyncImagePipelineManager::ProcessPipelineRemoved(const wr::PipelineId& aPipelineId)
+AsyncImagePipelineManager::ProcessPipelineRemoved(const wr::PipelineId& aPipelineId, const uint64_t aUpdatesCount)
 {
   if (mDestroyed) {
     return;
@@ -634,6 +678,11 @@ AsyncImagePipelineManager::ProcessPipelineRemoved(const wr::PipelineId& aPipelin
   if (auto entry = mPipelineTexturesHolders.Lookup(wr::AsUint64(aPipelineId))) {
     PipelineTexturesHolder* holder = entry.Data();
     if (holder->mDestroyedEpoch.isSome()) {
+      while (!holder->mTextureHosts.empty()) {
+        // Need to extend holding TextureHost if it is direct bounded texture.
+        HoldUntilNotUsedByGPU(holder->mTextureHosts.front().mTexture, aUpdatesCount);
+        holder->mTextureHosts.pop();
+      }
       // Explicitly release all of the shared surfaces.
       while (!holder->mExternalImages.empty()) {
         DebugOnly<bool> released =
@@ -647,6 +696,39 @@ AsyncImagePipelineManager::ProcessPipelineRemoved(const wr::PipelineId& aPipelin
     }
     // If mDestroyedEpoch contains nothing it means we reused the same pipeline id (probably because
     // we moved the tab to another window). In this case we need to keep the holder.
+  }
+}
+
+void
+AsyncImagePipelineManager::HoldUntilNotUsedByGPU(const CompositableTextureHostRef& aTextureHost, uint64_t aUpdatesCount)
+{
+  MOZ_ASSERT(aTextureHost);
+
+  if (aTextureHost->HasIntermediateBuffer()) {
+    // If texutre is not direct binding texture, gpu has already finished using it.
+    // We could release it now.
+    return;
+  }
+
+  // When Triple buffer is used, we need wait one more WebRender rendering,
+  if (mUseTripleBuffering) {
+    ++aUpdatesCount;
+  }
+
+  mTexturesInUseByGPU.emplace(
+    std::make_pair(aUpdatesCount, aTextureHost));
+}
+
+void
+AsyncImagePipelineManager::CheckForTextureHostsNotUsedByGPU()
+{
+  uint64_t currCount = mUpdatesCount;
+
+  while (!mTexturesInUseByGPU.empty()) {
+    if (currCount <= mTexturesInUseByGPU.front().first) {
+      break;
+    }
+    mTexturesInUseByGPU.pop();
   }
 }
 

@@ -8,7 +8,7 @@
 const {
   MESSAGE_SOURCE,
   MESSAGE_TYPE,
-  MESSAGE_LEVEL
+  MESSAGE_LEVEL,
 } = require("devtools/client/webconsole/constants");
 
 exports.ConsoleCommand = function(props) {
@@ -22,6 +22,7 @@ exports.ConsoleCommand = function(props) {
     groupId: null,
     indent: 0,
     private: false,
+    timeStamp: null,
   }, props);
 };
 

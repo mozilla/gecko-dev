@@ -42,20 +42,16 @@ namespace {
    *
    * @param aStart
    *        An iterator pointing to the first character position considered.
+   *        It will be updated by this function.
    * @param aEnd
    *        An interator pointing to past-the-end of the string.
-   *
-   * @return An iterator pointing to the first potential matching character
-   *         within the range [aStart, aEnd).
    */
   static
-  MOZ_ALWAYS_INLINE const_char_iterator
-  nextSearchCandidate(const_char_iterator aStart,
-                      const_char_iterator aEnd,
-                      uint32_t aSearchFor)
+  MOZ_ALWAYS_INLINE void
+  goToNextSearchCandidate(const_char_iterator& aStart,
+                          const const_char_iterator& aEnd,
+                          uint32_t aSearchFor)
   {
-    const_char_iterator cur = aStart;
-
     // If the character we search for is ASCII, then we can scan until we find
     // it or its ASCII uppercase character, modulo the special cases
     // U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE and U+212A KELVIN SIGN
@@ -82,18 +78,15 @@ namespace {
         special = (target == 'i' ? 0xc4 : 0xe2);
       }
 
-      while (cur < aEnd && (unsigned char)(*cur | 0x20) != target &&
-          (unsigned char)*cur != special) {
-        cur++;
+      while (aStart < aEnd && (unsigned char)(*aStart | 0x20) != target &&
+          (unsigned char)*aStart != special) {
+        aStart++;
       }
     } else {
-      const_char_iterator cur = aStart;
-      while (cur < aEnd && (unsigned char)(*cur) < 128) {
-        cur++;
+      while (aStart < aEnd && (unsigned char)(*aStart) < 128) {
+        aStart++;
       }
     }
-
-    return cur;
   }
 
   /**
@@ -210,7 +203,7 @@ namespace {
 
     for (;;) {
       // Scan forward to the next viable candidate (if any).
-      sourceCur = nextSearchCandidate(sourceCur, sourceEnd, tokenFirstChar);
+      goToNextSearchCandidate(sourceCur, sourceEnd, tokenFirstChar);
       if (sourceCur == sourceEnd) {
         break;
       }
@@ -454,55 +447,6 @@ namespace places {
   }
 
   /* static */
-  bool
-  MatchAutoCompleteFunction::findBeginning(const nsDependentCSubstring &aToken,
-                                           const nsACString &aSourceString)
-  {
-    MOZ_ASSERT(!aToken.IsEmpty(), "Don't search for an empty token!");
-
-    // We can't use StringBeginsWith here, unfortunately.  Although it will
-    // happily take a case-insensitive UTF8 comparator, it eventually calls
-    // nsACString::Equals, which checks that the two strings contain the same
-    // number of bytes before calling the comparator.  Two characters may be
-    // case-insensitively equal while taking up different numbers of bytes, so
-    // this is not what we want.
-
-    const_char_iterator tokenStart(aToken.BeginReading()),
-                        tokenEnd(aToken.EndReading()),
-                        sourceStart(aSourceString.BeginReading()),
-                        sourceEnd(aSourceString.EndReading());
-
-    bool dummy;
-    while (sourceStart < sourceEnd &&
-           CaseInsensitiveUTF8CharsEqual(sourceStart, tokenStart,
-                                         sourceEnd, tokenEnd,
-                                         &sourceStart, &tokenStart, &dummy)) {
-
-      // We found the token!
-      if (tokenStart >= tokenEnd) {
-        return true;
-      }
-    }
-
-    // We don't need to check CaseInsensitiveUTF8CharsEqual's error condition
-    // (stored in |dummy|), since the function will return false if it
-    // encounters an error.
-
-    return false;
-  }
-
-  /* static */
-  bool
-  MatchAutoCompleteFunction::findBeginningCaseSensitive(
-    const nsDependentCSubstring &aToken,
-    const nsACString &aSourceString)
-  {
-    MOZ_ASSERT(!aToken.IsEmpty(), "Don't search for an empty token!");
-
-    return StringBeginsWith(aSourceString, aToken);
-  }
-
-  /* static */
   MatchAutoCompleteFunction::searchFunctionPtr
   MatchAutoCompleteFunction::getSearchFunction(int32_t aBehavior)
   {
@@ -510,10 +454,6 @@ namespace places {
       case mozIPlacesAutoComplete::MATCH_ANYWHERE:
       case mozIPlacesAutoComplete::MATCH_ANYWHERE_UNMODIFIED:
         return findAnywhere;
-      case mozIPlacesAutoComplete::MATCH_BEGINNING:
-        return findBeginning;
-      case mozIPlacesAutoComplete::MATCH_BEGINNING_CASE_SENSITIVE:
-        return findBeginningCaseSensitive;
       case mozIPlacesAutoComplete::MATCH_BOUNDARY:
       default:
         return findOnBoundary;
@@ -561,6 +501,8 @@ namespace places {
     }
 
     int32_t visitCount = aArguments->AsInt32(kArgIndexVisitCount);
+    // Filtering on typed is no more used by Firefox, it is still being used by
+    // comm-central clients.
     bool typed = aArguments->AsInt32(kArgIndexTyped) ? true : false;
     bool bookmark = aArguments->AsInt32(kArgIndexBookmark) ? true : false;
     nsDependentCString tags = getSharedUTF8String(aArguments, kArgIndexTags);

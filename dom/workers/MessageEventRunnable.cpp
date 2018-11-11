@@ -19,7 +19,7 @@ namespace dom {
 
 MessageEventRunnable::MessageEventRunnable(WorkerPrivate* aWorkerPrivate,
                                            TargetAndBusyBehavior aBehavior)
-  : WorkerRunnable(aWorkerPrivate, aBehavior)
+  : WorkerDebuggeeRunnable(aWorkerPrivate, aBehavior)
   , StructuredCloneHolder(CloningSupported, TransferringSupported,
                           StructuredCloneScope::SameProcessDifferentThread)
 {
@@ -31,7 +31,7 @@ MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
                                        DOMEventTargetHelper* aTarget,
                                        bool aIsMainThread)
 {
-  nsCOMPtr<nsIGlobalObject> parent = do_QueryInterface(aTarget->GetParentObject());
+  nsCOMPtr<nsIGlobalObject> parent = aTarget->GetParentObject();
 
   // For some workers without window, parent is null and we try to find it
   // from the JS Context.
@@ -114,12 +114,17 @@ MessageEventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
       return true;
     }
 
-    if (aWorkerPrivate->IsFrozen() ||
-        aWorkerPrivate->IsParentWindowPaused()) {
-      MOZ_ASSERT(!IsDebuggerRunnable());
-      aWorkerPrivate->QueueRunnable(this);
-      return true;
-    }
+    // Once a window has frozen its workers, their
+    // mMainThreadDebuggeeEventTargets should be paused, and their
+    // WorkerDebuggeeRunnables should not be being executed. The same goes for
+    // WorkerDebuggeeRunnables sent from child to parent workers, but since a
+    // frozen parent worker runs only control runnables anyway, that is taken
+    // care of naturally.
+    MOZ_ASSERT(!aWorkerPrivate->IsFrozen());
+
+    // Similarly for paused windows; all its workers should have been informed.
+    // (Subworkers are unaffected by paused windows.)
+    MOZ_ASSERT(!aWorkerPrivate->IsParentWindowPaused());
 
     aWorkerPrivate->AssertInnerWindowIsCorrect();
 

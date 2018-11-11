@@ -84,6 +84,8 @@
 #include "mozilla/layers/CompositorSession.h"
 #include "VRManagerChild.h"
 #include "gfxConfig.h"
+#include "nsView.h"
+#include "nsViewManager.h"
 
 #ifdef DEBUG
 #include "nsIObserver.h"
@@ -1023,7 +1025,7 @@ nsBaseWidget::SetConfirmedTargetAPZC(uint64_t aInputBlockId,
 
 void
 nsBaseWidget::UpdateZoomConstraints(const uint32_t& aPresShellId,
-                                    const FrameMetrics::ViewID& aViewId,
+                                    const ScrollableLayerGuid::ViewID& aViewId,
                                     const Maybe<ZoomConstraints>& aConstraints)
 {
   if (!mCompositorSession || !mAPZC) {
@@ -1979,7 +1981,7 @@ nsBaseWidget::GetNativeTextEventDispatcherListener()
 
 void
 nsBaseWidget::ZoomToRect(const uint32_t& aPresShellId,
-                         const FrameMetrics::ViewID& aViewId,
+                         const ScrollableLayerGuid::ViewID& aViewId,
                          const CSSRect& aRect,
                          const uint32_t& aFlags)
 {
@@ -2079,6 +2081,12 @@ nsBaseWidget::GetWidgetScreen()
                                deskBounds.Width(), deskBounds.Height(),
                                getter_AddRefs(screen));
   return screen.forget();
+}
+
+mozilla::DesktopToLayoutDeviceScale
+nsBaseWidget::GetDesktopToDeviceScaleByScreen()
+{
+  return (nsView::GetViewFor(this)->GetViewManager()->GetDeviceContext())->GetDesktopToDeviceScale();
 }
 
 nsresult

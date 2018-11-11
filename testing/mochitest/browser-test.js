@@ -17,7 +17,7 @@ ChromeUtils.defineModuleGetter(this, "ContentSearch",
   "resource:///modules/ContentSearch.jsm");
 
 const SIMPLETEST_OVERRIDES =
-  ["ok", "is", "isnot", "todo", "todo_is", "todo_isnot", "info", "expectAssertions", "requestCompleteLog"];
+  ["ok", "record", "is", "isnot", "todo", "todo_is", "todo_isnot", "info", "expectAssertions", "requestCompleteLog"];
 
 setTimeout(testInit, 0);
 
@@ -88,7 +88,8 @@ function testInit() {
       // eslint-disable-next-line no-undef
       var webNav = content.window.docShell
                           .QueryInterface(Ci.nsIWebNavigation);
-      webNav.loadURI(url, null, null, null, null);
+      var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+      webNav.loadURI(url, null, null, null, null, systemPrincipal);
     };
 
     var listener = 'data:,function doLoad(e) { var data=e.detail&&e.detail.data;removeEventListener("contentEvent", function (e) { doLoad(e); }, false, true);sendAsyncMessage("chromeEvent", {"data":data}); };addEventListener("contentEvent", function (e) { doLoad(e); }, false, true);';
@@ -126,7 +127,7 @@ function testInit() {
 function takeInstrumentation() {
 
   let instrumentData = {
-    elements: {}
+    elements: {},
   };
 
   function pad(str, length) {
@@ -916,12 +917,7 @@ Tester.prototype = {
             ChromeUtils.import("resource://gre/modules/BackgroundPageThumbs.jsm", {});
           BackgroundPageThumbs._destroy();
 
-          // Destroy preloaded browsers.
-          if (gBrowser._preloadedBrowser) {
-            let browser = gBrowser._preloadedBrowser;
-            gBrowser._preloadedBrowser = null;
-            gBrowser.getNotificationBox(browser).remove();
-          }
+          gBrowser.removePreloadedBrowser();
         }
 
         // Schedule GC and CC runs before finishing in order to detect
@@ -1047,10 +1043,14 @@ Tester.prototype = {
     try {
       this._scriptLoader.loadSubScript(headPath, scope);
     } catch (ex) {
-      // Ignore if no head.js exists, but report all other errors.  Note this
-      // will also ignore an existing head.js attempting to import a missing
-      // module - see bug 755558 for why this strategy is preferred anyway.
-      if (!/^Error opening input stream/.test(ex.toString())) {
+      // Bug 755558 - Ignore loadSubScript errors due to a missing head.js.
+      const isImportError = /^Error opening input stream/.test(ex.toString());
+
+      // Bug 1503169 - head.js may call loadSubScript, and generate similar errors.
+      // Only swallow errors that are strictly related to loading head.js.
+      const containsHeadPath = ex.toString().includes(headPath);
+
+      if (!isImportError || !containsHeadPath) {
        this.currentTest.addResult(new testResult({
          name: "head.js import threw an exception",
          ex,
@@ -1192,7 +1192,7 @@ Tester.prototype = {
     }
   },
 
-  QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"])
+  QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"]),
 };
 
 /**
@@ -1284,7 +1284,15 @@ function testScope(aTester, aTest, expected) {
   aTest.allowFailure = expected == "fail";
 
   var self = this;
-  this.ok = function test_ok(condition, name, ex, stack) {
+  this.ok = function test_ok(condition, name) {
+    if (arguments.length > 2) {
+      const ex = "Too many arguments passed to ok(condition, name)`.";
+      self.record(false, name, ex);
+    } else {
+      self.record(condition, name);
+    }
+  };
+  this.record = function test_record(condition, name, ex, stack) {
     aTest.addResult(new testResult({
       name, pass: condition, ex,
       stack: stack || Components.stack.caller,
@@ -1292,11 +1300,11 @@ function testScope(aTester, aTest, expected) {
     }));
   };
   this.is = function test_is(a, b, name) {
-    self.ok(a == b, name, "Got " + a + ", expected " + b, false,
+    self.record(a == b, name, "Got " + a + ", expected " + b, false,
             Components.stack.caller);
   };
   this.isnot = function test_isnot(a, b, name) {
-    self.ok(a != b, name, "Didn't expect " + a + ", but got it", false,
+    self.record(a != b, name, "Didn't expect " + a + ", but got it", false,
             Components.stack.caller);
   };
   this.todo = function test_todo(condition, name, ex, stack) {
@@ -1322,7 +1330,7 @@ function testScope(aTester, aTest, expected) {
     Services.tm.dispatchToMainThread({
       run() {
         func();
-      }
+      },
     });
   };
 
@@ -1451,7 +1459,7 @@ testScope.prototype = {
           },
           set: (value) => {
             this[prop] = value;
-          }
+          },
         });
       }
     }
@@ -1503,5 +1511,5 @@ testScope.prototype = {
   destroy: function test_destroy() {
     for (let prop in this)
       delete this[prop];
-  }
+  },
 };

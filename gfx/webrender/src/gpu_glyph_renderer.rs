@@ -7,13 +7,13 @@
 use api::{DeviceIntPoint, DeviceIntRect, DeviceUintSize, FontRenderMode};
 use api::{ImageFormat, TextureTarget};
 use debug_colors;
-use device::{Device, Texture, TextureFilter, VAO};
+use device::{DrawTarget, Device, Texture, TextureFilter, VAO};
 use euclid::{Point2D, Size2D, Transform3D, TypedVector2D, Vector2D};
 use internal_types::RenderTargetInfo;
 use pathfinder_gfx_utils::ShelfBinPacker;
 use profiler::GpuProfileTag;
 use renderer::{self, ImageBufferKind, Renderer, RendererError, RendererStats};
-use renderer::{TextureSampler, VertexArrayKind};
+use renderer::{TextureSampler, VertexArrayKind, ShaderPrecacheFlags};
 use shade::{LazilyCompiledShader, ShaderKind};
 use tiling::GlyphJob;
 
@@ -42,7 +42,7 @@ pub struct GpuGlyphRenderer {
 }
 
 impl GpuGlyphRenderer {
-    pub fn new(device: &mut Device, prim_vao: &VAO, precache_shaders: bool)
+    pub fn new(device: &mut Device, prim_vao: &VAO, precache_flags: ShaderPrecacheFlags)
                -> Result<GpuGlyphRenderer, RendererError> {
         // Make sure the area LUT is uncompressed grayscale TGA, 8bpp.
         debug_assert!(AREA_LUT_TGA_BYTES[2] == 3);
@@ -54,14 +54,16 @@ impl GpuGlyphRenderer {
         let area_lut_pixels =
             &AREA_LUT_TGA_BYTES[18..(18 + area_lut_width * area_lut_height) as usize];
 
-        let mut area_lut_texture = device.create_texture(TextureTarget::Default, ImageFormat::R8);
-        device.init_texture(&mut area_lut_texture,
-                            area_lut_width,
-                            area_lut_height,
-                            TextureFilter::Linear,
-                            None,
-                            1,
-                            Some(area_lut_pixels));
+        let area_lut_texture = device.create_texture(
+            TextureTarget::Default,
+            ImageFormat::R8,
+            area_lut_width,
+            area_lut_height,
+            TextureFilter::Linear,
+            None,
+            1,
+        );
+        device.upload_texture_immediate(&area_lut_texture, area_lut_pixels);
 
         let vector_stencil_vao =
             device.create_vao_with_new_instances(&renderer::desc::VECTOR_STENCIL, prim_vao);
@@ -74,14 +76,14 @@ impl GpuGlyphRenderer {
                                       "pf_vector_stencil",
                                       &[ImageBufferKind::Texture2D.get_feature_string()],
                                       device,
-                                      precache_shaders)
+                                      precache_flags)
         };
         let vector_cover = try!{
             LazilyCompiledShader::new(ShaderKind::VectorCover,
                                       "pf_vector_cover",
                                       &[ImageBufferKind::Texture2D.get_feature_string()],
                                       device,
-                                      precache_shaders)
+                                      precache_flags)
         };
 
         Ok(GpuGlyphRenderer {
@@ -108,22 +110,25 @@ impl Renderer {
 
         let _timer = self.gpu_profile.start_timer(GPU_TAG_GLYPH_STENCIL);
 
+        let texture = self.device.create_texture(
+            TextureTarget::Default,
+            ImageFormat::RGBAF32,
+            target_size.width,
+            target_size.height,
+            TextureFilter::Nearest,
+            Some(RenderTargetInfo {
+                has_depth: false,
+            }),
+            1,
+        );
+
         // Initialize temporary framebuffer.
         // FIXME(pcwalton): Cache this!
         // FIXME(pcwalton): Use RF32, not RGBAF32!
         let mut current_page = StenciledGlyphPage {
-            texture: self.device.create_texture(TextureTarget::Default, ImageFormat::RGBAF32),
+            texture,
             glyphs: vec![],
         };
-        self.device.init_texture::<f32>(&mut current_page.texture,
-                                        target_size.width,
-                                        target_size.height,
-                                        TextureFilter::Nearest,
-                                        Some(RenderTargetInfo {
-                                            has_depth: false,
-                                        }),
-                                        1,
-                                        None);
 
         // Allocate all target rects.
         let mut packer = ShelfBinPacker::new(&target_size.to_i32().to_untyped(),
@@ -150,9 +155,6 @@ impl Renderer {
         }
 
         // Initialize path info.
-        // TODO(pcwalton): Cache this texture!
-        let mut path_info_texture = self.device.create_texture(TextureTarget::Default,
-                                                               ImageFormat::RGBAF32);
 
         let mut path_info_texels = Vec::with_capacity(glyphs.len() * 12);
         for (stenciled_glyph_index, &glyph_index) in glyph_indices.iter().enumerate() {
@@ -176,19 +178,27 @@ impl Renderer {
             ]);
         }
 
-        self.device.init_texture(&mut path_info_texture,
-                                 3,
-                                 glyphs.len() as u32,
-                                 TextureFilter::Nearest,
-                                 None,
-                                 1,
-                                 Some(&path_info_texels));
+        // TODO(pcwalton): Cache this texture!
+        let path_info_texture = self.device.create_texture(
+            TextureTarget::Default,
+            ImageFormat::RGBAF32,
+            3,
+            glyphs.len() as u32,
+            TextureFilter::Nearest,
+            None,
+            1,
+        );
+        self.device.upload_texture_immediate(&path_info_texture, &path_info_texels);
 
         self.gpu_glyph_renderer.vector_stencil.bind(&mut self.device,
                                                     projection,
                                                     &mut self.renderer_errors);
 
-        self.device.bind_draw_target(Some((&current_page.texture, 0)), Some(*target_size));
+        self.device.bind_draw_target(DrawTarget::Texture {
+            texture: &current_page.texture,
+            layer: 0,
+            with_depth: false,
+        });
         self.device.clear_target(Some([0.0, 0.0, 0.0, 0.0]), None, None);
 
         self.device.set_blend(true);

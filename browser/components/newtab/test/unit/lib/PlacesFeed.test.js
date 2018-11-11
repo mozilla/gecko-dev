@@ -1,7 +1,7 @@
 import {actionCreators as ac, actionTypes as at} from "common/Actions.jsm";
 import {GlobalOverrider} from "test/unit/utils";
 import {PlacesFeed} from "lib/PlacesFeed.jsm";
-const {HistoryObserver, BookmarksObserver} = PlacesFeed;
+const {HistoryObserver, BookmarksObserver, PlacesObserver} = PlacesFeed;
 
 const FAKE_BOOKMARK = {bookmarkGuid: "xi31", bookmarkTitle: "Foo", dateAdded: 123214232, url: "foo.com"};
 const TYPE_BOOKMARK = 0; // This is fake, for testing
@@ -38,6 +38,8 @@ describe("PlacesFeed", () => {
     sandbox.spy(global.PlacesUtils.bookmarks, "removeObserver");
     sandbox.spy(global.PlacesUtils.history, "addObserver");
     sandbox.spy(global.PlacesUtils.history, "removeObserver");
+    sandbox.spy(global.PlacesUtils.observers, "addListener");
+    sandbox.spy(global.PlacesUtils.observers, "removeListener");
     sandbox.spy(global.Services.obs, "addObserver");
     sandbox.spy(global.Services.obs, "removeObserver");
     sandbox.spy(global.Cu, "reportError");
@@ -74,21 +76,33 @@ describe("PlacesFeed", () => {
     assert.calledOnce(feed.store.dispatch);
     assert.equal(feed.store.dispatch.firstCall.args[0].type, action.type);
   });
+
+  it("should have a PlacesObserver that dispatches to the store", () => {
+    assert.instanceOf(feed.placesObserver, PlacesObserver);
+    const action = {type: "FOO"};
+
+    feed.placesObserver.dispatch(action);
+
+    assert.calledOnce(feed.store.dispatch);
+    assert.equal(feed.store.dispatch.firstCall.args[0].type, action.type);
+  });
   describe("#onAction", () => {
-    it("should add bookmark, history, blocked observers on INIT", () => {
+    it("should add bookmark, history, places, blocked observers on INIT", () => {
       feed.onAction({type: at.INIT});
 
       assert.calledWith(global.PlacesUtils.history.addObserver, feed.historyObserver, true);
       assert.calledWith(global.PlacesUtils.bookmarks.addObserver, feed.bookmarksObserver, true);
+      assert.calledWith(global.PlacesUtils.observers.addListener, ["bookmark-added"], feed.placesObserver.handlePlacesEvent);
       assert.calledWith(global.Services.obs.addObserver, feed, BLOCKED_EVENT);
     });
-    it("should remove bookmark, history, blocked observers, and timers on UNINIT", () => {
+    it("should remove bookmark, history, places, blocked observers, and timers on UNINIT", () => {
       feed.placesChangedTimer = global.Cc["@mozilla.org/timer;1"].createInstance();
       let spy = feed.placesChangedTimer.cancel;
       feed.onAction({type: at.UNINIT});
 
       assert.calledWith(global.PlacesUtils.history.removeObserver, feed.historyObserver);
       assert.calledWith(global.PlacesUtils.bookmarks.removeObserver, feed.bookmarksObserver);
+      assert.calledWith(global.PlacesUtils.observers.removeListener, ["bookmark-added"], feed.placesObserver.handlePlacesEvent);
       assert.calledWith(global.Services.obs.removeObserver, feed, BLOCKED_EVENT);
       assert.equal(feed.placesChangedTimer, null);
       assert.calledOnce(spy);
@@ -236,7 +250,7 @@ describe("PlacesFeed", () => {
       feed.fillSearchTopSiteTerm(action);
 
       assert.calledOnce(locationBar.search);
-      assert.calledWithExactly(locationBar.search, "@Foo ", {disableOneOffButtons: true, disableSearchSuggestionsNotification: true});
+      assert.calledWithExactly(locationBar.search, "@Foo ");
     });
     it("should call saveToPocket on SAVE_TO_POCKET", () => {
       const action = {
@@ -343,15 +357,21 @@ describe("PlacesFeed", () => {
   });
 
   describe("Custom dispatch", () => {
-    it("should only dispatch 1 PLACES_LINKS_CHANGED action if many onItemAdded notifications happened at once", async () => {
+    it("should only dispatch 1 PLACES_LINKS_CHANGED action if many bookmark-added notifications happened at once", async () => {
       // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-      const args = [null, null, null, TYPE_BOOKMARK,
-        {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-        FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.DEFAULT];
-      await feed.bookmarksObserver.onItemAdded(...args);
-      await feed.bookmarksObserver.onItemAdded(...args);
-      await feed.bookmarksObserver.onItemAdded(...args);
-      await feed.bookmarksObserver.onItemAdded(...args);
+      const args = [{
+        itemType: TYPE_BOOKMARK,
+        source:  SOURCES.DEFAULT,
+        dateAdded: FAKE_BOOKMARK.dateAdded,
+        guid: FAKE_BOOKMARK.bookmarkGuid,
+        title: FAKE_BOOKMARK.bookmarkTitle,
+        url: "https://www.foo.com",
+        isTagging: false,
+      }];
+      await feed.placesObserver.handlePlacesEvent(args);
+      await feed.placesObserver.handlePlacesEvent(args);
+      await feed.placesObserver.handlePlacesEvent(args);
+      await feed.placesObserver.handlePlacesEvent(args);
       assert.calledOnce(feed.store.dispatch.withArgs(ac.OnlyToMain({type: at.PLACES_LINKS_CHANGED})));
     });
     it("should only dispatch 1 PLACES_LINKS_CHANGED action if many onItemRemoved notifications happened at once", async () => {
@@ -372,6 +392,145 @@ describe("PlacesFeed", () => {
     });
   });
 
+  describe("PlacesObserver", () => {
+    describe("#bookmark-added", () => {
+      let dispatch;
+      let observer;
+      beforeEach(() => {
+        dispatch = sandbox.spy();
+        observer = new PlacesObserver(dispatch);
+      });
+      it("should dispatch a PLACES_BOOKMARK_ADDED action with the bookmark data - http", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.DEFAULT,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "http://www.foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.calledWith(dispatch.secondCall, {
+          type: at.PLACES_BOOKMARK_ADDED,
+          data: {
+            bookmarkGuid: FAKE_BOOKMARK.bookmarkGuid,
+            bookmarkTitle: FAKE_BOOKMARK.bookmarkTitle,
+            dateAdded: FAKE_BOOKMARK.dateAdded * 1000,
+            url: "http://www.foo.com",
+          },
+        });
+      });
+      it("should dispatch a PLACES_BOOKMARK_ADDED action with the bookmark data - https", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.DEFAULT,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "https://www.foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.calledWith(dispatch.secondCall, {
+          type: at.PLACES_BOOKMARK_ADDED,
+          data: {
+            bookmarkGuid: FAKE_BOOKMARK.bookmarkGuid,
+            bookmarkTitle: FAKE_BOOKMARK.bookmarkTitle,
+            dateAdded: FAKE_BOOKMARK.dateAdded * 1000,
+            url: "https://www.foo.com",
+          },
+        });
+      });
+      it("should not dispatch a PLACES_BOOKMARK_ADDED action - not http/https", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.DEFAULT,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has IMPORT source", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.IMPORT,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has RESTORE source", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.RESTORE,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has RESTORE_ON_STARTUP source", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.RESTORE_ON_STARTUP,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has SYNC source", async () => {
+        const args = [{
+          itemType: TYPE_BOOKMARK,
+          source:  SOURCES.SYNC,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+      it("should ignore events that are not of TYPE_BOOKMARK", async () => {
+        const args = [{
+          itemType: "nottypebookmark",
+          source:  SOURCES.DEFAULT,
+          dateAdded: FAKE_BOOKMARK.dateAdded,
+          guid: FAKE_BOOKMARK.bookmarkGuid,
+          title: FAKE_BOOKMARK.bookmarkTitle,
+          url: "https://www.foo.com",
+          isTagging: false,
+        }];
+        await observer.handlePlacesEvent(args);
+
+        assert.notCalled(dispatch);
+      });
+    });
+  });
+
   describe("BookmarksObserver", () => {
     let dispatch;
     let observer;
@@ -381,78 +540,6 @@ describe("PlacesFeed", () => {
     });
     it("should have a QueryInterface property", () => {
       assert.property(observer, "QueryInterface");
-    });
-    describe("#onItemAdded", () => {
-      beforeEach(() => {
-      });
-      it("should dispatch a PLACES_BOOKMARK_ADDED action with the bookmark data - http", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.DEFAULT];
-        await observer.onItemAdded(...args);
-
-        assert.calledWith(dispatch, {type: at.PLACES_BOOKMARK_ADDED, data: FAKE_BOOKMARK});
-      });
-      it("should dispatch a PLACES_BOOKMARK_ADDED action with the bookmark data - https", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "https"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.DEFAULT];
-        await observer.onItemAdded(...args);
-
-        assert.calledWith(dispatch, {type: at.PLACES_BOOKMARK_ADDED, data: FAKE_BOOKMARK});
-      });
-      it("should not dispatch a PLACES_BOOKMARK_ADDED action - not http/https", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "places"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.DEFAULT];
-        await observer.onItemAdded(...args);
-
-        assert.notCalled(dispatch);
-      });
-      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has IMPORT source", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.IMPORT];
-        await observer.onItemAdded(...args);
-
-        assert.notCalled(dispatch);
-      });
-      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has RESTORE source", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.RESTORE];
-        await observer.onItemAdded(...args);
-
-        assert.notCalled(dispatch);
-      });
-      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has RESTORE_ON_STARTUP source", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.RESTORE_ON_STARTUP];
-        await observer.onItemAdded(...args);
-
-        assert.notCalled(dispatch);
-      });
-      it("should not dispatch a PLACES_BOOKMARK_ADDED action - has SYNC source", async () => {
-        // Yes, onItemAdded has at least 8 arguments. See function definition for docs.
-        const args = [null, null, null, TYPE_BOOKMARK,
-          {spec: FAKE_BOOKMARK.url, scheme: "http"}, FAKE_BOOKMARK.bookmarkTitle,
-          FAKE_BOOKMARK.dateAdded, FAKE_BOOKMARK.bookmarkGuid, "", SOURCES.SYNC];
-        await observer.onItemAdded(...args);
-
-        assert.notCalled(dispatch);
-      });
-      it("should ignore events that are not of TYPE_BOOKMARK", async () => {
-        const args = [null, null, null, "nottypebookmark"];
-        await observer.onItemAdded(...args);
-        assert.notCalled(dispatch);
-      });
     });
     describe("#onItemRemoved", () => {
       it("should ignore events that are not of TYPE_BOOKMARK", async () => {

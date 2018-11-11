@@ -361,7 +361,7 @@ IntervalOverlap(gfxFloat aTranslation, gfxFloat aMin, gfxFloat aMax)
  * LayerMetricsWrapper if no matching metrics could be found.
  */
 static LayerMetricsWrapper
-FindMetricsWithScrollId(Layer* aLayer, FrameMetrics::ViewID aScrollId)
+FindMetricsWithScrollId(Layer* aLayer, ScrollableLayerGuid::ViewID aScrollId)
 {
   for (uint64_t i = 0; i < aLayer->GetScrollMetadataCount(); ++i) {
     if (aLayer->GetFrameMetrics(i).GetScrollId() == aScrollId) {
@@ -378,9 +378,9 @@ FindMetricsWithScrollId(Layer* aLayer, FrameMetrics::ViewID aScrollId)
  */
 static bool
 AsyncTransformShouldBeUnapplied(Layer* aFixedLayer,
-                                FrameMetrics::ViewID aFixedWithRespectTo,
+                                ScrollableLayerGuid::ViewID aFixedWithRespectTo,
                                 Layer* aTransformedLayer,
-                                FrameMetrics::ViewID aTransformedMetrics)
+                                ScrollableLayerGuid::ViewID aTransformedMetrics)
 {
   LayerMetricsWrapper transformed = FindMetricsWithScrollId(aTransformedLayer, aTransformedMetrics);
   if (!transformed.IsValid()) {
@@ -417,7 +417,7 @@ AsyncTransformShouldBeUnapplied(Layer* aFixedLayer,
 
 // If |aLayer| is fixed or sticky, returns the scroll id of the scroll frame
 // that it's fixed or sticky to. Otherwise, returns Nothing().
-static Maybe<FrameMetrics::ViewID>
+static Maybe<ScrollableLayerGuid::ViewID>
 IsFixedOrSticky(Layer* aLayer)
 {
   bool isRootOfFixedSubtree = aLayer->GetIsFixedPosition() &&
@@ -434,7 +434,7 @@ IsFixedOrSticky(Layer* aLayer)
 void
 AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aTransformedSubtreeRoot,
                                                    Layer* aStartTraversalAt,
-                                                   FrameMetrics::ViewID aTransformScrollId,
+                                                   ScrollableLayerGuid::ViewID aTransformScrollId,
                                                    const LayerToParentLayerMatrix4x4& aPreviousTransformForRoot,
                                                    const LayerToParentLayerMatrix4x4& aCurrentTransformForRoot,
                                                    const ScreenMargin& aFixedLayerMargins,
@@ -448,7 +448,7 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aTransformedSubtreeRoo
 
   Layer* layer = aStartTraversalAt;
   bool needsAsyncTransformUnapplied = false;
-  if (Maybe<FrameMetrics::ViewID> fixedTo = IsFixedOrSticky(layer)) {
+  if (Maybe<ScrollableLayerGuid::ViewID> fixedTo = IsFixedOrSticky(layer)) {
     needsAsyncTransformUnapplied = AsyncTransformShouldBeUnapplied(layer,
         *fixedTo, aTransformedSubtreeRoot, aTransformScrollId);
   }
@@ -855,7 +855,7 @@ ExpandRootClipRect(Layer* aLayer, const ScreenMargin& aFixedLayerMargins)
 
 #ifdef MOZ_WIDGET_ANDROID
 static void
-MoveScrollbarForLayerMargin(Layer* aRoot, FrameMetrics::ViewID aRootScrollId,
+MoveScrollbarForLayerMargin(Layer* aRoot, ScrollableLayerGuid::ViewID aRootScrollId,
                             const ScreenMargin& aFixedLayerMargins)
 {
   // See bug 1223928 comment 9 - once we can detect the RCD with just the
@@ -1016,19 +1016,27 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer,
                 Compositor* compositor = mLayerManager->GetCompositor();
                 if (CompositorBridgeParent* bridge = compositor->GetCompositorBridgeParent()) {
                   AndroidDynamicToolbarAnimator* animator = bridge->GetAndroidDynamicToolbarAnimator();
-                  MOZ_ASSERT(animator);
                   if (mIsFirstPaint) {
-                    animator->UpdateRootFrameMetrics(metrics);
-                    animator->FirstPaint();
+                    if (animator) {
+                      animator->UpdateRootFrameMetrics(metrics);
+                      animator->FirstPaint();
+                    }
+                    LayersId rootLayerTreeId = bridge->RootLayerTreeId();
+                    if (RefPtr<UiCompositorControllerParent> uiController = UiCompositorControllerParent::GetFromRootLayerTreeId(rootLayerTreeId)) {
+                      uiController->NotifyFirstPaint();
+                    }
                     mIsFirstPaint = false;
                   }
                   if (mLayersUpdated) {
-                    animator->NotifyLayersUpdated();
+                    LayersId rootLayerTreeId = bridge->RootLayerTreeId();
+                    if (RefPtr<UiCompositorControllerParent> uiController = UiCompositorControllerParent::GetFromRootLayerTreeId(rootLayerTreeId)) {
+                      uiController->NotifyLayersUpdated();
+                    }
                     mLayersUpdated = false;
                   }
                   // If this is not actually the root content then the animator is not getting updated in AsyncPanZoomController::NotifyLayersUpdated
                   // because the root content document is not scrollable. So update it here so it knows if the root composition size has changed.
-                  if (!metrics.IsRootContent()) {
+                  if (animator && !metrics.IsRootContent()) {
                     animator->MaybeUpdateCompositionSizeAndRootFrameMetrics(metrics);
                   }
                 }
@@ -1313,9 +1321,9 @@ AsyncCompositionManager::TransformShadowTree(
 #if defined(MOZ_WIDGET_ANDROID)
   Compositor* compositor = mLayerManager->GetCompositor();
   if (CompositorBridgeParent* bridge = compositor->GetCompositorBridgeParent()) {
-    AndroidDynamicToolbarAnimator* animator = bridge->GetAndroidDynamicToolbarAnimator();
-    MOZ_ASSERT(animator);
-    wantNextFrame |= animator->UpdateAnimation(nextFrame);
+    if (AndroidDynamicToolbarAnimator* animator = bridge->GetAndroidDynamicToolbarAnimator()) {
+      wantNextFrame |= animator->UpdateAnimation(nextFrame);
+    }
   }
 #endif // defined(MOZ_WIDGET_ANDROID)
 

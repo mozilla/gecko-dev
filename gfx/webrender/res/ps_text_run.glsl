@@ -28,7 +28,7 @@ Glyph fetch_glyph(int specific_prim_address,
     int glyph_address = specific_prim_address +
                         VECS_PER_TEXT_RUN +
                         int(uint(glyph_index) / GLYPHS_PER_GPU_BLOCK);
-    vec4 data = fetch_from_resource_cache_1(glyph_address);
+    vec4 data = fetch_from_gpu_cache_1(glyph_address);
     // Select XY or ZW based on glyph index.
     // We use "!= 0" instead of "== 1" here in order to work around a driver
     // bug with equality comparisons on integers.
@@ -46,7 +46,7 @@ struct GlyphResource {
 };
 
 GlyphResource fetch_glyph_resource(int address) {
-    vec4 data[2] = fetch_from_resource_cache_2(address);
+    vec4 data[2] = fetch_from_gpu_cache_2(address);
     return GlyphResource(data[0], data[1].x, data[1].yz, data[1].w);
 }
 
@@ -57,7 +57,7 @@ struct TextRun {
 };
 
 TextRun fetch_text_run(int address) {
-    vec4 data[3] = fetch_from_resource_cache_3(address);
+    vec4 data[3] = fetch_from_gpu_cache_3(address);
     return TextRun(data[0], data[1], data[2].xy);
 }
 
@@ -81,7 +81,7 @@ VertexInfo write_text_vertex(RectWithSize local_clip_rect,
     // Compute the snapping offset only if the scroll node transform is axis-aligned.
     if (remove_subpx_offset) {
         // Transform from local space to device space.
-        float device_scale = uDevicePixelRatio / transform.m[3].w;
+        float device_scale = task.common_data.device_pixel_scale / transform.m[3].w;
         mat2 device_transform = mat2(transform.m) * device_scale;
 
         // Ensure the transformed text offset does not contain a subpixel translation
@@ -130,14 +130,12 @@ VertexInfo write_text_vertex(RectWithSize local_clip_rect,
 
     // Map the clamped local space corner into device space.
     vec4 world_pos = transform.m * vec4(local_pos, 0.0, 1.0);
-    vec2 device_pos = world_pos.xy / world_pos.w * uDevicePixelRatio;
+    vec2 device_pos = world_pos.xy * task.common_data.device_pixel_scale;
 
     // Apply offsets for the render task to get correct screen location.
-    vec2 final_pos = device_pos -
-                     task.content_origin +
-                     task.common_data.task_rect.p0;
+    vec2 final_offset = -task.content_origin + task.common_data.task_rect.p0;
 
-    gl_Position = uTransform * vec4(final_pos, z, 1.0);
+    gl_Position = uTransform * vec4(device_pos + final_offset * world_pos.w, z * world_pos.w, world_pos.w);
 
     VertexInfo vi = VertexInfo(
         local_pos,
@@ -172,7 +170,7 @@ void main(void) {
 
 #ifdef WR_FEATURE_GLYPH_TRANSFORM
     // Transform from local space to glyph space.
-    mat2 glyph_transform = mat2(transform.m) * uDevicePixelRatio;
+    mat2 glyph_transform = mat2(transform.m) * task.common_data.device_pixel_scale;
 
     // Compute the glyph rect in glyph space.
     RectWithSize glyph_rect = RectWithSize(res.offset + glyph_transform * (text.offset + glyph.offset),
@@ -180,7 +178,7 @@ void main(void) {
 
 #else
     // Scale from glyph space to local space.
-    float scale = res.scale / uDevicePixelRatio;
+    float scale = res.scale / task.common_data.device_pixel_scale;
 
     // Compute the glyph rect in local space.
     RectWithSize glyph_rect = RectWithSize(scale * res.offset + text.offset + glyph.offset,

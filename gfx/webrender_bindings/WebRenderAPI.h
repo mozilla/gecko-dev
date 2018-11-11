@@ -13,11 +13,11 @@
 
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
+#include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/layers/SyncObject.h"
 #include "mozilla/Range.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/webrender/WebRenderTypes.h"
-#include "FrameMetrics.h"
 #include "GLTypes.h"
 #include "Units.h"
 
@@ -89,6 +89,8 @@ public:
 
   void GenerateFrame();
 
+  void InvalidateRenderedFrame();
+
   void UpdateDynamicProperties(const nsTArray<wr::WrOpacityProperty>& aOpacityArray,
                                const nsTArray<wr::WrTransformProperty>& aTransformArray);
 
@@ -96,7 +98,7 @@ public:
                            const LayoutDeviceIntRect& aDocRect);
 
   void UpdateScrollPosition(const wr::WrPipelineId& aPipelineId,
-                            const layers::FrameMetrics::ViewID& aScrollId,
+                            const layers::ScrollableLayerGuid::ViewID& aScrollId,
                             const wr::LayoutPoint& aScrollPosition);
 
   bool IsEmpty() const;
@@ -141,7 +143,7 @@ public:
                                         const wr::DeviceUintRect& aDirtyRect,
                                         uint8_t aChannelIndex = 0);
 
-  void SetImageVisibleArea(ImageKey aKey, const wr::NormalizedRect& aArea);
+  void SetImageVisibleArea(ImageKey aKey, const wr::DeviceUintRect& aArea);
 
   void DeleteImage(wr::ImageKey aKey);
 
@@ -178,8 +180,9 @@ public:
 
   void AppendTransformProperties(const nsTArray<wr::WrTransformProperty>& aTransformArray);
   void UpdateScrollPosition(const wr::WrPipelineId& aPipelineId,
-                            const layers::FrameMetrics::ViewID& aScrollId,
+                            const layers::ScrollableLayerGuid::ViewID& aScrollId,
                             const wr::LayoutPoint& aScrollPosition);
+  void UpdatePinchZoom(float aZoom);
 private:
   Transaction* mTxn;
 };
@@ -203,7 +206,7 @@ public:
 
   bool HitTest(const wr::WorldPoint& aPoint,
                wr::WrPipelineId& aOutPipelineId,
-               layers::FrameMetrics::ViewID& aOutScrollId,
+               layers::ScrollableLayerGuid::ViewID& aOutScrollId,
                gfx::CompositorHitTestInfo& aOutHitInfo);
 
   void SendTransaction(TransactionBuilder& aTxn);
@@ -212,7 +215,7 @@ public:
 
   void RunOnRenderThread(UniquePtr<RendererEvent> aEvent);
 
-  void Readback(const TimeStamp& aStartTime, gfx::IntSize aSize, uint8_t *aBuffer, uint32_t aBufferSize);
+  void Readback(const TimeStamp& aStartTime, gfx::IntSize aSize, const Range<uint8_t>& aBuffer);
 
   void ClearAllCaches();
 
@@ -229,17 +232,19 @@ public:
   uint32_t GetMaxTextureSize() const { return mMaxTextureSize; }
   bool GetUseANGLE() const { return mUseANGLE; }
   bool GetUseDComp() const { return mUseDComp; }
+  bool GetUseTripleBuffering() const { return mUseTripleBuffering; }
   layers::SyncHandle GetSyncHandle() const { return mSyncHandle; }
 
   void Capture();
 
 protected:
-  WebRenderAPI(wr::DocumentHandle* aHandle, wr::WindowId aId, uint32_t aMaxTextureSize, bool aUseANGLE, bool aUseDComp, layers::SyncHandle aSyncHandle)
+  WebRenderAPI(wr::DocumentHandle* aHandle, wr::WindowId aId, uint32_t aMaxTextureSize, bool aUseANGLE, bool aUseDComp, bool aUseTripleBuffering, layers::SyncHandle aSyncHandle)
     : mDocHandle(aHandle)
     , mId(aId)
     , mMaxTextureSize(aMaxTextureSize)
     , mUseANGLE(aUseANGLE)
     , mUseDComp(aUseDComp)
+    , mUseTripleBuffering(aUseTripleBuffering)
     , mSyncHandle(aSyncHandle)
   {}
 
@@ -252,6 +257,7 @@ protected:
   uint32_t mMaxTextureSize;
   bool mUseANGLE;
   bool mUseDComp;
+  bool mUseTripleBuffering;
   layers::SyncHandle mSyncHandle;
 
   // We maintain alive the root api to know when to shut the render backend down,
@@ -346,8 +352,8 @@ public:
                                  const StickyOffsetBounds& aHorizontalBounds,
                                  const wr::LayoutVector2D& aAppliedOffset);
 
-  Maybe<wr::WrClipId> GetScrollIdForDefinedScrollLayer(layers::FrameMetrics::ViewID aViewId) const;
-  wr::WrClipId DefineScrollLayer(const layers::FrameMetrics::ViewID& aViewId,
+  Maybe<wr::WrClipId> GetScrollIdForDefinedScrollLayer(layers::ScrollableLayerGuid::ViewID aViewId) const;
+  wr::WrClipId DefineScrollLayer(const layers::ScrollableLayerGuid::ViewID& aViewId,
                                  const Maybe<wr::WrClipId>& aParentId,
                                  const wr::LayoutRect& aContentRect, // TODO: We should work with strongly typed rects
                                  const wr::LayoutRect& aClipRect);
@@ -514,11 +520,11 @@ public:
   // Checks to see if the innermost enclosing fixed pos item has the same
   // ASR. If so, it returns the scroll target for that fixed-pos item.
   // Otherwise, it returns Nothing().
-  Maybe<layers::FrameMetrics::ViewID> GetContainingFixedPosScrollTarget(const ActiveScrolledRoot* aAsr);
+  Maybe<layers::ScrollableLayerGuid::ViewID> GetContainingFixedPosScrollTarget(const ActiveScrolledRoot* aAsr);
 
   // Set the hit-test info to be used for all display items until the next call
   // to SetHitTestInfo or ClearHitTestInfo.
-  void SetHitTestInfo(const layers::FrameMetrics::ViewID& aScrollId,
+  void SetHitTestInfo(const layers::ScrollableLayerGuid::ViewID& aScrollId,
                       gfx::CompositorHitTestInfo aHitInfo);
   // Clears the hit-test info so that subsequent display items will not have it.
   void ClearHitTestInfo();
@@ -533,15 +539,15 @@ public:
   public:
     FixedPosScrollTargetTracker(DisplayListBuilder& aBuilder,
                                 const ActiveScrolledRoot* aAsr,
-                                layers::FrameMetrics::ViewID aScrollId);
+                                layers::ScrollableLayerGuid::ViewID aScrollId);
     ~FixedPosScrollTargetTracker();
-    Maybe<layers::FrameMetrics::ViewID> GetScrollTargetForASR(const ActiveScrolledRoot* aAsr);
+    Maybe<layers::ScrollableLayerGuid::ViewID> GetScrollTargetForASR(const ActiveScrolledRoot* aAsr);
 
   private:
     FixedPosScrollTargetTracker* mParentTracker;
     DisplayListBuilder& mBuilder;
     const ActiveScrolledRoot* mAsr;
-    layers::FrameMetrics::ViewID mScrollId;
+    layers::ScrollableLayerGuid::ViewID mScrollId;
   };
 
 protected:
@@ -558,7 +564,7 @@ protected:
   // Track each scroll id that we encountered. We use this structure to
   // ensure that we don't define a particular scroll layer multiple times,
   // as that results in undefined behaviour in WR.
-  std::unordered_map<layers::FrameMetrics::ViewID, wr::WrClipId> mScrollIds;
+  std::unordered_map<layers::ScrollableLayerGuid::ViewID, wr::WrClipId> mScrollIds;
 
   // Contains the current leaf of the clip chain to be merged with the
   // display item's clip rect when pushing an item. May be set to Nothing() if

@@ -3,34 +3,42 @@
 <!--
 https://bugzilla.mozilla.org/show_bug.cgi?id=1477046
 
-------------------------------------------
-| ID               | Tracker | FastBlock |
--------------------+---------+------------
-| fastblock.html   | No      | N/A       |
--------------------+---------+------------
-| goodScript       | No      | N/A       |
-| fastScript       | Yes     | No        |
-| slowScript       | Yes     | Yes       |
-| redirectScript   | Yes     | Yes       |
--------------------+---------+------------
-| fastIFrame       | Yes     | No        |
--------------------+---------+------------
-| goodIFrameScript | No      | N/A       |
-| fastIFrameScript | Yes     | No        |
-| slowIFrameScript | Yes     | Yes       |
--------------------+---------+------------
-| badIFrame        | Yes     | Yes       |
--------------------+---------+------------
-| goodIFrameScript | N/A     | N/A       |
-| fastIFrameScript | N/A     | N/A       |
-| slowIFrameScript | N/A     | N/A       |
--------------------+---------+------------
-| goodIFrame       | No      | N/A       |
--------------------+---------+------------
-| goodIFrameScript | No      | N/A       |
-| fastIFrameScript | Yes     | Yes       |
-| slowIFrameScript | Yes     | Yes       |
-------------------------------------------
+----------------------------------------------
+| ID                   | Tracker | FastBlock |
+-----------------------+---------+------------
+| fastblock.html       | No      | N/A       |
+-----------------------+---------+------------
+| goodScript           | No      | N/A       |
+| fastScript           | Yes     | No        |
+| slowScript           | Yes     | Yes       |
+| redirectScript       | Yes     | Yes       |
+-----------------------+---------+------------
+| fastIFrame           | Yes     | No        |
+-----------------------+---------+------------
+| goodIFrameScript     | No      | N/A       |
+| fastIFrameScript     | Yes     | No        |
+| slowIFrameScript     | Yes     | Yes       |
+-----------------------+---------+------------
+| slowIFrame           | Yes     | Yes       |
+-----------------------+---------+------------
+| goodSlowIFrameScript | No      | N/A       |
+| fastSlowIFrameScript | Yes     | N/A       |
+| slowSlowIFrameScript | Yes     | N/A       |
+-----------------------+---------+------------
+|            (load event fires)              |
+-----------------------+---------+------------
+| badIFrame            | Yes     | No        |
+-----------------------+---------+------------
+| goodIFrameScript     | No      | N/A       |
+| fastIFrameScript     | Yes     | No        |
+| slowIFrameScript     | Yes     | No        |
+-----------------------+---------+------------
+| goodIFrame           | No      | N/A       |
+-----------------------+---------+------------
+| goodIFrameScript     | No      | N/A       |
+| fastIFrameScript     | Yes     | No        |
+| slowIFrameScript     | Yes     | No        |
+----------------------------------------------
 
 -->
 <head>
@@ -73,9 +81,15 @@ const gValidHosts = [
 const gSlowTrackers = [
   "http://tracking.example.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js",
   "http://itisatracker.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js",
+  "http://tracking.example.org/chrome/toolkit/components/url-classifier/tests/mochitest/fastblock_slow_iframe.html",
+  "http://tracking.example.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js?iframe",
+  "http://itisatracker.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js?iframe",
+  "http://tracking.example.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js?slowiframe",
+  "http://itisatracker.org/tests/toolkit/components/url-classifier/tests/mochitest/trackingRequest.js?slowiframe",
 ];
 const gRedirectTracker =
   "http://example.com/chrome/toolkit/components/url-classifier/tests/mochitest/redirect_tracker.sjs";
+
 const gInfiniteTimeout = 300000;
 const gDebug = false;
 
@@ -125,7 +139,6 @@ async function setupTest() {
   });
 
   await SpecialPowers.pushPrefEnv({ "set": [
-    ["browser.contentblocking.enabled", true],
     ["browser.fastblock.enabled", true],
     ["browser.fastblock.limit", 0],
     ["browser.fastblock.timeout", 5000],
@@ -367,6 +380,7 @@ async function testFastBlock(aWindow) {
       goodIFrameScript: iframe.getElementById("goodIFrameScript").dataset.touched,
       fastIFrameScript: iframe.getElementById("fastIFrameScript").dataset.touched,
       slowIFrameScript: iframe.getElementById("slowIFrameScript").dataset.touched,
+      slowIFrame: content.document.getElementById("slowIFrame").dataset.touched,
       redirectScript: content.document.getElementById("redirectScript").dataset.touched,
       numTrackersFound: content.document.numTrackersFound,
       numTrackersBlocked: content.document.numTrackersBlocked,
@@ -377,6 +391,7 @@ async function testFastBlock(aWindow) {
         fastScript,
         slowScript,
         fastIFrame,
+        slowIFrame,
         goodIFrameScript,
         fastIFrameScript,
         slowIFrameScript,
@@ -389,34 +404,35 @@ async function testFastBlock(aWindow) {
   is(fastScript, "yes", "is a fast tracker");
   is(slowScript, "no", "is a blocked tracker");
   is(fastIFrame, "yes", "fast iframe loaded");
+  is(slowIFrame, "not sure", "slow tracking iframe blocked");
   is(goodIFrameScript, "yes", "is not a tracker");
   is(fastIFrameScript, "yes", "is a fast tracker");
   is(slowIFrameScript, "no", "is a blocked tracker");
   is(redirectScript, "no", "redirect to blocked tracker");
-  is(numTrackersFound, 6, "6 trackers found");
-  is(numTrackersBlocked, 3, "3 tracker blocked");
+  is(numTrackersFound, 7, "7 trackers found");
+  is(numTrackersBlocked, 4, "4 tracker blocked");
 
   let badIFrameLoaded = await addIFrame(aWindow, gBadIFramePage, "badIFrame");
-  ok(!badIFrameLoaded, "tracking iframe is blocked");
+  ok(badIFrameLoaded, "tracking iframe after load event is loaded");
 
   results = await ContentTask.spawn(browser, {}, () => {
     let iframe = content.document.getElementById("badIFrame").contentDocument;
     return {
       badIFrame: content.document.getElementById("badIFrame").dataset.touched,
-      goodIFrameScript: iframe.getElementById("goodIFrameScript"),
-      fastIFrameScript: iframe.getElementById("fastIFrameScript"),
-      slowIFrameScript: iframe.getElementById("slowIFrameScript"),
+      goodIFrameScript: iframe.getElementById("goodIFrameScript").dataset.touched,
+      fastIFrameScript: iframe.getElementById("fastIFrameScript").dataset.touched,
+      slowIFrameScript: iframe.getElementById("slowIFrameScript").dataset.touched,
       numTrackersFound: content.document.numTrackersFound,
       numTrackersBlocked: content.document.numTrackersBlocked,
     };
   });
 
-  is(results.badIFrame, "no", "bad iframe blocked");
-  ok(!results.goodIFrameScript, "iframe is not loaded");
-  ok(!results.fastIFrameScript, "iframe is not loaded");
-  ok(!results.slowIFrameScript, "iframe is not loaded");
+  is(results.badIFrame, "yes", "post-load tracking iframe loaded");
+  is(results.goodIFrameScript, "yes", "is not a tracker");
+  is(results.fastIFrameScript, "yes", "is a loaded tracker");
+  is(results.slowIFrameScript, "yes", "is a loaded tracker");
 
-  is(results.numTrackersFound, 7, "7 trackers found");
+  is(results.numTrackersFound, 10, "10 trackers found");
   is(results.numTrackersBlocked, 4, "4 tracker blocked");
 
   let goodIFrameLoaded = await addIFrame(aWindow, gGoodIFramePage, "goodIFrame");
@@ -436,26 +452,31 @@ async function testFastBlock(aWindow) {
 
   is(results.goodIFrame, "yes", "non tracking iframe is loaded");
   is(results.goodIFrameScript, "yes", "is not a tracker");
-  is(results.fastIFrameScript, "no", "is a blocked tracker");
-  is(results.slowIFrameScript, "no", "is a blocked tracker");
+  is(results.fastIFrameScript, "yes", "is a loaded tracker");
+  is(results.slowIFrameScript, "yes", "is a loaded tracker");
 
-  is(results.numTrackersFound, 9, "9 trackers found");
-  is(results.numTrackersBlocked, 6, "6 tracker blocked");
+  is(results.numTrackersFound, 12, "12 trackers found");
+  is(results.numTrackersBlocked, 4, "4 tracker blocked");
 }
 
 async function testNoFastBlock(aWindow) {
   log("testNoFastBlock");
   let browser = aWindow.gBrowser.selectedBrowser;
   let results = await ContentTask.spawn(browser, {}, () => {
-    let iframe = content.document.getElementById("fastIFrame").contentDocument;
+    let fastIframe = content.document.getElementById("fastIFrame").contentDocument;
+    let slowIframe = content.document.getElementById("slowIFrame").contentDocument;
     return {
       goodScript: content.document.getElementById("goodScript").dataset.touched,
       fastScript: content.document.getElementById("fastScript").dataset.touched,
       slowScript: content.document.getElementById("slowScript").dataset.touched,
       fastIFrame: content.document.getElementById("fastIFrame").dataset.touched,
-      goodIFrameScript: iframe.getElementById("goodIFrameScript").dataset.touched,
-      fastIFrameScript: iframe.getElementById("fastIFrameScript").dataset.touched,
-      slowIFrameScript: iframe.getElementById("slowIFrameScript").dataset.touched,
+      goodIFrameScript: fastIframe.getElementById("goodIFrameScript").dataset.touched,
+      fastIFrameScript: fastIframe.getElementById("fastIFrameScript").dataset.touched,
+      slowIFrameScript: fastIframe.getElementById("slowIFrameScript").dataset.touched,
+      slowIFrame: content.document.getElementById("slowIFrame").dataset.touched,
+      goodSlowIFrameScript: slowIframe.getElementById("goodSlowIFrameScript").dataset.touched,
+      fastSlowIFrameScript: slowIframe.getElementById("fastSlowIFrameScript").dataset.touched,
+      slowSlowIFrameScript: slowIframe.getElementById("slowSlowIFrameScript").dataset.touched,
       numTrackersFound: content.document.numTrackersFound,
       numTrackersBlocked: content.document.numTrackersBlocked,
     };
@@ -468,6 +489,10 @@ async function testNoFastBlock(aWindow) {
         goodIFrameScript,
         fastIFrameScript,
         slowIFrameScript,
+        slowIFrame,
+        goodSlowIFrameScript,
+        fastSlowIFrameScript,
+        slowSlowIFrameScript,
         numTrackersFound,
         numTrackersBlocked,
   } = results;
@@ -479,7 +504,11 @@ async function testNoFastBlock(aWindow) {
   is(goodIFrameScript, "yes", "is not a tracker");
   is(fastIFrameScript, "yes", "FastBlock is disabled");
   is(slowIFrameScript, "yes", "FastBlock is disabled");
-  is(numTrackersFound, 6, "6 trackers found");
+  is(slowIFrame, "yes", "FastBlock is disabled");
+  is(goodSlowIFrameScript, "yes", "is not a tracker");
+  is(fastSlowIFrameScript, "yes", "FastBlock is disabled");
+  is(slowSlowIFrameScript, "yes", "FastBlock is disabled");
+  is(numTrackersFound, 9, "9 trackers found");
   is(numTrackersBlocked, 0, "no tracker blocked");
 
   let iframeLoaded = await addIFrame(aWindow, gBadIFramePage, "badIFrame");
@@ -502,7 +531,7 @@ async function testNoFastBlock(aWindow) {
   is(results.fastIFrameScript, "yes", "FastBlock is disabled");
   is(results.slowIFrameScript, "yes", "FastBlock is disabled");
 
-  is(results.numTrackersFound, 9, "9 trackers found");
+  is(results.numTrackersFound, 12, "12 trackers found");
   is(results.numTrackersBlocked, 0, "0 tracker blocked");
 
   let goodIFrameLoaded = await addIFrame(aWindow, gGoodIFramePage, "goodIFrame");
@@ -525,7 +554,7 @@ async function testNoFastBlock(aWindow) {
   is(results.fastIFrameScript, "yes", "FastBlock is disabled");
   is(results.slowIFrameScript, "yes", "FastBlock is disabled");
 
-  is(results.numTrackersFound, 11, "11 trackers found");
+  is(results.numTrackersFound, 14, "14 trackers found");
   is(results.numTrackersBlocked, 0, "0 tracker blocked");
 }
 
@@ -533,22 +562,19 @@ async function testPrefsSwitch() {
   // FastBlock ON
   await runTest({
     "set": [
-      ["browser.contentblocking.enabled", true],
       ["browser.fastblock.enabled", true],
     ]}, testFastBlock, 6);
 
   // FastBlock OFF
   await runTest({
     "set": [
-      ["browser.contentblocking.enabled", false],
-      ["browser.fastblock.enabled", true],
+      ["browser.fastblock.enabled", false],
       ["browser.fastblock.timeout", 1],
     ]}, testNoFastBlock, 0);
 
   // FastBlock OFF
   await runTest({
     "set": [
-      ["browser.contentblocking.enabled", true],
       ["browser.fastblock.enabled", false],
       ["browser.fastblock.timeout", 1],
     ]}, testNoFastBlock, 0);

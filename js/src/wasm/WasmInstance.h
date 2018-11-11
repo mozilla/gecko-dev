@@ -58,6 +58,8 @@ class Instance
     const UniqueDebugState          maybeDebug_;
     StructTypeDescrVector           structTypeDescrs_;
 
+    friend void Zone::sweepBreakpoints(js::FreeOp*);
+
     // Internal helpers:
     const void** addressOfFuncTypeId(const FuncTypeIdDesc& funcTypeId) const;
     FuncImportTls& funcImportTls(const FuncImport& fi);
@@ -105,9 +107,7 @@ class Instance
     WasmMemoryObject* memory() const;
     size_t memoryMappedSize() const;
     SharedArrayRawBuffer* sharedMemoryBuffer() const; // never null
-#ifdef JS_SIMULATOR
     bool memoryAccessInGuardRegion(uint8_t* addr, unsigned numBytes) const;
-#endif
     const StructTypeVector& structTypes() const { return code_->structTypes(); }
 
     static constexpr size_t offsetOfJSJitArgsRectifier() {
@@ -194,7 +194,8 @@ class Instance
                              uint32_t srcOffset, uint32_t len, uint32_t segIndex);
     static void postBarrier(Instance* instance, gc::Cell** location);
     static void* structNew(Instance* instance, uint32_t typeIndex);
-    static void* structNarrow(Instance* instance, uint32_t mustUnboxAnyref, uint32_t outputTypeIndex, void* ptr);
+    static void* structNarrow(Instance* instance, uint32_t mustUnboxAnyref, uint32_t outputTypeIndex,
+                              void* maybeNullPtr);
 };
 
 typedef UniquePtr<Instance> UniqueInstance;

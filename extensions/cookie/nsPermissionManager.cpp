@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Attributes.h"
+#include "mozilla/AntiTrackingCommon.h"
 #include "mozilla/DebugOnly.h"
 
 #include "mozilla/dom/ContentParent.h"
@@ -137,7 +138,9 @@ static const char* kPreloadPermissions[] = {
   // removed.  See bug 1428130.
   "cookie",
   "trackingprotection",
-  "trackingprotection-pb"
+  "trackingprotection-pb",
+
+  USER_INTERACTION_PERM
 };
 
 // A list of permissions that can have a fallback default permission
@@ -2394,12 +2397,12 @@ nsPermissionManager::CommonTestPermissionInternal(nsIPrincipal* aPrincipal,
     }
   }
 
-  // For expanded principals, we want to iterate over the whitelist and see
+  // For expanded principals, we want to iterate over the allowlist and see
   // if the permission is granted for any of them.
   auto* basePrin = BasePrincipal::Cast(aPrincipal);
   if (basePrin && basePrin->Is<ExpandedPrincipal>()) {
     auto ep = basePrin->As<ExpandedPrincipal>();
-    for (auto& prin : ep->WhiteList()) {
+    for (auto& prin : ep->AllowList()) {
       uint32_t perm;
       nsresult rv = CommonTestPermission(prin, aType, &perm,
                                          aExactHostMatch, aIncludingSession);

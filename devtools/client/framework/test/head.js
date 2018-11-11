@@ -34,7 +34,7 @@ function getParentProcessActors(callback) {
 
   const client = new DebuggerClient(DebuggerServer.connectPipe());
   client.connect()
-    .then(() => client.getProcess())
+    .then(() => client.mainRoot.getProcess(0))
     .then(response => {
       callback(client, response.form);
     });
@@ -65,7 +65,7 @@ async function openScratchpadWindow() {
       onReady: function() {
         win.Scratchpad.removeObserver(this);
         resolve(win);
-      }
+      },
     });
   });
 }

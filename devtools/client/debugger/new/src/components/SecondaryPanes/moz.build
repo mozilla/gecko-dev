@@ -8,7 +8,7 @@ DIRS += [
     'Frames',
 ]
 
-DevToolsModules(
+DebuggerModules(
     'CommandBar.js',
     'EventListeners.js',
     'Expressions.js',
@@ -17,4 +17,5 @@ DevToolsModules(
     'Scopes.js',
     'UtilsBar.js',
     'Workers.js',
+    'XHRBreakpoints.js',
 )

@@ -32,6 +32,9 @@ const STATUS = {
   TIMEOUT: "TIMEOUT",
 };
 
+const REFTEST_WIDTH = 600;
+const REFTEST_HEIGHT = 600;
+
 /**
  * Implements an fast runner for web-platform-tests format reftests
  * c.f. http://web-platform-tests.org/writing-tests/reftests.html.
@@ -97,7 +100,7 @@ reftest.Runner = class {
     let reftestWin = this.parentWindow.open(
         "chrome://marionette/content/reftest.xul",
         "reftest",
-        "chrome,dialog,height=600,width=600");
+        `chrome,height=${REFTEST_WIDTH},width=${REFTEST_HEIGHT}`);
 
     await new Promise(resolve => {
       reftestWin.addEventListener("load", resolve, {once: true});
@@ -117,7 +120,8 @@ reftest.Runner = class {
     // Make sure the browser element is exactly 600x600, no matter
     // what size our window is
     const windowStyle = `padding: 0px; margin: 0px; border:none;
-min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
+min-width: ${REFTEST_WIDTH}px; min-height: ${REFTEST_HEIGHT}px;
+max-width: ${REFTEST_WIDTH}px; max-height: ${REFTEST_HEIGHT}px`;
     browser.setAttribute("style", windowStyle);
 
     let doc = reftestWin.document.documentElement;
@@ -221,31 +225,43 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
       return dataURL.split(",")[1];
     }
 
-    win.innerWidth = 600;
-    win.innerHeight = 600;
-
-    let message = "";
+    let result = {
+      status: STATUS.FAIL,
+      message: "",
+      stack: null,
+      extra: {},
+    };
 
     let screenshotData = [];
 
     let stack = [];
     for (let i = references.length - 1; i >= 0; i--) {
       let item = references[i];
-      stack.push([testUrl, item[0], item[1], item[2]]);
+      stack.push([testUrl, ...item]);
     }
 
-    let status = STATUS.FAIL;
+    let done = false;
 
-    while (stack.length) {
-      let [lhsUrl, rhsUrl, references, relation] = stack.pop();
-      message += `Testing ${lhsUrl} ${relation} ${rhsUrl}\n`;
+    while (stack.length && !done) {
+      let [lhsUrl, rhsUrl, references, relation, extras = {}] = stack.pop();
+      result.message += `Testing ${lhsUrl} ${relation} ${rhsUrl}\n`;
 
-      let comparison = await this.compareUrls(
-          win, lhsUrl, rhsUrl, relation, timeout);
+      let comparison;
+      try {
+        comparison = await this.compareUrls(
+            win, lhsUrl, rhsUrl, relation, timeout, extras);
+      } catch (e) {
+        comparison = {lhs: null, rhs: null, passed: false, error: e};
+      }
+      if (comparison.error !== null) {
+        result.status = STATUS.ERROR;
+        result.message = String(comparison.error);
+        result.stack = comparison.error.stack;
+      }
 
       function recordScreenshot() {
-        let encodedLHS = toBase64(comparison.lhs);
-        let encodedRHS = toBase64(comparison.rhs);
+        let encodedLHS = comparison.lhs ? toBase64(comparison.lhs) : "";
+        let encodedRHS = comparison.rhs ? toBase64(comparison.rhs) : "";
         screenshotData.push([{url: lhsUrl, screenshot: encodedLHS},
           relation,
           {url: rhsUrl, screenshot: encodedRHS}]);
@@ -263,19 +279,19 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
           }
         } else {
           // Reached a leaf node so all of one reference chain passed
-          status = STATUS.PASS;
+          result.status = STATUS.PASS;
           if (this.screenshotMode <= SCREENSHOT_MODE.fail &&
-              expected != status) {
+              expected != result.status) {
             recordScreenshot();
           }
-          break;
+          done = true;
         }
-      } else if (!stack.length) {
+      } else if (!stack.length || result.status == STATUS.ERROR) {
         // If we don't have any alternatives to try then this will be
         // the last iteration, so save the failing screenshots if required.
         let isFail = this.screenshotMode === SCREENSHOT_MODE.fail;
         let isUnexpected = this.screenshotMode === SCREENSHOT_MODE.unexpected;
-        if (isFail || (isUnexpected && expected != status)) {
+        if (isFail || (isUnexpected && expected != result.status)) {
           recordScreenshot();
         }
       }
@@ -283,14 +299,14 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
       // Return any reusable canvases to the pool
       let canvasPool = this.canvasCache.get(null);
       [comparison.lhs, comparison.rhs].map(screenshot => {
-        if (screenshot.reuseCanvas) {
+        if (screenshot !== null && screenshot.reuseCanvas) {
           canvasPool.push(screenshot.canvas);
         }
       });
       logger.debug(`Canvas pool is of length ${canvasPool.length}`);
+
     }
 
-    let result = {status, message, extra: {}};
     if (screenshotData.length) {
       // For now the tbpl formatter only accepts one screenshot, so just
       // return the last one we took.
@@ -302,7 +318,7 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
     return result;
   }
 
-  async compareUrls(win, lhsUrl, rhsUrl, relation, timeout) {
+  async compareUrls(win, lhsUrl, rhsUrl, relation, timeout, extras) {
     logger.info(`Testing ${lhsUrl} ${relation} ${rhsUrl}`);
 
     // Take the reference screenshot first so that if we pause
@@ -310,33 +326,66 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
     let rhs = await this.screenshot(win, rhsUrl, timeout);
     let lhs = await this.screenshot(win, lhsUrl, timeout);
 
-    let maxDifferences = {};
-
-    let differences = this.windowUtils.compareCanvases(
-        lhs.canvas, rhs.canvas, maxDifferences);
+    logger.debug(`lhs canvas size ${lhs.canvas.width}x${lhs.canvas.height}`);
+    logger.debug(`rhs canvas size ${rhs.canvas.width}x${rhs.canvas.height}`);
 
     let passed;
-    switch (relation) {
-      case "==":
-        passed = differences === 0;
-        if (!passed) {
-          logger.info(`Found ${differences} pixels different, ` +
-              `maximum difference per channel ${maxDifferences.value}`);
-        }
-        break;
+    let error = null;
+    let pixelsDifferent = null;
+    let maxDifferences = {};
 
-      case "!=":
-        passed = differences !== 0;
-        break;
-
-      default:
-        throw new InvalidArgumentError("Reftest operator should be '==' or '!='");
+    try {
+      pixelsDifferent = this.windowUtils.compareCanvases(
+          lhs.canvas, rhs.canvas, maxDifferences);
+    } catch (e) {
+      passed = false;
+      error = e;
     }
 
-    return {lhs, rhs, passed};
+    if (error === null) {
+      passed = this.isAcceptableDifference(
+          maxDifferences.value, pixelsDifferent, extras.fuzzy);
+      switch (relation) {
+        case "==":
+          if (!passed) {
+            logger.info(`Found ${pixelsDifferent} pixels different, ` +
+                        `maximum difference per channel ${maxDifferences.value}`);
+          }
+          break;
+        case "!=":
+          passed = !passed;
+          break;
+        default:
+          throw new InvalidArgumentError("Reftest operator should be '==' or '!='");
+
+
+      }
+    }
+    return {lhs, rhs, passed, error};
+  }
+
+  isAcceptableDifference(maxDifference, pixelsDifferent, allowed) {
+    if (!allowed) {
+      logger.info(`No differences allowed`);
+      return pixelsDifferent === 0;
+    }
+    let [allowedDiff, allowedPixels] = allowed;
+    logger.info(`Allowed ${allowedPixels.join("-")} pixels different, ` +
+                `maximum difference per channel ${allowedDiff.join("-")}`);
+    return ((maxDifference >= allowedDiff[0] &&
+             maxDifference <= allowedDiff[1]) &&
+            (pixelsDifferent >= allowedPixels[0] ||
+             pixelsDifferent <= allowedPixels[1]));
   }
 
   async screenshot(win, url, timeout) {
+    win.innerWidth = REFTEST_WIDTH;
+    win.innerHeight = REFTEST_HEIGHT;
+
+    // On windows the above doesn't *actually* set the window to be the
+    // reftest size; but *does* set the content area to be the right size;
+    // the window is given some extra borders that aren't explicable from CSS
+    let browserRect = win.gBrowser.getBoundingClientRect();
     let canvas = null;
     let remainingCount = this.urlCount.get(url) || 1;
     let cache = remainingCount > 1;
@@ -385,9 +434,14 @@ min-width: 600px; min-height: 600px; max-width: 600px; max-height: 600px`;
           win,
           0, // left
           0, // top
-          win.innerWidth,
-          win.innerHeight,
+          browserRect.width,
+          browserRect.height,
           {canvas, flags});
+    }
+    if (canvas.width !== REFTEST_WIDTH || canvas.height !== REFTEST_HEIGHT) {
+      logger.warn(`Canvas dimensions changed to ${canvas.width}x${canvas.height}`);
+      reuseCanvas = false;
+      cache = false;
     }
     if (cache) {
       this.canvasCache.set(url, canvas);

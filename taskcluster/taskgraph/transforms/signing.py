@@ -7,9 +7,10 @@ Transform the signing task into an actual task description.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
-from taskgraph.util.schema import validate_schema, Schema
+from taskgraph.util.schema import validate_schema
 from taskgraph.util.scriptworker import (
     add_scope_prefix,
     get_signing_cert_scope_per_platform,
@@ -30,10 +31,7 @@ taskref_or_string = Any(
     basestring,
     {Required('task-reference'): basestring})
 
-signing_description_schema = Schema({
-    # the dependant task (object) for this signing job, used to inform signing.
-    Required('dependent-task'): object,
-
+signing_description_schema = schema.extend({
     # Artifacts from dep task to sign - Sync with taskgraph/transforms/task.py
     # because this is passed directly into the signingscript worker
     Required('upstream-artifacts'): [{
@@ -83,7 +81,7 @@ def set_defaults(config, jobs):
 @transforms.add
 def validate(config, jobs):
     for job in jobs:
-        label = job.get('dependent-task', object).__dict__.get('label', '?no-label?')
+        label = job.get('primary-dependency', object).__dict__.get('label', '?no-label?')
         validate_schema(
             signing_description_schema, job,
             "In signing ({!r} kind) task for {!r}:".format(config.kind, label))
@@ -93,7 +91,7 @@ def validate(config, jobs):
 @transforms.add
 def make_task_description(config, jobs):
     for job in jobs:
-        dep_job = job['dependent-task']
+        dep_job = job['primary-dependency']
         attributes = dep_job.attributes
 
         signing_format_scopes = []
@@ -122,7 +120,7 @@ def make_task_description(config, jobs):
                 is_nightly, build_platform
             ))
 
-            # ccov and msvc builds are tier 2, so they cannot have tier 1 tasks
+            # ccov builds are tier 2, so they cannot have tier 1 tasks
             # depending on them.
             treeherder.setdefault(
                 'tier',
@@ -186,7 +184,7 @@ def _generate_treeherder_platform(dep_th_platform, build_platform, build_type):
 
 
 def _generate_treeherder_symbol(is_nightly, build_platform):
-    symbol = 'Ns' if is_nightly else 'Bs'
-    if '-msvc' in build_platform:
-        symbol += '-msvc'
-    return symbol
+    if is_nightly:
+        return 'Ns'
+    else:
+        return 'Bs'

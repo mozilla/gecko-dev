@@ -199,12 +199,6 @@ nsHTMLScrollFrame::RemoveFrame(ChildListID aListID,
   mHelper.ReloadChildFrames();
 }
 
-nsSplittableType
-nsHTMLScrollFrame::GetSplittableType() const
-{
-  return NS_FRAME_NOT_SPLITTABLE;
-}
-
 /**
  HTML scrolling implementation
 
@@ -1525,7 +1519,7 @@ ScrollFrameHelper::ThumbMoved(nsScrollbarFrame* aScrollbar,
     return;
   }
 
-  ScrollTo(dest, nsIScrollableFrame::INSTANT, &allowedRange);
+  ScrollTo(dest, nsIScrollableFrame::INSTANT, nsGkAtoms::other, &allowedRange);
 }
 
 void
@@ -1614,12 +1608,6 @@ nsXULScrollFrame::RemoveFrame(ChildListID     aListID,
 {
   nsBoxFrame::RemoveFrame(aListID, aOldFrame);
   mHelper.ReloadChildFrames();
-}
-
-nsSplittableType
-nsXULScrollFrame::GetSplittableType() const
-{
-  return NS_FRAME_NOT_SPLITTABLE;
 }
 
 nsresult
@@ -1841,17 +1829,12 @@ public:
   /*
    * Set a refresh observer for smooth scroll iterations (and start observing).
    * Should be used at most once during the lifetime of this object.
-   * Return value: true on success, false otherwise.
    */
-  bool SetRefreshObserver(ScrollFrameHelper *aCallee) {
+  void SetRefreshObserver(ScrollFrameHelper* aCallee) {
     NS_ASSERTION(aCallee && !mCallee, "AsyncSmoothMSDScroll::SetRefreshObserver - Invalid usage.");
 
-    if (!RefreshDriver(aCallee)->AddRefreshObserver(this, FlushType::Style)) {
-      return false;
-    }
-
+    RefreshDriver(aCallee)->AddRefreshObserver(this, FlushType::Style);
     mCallee = aCallee;
-    return true;
   }
 
   /**
@@ -1954,20 +1937,15 @@ public:
   /*
    * Set a refresh observer for smooth scroll iterations (and start observing).
    * Should be used at most once during the lifetime of this object.
-   * Return value: true on success, false otherwise.
    */
-  bool SetRefreshObserver(ScrollFrameHelper *aCallee) {
+  void SetRefreshObserver(ScrollFrameHelper* aCallee) {
     NS_ASSERTION(aCallee && !mCallee, "AsyncScroll::SetRefreshObserver - Invalid usage.");
 
-    if (!RefreshDriver(aCallee)->AddRefreshObserver(this, FlushType::Style)) {
-      return false;
-    }
-
+    RefreshDriver(aCallee)->AddRefreshObserver(this, FlushType::Style);
     mCallee = aCallee;
     nsIPresShell* shell = mCallee->mOuter->PresShell();
     MOZ_ASSERT(shell);
     shell->SuppressDisplayport(true);
-    return true;
   }
 
   virtual void WillRefresh(mozilla::TimeStamp aTime) override {
@@ -2050,7 +2028,7 @@ ScrollFrameHelper::AsyncScroll::InitSmoothScroll(TimeStamp aTime,
                                                  const nsRect& aRange,
                                                  const nsSize& aCurrentVelocity)
 {
-  if (!aOrigin || aOrigin == nsGkAtoms::restore) {
+  if (!aOrigin || aOrigin == nsGkAtoms::restore || aOrigin == nsGkAtoms::relative) {
     // We don't have special prefs for "restore", just treat it as "other".
     // "restore" scrolls are (for now) always instant anyway so unless something
     // changes we should never have aOrigin == nsGkAtoms::restore here.
@@ -2130,14 +2108,14 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mLastSmoothScrollOrigin(nullptr)
   , mScrollGeneration(++sScrollGenerationCounter)
   , mDestination(0, 0)
-  , mScrollPosAtLastPaint(0, 0)
   , mRestorePos(-1, -1)
   , mLastPos(-1, -1)
+  , mApzScrollPos(0, 0)
   , mScrollPosForLayerPixelAlignment(-1, -1)
   , mLastUpdateFramesPos(-1, -1)
   , mHadDisplayPortAtLastFrameUpdate(false)
   , mDisplayPortAtLastFrameUpdate()
-  , mScrollParentID(mozilla::layers::FrameMetrics::NULL_SCROLL_ID)
+  , mScrollParentID(mozilla::layers::ScrollableLayerGuid::NULL_SCROLL_ID)
   , mNeverHasVerticalScrollbar(false)
   , mNeverHasHorizontalScrollbar(false)
   , mHasVerticalScrollbar(false)
@@ -2270,8 +2248,7 @@ void
 ScrollFrameHelper::CompleteAsyncScroll(const nsRect &aRange, nsAtom* aOrigin)
 {
   // Apply desired destination range since this is the last step of scrolling.
-  mAsyncSmoothMSDScroll = nullptr;
-  mAsyncScroll = nullptr;
+  RemoveObservers();
   AutoWeakFrame weakFrame(mOuter);
   ScrollToImpl(mDestination, aRange, aOrigin);
   if (!weakFrame.IsAlive()) {
@@ -2306,8 +2283,24 @@ ScrollFrameHelper::HasBgAttachmentLocal() const
 }
 
 void
+ScrollFrameHelper::ScrollTo(nsPoint aScrollPosition,
+                            nsIScrollableFrame::ScrollMode aMode,
+                            nsAtom* aOrigin,
+                            const nsRect* aRange,
+                            nsIScrollbarMediator::ScrollSnapMode aSnap)
+{
+  if (aOrigin == nullptr) {
+    aOrigin = nsGkAtoms::other;
+  }
+  ScrollToWithOrigin(aScrollPosition, aMode,
+                     aOrigin, aRange,
+                     aSnap);
+}
+
+void
 ScrollFrameHelper::ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
-                                     nsIScrollableFrame::ScrollMode aMode)
+                                     nsIScrollableFrame::ScrollMode aMode,
+                                     nsAtom* aOrigin)
 {
   nsPoint current = GetScrollPosition();
   CSSIntPoint currentCSSPixels = GetScrollPositionCSSPixels();
@@ -2327,7 +2320,10 @@ ScrollFrameHelper::ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
     range.y = pt.y;
     range.height = 0;
   }
-  ScrollTo(pt, aMode, &range);
+  if (aOrigin == nullptr) {
+    aOrigin = nsGkAtoms::other;
+  }
+  ScrollTo(pt, aMode, aOrigin, &range);
   // 'this' might be destroyed here
 }
 
@@ -2471,11 +2467,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
                                    currentVelocity, GetScrollRangeForClamping(),
                                    now, presContext);
 
-        if (!mAsyncSmoothMSDScroll->SetRefreshObserver(this)) {
-          // Observer setup failed. Scroll the normal way.
-          CompleteAsyncScroll(range, aOrigin);
-          return;
-        }
+        mAsyncSmoothMSDScroll->SetRefreshObserver(this);
       } else {
         // A previous smooth MSD scroll is still in progress, so we just need to
         // update its range and destination.
@@ -2494,11 +2486,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
 
   if (!mAsyncScroll) {
     mAsyncScroll = new AsyncScroll();
-    if (!mAsyncScroll->SetRefreshObserver(this)) {
-      // Observer setup failed. Scroll the normal way.
-      CompleteAsyncScroll(range, aOrigin);
-      return;
-    }
+    mAsyncScroll->SetRefreshObserver(this);
   }
 
   if (isSmoothScroll) {
@@ -2924,6 +2912,17 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsAtom* aOrig
   // Update frame position for scrolling
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
 
+  // If this scroll is |relative|, but we've already had a user scroll that
+  // was not relative, promote this origin to |other|. This ensures that we
+  // may only transmit a relative update to APZ if all scrolls since the last
+  // transaction or repaint request have been relative.
+  if (aOrigin == nsGkAtoms::relative &&
+      (mLastScrollOrigin &&
+       mLastScrollOrigin != nsGkAtoms::relative &&
+       mLastScrollOrigin != nsGkAtoms::apz)) {
+    aOrigin = nsGkAtoms::other;
+  }
+
   // If |mLastScrollOrigin| is already set to something that can clobber APZ's
   // scroll offset, then we don't want to change it to something that can't.
   // If we allowed this, then we could end up in a state where APZ ignores
@@ -2934,23 +2933,34 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsAtom* aOrig
     !nsLayoutUtils::CanScrollOriginClobberApz(aOrigin);
   bool allowScrollOriginChange = mAllowScrollOriginDowngrade ||
     !isScrollOriginDowngrade;
+
   if (allowScrollOriginChange) {
     mLastScrollOrigin = aOrigin;
     mAllowScrollOriginDowngrade = false;
   }
   mLastSmoothScrollOrigin = nullptr;
   mScrollGeneration = ++sScrollGenerationCounter;
+  if (mLastScrollOrigin == nsGkAtoms::apz) {
+    mApzScrollPos = GetScrollPosition();
+  }
 
   // If the new scroll offset is going to clobber APZ's scroll offset, for
   // the RCD-RSF this will have the effect of resetting the visual viewport
   // offset to be the same as the new scroll (= layout viewport) offset.
   // The APZ callback transform, which reflects the difference between these
-  // offsets, will subsequently be cleared. However, it we wait for APZ to
+  // offsets, will subsequently be cleared. However, if we wait for APZ to
   // clear it, the main thread could end up using the old value and get
   // incorrect results, so just clear it now.
   if (mIsRoot && nsLayoutUtils::CanScrollOriginClobberApz(mLastScrollOrigin)) {
     content->SetProperty(nsGkAtoms::apzCallbackTransform, new CSSPoint(),
                          nsINode::DeleteProperty<CSSPoint>);
+
+    // Similarly, update the main thread's view of the visual viewport
+    // offset. Otherwise, if we perform calculations that depend on this
+    // offset (e.g. by using nsIDOMWindowUtils.getVisualViewportOffset()
+    // in chrome JS code) before it's updated by the next APZ repaint,
+    // we could get incorrect results.
+    presContext->PresShell()->SetVisualViewportOffset(pt);
   }
 
   ScrollVisual();
@@ -2999,7 +3009,7 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsAtom* aOrig
           nsIWidget* widget = presContext->GetNearestWidget();
           LayerManager* manager = widget ? widget->GetLayerManager() : nullptr;
           if (manager) {
-            mozilla::layers::FrameMetrics::ViewID id;
+            mozilla::layers::ScrollableLayerGuid::ViewID id;
             bool success = nsLayoutUtils::FindIDFor(content, &id);
             MOZ_ASSERT(success); // we have a displayport, we better have an ID
 
@@ -3007,7 +3017,12 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsAtom* aOrig
             // instead of a full transaction. This empty transaction might still get
             // squashed into a full transaction if something happens to trigger one.
             success = manager->SetPendingScrollUpdateForNextTransaction(id,
-                { mScrollGeneration, CSSPoint::FromAppUnits(GetScrollPosition()) });
+                {
+                  mScrollGeneration,
+                  CSSPoint::FromAppUnits(GetScrollPosition()),
+                  CSSPoint::FromAppUnits(GetApzScrollPosition()),
+                  mLastScrollOrigin == nsGkAtoms::relative
+                });
             if (success) {
               schedulePaint = false;
               mOuter->SchedulePaint(nsIFrame::PAINT_COMPOSITE_ONLY);
@@ -3195,9 +3210,9 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
   // We can't check will-change budget during display list building phase.
   // This means that we will build scroll bar layers for out of budget
   // will-change: scroll position.
-  const mozilla::layers::FrameMetrics::ViewID scrollTargetId = IsMaybeScrollingActive()
+  const mozilla::layers::ScrollableLayerGuid::ViewID scrollTargetId = IsMaybeScrollingActive()
     ? nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent())
-    : mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
+    : mozilla::layers::ScrollableLayerGuid::NULL_SCROLL_ID;
 
   scrollParts.Sort(HoveredStateComparator());
 
@@ -3414,10 +3429,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   mOuter->DisplayBorderBackgroundOutline(aBuilder, aLists);
 
   if (aBuilder->IsPaintingToWindow()) {
-    mScrollPosAtLastPaint = GetScrollPosition();
     if (IsMaybeScrollingActive()) {
       if (mScrollPosForLayerPixelAlignment == nsPoint(-1,-1)) {
-        mScrollPosForLayerPixelAlignment = mScrollPosAtLastPaint;
+        mScrollPosForLayerPixelAlignment = GetScrollPosition();
       }
     } else {
       mScrollPosForLayerPixelAlignment = nsPoint(-1,-1);
@@ -3667,19 +3681,22 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       aBuilder->SetActiveScrolledRootForRootScrollframe(aBuilder->CurrentActiveScrolledRoot());
     }
 
-    if (mWillBuildScrollableLayer) {
+    if (mWillBuildScrollableLayer && aBuilder->BuildCompositorHitTestInfo()) {
       // Create a hit test info item for the scrolled content that's not
       // clipped to the displayport. This ensures that within the bounds
       // of the scroll frame, the scrolled content is always hit, even
       // if we are checkerboarding.
-      if (aBuilder->BuildCompositorHitTestInfo()) {
-        CompositorHitTestInfo info = mScrolledFrame->GetCompositorHitTestInfo(aBuilder);
-        if (info != CompositorHitTestInvisibleToHit) {
-          nsDisplayCompositorHitTestInfo* hitInfo =
-              MakeDisplayItem<nsDisplayCompositorHitTestInfo>(aBuilder, mScrolledFrame, info, 1);
-          aBuilder->SetCompositorHitTestInfo(hitInfo);
-          scrolledContent.BorderBackground()->AppendToTop(hitInfo);
-        }
+      CompositorHitTestInfo info =
+        mScrolledFrame->GetCompositorHitTestInfo(aBuilder);
+
+      if (info != CompositorHitTestInvisibleToHit) {
+        auto* hitInfo = MakeDisplayItem<nsDisplayCompositorHitTestInfo>(
+          aBuilder, mScrolledFrame, info, 1);
+
+        aBuilder->SetCompositorHitTestInfo(
+          hitInfo->HitTestArea(), hitInfo->HitTestFlags());
+
+        scrolledContent.BorderBackground()->AppendToTop(hitInfo);
       }
     }
 
@@ -3977,7 +3994,7 @@ ScrollFrameHelper::DecideScrollableLayer(nsDisplayListBuilder* aBuilder,
 Maybe<ScrollMetadata>
 ScrollFrameHelper::ComputeScrollMetadata(LayerManager* aLayerManager,
                                          const nsIFrame* aContainerReferenceFrame,
-                                         const ContainerLayerParameters& aParameters,
+                                         const Maybe<ContainerLayerParameters>& aParameters,
                                          const DisplayItemClip* aClip) const
 {
   if (!mWillBuildScrollableLayer || mIsScrollableLayerInRootContainer) {
@@ -4250,7 +4267,7 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
     if (aSnap == nsIScrollableFrame::ENABLE_SNAP) {
       GetSnapPointForDestination(aUnit, mDestination, pos);
     }
-    ScrollTo(pos, aMode);
+    ScrollTo(pos, aMode, nsGkAtoms::other);
     // 'this' might be destroyed here
     if (aOverflow) {
       *aOverflow = nsIntPoint(0, 0);
@@ -4316,6 +4333,36 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
 }
 
 void
+ScrollFrameHelper::ScrollByCSSPixels(const CSSIntPoint& aDelta,
+                                     nsIScrollableFrame::ScrollMode aMode,
+                                     nsAtom* aOrigin)
+{
+  nsPoint current = GetScrollPosition();
+  nsPoint pt = current + CSSPoint::ToAppUnits(aDelta);
+  nscoord halfPixel = nsPresContext::CSSPixelsToAppUnits(0.5f);
+  nsRect range(pt.x - halfPixel, pt.y - halfPixel, 2*halfPixel - 1, 2*halfPixel - 1);
+  // XXX I don't think the following blocks are needed anymore, now that
+  // ScrollToImpl simply tries to scroll an integer number of layer
+  // pixels from the current position
+  if (aDelta.x == 0.0f) {
+    pt.x = current.x;
+    range.x = pt.x;
+    range.width = 0;
+  }
+  if (aDelta.y == 0.0f) {
+    pt.y = current.y;
+    range.y = pt.y;
+    range.height = 0;
+  }
+  if (aOrigin == nullptr) {
+    aOrigin = nsGkAtoms::other;
+  }
+  ScrollToWithOrigin(pt, aMode, aOrigin, &range,
+                     nsIScrollbarMediator::DISABLE_SNAP);
+  // 'this' might be destroyed here
+}
+
+void
 ScrollFrameHelper::ScrollSnap(nsIScrollableFrame::ScrollMode aMode)
 {
   float flingSensitivity = gfxPrefs::ScrollSnapPredictionSensitivity();
@@ -4342,7 +4389,7 @@ ScrollFrameHelper::ScrollSnap(const nsPoint &aDestination,
   if (GetSnapPointForDestination(nsIScrollableFrame::DEVICE_PIXELS,
                                                  pos,
                                                  snapDestination)) {
-    ScrollTo(snapDestination, aMode);
+    ScrollTo(snapDestination, aMode, nsGkAtoms::other);
   }
 }
 
@@ -4934,13 +4981,22 @@ ScrollFrameHelper::Destroy(PostDestroyData& aPostDestroyData)
     mScrollActivityTimer->Cancel();
     mScrollActivityTimer = nullptr;
   }
+  RemoveObservers();
+}
+
+void
+ScrollFrameHelper::RemoveObservers()
+{
   if (mAsyncScroll) {
     mAsyncScroll->RemoveObserver();
+    mAsyncScroll = nullptr;
   }
   if (mAsyncSmoothMSDScroll) {
     mAsyncSmoothMSDScroll->RemoveObserver();
+    mAsyncSmoothMSDScroll = nullptr;
   }
 }
+
 
 /**
  * Called when we want to update the scrollbar position, either because scrolling happened
@@ -5078,7 +5134,13 @@ ScrollFrameHelper::ScrollEndEvent::Run()
 void
 ScrollFrameHelper::FireScrollEvent()
 {
-  AUTO_PROFILER_TRACING("Paint", "FireScrollEvent");
+  nsIContent* content = mOuter->GetContent();
+  nsPresContext* prescontext = mOuter->PresContext();
+#ifdef MOZ_GECKO_PROFILER
+  nsCOMPtr<nsIDocShell> docShell = prescontext->GetDocShell();
+  AUTO_PROFILER_TRACING_DOCSHELL("Paint", "FireScrollEvent", docShell);
+#endif
+
   MOZ_ASSERT(mScrollEvent);
   mScrollEvent->Revoke();
   mScrollEvent = nullptr;
@@ -5086,8 +5148,6 @@ ScrollFrameHelper::FireScrollEvent()
   ActiveLayerTracker::SetCurrentScrollHandlerFrame(mOuter);
   WidgetGUIEvent event(true, eScroll, nullptr);
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsIContent* content = mOuter->GetContent();
-  nsPresContext* prescontext = mOuter->PresContext();
   // Fire viewport scroll events at the document (where they
   // will bubble to the window)
   mozilla::layers::ScrollLinkedEffectDetector detector(content->GetComposedDoc());
@@ -6632,7 +6692,7 @@ ScrollFrameHelper::DragScroll(WidgetEvent* aEvent)
   }
 
   if (offset.x || offset.y) {
-    ScrollTo(GetScrollPosition() + offset, nsIScrollableFrame::NORMAL);
+    ScrollTo(GetScrollPosition() + offset, nsIScrollableFrame::NORMAL, nsGkAtoms::other);
   }
 
   return willScroll;

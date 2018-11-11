@@ -20,7 +20,7 @@ add_task(async function test_theme_install() {
       Services.obs.removeObserver(observer, "lightweight-theme-styling-update");
     });
 
-    let promptPromise = promiseNotification("addon-installed");
+    let promptPromise = acceptAppMenuNotificationWhenShown("addon-installed");
 
     let installPromise = ContentTask.spawn(browser, URL, async (url) => {
       let install = await content.navigator.mozAddonManager.createInstall({url});
@@ -35,5 +35,7 @@ add_task(async function test_theme_install() {
     let parsed = JSON.parse(updates[0]);
     ok(parsed.theme.headerURL.endsWith("/testImage.png"),
        "Theme update has the expected headerURL");
+    is(parsed.theme.id, "theme@tests.mozilla.org", "Theme update includes the theme ID");
+    is(parsed.theme.version, "1.0", "Theme update includes the theme's version");
   });
 });

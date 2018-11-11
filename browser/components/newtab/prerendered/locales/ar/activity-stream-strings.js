@@ -75,9 +75,9 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "المواضيع الشائعة:",
   "pocket_read_even_more": "اعرض المزيد من الأخبار",
   "pocket_more_reccommendations": "مقترحات أخرى",
-  "pocket_learn_more": "اطّلع على المزيد",
-  "pocket_cta_button": "Get Pocket",
-  "pocket_cta_text": "Save the stories you love in Pocket, and fuel your mind with fascinating reads.",
+  "pocket_how_it_works": "How it works",
+  "pocket_cta_button": "نزِّل بوكِت",
+  "pocket_cta_text": "احفظ القصص التي تحبّها في بوكِت، وزوّد عقلك بمقالات رائعة.",
   "highlights_empty_state": "ابدأ التصفح وسنعرض أمامك بعض المقالات والفيديوهات والمواقع الأخرى التي زرتها حديثا أو أضفتها إلى العلامات هنا.",
   "topstories_empty_state": "لا جديد. تحقق لاحقًا للحصول على مزيد من أهم الأخبار من {provider}. لا يمكنك الانتظار؟ اختر موضوعًا شائعًا للعثور على المزيد من القصص الرائعة من جميع أنحاء الوِب.",
   "manual_migration_explanation2": "جرب فَيَرفُكس مع العلامات، و التأريخ، و كلمات السر من متصفح آخر.",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "بنود الخدمة",
   "firstrun_privacy_notice": "تنويه الخصوصية",
   "firstrun_continue_to_login": "تابِع",
-  "firstrun_skip_login": "تجاوز هذه الخطوة"
+  "firstrun_skip_login": "تجاوز هذه الخطوة",
+  "context_menu_title": "افتح القائمة",
+  "pocket_learn_more": "اطّلع على المزيد"
 };

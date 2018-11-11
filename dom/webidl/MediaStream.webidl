@@ -29,8 +29,8 @@ dictionary MediaStreamConstraints {
  Constructor (sequence<MediaStreamTrack> tracks)]
 interface MediaStream : EventTarget {
     readonly    attribute DOMString    id;
-    sequence<AudioStreamTrack> getAudioTracks ();
-    sequence<VideoStreamTrack> getVideoTracks ();
+    sequence<MediaStreamTrack> getAudioTracks ();
+    sequence<MediaStreamTrack> getVideoTracks ();
     sequence<MediaStreamTrack> getTracks ();
     MediaStreamTrack?          getTrackById (DOMString trackId);
     void                       addTrack (MediaStreamTrack track);
@@ -39,7 +39,6 @@ interface MediaStream : EventTarget {
     readonly    attribute boolean      active;
                 attribute EventHandler onaddtrack;
                 attribute EventHandler onremovetrack;
-    readonly attribute double currentTime;
 
     [ChromeOnly, Throws]
     static Promise<long> countUnderlyingStreams();

@@ -126,10 +126,8 @@ function getAnnotationsForItem(aItemId) {
  *
  * @param aNode
  *        An nsINavHistoryResultNode
- * @param aIsLivemark
- *        Whether the node represents a livemark.
  */
-function serializeNode(aNode, aIsLivemark) {
+function serializeNode(aNode) {
   let data = {};
 
   data.title = aNode.title;
@@ -138,7 +136,6 @@ function serializeNode(aNode, aIsLivemark) {
   // backwards compat of drag and drop with older Firefox versions.
   data.id = aNode.itemId;
   data.itemGuid = aNode.bookmarkGuid;
-  data.livemark = aIsLivemark;
   // Add an instanceId so we can tell which instance of an FF session the data
   // is coming from.
   data.instanceId = PlacesUtils.instanceId;
@@ -304,6 +301,88 @@ const SYNC_CHANGE_RECORD_VALIDATORS = Object.freeze({
   tombstone: simpleValidateFunc(v => v === true || v === false),
   synced: simpleValidateFunc(v => v === true || v === false),
 });
+/**
+ * List PageInfo bookmark object validators.
+ */
+const PAGEINFO_VALIDATORS = Object.freeze({
+  guid: BOOKMARK_VALIDATORS.guid,
+  url: BOOKMARK_VALIDATORS.url,
+  title: v => {
+    if (v == null || v == undefined) {
+      return undefined;
+    } else if (typeof v === "string") {
+      return v;
+    }
+    throw new TypeError(`title property of PageInfo object: ${v} must be a string if provided`);
+  },
+  previewImageURL: v => {
+    if (!v) {
+      return null;
+    }
+    return BOOKMARK_VALIDATORS.url(v);
+  },
+  description: v => {
+    if (typeof v === "string" || v === null) {
+      return v ? v.slice(0, DB_DESCRIPTION_LENGTH_MAX) : null;
+    }
+    throw new TypeError(`description property of pageInfo object: ${v} must be either a string or null if provided`);
+  },
+  annotations: v => {
+    if (typeof v != "object" ||
+        v.constructor.name != "Map") {
+        throw new TypeError("annotations must be a Map");
+      }
+
+      if (v.size == 0) {
+        throw new TypeError("there must be at least one annotation");
+      }
+
+      for (let [key, value] of v.entries()) {
+        if (typeof key != "string") {
+          throw new TypeError("all annotation keys must be strings");
+        }
+        if (typeof value != "string" &&
+            typeof value != "number" &&
+            typeof value != "boolean" &&
+            value !== null &&
+            value !== undefined) {
+          throw new TypeError("all annotation values must be Boolean, Numbers or Strings");
+        }
+      }
+      return v;
+  },
+  visits: v => {
+    if (!Array.isArray(v) || !v.length) {
+      throw new TypeError("PageInfo object must have an array of visits");
+    }
+    let visits = [];
+    for (let inVisit of v) {
+      let visit = {
+        date: new Date(),
+        transition: inVisit.transition || History.TRANSITIONS.LINK,
+      };
+
+      if (!PlacesUtils.history.isValidTransition(visit.transition)) {
+        throw new TypeError(`transition: ${visit.transition} is not a valid transition type`);
+      }
+
+      if (inVisit.date) {
+        PlacesUtils.history.ensureDate(inVisit.date);
+        if (inVisit.date > (Date.now() + TIMERS_RESOLUTION_SKEW_MS)) {
+          throw new TypeError(`date: ${inVisit.date} cannot be a future date`);
+        }
+        visit.date = inVisit.date;
+      }
+
+      if (inVisit.referrer) {
+        visit.referrer = PlacesUtils.normalizeToURLOrGUID(inVisit.referrer);
+      }
+      visits.push(visit);
+    }
+    return visits;
+  },
+});
+
 
 var PlacesUtils = {
   // Place entries that are containers, e.g. bookmark folders or queries.
@@ -633,7 +712,7 @@ var PlacesUtils = {
    * @note any unknown properties are pass-through.
    */
   validateItemProperties(name, validators, props, behavior = {}) {
-    if (!props)
+    if (typeof props != "object" || !props)
       throw new Error(`${name}: Input should be a valid object`);
     // Make a shallow copy of `props` to avoid mutating the original object
     // when filling in defaults.
@@ -841,13 +920,9 @@ var PlacesUtils = {
    *          The Result node to wrap (serialize)
    * @param   aType
    *          The content type to serialize as
-   * @param   [optional] aFeedURI
-   *          Used instead of the node's URI if provided.
-   *          This is useful for wrapping a livemark as TYPE_X_MOZ_URL,
-   *          TYPE_HTML or TYPE_UNICODE.
    * @return  A string serialization of the node
    */
-  wrapNode(aNode, aType, aFeedURI) {
+  wrapNode(aNode, aType) {
     // when wrapping a node, we want all the items, even if the original
     // query options are excluding them.
     // This can happen when copying from the left hand pane of the bookmarks
@@ -878,10 +953,6 @@ var PlacesUtils = {
       // escape out potential HTML in the title
       let escapedTitle = node.title ? htmlEscape(node.title) : "";
 
-      if (aFeedURI) {
-        return `<A HREF="${aFeedURI}">${escapedTitle}</A>${NEWLINE}`;
-      }
-
       if (PlacesUtils.nodeIsContainer(node)) {
         asContainer(node);
         let wasOpen = node.containerOpen;
@@ -908,10 +979,6 @@ var PlacesUtils = {
     }
 
     function gatherDataText(node) {
-      if (aFeedURI) {
-        return aFeedURI;
-      }
-
       if (PlacesUtils.nodeIsContainer(node)) {
         asContainer(node);
         let wasOpen = node.containerOpen;
@@ -940,11 +1007,12 @@ var PlacesUtils = {
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       case this.TYPE_X_MOZ_PLACE_CONTAINER: {
         // Serialize the node to JSON.
-        return serializeNode(aNode, aFeedURI);
+        return serializeNode(aNode);
       }
       case this.TYPE_X_MOZ_URL: {
-        if (aFeedURI || PlacesUtils.nodeIsURI(aNode))
-          return (aFeedURI || aNode.uri) + NEWLINE + aNode.title;
+        if (PlacesUtils.nodeIsURI(aNode)) {
+          return aNode.uri + NEWLINE + aNode.title;
+        }
         if (PlacesUtils.nodeIsContainer(aNode)) {
           return PlacesUtils.getURLsForContainerNode(aNode)
             .map(item => item.uri + "\n" + item.title)
@@ -1036,114 +1104,12 @@ var PlacesUtils = {
    * @return (PageInfo)
    */
   validatePageInfo(pageInfo, validateVisits = true) {
-    let info = {
-      visits: [],
-    };
-
-    if (typeof pageInfo != "object" || !pageInfo) {
-      throw new TypeError("pageInfo must be an object");
-    }
-
-    if (!pageInfo.url) {
-      throw new TypeError("PageInfo object must have a url property");
-    }
-
-    info.url = this.normalizeToURLOrGUID(pageInfo.url);
-
-    if (typeof pageInfo.guid === "string" && this.isValidGuid(pageInfo.guid)) {
-      info.guid = pageInfo.guid;
-    } else if (pageInfo.guid) {
-      throw new TypeError(`guid property of PageInfo object: ${pageInfo.guid} is invalid`);
-    }
-
-    if (typeof pageInfo.title === "string") {
-      info.title = pageInfo.title;
-    } else if (pageInfo.title != null && pageInfo.title != undefined) {
-      throw new TypeError(`title property of PageInfo object: ${pageInfo.title} must be a string if provided`);
-    }
-
-    if ("description" in pageInfo && (typeof pageInfo.description === "string" || pageInfo.description === null)) {
-      info.description = pageInfo.description ? pageInfo.description.slice(0, DB_DESCRIPTION_LENGTH_MAX) : null;
-    } else if (pageInfo.description !== undefined) {
-      throw new TypeError(`description property of pageInfo object: ${pageInfo.description} must be either a string or null if provided`);
-    }
-
-    if ("previewImageURL" in pageInfo) {
-      let previewImageURL = pageInfo.previewImageURL;
-
-      if (!previewImageURL) {
-        info.previewImageURL = null;
-      } else if (typeof(previewImageURL) === "string" && previewImageURL.length <= DB_URL_LENGTH_MAX) {
-        info.previewImageURL = new URL(previewImageURL);
-      } else if (previewImageURL instanceof Ci.nsIURI && previewImageURL.spec.length <= DB_URL_LENGTH_MAX) {
-        info.previewImageURL = new URL(previewImageURL.spec);
-      } else if (previewImageURL instanceof URL && previewImageURL.href.length <= DB_URL_LENGTH_MAX) {
-        info.previewImageURL = previewImageURL;
-      } else {
-        throw new TypeError("previewImageURL property of pageInfo object: ${previewImageURL} is invalid");
-      }
-    }
-
-    if (pageInfo.annotations) {
-      if (typeof pageInfo.annotations != "object" ||
-          pageInfo.annotations.constructor.name != "Map") {
-        throw new TypeError("annotations must be a Map");
-      }
-
-      if (pageInfo.annotations.size == 0) {
-        throw new TypeError("there must be at least one annotation");
-      }
-
-      for (let [key, value] of pageInfo.annotations.entries()) {
-        if (typeof key != "string") {
-          throw new TypeError("all annotation keys must be strings");
-        }
-        if (typeof value != "string" &&
-            typeof value != "number" &&
-            typeof value != "boolean" &&
-            value !== null &&
-            value !== undefined) {
-          throw new TypeError("all annotation values must be Boolean, Numbers or Strings");
-        }
-      }
-
-      info.annotations = pageInfo.annotations;
-    }
-
-    if (!validateVisits) {
-      return info;
-    }
-
-    if (!pageInfo.visits || !Array.isArray(pageInfo.visits) || !pageInfo.visits.length) {
-      throw new TypeError("PageInfo object must have an array of visits");
-    }
-
-    for (let inVisit of pageInfo.visits) {
-      let visit = {
-        date: new Date(),
-        transition: inVisit.transition || History.TRANSITIONS.LINK,
-      };
-
-      if (!PlacesUtils.history.isValidTransition(visit.transition)) {
-        throw new TypeError(`transition: ${visit.transition} is not a valid transition type`);
-      }
-
-      if (inVisit.date) {
-        PlacesUtils.history.ensureDate(inVisit.date);
-        if (inVisit.date > (Date.now() + TIMERS_RESOLUTION_SKEW_MS)) {
-          throw new TypeError(`date: ${inVisit.date} cannot be a future date`);
-        }
-        visit.date = inVisit.date;
-      }
-
-      if (inVisit.referrer) {
-        visit.referrer = this.normalizeToURLOrGUID(inVisit.referrer);
-      }
-      info.visits.push(visit);
-    }
-    return info;
+    return this.validateItemProperties("PageInfo", PAGEINFO_VALIDATORS, pageInfo,
+      { url: { requiredIf: b => !b.guid },
+        guid: { requiredIf: b => !b.url },
+        visits: { requiredIf: b => validateVisits  },
+      });
   },
-
   /**
    * Normalize a key to either a string (if it is a valid GUID) or an
    * instance of `URL` (if it is a `URL`, `nsIURI`, or a string
@@ -2040,7 +2006,9 @@ PlacesUtils.metadata = {
           value = JSON.parse(this._base64Decode(rawValue.substr(this.jsonPrefix.length)));
         } catch (ex) {
           if (defaultValue !== undefined) {
-            value = defaultValue;
+            // We must create a new array in the local scope to avoid a memory
+            // leak due to the array global object.
+            value = Cu.cloneInto(defaultValue, {});
           } else {
             throw ex;
           }
@@ -2049,7 +2017,9 @@ PlacesUtils.metadata = {
         value = rawValue;
       }
     } else if (defaultValue !== undefined) {
-      value = defaultValue;
+      // We must create a new array in the local scope to avoid a memory leak due
+      // to the array global object.
+      value = Cu.cloneInto(defaultValue, {});
     } else {
       throw new Error(`No data stored for key ${key}`);
     }
@@ -2696,12 +2666,13 @@ var GuidHelper = {
       *      So, for exmaple, when the NewBookmark needs the new GUID, we already
       *      have it cached.
       */
+      let listener = events => {
+        for (let event of events) {
+          this.updateCache(event.id, event.guid);
+          this.updateCache(event.parentId, event.parentGuid);
+        }
+      };
       this.observer = {
-        onItemAdded: (aItemId, aParentId, aIndex, aItemType, aURI, aTitle,
-                      aDateAdded, aGuid, aParentGuid) => {
-          this.updateCache(aItemId, aGuid);
-          this.updateCache(aParentId, aParentGuid);
-        },
         onItemRemoved:
         (aItemId, aParentId, aIndex, aItemTyep, aURI, aGuid, aParentGuid) => {
           this.guidsForIds.delete(aItemId);
@@ -2718,8 +2689,10 @@ var GuidHelper = {
         onItemMoved() {},
       };
       PlacesUtils.bookmarks.addObserver(this.observer);
+      PlacesUtils.observers.addListener(["bookmark-added"], listener);
       PlacesUtils.registerShutdownFunction(() => {
         PlacesUtils.bookmarks.removeObserver(this.observer);
+        PlacesUtils.observers.removeListener(["bookmark-added"], listener);
       });
     }
   },

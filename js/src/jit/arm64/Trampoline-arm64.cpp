@@ -20,12 +20,6 @@
 using namespace js;
 using namespace js::jit;
 
-// All registers to save and restore. This includes the stack pointer, since we
-// use the ability to reference register values on the stack by index.
-static const LiveRegisterSet AllRegs =
-    LiveRegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1 << 31 | 1 << 30 | 1 << 29| 1 << 28)),
-                FloatRegisterSet(FloatRegisters::AllMask));
-
 /* This method generates a trampoline on ARM64 for a c++ function with
  * the following signature:
  *   bool blah(void* code, int argc, Value* argv, JSObject* scopeChain, Value* vp)
@@ -142,11 +136,11 @@ JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm)
             // Store the argument to tmp_sp, then increment tmp_sp by 8.
             masm.Str(x24, MemOperand(tmp_sp, Operand(8), vixl::PostIndex));
 
-            // Set the condition codes for |cmp tmp_argc, 2| (using the old value).
+            // Decrement tmp_argc and set the condition codes for the new value.
             masm.Subs(tmp_argc, tmp_argc, Operand(1));
 
             // Branch if arguments remain.
-            masm.B(&loopHead, vixl::Condition::ge);
+            masm.B(&loopHead, vixl::Condition::NonZero);
         }
 
         masm.bind(&noArguments);
@@ -179,6 +173,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm)
 
         // Reserve frame.
         masm.subFromStackPtr(Imm32(BaselineFrame::Size()));
+
+        masm.touchFrameValues(reg_osrNStack, ScratchReg2, BaselineFrameReg);
         masm.moveStackPtrTo(BaselineFrameReg);
 
         // Reserve space for locals and stack values.
@@ -277,14 +273,47 @@ JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm)
     masm.SetStackPointer64(PseudoStackPointer64);
 }
 
+static void
+PushRegisterDump(MacroAssembler& masm)
+{
+    const LiveRegisterSet First28GeneralRegisters =
+        LiveRegisterSet(GeneralRegisterSet(
+                            Registers::AllMask & ~(1 << 31 | 1 << 30 | 1 << 29 | 1 << 28)),
+                        FloatRegisterSet(FloatRegisters::NoneMask));
+
+    const LiveRegisterSet AllFloatRegisters =
+        LiveRegisterSet(GeneralRegisterSet(Registers::NoneMask),
+                        FloatRegisterSet(FloatRegisters::AllMask));
+
+    // Push all general-purpose registers.
+    //
+    // The ARM64 ABI does not treat SP as a normal register that can
+    // be pushed. So pushing happens in two phases.
+    //
+    // Registers are pushed in reverse order of code.
+
+    // First, push the last four registers, passing zero for sp.
+    // Zero is pushed for x28 and x31: the pseudo-SP and SP, respectively.
+    masm.asVIXL().Push(xzr, x30, x29, xzr);
+
+    // Second, push the first 28 registers that serve no special purpose.
+    masm.PushRegsInMask(First28GeneralRegisters);
+
+    // Finally, push all floating-point registers, completing the RegisterDump.
+    masm.PushRegsInMask(AllFloatRegisters);
+}
+
 void
 JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail)
 {
     invalidatorOffset_ = startTrampolineCode(masm);
 
-    masm.push(r0, r1, r2, r3);
-
-    masm.PushRegsInMask(AllRegs);
+    // The InvalidationBailoutStack saved in r0 must be:
+    // - osiPointReturnAddress_
+    // - ionScript_  (pushed by CodeGeneratorARM64::generateInvalidateEpilogue())
+    // - regs_  (pushed here)
+    // - fpregs_  (pushed here) [=r0]
+    PushRegisterDump(masm);
     masm.moveStackPtrTo(r0);
 
     masm.Sub(x1, masm.GetStackPointer64(), Operand(sizeof(size_t)));
@@ -415,67 +444,27 @@ JitRuntime::generateArgumentsRectifier(MacroAssembler& masm)
 }
 
 static void
-PushBailoutFrame(MacroAssembler& masm, uint32_t frameClass, Register spArg)
+PushBailoutFrame(MacroAssembler& masm, Register spArg)
 {
-    // the stack should look like:
-    // [IonFrame]
-    // bailoutFrame.registersnapshot
-    // bailoutFrame.fpsnapshot
-    // bailoutFrame.snapshotOffset
-    // bailoutFrame.frameSize
-
-    // STEP 1a: Save our register sets to the stack so Bailout() can read
-    // everything.
-    // sp % 8 == 0
-
-    // We don't have to push everything, but this is likely easier.
-    // Setting regs_.
-    masm.subFromStackPtr(Imm32(Registers::TotalPhys * sizeof(void*)));
-    for (uint32_t i = 0; i < Registers::TotalPhys; i += 2) {
-        masm.Stp(ARMRegister::XRegFromCode(i),
-                 ARMRegister::XRegFromCode(i + 1),
-                 MemOperand(masm.GetStackPointer64(), i * sizeof(void*)));
-    }
-
-    // Since our datastructures for stack inspection are compile-time fixed,
-    // if there are only 16 double registers, then we need to reserve
-    // space on the stack for the missing 16.
-    masm.subFromStackPtr(Imm32(FloatRegisters::TotalPhys * sizeof(double)));
-    for (uint32_t i = 0; i < FloatRegisters::TotalPhys; i += 2) {
-        masm.Stp(ARMFPRegister::DRegFromCode(i),
-                 ARMFPRegister::DRegFromCode(i + 1),
-                 MemOperand(masm.GetStackPointer64(), i * sizeof(void*)));
-    }
-
-    // STEP 1b: Push both the "return address" of the function call (the address
-    //          of the instruction after the call that we used to get here) as
-    //          well as the callee token onto the stack. The return address is
-    //          currently in r14. We will proceed by loading the callee token
-    //          into a sacrificial register <= r14, then pushing both onto the
-    //          stack.
-
-    // Now place the frameClass onto the stack, via a register.
-    masm.Mov(x9, frameClass);
-
-    // And onto the stack. Since the stack is full, we need to put this one past
-    // the end of the current stack. Sadly, the ABI says that we need to always
-    // point to the lowest place that has been written. The OS is free to do
-    // whatever it wants below sp.
-    masm.push(r30, r9);
+    // The stack saved in spArg must be (higher entries have higher memory addresses):
+    // - snapshotOffset_
+    // - frameSize_
+    // - regs_
+    // - fpregs_ (spArg + 0)
+    PushRegisterDump(masm);
     masm.moveStackPtrTo(spArg);
 }
 
 static void
-GenerateBailoutThunk(MacroAssembler& masm, uint32_t frameClass, Label* bailoutTail)
+GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail)
 {
-    PushBailoutFrame(masm, frameClass, r0);
+    PushBailoutFrame(masm, r0);
 
     // SP % 8 == 4
     // STEP 1c: Call the bailout function, giving a pointer to the
     //          structure we just blitted onto the stack.
     // Make space for the BaselineBailoutInfo* outparam.
-    const int sizeOfBailoutInfo = sizeof(void*) * 2;
-    masm.reserveStack(sizeOfBailoutInfo);
+    masm.reserveStack(sizeof(void*));
     masm.moveStackPtrTo(r1);
 
     masm.setupUnalignedABICall(r2);
@@ -484,25 +473,29 @@ GenerateBailoutThunk(MacroAssembler& masm, uint32_t frameClass, Label* bailoutTa
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, Bailout), MoveOp::GENERAL,
                      CheckUnsafeCallWithABI::DontCheckOther);
 
-    masm.Ldr(x2, MemOperand(masm.GetStackPointer64(), 0));
-    masm.addToStackPtr(Imm32(sizeOfBailoutInfo));
+    // Get the bailoutInfo outparam.
+    masm.pop(r2);
 
-    static const uint32_t BailoutDataSize = sizeof(void*) * Registers::Total +
-                                            sizeof(double) * FloatRegisters::TotalPhys;
+    // Stack is:
+    //     [frame]
+    //     snapshotOffset
+    //     frameSize
+    //     [bailoutFrame]
+    //
+    // We want to remove both the bailout frame and the topmost Ion frame's stack.
 
-    if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
-        vixl::UseScratchRegisterScope temps(&masm.asVIXL());
-        const ARMRegister scratch64 = temps.AcquireX();
+    // Remove the bailoutFrame.
+    static const uint32_t BailoutDataSize = sizeof(RegisterDump);
+    masm.addToStackPtr(Imm32(BailoutDataSize));
 
-        masm.Ldr(scratch64, MemOperand(masm.GetStackPointer64(), sizeof(uintptr_t)));
-        masm.addToStackPtr(Imm32(BailoutDataSize + 32));
-        masm.addToStackPtr(scratch64.asUnsized());
-    } else {
-        uint32_t frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-        masm.addToStackPtr(Imm32(frameSize + BailoutDataSize + sizeof(void*)));
-    }
+    // Pop the frame, snapshotOffset, and frameSize.
+    vixl::UseScratchRegisterScope temps(&masm.asVIXL());
+    const ARMRegister scratch64 = temps.AcquireX();
+    masm.Ldr(scratch64, MemOperand(masm.GetStackPointer64(), 0x0));
+    masm.addPtr(Imm32(2 * sizeof(void*)), scratch64.asUnsized());
+    masm.addToStackPtr(scratch64.asUnsized());
 
-    // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
+    // Jump to shared bailout tail. The BailoutInfo pointer has to be in r2.
     masm.jump(bailoutTail);
 }
 
@@ -517,7 +510,7 @@ JitRuntime::generateBailoutHandler(MacroAssembler& masm, Label* bailoutTail)
 {
     bailoutHandlerOffset_ = startTrampolineCode(masm);
 
-    GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID, bailoutTail);
+    GenerateBailoutThunk(masm, bailoutTail);
 }
 
 bool

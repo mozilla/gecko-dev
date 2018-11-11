@@ -7,12 +7,6 @@
 ChromeUtils.defineModuleGetter(this, "ContentTaskUtils",
                                "resource://testing-common/ContentTaskUtils.jsm");
 
-loader.lazyGetter(this, "WebExtensionInspectedWindowFront", () => {
-  return require(
-    "devtools/shared/fronts/addon/webextension-inspected-window"
-  ).WebExtensionInspectedWindowFront;
-}, true);
-
 const SIDEBAR_ID = "an-extension-sidebar";
 const SIDEBAR_TITLE = "Sidebar Title";
 
@@ -27,7 +21,7 @@ add_task(async function setupExtensionSidebar() {
     background() {
       // This is just an empty extension used to ensure that the caller extension uuid
       // actually exists.
-    }
+    },
   });
 
   await extension.startup();
@@ -113,10 +107,7 @@ add_task(async function testSidebarSetObject() {
 });
 
 add_task(async function testSidebarSetObjectValueGrip() {
-  const inspectedWindowFront = new WebExtensionInspectedWindowFront(
-    toolbox.target.client, toolbox.target.form
-  );
-
+  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
   const sidebar = inspector.getPanel(SIDEBAR_ID);
   const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);
 
@@ -132,7 +123,7 @@ add_task(async function testSidebarSetObjectValueGrip() {
 
   const evalResult = await inspectedWindowFront.eval(fakeExtCallerInfo, expression, {
     evalResultAsGrip: true,
-    toolboxConsoleActorID: toolbox.target.form.consoleActor
+    toolboxConsoleActorID: toolbox.target.form.consoleActor,
   });
 
   sidebar.setObjectValueGrip(evalResult.valueGrip, "Expected Root Title");
@@ -158,10 +149,7 @@ add_task(async function testSidebarSetObjectValueGrip() {
 });
 
 add_task(async function testSidebarDOMNodeHighlighting() {
-  const inspectedWindowFront = new WebExtensionInspectedWindowFront(
-    toolbox.target.client, toolbox.target.form
-  );
-
+  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
   const sidebar = inspector.getPanel(SIDEBAR_ID);
   const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);
 
@@ -169,7 +157,7 @@ add_task(async function testSidebarDOMNodeHighlighting() {
 
   const evalResult = await inspectedWindowFront.eval(fakeExtCallerInfo, expression, {
     evalResultAsGrip: true,
-    toolboxConsoleActorID: toolbox.target.form.consoleActor
+    toolboxConsoleActorID: toolbox.target.form.consoleActor,
   });
 
   sidebar.setObjectValueGrip(evalResult.valueGrip);
@@ -240,6 +228,23 @@ add_task(async function testSidebarDOMNodeOpenInspector() {
   await onNodeUnhighlight;
 });
 
+add_task(async function testSidebarSetExtensionPage() {
+  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
+
+  const sidebar = inspector.getPanel(SIDEBAR_ID);
+  const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);
+
+  info("Testing sidebar.setExtensionPage");
+
+  const expectedURL = "data:text/html,<!DOCTYPE html><html><body><h1>Extension Page";
+
+  sidebar.setExtensionPage(expectedURL);
+
+  await testSetExtensionPageSidebarPanel(sidebarPanelContent, expectedURL);
+
+  inspectedWindowFront.destroy();
+});
+
 add_task(async function teardownExtensionSidebar() {
   info("Remove the sidebar instance");
 
@@ -260,4 +265,30 @@ add_task(async function teardownExtensionSidebar() {
   toolbox = null;
   inspector = null;
   extension = null;
+});
+
+add_task(async function testActiveTabOnNonExistingSidebar() {
+  // Set a fake non existing sidebar id in the activeSidebar pref,
+  // to simulate the scenario where an extension has installed a sidebar
+  // which has been saved in the preference but it doesn't exist anymore.
+  await SpecialPowers.pushPrefEnv({
+    set: [["devtools.inspector.activeSidebar"], "unexisting-sidebar-id"],
+  });
+
+  const res = await openInspectorForURL("about:blank");
+  inspector = res.inspector;
+  toolbox = res.toolbox;
+
+  const onceSidebarCreated = toolbox.once(`extension-sidebar-created-${SIDEBAR_ID}`);
+  toolbox.registerInspectorExtensionSidebar(SIDEBAR_ID, {title: SIDEBAR_TITLE});
+
+  // Wait the extension sidebar to be created and then unregister it to force the tabbar
+  // to select a new one.
+  await onceSidebarCreated;
+  toolbox.unregisterInspectorExtensionSidebar(SIDEBAR_ID);
+
+  is(inspector.sidebar.getCurrentTabID(), "layoutview",
+     "Got the expected inspector sidebar tab selected");
+
+  await SpecialPowers.popPrefEnv();
 });

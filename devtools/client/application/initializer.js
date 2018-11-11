@@ -41,35 +41,34 @@ window.Application = {
     const serviceContainer = {
       selectTool(toolId) {
         return toolbox.selectTool(toolId);
-      }
+      },
     };
-
-    this.client.addListener("workerListChanged", this.updateWorkers);
-    this.client.addListener("serviceWorkerRegistrationListChanged", this.updateWorkers);
+    this.toolbox.target.activeTab.on("workerListChanged", this.updateWorkers);
+    this.client.mainRoot.on("serviceWorkerRegistrationListChanged", this.updateWorkers);
     this.client.addListener("registration-changed", this.updateWorkers);
-    this.client.addListener("processListChanged", this.updateWorkers);
+    this.client.mainRoot.on("processListChanged", this.updateWorkers);
     this.toolbox.target.on("navigate", this.updateDomain);
 
     this.updateDomain();
     await this.updateWorkers();
 
-    const messageContexts = await this.createMessageContexts();
+    const fluentBundles = await this.createFluentBundles();
 
     // Render the root Application component.
-    const app = App({ client: this.client, messageContexts, serviceContainer });
+    const app = App({ client: this.client, fluentBundles, serviceContainer });
     render(Provider({ store: this.store }, app), this.mount);
   },
 
   /**
    * Retrieve message contexts for the current locales, and return them as an array of
-   * MessageContext elements.
+   * FluentBundles elements.
    */
-  async createMessageContexts() {
+  async createFluentBundles() {
     const locales = Services.locale.appLocalesAsBCP47;
     const generator =
-      L10nRegistry.generateContexts(locales, ["devtools/application.ftl"]);
+      L10nRegistry.generateBundles(locales, ["devtools/application.ftl"]);
 
-    // Return value of generateContexts is a generator and should be converted to
+    // Return value of generateBundles is a generator and should be converted to
     // a sync iterable before using it with React.
     const contexts = [];
     for await (const message of generator) {
@@ -89,11 +88,11 @@ window.Application = {
   },
 
   destroy() {
-    this.client.removeListener("workerListChanged", this.updateWorkers);
-    this.client.removeListener("serviceWorkerRegistrationListChanged",
+    this.toolbox.target.activeTab.off("workerListChanged", this.updateWorkers);
+    this.client.mainRoot.off("serviceWorkerRegistrationListChanged",
       this.updateWorkers);
     this.client.removeListener("registration-changed", this.updateWorkers);
-    this.client.removeListener("processListChanged", this.updateWorkers);
+    this.client.mainRoot.off("processListChanged", this.updateWorkers);
 
     this.toolbox.target.off("navigate", this.updateDomain);
 

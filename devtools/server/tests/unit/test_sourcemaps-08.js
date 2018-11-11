@@ -18,7 +18,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-source-map",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_source_maps();
                            });
@@ -43,7 +43,7 @@ function test_source_maps() {
     sources: ["/a"],
     names: [],
     mappings: "AACA",
-    sourcesContent: ["foo"]
+    sourcesContent: ["foo"],
   });
   Cu.evalInSandbox(code, gDebuggee, "1.8",
                    "http://example.com/foo.js", 1);

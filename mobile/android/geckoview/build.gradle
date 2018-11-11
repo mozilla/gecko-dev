@@ -147,7 +147,6 @@ android {
 
                 if (mozconfig.substs.MOZ_WEBRTC) {
                     srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/base/java/src"
-                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/modules/audio_device/android/java/src"
                     srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/modules/video_capture/android/java/src"
                 }
             }
@@ -226,6 +225,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test:rules:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     androidTestImplementation "com.android.support:support-annotations:$support_library_version"
+
+    androidTestImplementation 'org.eclipse.jetty:jetty-server:7.6.21.v20160908'
 }
 
 apply from: "${topsrcdir}/mobile/android/gradle/with_gecko_binaries.gradle"
@@ -263,7 +264,7 @@ android.libraryVariants.all { variant ->
         options.bootClasspath = [
             file("${System.properties['java.home']}/lib/rt.jar")] + android.bootClasspath
         options.memberLevel = JavadocMemberLevel.PROTECTED
-        options.source = 7
+        options.source = 8
         options.links("https://d.android.com/reference/")
 
         options.docTitle = "GeckoView ${mozconfig.substs.MOZ_APP_VERSION} API"
@@ -296,7 +297,14 @@ apply plugin: 'maven'
 uploadArchives {
     repositories.mavenDeployer {
         pom.groupId = 'org.mozilla.geckoview'
-        pom.artifactId = "geckoview-${mozconfig.substs.MOZ_UPDATE_CHANNEL}-${mozconfig.substs.ANDROID_CPU_ARCH}"
+
+        if (mozconfig.substs.MOZ_UPDATE_CHANNEL == 'release') {
+            // release artifacts don't specify the channel, for the sake of simplicity
+            pom.artifactId = "geckoview-${mozconfig.substs.ANDROID_CPU_ARCH}"
+        } else {
+            pom.artifactId = "geckoview-${mozconfig.substs.MOZ_UPDATE_CHANNEL}-${mozconfig.substs.ANDROID_CPU_ARCH}"
+        }
+
         pom.version = computeVersionNumber()
 
         pom.project {
@@ -318,7 +326,7 @@ afterEvaluate {
     // The bundle tasks are only present when the particular configuration is
     // being built, so this task might not exist.  (This is due to the way the
     // Android Gradle plugin defines things during configuration.)
-    def bundleWithGeckoBinaries = tasks.findByName('bundleOfficialWithGeckoBinariesNoMinApiRelease')
+    def bundleWithGeckoBinaries = tasks.findByName('bundleWithGeckoBinariesRelease')
     if (!bundleWithGeckoBinaries) {
         return
     }
@@ -332,10 +340,10 @@ afterEvaluate {
 
     artifacts {
         // Instead of default (release) configuration, publish one with Gecko binaries.
-        archives bundleOfficialWithGeckoBinariesNoMinApiRelease
+        archives bundleWithGeckoBinariesRelease
         // Javadoc and sources for developer ergononomics.
-        archives javadocJarOfficialWithGeckoBinariesNoMinApiRelease
-        archives sourcesJarOfficialWithGeckoBinariesNoMinApiRelease
+        archives javadocJarWithGeckoBinariesRelease
+        archives sourcesJarWithGeckoBinariesRelease
     }
 
     // For now, ensure Kotlin is only used in tests.

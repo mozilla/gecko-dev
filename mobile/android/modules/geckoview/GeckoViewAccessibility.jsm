@@ -11,13 +11,13 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
-  AccessFu: "resource://gre/modules/accessibility/AccessFu.jsm"
+  AccessFu: "resource://gre/modules/accessibility/AccessFu.jsm",
 });
 
 class GeckoViewAccessibility extends GeckoViewModule {
   onInit() {
     EventDispatcher.instance.registerListener((aEvent, aData, aCallback) => {
-      if (aData.enabled) {
+      if (aData.touchEnabled) {
         AccessFu.enable();
       } else {
         AccessFu.disable();

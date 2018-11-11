@@ -11,7 +11,6 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   Services: "resource://gre/modules/Services.jsm",
-  TelemetryStopwatch: "resource://gre/modules/TelemetryStopwatch.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(this, "gTabWarmingEnabled",
@@ -353,7 +352,7 @@ class AsyncTabSwitcher {
       // determined by the busy state on the tab element and checking
       // if the loaded URI is local.
       let hasSufficientlyLoaded = !this.requestedTab.hasAttribute("busy") &&
-        !this.tabbrowser._isLocalAboutURI(requestedBrowser.currentURI);
+        !this.tabbrowser.isLocalAboutURI(requestedBrowser.currentURI);
 
       let fl = requestedBrowser.frameLoader;
       shouldBeBlank = !this.minimizedOrFullyOccluded &&
@@ -995,6 +994,8 @@ class AsyncTabSwitcher {
     this.logState("requestTab " + this.tinfo(tab));
     this.startTabSwitch();
 
+    let oldBrowser = this.requestedTab.linkedBrowser;
+    oldBrowser.deprioritize();
     this.requestedTab = tab;
     if (tabState == this.STATE_LOADED) {
       this.maybeVisibleTabs.clear();

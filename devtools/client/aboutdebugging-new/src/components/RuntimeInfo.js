@@ -4,9 +4,12 @@
 
 "use strict";
 
-const { PureComponent } = require("devtools/client/shared/vendor/react");
+const { createFactory, PureComponent } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+
+const FluentReact = require("devtools/client/shared/vendor/fluent-react");
+const Localized = createFactory(FluentReact.Localized);
 
 /**
  * This component displays runtime information.
@@ -15,25 +18,35 @@ class RuntimeInfo extends PureComponent {
   static get propTypes() {
     return {
       icon: PropTypes.string.isRequired,
+      deviceName: PropTypes.string,
       name: PropTypes.string.isRequired,
       version: PropTypes.string.isRequired,
     };
   }
 
   render() {
-    const { icon, name, version } = this.props;
+    const { icon, deviceName, name, version } = this.props;
 
     return dom.h1(
       {
-        className: "runtime-info",
+        className: "main-heading",
       },
       dom.img(
         {
-          className: "runtime-info__icon",
+          className: "main-heading__icon",
           src: icon,
         }
       ),
-      `${ name } (${ version })`
+      Localized(
+        {
+          id: deviceName ? "about-debugging-runtime-info-with-model"
+                          : "about-debugging-runtime-info",
+          $name: name,
+          $deviceName: deviceName,
+          $version: version,
+        },
+        dom.label({}, `${ name } on ${ deviceName } (${ version })`)
+      )
     );
   }
 }

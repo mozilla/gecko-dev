@@ -6,6 +6,7 @@
 #include "nsBaseDragService.h"
 #include "nsITransferable.h"
 
+#include "nsArrayUtils.h"
 #include "nsIServiceManager.h"
 #include "nsITransferable.h"
 #include "nsSize.h"
@@ -257,6 +258,17 @@ nsBaseDragService::InvokeDragSession(nsINode *aDOMNode,
   // feedback for things like trees because the event coordinates
   // are in the wrong coord system, so turn off mouse capture.
   nsIPresShell::ClearMouseCapture(nullptr);
+
+  uint32_t length = 0;
+  mozilla::Unused << aTransferableArray->GetLength(&length);
+  for (uint32_t i = 0; i < length; ++i) {
+    nsCOMPtr<nsITransferable> trans = do_QueryElementAt(aTransferableArray, i);
+    if (trans) {
+      // Set the requestingPrincipal on the transferable.
+      trans->SetRequestingPrincipal(mSourceNode->NodePrincipal());
+      trans->SetContentPolicyType(mContentPolicyType);
+    }
+  }
 
   nsresult rv = InvokeDragSessionImpl(aTransferableArray,
                                       mRegion, aActionType);
@@ -694,12 +706,11 @@ nsBaseDragService::DrawDrag(nsINode* aDOMNode,
     // otherwise, just draw the node
     uint32_t renderFlags = mImage ? 0 : nsIPresShell::RENDER_AUTO_SCALE;
     if (renderFlags) {
-      nsCOMPtr<nsINode> dragINode = do_QueryInterface(dragNode);
       // check if the dragged node itself is an img element
-      if (dragINode->NodeName().LowerCaseEqualsLiteral("img")) {
+      if (dragNode->NodeName().LowerCaseEqualsLiteral("img")) {
         renderFlags = renderFlags | nsIPresShell::RENDER_IS_IMAGE;
       } else {
-        nsINodeList* childList = dragINode->ChildNodes();
+        nsINodeList* childList = dragNode->ChildNodes();
         uint32_t length = childList->Length();
         // check every childnode for being an img element
         // XXXbz why don't we need to check descendants recursively?

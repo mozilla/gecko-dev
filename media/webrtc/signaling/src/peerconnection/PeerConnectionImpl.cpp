@@ -319,20 +319,15 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   , mSignalingState(PCImplSignalingState::SignalingStable)
   , mIceConnectionState(PCImplIceConnectionState::New)
   , mIceGatheringState(PCImplIceGatheringState::New)
-  , mDtlsConnected(false)
   , mWindow(nullptr)
   , mCertificate(nullptr)
-  , mPrivacyRequested(false)
   , mSTSThread(nullptr)
-  , mAllowIceLoopback(false)
-  , mAllowIceLinkLocal(false)
   , mForceIceTcp(false)
   , mMedia(nullptr)
   , mUuidGen(MakeUnique<PCUuidGenerator>())
   , mIceRestartCount(0)
   , mIceRollbackCount(0)
   , mHaveConfiguredCodecs(false)
-  , mHaveDataStream(false)
   , mAddCandidateErrorCount(0)
   , mTrickle(true) // TODO(ekr@rtfm.com): Use pref
   , mPrivateWindow(false)
@@ -357,10 +352,6 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   CSFLogInfo(LOGTAG, "%s: PeerConnectionImpl constructor for %s",
              __FUNCTION__, mHandle.c_str());
   STAMP_TIMECARD(mTimeCard, "Constructor Completed");
-  mAllowIceLoopback = Preferences::GetBool(
-    "media.peerconnection.ice.loopback", false);
-  mAllowIceLinkLocal = Preferences::GetBool(
-    "media.peerconnection.ice.link_local", false);
   mForceIceTcp = Preferences::GetBool(
     "media.peerconnection.ice.force_ice_tcp", false);
   memset(mMaxReceiving, 0, sizeof(mMaxReceiving));
@@ -508,9 +499,6 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   mMedia->SignalUpdateDefaultCandidate.connect(
       this,
       &PeerConnectionImpl::UpdateDefaultCandidate);
-  mMedia->SignalEndOfLocalCandidates.connect(
-      this,
-      &PeerConnectionImpl::EndOfLocalCandidates);
   mMedia->SignalIceConnectionStateChange.connect(
       this,
       &PeerConnectionImpl::IceConnectionStateChange);
@@ -583,7 +571,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   if (!aConfiguration.mPeerIdentity.IsEmpty()) {
     mPeerIdentity = new PeerIdentity(aConfiguration.mPeerIdentity);
-    mPrivacyRequested = true;
+    mPrivacyRequested = Some(true);
   }
 }
 
@@ -638,8 +626,8 @@ class CompareCodecPriority {
       mPreferredCodec = os.str();
     }
 
-    bool operator()(JsepCodecDescription* lhs,
-                    JsepCodecDescription* rhs) const {
+    bool operator()(const UniquePtr<JsepCodecDescription>& lhs,
+                    const UniquePtr<JsepCodecDescription>& rhs) const {
       if (!mPreferredCodec.empty() &&
           lhs->mDefaultPt == mPreferredCodec &&
           rhs->mDefaultPt != mPreferredCodec) {
@@ -719,7 +707,7 @@ class ConfigureCodec {
       branch->GetBoolPref("media.peerconnection.dtmf.enabled", &mDtmfEnabled);
     }
 
-    void operator()(JsepCodecDescription* codec) const
+    void operator()(UniquePtr<JsepCodecDescription>& codec) const
     {
       switch (codec->mType) {
         case SdpMediaSection::kAudio:
@@ -821,7 +809,7 @@ class ConfigureRedCodec {
       // checking prefs modifying the operator() code below
     }
 
-    void operator()(JsepCodecDescription* codec) const
+    void operator()(UniquePtr<JsepCodecDescription>& codec) const
     {
       if (codec->mType == SdpMediaSection::kVideo &&
           codec->mEnabled == false) {
@@ -866,21 +854,15 @@ PeerConnectionImpl::ConfigureJsepSessionCodecs() {
   ConfigureCodec configurer(branch);
   mJsepSession->ForEachCodec(configurer);
 
-  // first find the red codec description
-  std::vector<JsepCodecDescription*>& codecs = mJsepSession->Codecs();
-  JsepVideoCodecDescription* redCodec = nullptr;
-  for (auto codec : codecs) {
-    // we only really care about finding the RED codec if it is
-    // enabled
+  // if red codec is enabled, configure it for the other enabled codecs
+  for (auto& codec : mJsepSession->Codecs()) {
     if (codec->mName == "red" && codec->mEnabled) {
-      redCodec = static_cast<JsepVideoCodecDescription*>(codec);
+      JsepVideoCodecDescription* redCodec =
+        static_cast<JsepVideoCodecDescription*>(codec.get());
+      ConfigureRedCodec configureRed(branch, &(redCodec->mRedundantEncodings));
+      mJsepSession->ForEachCodec(configureRed);
       break;
     }
-  }
-  // if red codec was found, configure it for the other enabled codecs
-  if (redCodec) {
-    ConfigureRedCodec configureRed(branch, &(redCodec->mRedundantEncodings));
-    mJsepSession->ForEachCodec(configureRed);
   }
 
   // We use this to sort the list of codecs once everything is configured
@@ -923,7 +905,8 @@ PeerConnectionImpl::EnsureDataConnection(uint16_t aLocalPort,
   nsCOMPtr<nsIEventTarget> target = mWindow
       ? mWindow->EventTargetFor(TaskCategory::Other)
       : nullptr;
-  mDataConnection = new DataChannelConnection(this, target);
+  mDataConnection = new DataChannelConnection(
+      this, target, mMedia->mTransportHandler);
   if (!mDataConnection->Init(aLocalPort, aNumstreams, aMMSSet, aMaxMessageSize)) {
     CSFLogError(LOGTAG,"%s DataConnection Init Failed",__FUNCTION__);
     return NS_ERROR_FAILURE;
@@ -940,7 +923,8 @@ PeerConnectionImpl::GetDatachannelParameters(
     uint16_t* remoteport,
     uint32_t* remotemaxmessagesize,
     bool*     mmsset,
-    std::string* transportId) const {
+    std::string* transportId,
+    bool* client) const {
 
   for (const auto& transceiver : mJsepSession->GetTransceivers()) {
     bool dataChannel =
@@ -958,7 +942,7 @@ PeerConnectionImpl::GetDatachannelParameters(
         return NS_ERROR_FAILURE;
       }
 
-      for (const JsepCodecDescription* codec : encoding.GetCodecs()) {
+      for (const auto& codec : encoding.GetCodecs()) {
         if (codec->mType != SdpMediaSection::kApplication) {
           CSFLogError(LOGTAG, "%s: Codec type for m=application was %u, this "
                               "is a bug.",
@@ -981,16 +965,17 @@ PeerConnectionImpl::GetDatachannelParameters(
         } else {
           *channels = WEBRTC_DATACHANNEL_STREAMS_DEFAULT;
         }
-        *localport =
-          static_cast<const JsepApplicationCodecDescription*>(codec)->mLocalPort;
-        *remoteport =
-          static_cast<const JsepApplicationCodecDescription*>(codec)->mRemotePort;
-        *remotemaxmessagesize = static_cast<const JsepApplicationCodecDescription*>
-          (codec)->mRemoteMaxMessageSize;
-        *mmsset = static_cast<const JsepApplicationCodecDescription*>
-          (codec)->mRemoteMMSSet;
+        const JsepApplicationCodecDescription* appCodec =
+          static_cast<const JsepApplicationCodecDescription*>(codec.get());
+        *localport = appCodec->mLocalPort;
+        *remoteport = appCodec->mRemotePort;
+        *remotemaxmessagesize = appCodec->mRemoteMaxMessageSize;
+        *mmsset = appCodec->mRemoteMMSSet;
         MOZ_ASSERT(!transceiver->mTransport.mTransportId.empty());
         *transportId = transceiver->mTransport.mTransportId;
+        *client =
+          transceiver->mTransport.mDtls->GetRole() ==
+              JsepDtlsTransport::kJsepDtlsClient;
         return NS_OK;
       }
     }
@@ -1116,8 +1101,9 @@ PeerConnectionImpl::InitializeDataChannel()
   uint32_t remotemaxmessagesize = 0;
   bool mmsset = false;
   std::string transportId;
+  bool client = false;
   nsresult rv = GetDatachannelParameters(&channels, &localport, &remoteport,
-                                         &remotemaxmessagesize, &mmsset, &transportId);
+      &remotemaxmessagesize, &mmsset, &transportId, &client);
 
   if (NS_FAILED(rv)) {
     CSFLogDebug(LOGTAG, "%s: We did not negotiate datachannel", __FUNCTION__);
@@ -1130,16 +1116,9 @@ PeerConnectionImpl::InitializeDataChannel()
 
   rv = EnsureDataConnection(localport, channels, remotemaxmessagesize, mmsset);
   if (NS_SUCCEEDED(rv)) {
-    // use the specified TransportFlow
-    RefPtr<TransportFlow> flow = mMedia->GetTransportFlow(transportId, false).get();
-    CSFLogDebug(LOGTAG, "Transportflow[%s] = %p",
-                        transportId.c_str(), flow.get());
-    if (flow) {
-      if (mDataConnection->ConnectViaTransportFlow(flow,
-                                                   localport,
-                                                   remoteport)) {
-        return NS_OK;
-      }
+    if (mDataConnection->ConnectToTransport(
+          transportId, client, localport, remoteport)) {
+      return NS_OK;
     }
     // If we inited the DataConnection, call Destroy() before releasing it
     mDataConnection->Destroy();
@@ -1207,11 +1186,22 @@ PeerConnectionImpl::CreateDataChannel(const nsAString& aLabel,
 
   CSFLogDebug(LOGTAG, "%s: making DOMDataChannel", __FUNCTION__);
 
-  if (!mHaveDataStream) {
-    mJsepSession->AddTransceiver(
-        new JsepTransceiver(SdpMediaSection::MediaType::kApplication));
-    mHaveDataStream = true;
+  RefPtr<JsepTransceiver> dcTransceiver;
+  for (auto& transceiver : mJsepSession->GetTransceivers()) {
+    if (transceiver->GetMediaType() == SdpMediaSection::kApplication) {
+      dcTransceiver = transceiver;
+      break;
+    }
   }
+
+  if (!dcTransceiver) {
+    dcTransceiver =
+      new JsepTransceiver(SdpMediaSection::MediaType::kApplication);
+    mJsepSession->AddTransceiver(dcTransceiver);
+  }
+
+  dcTransceiver->RestartDatachannelTransceiver();
+
   RefPtr<nsDOMDataChannel> retval;
   rv = NS_NewDOMDataChannel(dataChannel.forget(), mWindow,
 			    getter_AddRefs(retval));
@@ -1271,8 +1261,6 @@ PeerConnectionImpl::NotifyDataChannel(already_AddRefed<DataChannel> aChannel)
   nsresult rv = NS_NewDOMDataChannel(channel.forget(),
                                      mWindow, getter_AddRefs(domchannel));
   NS_ENSURE_SUCCESS_VOID(rv);
-
-  mHaveDataStream = true;
 
   RefPtr<PeerConnectionObserver> pco = do_QueryObjectReferent(mPCObserver);
   if (!pco) {
@@ -1435,8 +1423,9 @@ PeerConnectionImpl::SetLocalDescription(int32_t aAction, const char* aSDP)
 
   STAMP_TIMECARD(mTimeCard, "Set Local Description");
 
-  bool isolated = mMedia->AnyLocalTrackHasPeerIdentity();
-  mPrivacyRequested = mPrivacyRequested || isolated;
+  if (mMedia->AnyLocalTrackHasPeerIdentity()) {
+    mPrivacyRequested = Some(true);
+  }
 
   mLocalRequestedSDP = aSDP;
 
@@ -1812,16 +1801,21 @@ PeerConnectionImpl::SetPeerIdentity(const nsAString& aPeerIdentity)
 }
 
 nsresult
-PeerConnectionImpl::SetDtlsConnected(bool aPrivacyRequested)
+PeerConnectionImpl::OnAlpnNegotiated(const std::string& aAlpn)
 {
   PC_AUTO_ENTER_API_CALL(false);
+  if (mPrivacyRequested.isSome()) {
+    return NS_OK;
+  }
+
+  mPrivacyRequested = Some(aAlpn == "c-webrtc");
 
   // For this, as with mPrivacyRequested, once we've connected to a peer, we
   // fixate on that peer.  Dealing with multiple peers or connections is more
   // than this run-down wreck of an object can handle.
   // Besides, this is only used to say if we have been connected ever.
-  if (!mPrivacyRequested && !aPrivacyRequested && !mDtlsConnected) {
-    // now we know that privacy isn't needed for sure
+  if (!*mPrivacyRequested) {
+    // Neither side wants privacy
     nsIDocument* doc = GetWindow()->GetExtantDoc();
     if (!doc) {
       CSFLogInfo(LOGTAG, "Can't update principal on streams; document gone");
@@ -1829,8 +1823,7 @@ PeerConnectionImpl::SetDtlsConnected(bool aPrivacyRequested)
     }
     mMedia->UpdateRemoteStreamPrincipals_m(doc->NodePrincipal());
   }
-  mDtlsConnected = true;
-  mPrivacyRequested = mPrivacyRequested || aPrivacyRequested;
+
   return NS_OK;
 }
 
@@ -2061,7 +2054,7 @@ PeerConnectionImpl::CreateReceiveTrack(SdpMediaSection::MediaType type)
   nsCOMPtr<nsIPrincipal> principal;
   nsIDocument* doc = GetWindow()->GetExtantDoc();
   MOZ_ASSERT(doc);
-  if (mDtlsConnected && !PrivacyRequested()) {
+  if (mPrivacyRequested.isSome() && !*mPrivacyRequested) {
     principal = doc->NodePrincipal();
   } else {
     // we're either certain that we need isolation for the streams, OR
@@ -2661,6 +2654,11 @@ PeerConnectionImpl::CandidateReady(const std::string& candidate,
                                    const std::string& transportId) {
   PC_AUTO_ENTER_API_CALL_VOID_RETURN(false);
 
+  if (candidate.empty()) {
+    mJsepSession->EndOfLocalCandidates(transportId);
+    return;
+  }
+
   if (mForceIceTcp && std::string::npos != candidate.find(" UDP ")) {
     CSFLogWarn(LOGTAG, "Blocking local UDP candidate: %s", candidate.c_str());
     return;
@@ -2878,12 +2876,6 @@ PeerConnectionImpl::UpdateDefaultCandidate(const std::string& defaultAddr,
                                        transportId);
 }
 
-void
-PeerConnectionImpl::EndOfLocalCandidates(const std::string& transportId) {
-  CSFLogDebug(LOGTAG, "%s", __FUNCTION__);
-  mJsepSession->EndOfLocalCandidates(transportId);
-}
-
 nsresult
 PeerConnectionImpl::BuildStatsQuery_m(
     mozilla::dom::MediaStreamTrack *aSelector,
@@ -2904,10 +2896,6 @@ PeerConnectionImpl::BuildStatsQuery_m(
     return rv;
   }
 
-  // Note: mMedia->ice_ctx() is deleted on STS thread; so make sure we grab and hold
-  // a ref instead of making multiple calls.  NrIceCtx uses threadsafe refcounting.
-  // NOTE: Do this after all other failure tests, to ensure we don't
-  // accidentally release the Ctx on Mainthread.
   query->media = mMedia;
   if (!query->media) {
     CSFLogError(LOGTAG, "Could not build stats query, no ice_ctx");
@@ -3191,15 +3179,17 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
     }
   }
 
-  if (query->grabAllLevels) {
-    query->media->GetAllIceStats_s(query->internalStats,
-                                   query->now,
-                                   query->report);
-  } else {
-    query->media->GetIceStats_s(query->transportId,
-                                query->internalStats,
-                                query->now,
-                                query->report);
+  if (query->media->mTransportHandler) {
+    if (query->grabAllLevels) {
+      query->media->mTransportHandler->GetAllIceStats(query->internalStats,
+                                                      query->now,
+                                                      query->report);
+    } else {
+      query->media->mTransportHandler->GetIceStats(query->transportId,
+                                                   query->internalStats,
+                                                   query->now,
+                                                   query->report);
+    }
   }
 
   return NS_OK;

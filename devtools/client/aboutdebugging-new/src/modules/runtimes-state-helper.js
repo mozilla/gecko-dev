@@ -11,9 +11,22 @@ function getCurrentRuntime(runtimesState) {
 exports.getCurrentRuntime = getCurrentRuntime;
 
 function getCurrentClient(runtimesState) {
-  return getCurrentRuntime(runtimesState).client;
+  const runtimeDetails = getCurrentRuntimeDetails(runtimesState);
+  return runtimeDetails ? runtimeDetails.client : null;
 }
 exports.getCurrentClient = getCurrentClient;
+
+function getCurrentRuntimeInfo(runtimesState) {
+  const runtimeDetails = getCurrentRuntimeDetails(runtimesState);
+  return runtimeDetails ? runtimeDetails.info : null;
+}
+exports.getCurrentRuntimeInfo = getCurrentRuntimeInfo;
+
+function getCurrentConnectionPromptSetting(runtimesState) {
+  const runtimeDetails = getCurrentRuntimeDetails(runtimesState);
+  return runtimeDetails ? runtimeDetails.connectionPromptEnabled : false;
+}
+exports.getCurrentConnectionPromptSetting = getCurrentConnectionPromptSetting;
 
 function findRuntimeById(id, runtimesState) {
   const allRuntimes = [
@@ -24,3 +37,8 @@ function findRuntimeById(id, runtimesState) {
   return allRuntimes.find(r => r.id === id);
 }
 exports.findRuntimeById = findRuntimeById;
+
+function getCurrentRuntimeDetails(runtimesState) {
+  const runtime = getCurrentRuntime(runtimesState);
+  return runtime ? runtime.runtimeDetails : null;
+}

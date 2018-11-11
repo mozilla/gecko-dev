@@ -74,6 +74,7 @@ public:
   void SetEventRegionsOverride(const EventRegionsOverride& aOverride) { mEventRegionsOverride = aOverride; }
   EventRegionsOverride GetEventRegionsOverride() const { return mEventRegionsOverride; }
 
+  void SetVisibleRegion(const LayerIntRegion& aRegion) { mVisibleRegion = aRegion; }
   const LayerIntRegion& GetVisibleRegion() const { return mVisibleRegion; }
   void SetReferentId(LayersId aReferentId) { mReferentId = Some(aReferentId); }
   Maybe<LayersId> GetReferentId() const { return mReferentId; }
@@ -83,8 +84,11 @@ public:
   void SetScrollbarAnimationId(const uint64_t& aId) { mScrollbarAnimationId = aId; }
   const uint64_t& GetScrollbarAnimationId() const { return mScrollbarAnimationId; }
 
-  void SetFixedPositionScrollContainerId(FrameMetrics::ViewID aId) { mFixedPosScrollContainerId = aId; }
-  FrameMetrics::ViewID GetFixedPositionScrollContainerId() const { return mFixedPosScrollContainerId; }
+  void SetFixedPositionScrollContainerId(ScrollableLayerGuid::ViewID aId) { mFixedPosScrollContainerId = aId; }
+  ScrollableLayerGuid::ViewID GetFixedPositionScrollContainerId() const { return mFixedPosScrollContainerId; }
+
+  void SetZoomAnimationId(const uint64_t& aId) { mZoomAnimationId = Some(aId); }
+  Maybe<uint64_t> GetZoomAnimationId() const { return mZoomAnimationId; }
 
   void Dump(const WebRenderScrollData& aOwner) const;
 
@@ -115,7 +119,8 @@ private:
   EventRegionsOverride mEventRegionsOverride;
   ScrollbarData mScrollbarData;
   uint64_t mScrollbarAnimationId;
-  FrameMetrics::ViewID mFixedPosScrollContainerId;
+  ScrollableLayerGuid::ViewID mFixedPosScrollContainerId;
+  Maybe<uint64_t> mZoomAnimationId;
 };
 
 // Data needed by APZ, for the whole layer tree. One instance of this class
@@ -145,7 +150,7 @@ public:
   const WebRenderLayerScrollData* GetLayerData(size_t aIndex) const;
 
   const ScrollMetadata& GetScrollMetadata(size_t aIndex) const;
-  Maybe<size_t> HasMetadataFor(const FrameMetrics::ViewID& aScrollId) const;
+  Maybe<size_t> HasMetadataFor(const ScrollableLayerGuid::ViewID& aScrollId) const;
 
   const FocusTarget& GetFocusTarget() const { return mFocusTarget; }
   void SetFocusTarget(const FocusTarget& aFocusTarget);
@@ -179,7 +184,7 @@ private:
   // valid on both the child and parent.
   // The key into this map is the scrollId of a ScrollMetadata, and the value is
   // an index into the mScrollMetadatas array.
-  std::map<FrameMetrics::ViewID, size_t> mScrollIdMap;
+  std::map<ScrollableLayerGuid::ViewID, size_t> mScrollIdMap;
 
   // A list of all the unique ScrollMetadata objects from the layer tree. Each
   // ScrollMetadata in this list must have a unique scroll id.
@@ -236,6 +241,7 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData>
     WriteParam(aMsg, aParam.mScrollbarData);
     WriteParam(aMsg, aParam.mScrollbarAnimationId);
     WriteParam(aMsg, aParam.mFixedPosScrollContainerId);
+    WriteParam(aMsg, aParam.mZoomAnimationId);
   }
 
   static bool
@@ -252,7 +258,8 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData>
         && ReadParam(aMsg, aIter, &aResult->mEventRegionsOverride)
         && ReadParam(aMsg, aIter, &aResult->mScrollbarData)
         && ReadParam(aMsg, aIter, &aResult->mScrollbarAnimationId)
-        && ReadParam(aMsg, aIter, &aResult->mFixedPosScrollContainerId);
+        && ReadParam(aMsg, aIter, &aResult->mFixedPosScrollContainerId)
+        && ReadParam(aMsg, aIter, &aResult->mZoomAnimationId);
   }
 };
 

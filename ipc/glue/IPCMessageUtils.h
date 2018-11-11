@@ -30,11 +30,13 @@
 #include <type_traits>
 
 #include "nsExceptionHandler.h"
+#include "nsHashKeys.h"
 #include "nsID.h"
 #include "nsIWidget.h"
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsTHashtable.h"
 #include "js/StructuredClone.h"
 #include "nsCSSPropertyID.h"
 
@@ -537,6 +539,39 @@ struct ParamTraits<nsAutoString> : ParamTraits<nsString>
 
 #endif  // MOZILLA_INTERNAL_API
 
+template <>
+struct ParamTraits<nsTHashtable<nsUint64HashKey>>
+{
+  typedef nsTHashtable<nsUint64HashKey> paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    uint32_t count = aParam.Count();
+    WriteParam(aMsg, count);
+    for (auto iter = aParam.ConstIter(); !iter.Done(); iter.Next()) {
+      WriteParam(aMsg, iter.Get()->GetKey());
+    }
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    uint32_t count;
+    if (!ReadParam(aMsg, aIter, &count)) {
+      return false;
+    }
+    paramType table(count);
+    for (uint32_t i = 0; i < count; ++i) {
+      uint64_t key;
+      if (!ReadParam(aMsg, aIter, &key)) {
+        return false;
+      }
+      table.PutEntry(key);
+    }
+    *aResult = std::move(table);
+    return true;
+  }
+};
+
 // Pickle::ReadBytes and ::WriteBytes take the length in ints, so we must
 // ensure there is no overflow. This returns |false| if it would overflow.
 // Otherwise, it returns |true| and places the byte length in |aByteLength|.
@@ -792,15 +827,43 @@ struct ParamTraits<mozilla::TimeStampValue>
   {
     WriteParam(aMsg, aParam.mGTC);
     WriteParam(aMsg, aParam.mQPC);
-    WriteParam(aMsg, aParam.mHasQPC);
+    WriteParam(aMsg, aParam.mUsedCanonicalNow);
     WriteParam(aMsg, aParam.mIsNull);
+    WriteParam(aMsg, aParam.mHasQPC);
   }
   static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return (ReadParam(aMsg, aIter, &aResult->mGTC) &&
             ReadParam(aMsg, aIter, &aResult->mQPC) &&
-            ReadParam(aMsg, aIter, &aResult->mHasQPC) &&
-            ReadParam(aMsg, aIter, &aResult->mIsNull));
+            ReadParam(aMsg, aIter, &aResult->mUsedCanonicalNow) &&
+            ReadParam(aMsg, aIter, &aResult->mIsNull) &&
+            ReadParam(aMsg, aIter, &aResult->mHasQPC));
+  }
+};
+
+#else
+
+template<>
+struct ParamTraits<mozilla::TimeStamp63Bit>
+{
+  typedef mozilla::TimeStamp63Bit paramType;
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mUsedCanonicalNow);
+    WriteParam(aMsg, aParam.mTimeStamp);
+  }
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    bool success = true;
+    uint64_t result;
+
+    success &= ReadParam(aMsg, aIter, &result);
+    aResult->mUsedCanonicalNow = result & 0x01;
+
+    success &= ReadParam(aMsg, aIter, &result);
+    aResult->mTimeStamp = result & 0x7FFFFFFFFFFFFFFF;
+
+    return success;
   }
 };
 

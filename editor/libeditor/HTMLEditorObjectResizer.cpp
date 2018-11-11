@@ -4,11 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/HTMLEditor.h"
-#include "HTMLEditorObjectResizerUtils.h"
 
+#include "HTMLEditorEventListener.h"
 #include "HTMLEditUtils.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/EditorUtils.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Preferences.h"
@@ -35,65 +34,18 @@
 #include "nscore.h"
 #include <algorithm>
 
+#define kTopLeft       NS_LITERAL_STRING("nw")
+#define kTop           NS_LITERAL_STRING("n")
+#define kTopRight      NS_LITERAL_STRING("ne")
+#define kLeft          NS_LITERAL_STRING("w")
+#define kRight         NS_LITERAL_STRING("e")
+#define kBottomLeft    NS_LITERAL_STRING("sw")
+#define kBottom        NS_LITERAL_STRING("s")
+#define kBottomRight   NS_LITERAL_STRING("se")
+
 namespace mozilla {
 
 using namespace dom;
-
-/******************************************************************************
- * mozilla::DocumentResizeEventListener
- ******************************************************************************/
-
-NS_IMPL_ISUPPORTS(DocumentResizeEventListener, nsIDOMEventListener)
-
-DocumentResizeEventListener::DocumentResizeEventListener(
-                               HTMLEditor& aHTMLEditor)
-  : mHTMLEditorWeak(&aHTMLEditor)
-{
-}
-
-NS_IMETHODIMP
-DocumentResizeEventListener::HandleEvent(Event* aMouseEvent)
-{
-  RefPtr<HTMLEditor> htmlEditor = mHTMLEditorWeak.get();
-  if (!htmlEditor) {
-    return NS_OK;
-  }
-  nsresult rv = htmlEditor->RefreshResizersInternal();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
-}
-
-/******************************************************************************
- * mozilla::ResizerMouseMotionListener
- ******************************************************************************/
-
-NS_IMPL_ISUPPORTS(ResizerMouseMotionListener, nsIDOMEventListener)
-
-ResizerMouseMotionListener::ResizerMouseMotionListener(HTMLEditor& aHTMLEditor)
-  : mHTMLEditorWeak(&aHTMLEditor)
-{
-}
-
-NS_IMETHODIMP
-ResizerMouseMotionListener::HandleEvent(Event* aMouseEvent)
-{
-  MouseEvent* mouseEvent = aMouseEvent->AsMouseEvent();
-  if (!mouseEvent) {
-    //non-ui event passed in.  bad things.
-    return NS_OK;
-  }
-
-  // Don't do anything special if not an HTML object resizer editor
-  RefPtr<HTMLEditor> htmlEditor = mHTMLEditorWeak.get();
-  if (htmlEditor) {
-    // check if we have to redisplay a resizing shadow
-    htmlEditor->OnMouseMove(mouseEvent);
-  }
-
-  return NS_OK;
-}
 
 /******************************************************************************
  * mozilla::HTMLEditor
@@ -253,6 +205,11 @@ HTMLEditor::SetAllResizersPosition()
 NS_IMETHODIMP
 HTMLEditor::RefreshResizers()
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   nsresult rv = RefreshResizersInternal();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -474,19 +431,12 @@ HTMLEditor::ShowResizersInternal(Element& aResizedElement)
 
     // and listen to the "resize" event on the window first, get the
     // window from the document...
-    nsIDocument* document = GetDocument();
-    if (NS_WARN_IF(!document)) {
+    if (NS_WARN_IF(!mEventListener)) {
       break;
     }
 
-    nsCOMPtr<EventTarget> target = do_QueryInterface(document->GetWindow());
-    if (!target) {
-      break;
-    }
-
-    mResizeEventListenerP = new DocumentResizeEventListener(*this);
-    rv = target->AddEventListener(NS_LITERAL_STRING("resize"),
-                                  mResizeEventListenerP, false);
+    rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())->
+      ListenToWindowResizeEvent(true);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       break;
     }
@@ -511,6 +461,11 @@ HTMLEditor::ShowResizersInternal(Element& aResizedElement)
 NS_IMETHODIMP
 HTMLEditor::HideResizers()
 {
+  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   nsresult rv = HideResizersInternal();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -552,10 +507,6 @@ HTMLEditor::HideResizersInternal()
   ManualNACPtr resizingShadow(std::move(mResizingShadow));
   ManualNACPtr resizingInfo(std::move(mResizingInfo));
   RefPtr<Element> activatedHandle(std::move(mActivatedHandle));
-  nsCOMPtr<nsIDOMEventListener> mouseMotionListener(
-                                  std::move(mMouseMotionListenerP));
-  nsCOMPtr<nsIDOMEventListener> resizeEventListener(
-                                  std::move(mResizeEventListenerP));
   RefPtr<Element> resizedObject(std::move(mResizedObject));
 
   // Remvoe all handles.
@@ -598,40 +549,27 @@ HTMLEditor::HideResizersInternal()
   // Remove resizing state of the target element.
   resizedObject->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_resizing, true);
 
-  // Remove mousemove event listener from the event target.
-  nsCOMPtr<EventTarget> target = GetDOMEventTarget();
-  NS_WARNING_ASSERTION(target, "GetDOMEventTarget() returned nullptr");
+  if (!mEventListener) {
+    return NS_OK;
+  }
 
-  if (target && mouseMotionListener) {
-    target->RemoveEventListener(NS_LITERAL_STRING("mousemove"),
-                                mouseMotionListener, true);
+  nsresult rv =
+    static_cast<HTMLEditorEventListener*>(mEventListener.get())->
+      ListenToMouseMoveEventForResizers(false);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
   // Remove resize event listener from the window.
-  if (!resizeEventListener) {
+  if (!mEventListener) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDocument> doc = GetDocument();
-  if (NS_WARN_IF(!doc)) {
-    return NS_ERROR_FAILURE;
+  rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())->
+         ListenToWindowResizeEvent(false);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
-
-  // nsIDocument::GetWindow() may return nullptr when HTMLEditor is destroyed
-  // while the document is being unloaded.  If we cannot retrieve window as
-  // expected, let's ignore it.
-  nsPIDOMWindowOuter* window = doc->GetWindow();
-  if (NS_WARN_IF(!window)) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<EventTarget> targetOfWindow = do_QueryInterface(window);
-  if (NS_WARN_IF(!targetOfWindow)) {
-    return NS_ERROR_FAILURE;
-  }
-  targetOfWindow->RemoveEventListener(NS_LITERAL_STRING("resize"),
-                                      resizeEventListener, false);
-
   return NS_OK;
 }
 
@@ -693,22 +631,16 @@ HTMLEditor::StartResizing(Element* aHandle)
                                       mResizedObjectHeight);
 
   // add a mouse move listener to the editor
-  nsresult result = NS_OK;
-  if (!mMouseMotionListenerP) {
-    mMouseMotionListenerP = new ResizerMouseMotionListener(*this);
-    if (!mMouseMotionListenerP) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    EventTarget* target = GetDOMEventTarget();
-    NS_ENSURE_TRUE(target, NS_ERROR_FAILURE);
-
-    result = target->AddEventListener(NS_LITERAL_STRING("mousemove"),
-                                      mMouseMotionListenerP, true);
-    NS_ASSERTION(NS_SUCCEEDED(result),
-                 "failed to register mouse motion listener");
+  if (NS_WARN_IF(!mEventListener)) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
-  return result;
+  nsresult rv =
+    static_cast<HTMLEditorEventListener*>(mEventListener.get())->
+      ListenToMouseMoveEventForResizers(true);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  return NS_OK;
 }
 
 nsresult
@@ -723,6 +655,11 @@ HTMLEditor::OnMouseDown(int32_t aClientX,
   aTarget->GetAttribute(NS_LITERAL_STRING("_moz_anonclass"), anonclass);
 
   if (anonclass.EqualsLiteral("mozResizer")) {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eResizeElement);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     // If we have an anonymous element and that element is a resizer,
     // let's start resizing!
     aEvent->PreventDefault();
@@ -733,6 +670,11 @@ HTMLEditor::OnMouseDown(int32_t aClientX,
   }
 
   if (anonclass.EqualsLiteral("mozGrabber")) {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eMoveElement);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     // If we have an anonymous element and that element is a grabber,
     // let's start moving the element!
     mGrabberUsedCount++;
@@ -750,12 +692,22 @@ HTMLEditor::OnMouseUp(int32_t aClientX,
                       Element* aTarget)
 {
   if (mIsResizing) {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eResizeElement);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     // we are resizing and release the mouse button, so let's
     // end the resizing process
     mIsResizing = false;
     HideShadowAndInfo();
     SetFinalSize(aClientX, aClientY);
   } else if (mIsMoving || mGrabberClicked) {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eMoveElement);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     if (mIsMoving) {
       mPositioningShadow->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
                                   NS_LITERAL_STRING("hidden"), true);
@@ -995,6 +947,11 @@ HTMLEditor::OnMouseMove(MouseEvent* aMouseEvent)
   MOZ_ASSERT(aMouseEvent);
 
   if (mIsResizing) {
+    AutoEditActionDataSetter editActionData(*this, EditAction::eResizeElement);
+    if (NS_WARN_IF(!editActionData.CanHandle())) {
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     // we are resizing and the mouse pointer's position has changed
     // we have to resdisplay the shadow
     int32_t clientX = aMouseEvent->ClientX();
@@ -1015,6 +972,11 @@ HTMLEditor::OnMouseMove(MouseEvent* aMouseEvent)
                                         newHeight);
 
     return SetResizingInfoPosition(newX, newY, newWidth, newHeight);
+  }
+
+  AutoEditActionDataSetter editActionData(*this, EditAction::eMoveElement);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
   if (mGrabberClicked) {
@@ -1078,7 +1040,7 @@ HTMLEditor::SetFinalSize(int32_t aX,
   y = top - ((mResizedObjectIsAbsolutelyPositioned) ? mResizedObjectBorderTop+mResizedObjectMarginTop : 0);
 
   // we want one transaction only from a user's point of view
-  AutoPlaceholderBatch batchIt(this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this);
 
   if (mResizedObjectIsAbsolutelyPositioned) {
     if (setHeight) {
@@ -1162,5 +1124,14 @@ HTMLEditor::SetObjectResizingEnabled(bool aObjectResizingEnabled)
   EnableObjectResizer(aObjectResizingEnabled);
   return NS_OK;
 }
+
+#undef kTopLeft
+#undef kTop
+#undef kTopRight
+#undef kLeft
+#undef kRight
+#undef kBottomLeft
+#undef kBottom
+#undef kBottomRight
 
 } // namespace mozilla

@@ -2,12 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import "chrome://global/skin/in-content/common.css";
+/*
+* Global styles
+*/
 @import "resource://devtools/client/themes/variables.css";
+@import "resource://devtools/client/aboutdebugging-new/src/base.css";
+
+/*
+* Components
+*/
 @import "resource://devtools/client/aboutdebugging-new/src/components/App.css";
-@import "resource://devtools/client/aboutdebugging-new/src/components/RuntimeInfo.css";
+@import "resource://devtools/client/aboutdebugging-new/src/components/RuntimePage.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/connect/ConnectPage.css";
-@import "resource://devtools/client/aboutdebugging-new/src/components/connect/ConnectSection.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/connect/ConnectSteps.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/connect/NetworkLocationsForm.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/connect/NetworkLocationsList.css";
@@ -16,45 +22,7 @@
 @import "resource://devtools/client/aboutdebugging-new/src/components/debugtarget/DebugTargetPane.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/debugtarget/ExtensionDetail.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/debugtarget/WorkerDetail.css";
-@import "resource://devtools/client/aboutdebugging-new/src/components/sidebar/DeviceSidebarItemAction.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/sidebar/Sidebar.css";
+@import "resource://devtools/client/aboutdebugging-new/src/components/sidebar/SidebarFixedItem.css";
 @import "resource://devtools/client/aboutdebugging-new/src/components/sidebar/SidebarItem.css";
-
-:root {
-  /* Import css variables from common.css */
-  --text-color: var(--in-content-page-color);
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  color: var(--text-color);
-}
-
-dd {
-  margin: 0;
-  padding: 0;
-}
-
-ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ellipsis-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aboutdebugging-button {
-  height: 36px;
-  margin-block-start: 0;
-  margin-block-end: 0;
-  margin-inline-start: 4px;
-  margin-inline-end: 4px;
-  min-width: 100px;
-  padding-inline-start: 20px;
-  padding-inline-end: 20px;
-}
+@import "resource://devtools/client/aboutdebugging-new/src/components/sidebar/SidebarRuntimeItem.css";

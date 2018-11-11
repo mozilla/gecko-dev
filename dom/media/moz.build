@@ -97,6 +97,7 @@ EXPORTS += [
     'AudioCompactor.h',
     'AudioConfig.h',
     'AudioConverter.h',
+    'AudioDeviceInfo.h',
     'AudioMixer.h',
     'AudioPacketizer.h',
     'AudioSampleFormat.h',
@@ -118,7 +119,6 @@ EXPORTS += [
     'FrameStatistics.h',
     'ImageToI420.h',
     'Intervals.h',
-    'Latency.h',
     'MediaCache.h',
     'MediaContainerType.h',
     'MediaData.h',
@@ -238,7 +238,6 @@ UNIFIED_SOURCES += [
     'GetUserMediaRequest.cpp',
     'GraphDriver.cpp',
     'ImageToI420.cpp',
-    'Latency.cpp',
     'MediaCache.cpp',
     'MediaContainerType.cpp',
     'MediaData.cpp',
@@ -333,6 +332,7 @@ if CONFIG['MOZ_WEBRTC']:
     LOCAL_INCLUDES += [
         '/media/webrtc/signaling/src/common',
         '/media/webrtc/trunk',
+        '/media/webrtc/trunk/webrtc',
     ]
 
 DEFINES['MOZILLA_INTERNAL_API'] = True

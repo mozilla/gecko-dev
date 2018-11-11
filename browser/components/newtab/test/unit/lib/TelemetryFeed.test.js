@@ -10,11 +10,12 @@ import {
   UserEventPing,
 } from "test/schemas/pings";
 import {FakePrefs, GlobalOverrider} from "test/unit/utils";
+import {ASRouterPreferences} from "lib/ASRouterPreferences.jsm";
 import injector from "inject!lib/TelemetryFeed.jsm";
 
 const FAKE_UUID = "{foo-123-foo}";
-const FAKE_ROUTER_MESSAGE_PROVIDER = JSON.stringify([{id: "cfr", enabled: true}]);
-const FAKE_ROUTER_MESSAGE_PROVIDER_COHORT = JSON.stringify([{id: "cfr", enabled: true, cohort: "cohort_group"}]);
+const FAKE_ROUTER_MESSAGE_PROVIDER = [{id: "cfr", enabled: true}];
+const FAKE_ROUTER_MESSAGE_PROVIDER_COHORT = [{id: "cfr", enabled: true, cohort: "cohort_group"}];
 
 describe("TelemetryFeed", () => {
   let globals;
@@ -23,6 +24,8 @@ describe("TelemetryFeed", () => {
   let browser = {getAttribute() { return "true"; }};
   let instance;
   let clock;
+  let fakeHomePageUrl;
+  let fakeHomePage;
   class PingCentre {sendPing() {} uninit() {}}
   class UTEventReporting {sendUserEvent() {} sendSessionEndEvent() {} uninit() {}}
   class PerfService {
@@ -38,7 +41,6 @@ describe("TelemetryFeed", () => {
     PREF_IMPRESSION_ID,
     TELEMETRY_PREF,
     EVENTS_TELEMETRY_PREF,
-    ROUTER_MESSAGE_PROVIDER_PREF,
   } = injector({
     "common/PerfService.jsm": {perfService},
     "lib/UTEventReporting.jsm": {UTEventReporting},
@@ -48,17 +50,29 @@ describe("TelemetryFeed", () => {
     globals = new GlobalOverrider();
     sandbox = globals.sandbox;
     clock = sinon.useFakeTimers();
+    fakeHomePageUrl = "about:home";
+    fakeHomePage = {
+      get() {
+        return fakeHomePageUrl;
+      },
+    };
     sandbox.spy(global.Cu, "reportError");
     globals.set("gUUIDGenerator", {generateUUID: () => FAKE_UUID});
+    globals.set("aboutNewTabService", {
+      overridden: false,
+      newTabURL: "",
+    });
+    globals.set("HomePage", fakeHomePage);
     globals.set("PingCentre", PingCentre);
     globals.set("UTEventReporting", UTEventReporting);
-    FakePrefs.prototype.prefs[ROUTER_MESSAGE_PROVIDER_PREF] = FAKE_ROUTER_MESSAGE_PROVIDER;
+    sandbox.stub(ASRouterPreferences, "providers").get(() => FAKE_ROUTER_MESSAGE_PROVIDER);
     instance = new TelemetryFeed();
   });
   afterEach(() => {
     clock.restore();
     globals.restore();
     FakePrefs.prototype.prefs = {};
+    ASRouterPreferences.uninit();
   });
   describe("#init", () => {
     it("should add .pingCentre, a PingCentre instance", () => {
@@ -115,20 +129,6 @@ describe("TelemetryFeed", () => {
         instance._prefs.set(EVENTS_TELEMETRY_PREF, true);
 
         assert.propertyVal(instance, "eventTelemetryEnabled", true);
-      });
-    });
-    describe("a-s router message provider cohort changes from false to true", () => {
-      beforeEach(() => {
-        FakePrefs.prototype.prefs = {};
-        instance = new TelemetryFeed();
-
-        assert.ok(!instance.isInCFRCohort);
-      });
-
-      it("should set the _isInCFRCohort property to true", () => {
-        instance._prefs.set(ROUTER_MESSAGE_PROVIDER_PREF, FAKE_ROUTER_MESSAGE_PROVIDER_COHORT);
-
-        assert.ok(instance.isInCFRCohort);
       });
     });
   });
@@ -488,18 +488,6 @@ describe("TelemetryFeed", () => {
       assert.propertyVal(ping, "tiles", tiles);
     });
   });
-  describe("#_parseCFRCohort", () => {
-    it("should return true if it is in the CFR cohort", () => {
-      assert.ok(instance._parseCFRCohort(FAKE_ROUTER_MESSAGE_PROVIDER_COHORT));
-    });
-    it("should return false if it is not in the CFR cohort", () => {
-      assert.ok(!instance._parseCFRCohort(FAKE_ROUTER_MESSAGE_PROVIDER));
-    });
-    it("should report an error given an invalid pref", () => {
-      assert.ok(!instance._parseCFRCohort("some in valid json string"));
-      assert.called(global.Cu.reportError);
-    });
-  });
   describe("#applyCFRPolicy", () => {
     it("should use client_id and message_id in prerelease", () => {
       globals.set("UpdateUtils", {getUpdateChannel() { return "nightly"; }});
@@ -539,7 +527,7 @@ describe("TelemetryFeed", () => {
     });
     it("should use client_id and message_id in the experiment cohort in release", () => {
       globals.set("UpdateUtils", {getUpdateChannel() { return "release"; }});
-      FakePrefs.prototype.prefs[ROUTER_MESSAGE_PROVIDER_PREF] = FAKE_ROUTER_MESSAGE_PROVIDER_COHORT;
+      sandbox.stub(ASRouterPreferences, "providers").get(() => FAKE_ROUTER_MESSAGE_PROVIDER_COHORT);
       const data = {
         action: "cfr_user_event",
         source: "CFR",
@@ -555,6 +543,40 @@ describe("TelemetryFeed", () => {
       assert.propertyVal(ping, "impression_id", "n/a");
       assert.propertyVal(ping, "message_id", "cfr_message_01");
       assert.isUndefined(ping.bucket_id);
+    });
+  });
+  describe("#applySnippetsPolicy", () => {
+    it("should drop client_id and unset impression_id", () => {
+      const data = {
+        action: "snippets_user_event",
+        source: "SNIPPETS",
+        event: "IMPRESSION",
+        client_id: "n/a",
+        impression_id: "some_impression_id",
+        message_id: "snippets_message_01",
+      };
+      const ping = instance.applySnippetsPolicy(data);
+
+      assert.isUndefined(ping.client_id);
+      assert.propertyVal(ping, "impression_id", "n/a");
+      assert.propertyVal(ping, "message_id", "snippets_message_01");
+    });
+  });
+  describe("#applyOnboardingPolicy", () => {
+    it("should drop client_id and unset impression_id", () => {
+      const data = {
+        action: "onboarding_user_event",
+        source: "ONBOARDING",
+        event: "CLICK_BUTTION",
+        client_id: "n/a",
+        impression_id: "some_impression_id",
+        message_id: "onboarding_message_01",
+      };
+      const ping = instance.applyOnboardingPolicy(data);
+
+      assert.isUndefined(ping.client_id);
+      assert.propertyVal(ping, "impression_id", "n/a");
+      assert.propertyVal(ping, "message_id", "onboarding_message_01");
     });
   });
   describe("#createASRouterEvent", () => {
@@ -573,34 +595,44 @@ describe("TelemetryFeed", () => {
       assert.propertyVal(ping, "source", "SNIPPETS");
       assert.propertyVal(ping, "event", "CLICK");
     });
-    it("should drop the default client_id if includeClientID presents", async () => {
-      const data = {
-        action: "snippet_user_event",
-        source: "SNIPPETS",
-        event: "CLICK",
-        message_id: "snippets_message_01",
-        includeClientID: true,
-      };
-      const action = ac.ASRouterUserEvent(data);
-      const ping = await instance.createASRouterEvent(action);
-
-      assert.isUndefined(ping.client_id);
-      assert.isUndefined(ping.includeClientID);
-      assert.propertyVal(ping, "impression_id", "n/a");
-    });
     it("should call applyCFRPolicy if action equals to cfr_user_event", async () => {
       const data = {
         action: "cfr_user_event",
         source: "CFR",
         event: "IMPRESSION",
         message_id: "cfr_message_01",
-        includeClientID: true,
       };
       sandbox.stub(instance, "applyCFRPolicy");
       const action = ac.ASRouterUserEvent(data);
       await instance.createASRouterEvent(action);
 
       assert.calledOnce(instance.applyCFRPolicy);
+    });
+    it("should call applySnippetsPolicy if action equals to snippets_user_event", async () => {
+      const data = {
+        action: "snippets_user_event",
+        source: "SNIPPETS",
+        event: "IMPRESSION",
+        message_id: "snippets_message_01",
+      };
+      sandbox.stub(instance, "applySnippetsPolicy");
+      const action = ac.ASRouterUserEvent(data);
+      await instance.createASRouterEvent(action);
+
+      assert.calledOnce(instance.applySnippetsPolicy);
+    });
+    it("should call applyOnboardingPolicy if action equals to onboarding_user_event", async () => {
+      const data = {
+        action: "onboarding_user_event",
+        source: "ONBOARDING",
+        event: "CLICK_BUTTON",
+        message_id: "onboarding_message_01",
+      };
+      sandbox.stub(instance, "applyOnboardingPolicy");
+      const action = ac.ASRouterUserEvent(data);
+      await instance.createASRouterEvent(action);
+
+      assert.calledOnce(instance.applyOnboardingPolicy);
     });
   });
   describe("#sendEvent", () => {
@@ -750,15 +782,6 @@ describe("TelemetryFeed", () => {
 
       assert.notProperty(instance._prefs.observers, EVENTS_TELEMETRY_PREF);
     });
-    it("should remove the a-s router message provider listener", () => {
-      instance = new TelemetryFeed();
-
-      assert.property(instance._prefs.observers, ROUTER_MESSAGE_PROVIDER_PREF);
-
-      instance.uninit();
-
-      assert.notProperty(instance._prefs.observers, ROUTER_MESSAGE_PROVIDER_PREF);
-    });
     it("should call Cu.reportError if this._prefs.ignore throws", () => {
       globals.sandbox.stub(FakePrefs.prototype, "ignore").throws("Some Error");
       instance = new TelemetryFeed();
@@ -784,11 +807,13 @@ describe("TelemetryFeed", () => {
       FakePrefs.prototype.prefs = {};
     });
     it("should call .init() on an INIT action", () => {
-      const stub = sandbox.stub(instance, "init");
+      const init = sandbox.stub(instance, "init");
+      const sendPageTakeoverData = sandbox.stub(instance, "sendPageTakeoverData");
 
       instance.onAction({type: at.INIT});
 
-      assert.calledOnce(stub);
+      assert.calledOnce(init);
+      assert.calledOnce(sendPageTakeoverData);
     });
     it("should call .uninit() on an UNINIT action", () => {
       const stub = sandbox.stub(instance, "uninit");
@@ -941,6 +966,40 @@ describe("TelemetryFeed", () => {
       }));
 
       assert.ok(!session.perf.is_preloaded);
+    });
+  });
+  describe("#sendPageTakeoverData", () => {
+    let fakePrefs = {"browser.newtabpage.enabled": true};
+
+    beforeEach(() => {
+      globals.set("Services", Object.assign({}, Services, {prefs: {getBoolPref: key => fakePrefs[key]}}));
+      // Services.prefs = {getBoolPref: key => fakePrefs[key]};
+    });
+    it("should send correct event data for about:{home,newtab} set to custom URL", async () => {
+      globals.set("aboutNewTabService", {
+        overridden: true,
+        newTabURL: "https://searchprovider.com",
+      });
+      fakeHomePageUrl = "https://searchprovider.com";
+      instance._prefs.set(TELEMETRY_PREF, true);
+      instance._classifySite = () => Promise.resolve("other");
+      const sendEvent = sandbox.stub(instance, "sendEvent");
+
+      await instance.sendPageTakeoverData();
+      assert.calledOnce(sendEvent);
+      assert.equal(sendEvent.firstCall.args[0].event, "PAGE_TAKEOVER_DATA");
+      assert.deepEqual(sendEvent.firstCall.args[0].value, {
+        home_url_category: "other",
+        newtab_url_category: "other",
+      });
+      assert.validate(sendEvent.firstCall.args[0], UserEventPing);
+    });
+    it("should not send an event if neither about:{home,newtab} are set to custom URL", async () => {
+      instance._prefs.set(TELEMETRY_PREF, true);
+      const sendEvent = sandbox.stub(instance, "sendEvent");
+
+      await instance.sendPageTakeoverData();
+      assert.notCalled(sendEvent);
     });
   });
 });

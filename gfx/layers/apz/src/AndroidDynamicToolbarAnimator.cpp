@@ -66,7 +66,6 @@ AndroidDynamicToolbarAnimator::AndroidDynamicToolbarAnimator(APZCTreeManager* aA
   // Compositor thread only
   , mCompositorShutdown(false)
   , mCompositorAnimationDeferred(false)
-  , mCompositorLayersUpdateEnabled(false)
   , mCompositorAnimationStarted(false)
   , mCompositorReceivedFirstPaint(false)
   , mCompositorWaitForPageResize(false)
@@ -443,7 +442,6 @@ AndroidDynamicToolbarAnimator::FirstPaint()
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mCompositorReceivedFirstPaint = true;
-  PostMessage(FIRST_PAINT);
 }
 
 void
@@ -484,23 +482,6 @@ AndroidDynamicToolbarAnimator::MaybeUpdateCompositionSizeAndRootFrameMetrics(con
   }
 
   UpdateRootFrameMetrics(aMetrics);
-}
-
-// Layers updates are need by Robocop test which enables them
-void
-AndroidDynamicToolbarAnimator::EnableLayersUpdateNotifications(bool aEnable)
-{
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  mCompositorLayersUpdateEnabled = aEnable;
-}
-
-void
-AndroidDynamicToolbarAnimator::NotifyLayersUpdated()
-{
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  if (mCompositorLayersUpdateEnabled) {
-    PostMessage(LAYERS_UPDATED);
-  }
 }
 
 void
@@ -642,11 +623,12 @@ AndroidDynamicToolbarAnimator::ProcessTouchDelta(const RefPtr<APZCTreeManager>& 
 
     uint32_t timeDelta = aTimeStamp - mControllerLastEventTimeStamp;
     if (mControllerLastEventTimeStamp && timeDelta && aDelta) {
-      float speed = -(float)aDelta / (float)timeDelta;
       // we can't use mApz because we're on the controller thread, so we have
       // the caller provide a RefPtr to the same underlying object, which should
       // be safe to use.
-      aApz->ProcessTouchVelocity(aTimeStamp, speed);
+      aApz->ProcessDynamicToolbarMovement(mControllerLastEventTimeStamp,
+                                          aTimeStamp,
+                                          (float)aDelta);
     }
   }
 

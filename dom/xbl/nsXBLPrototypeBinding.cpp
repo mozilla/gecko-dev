@@ -721,32 +721,24 @@ nsXBLPrototypeBinding::ConstructInterfaceTable(const nsAString& aImpls)
       const nsXPTInterfaceInfo* iinfo = nsXPTInterfaceInfo::ByName(token);
 
       if (iinfo) {
-        // obtain an IID.
-        const nsIID* iid = nullptr;
-        iinfo->GetIIDShared(&iid);
+        // Add the iid to our table.
+        mInterfaceTable.Put(iinfo->IID(), mBinding);
 
-        if (iid) {
-          // We found a valid iid.  Add it to our table.
-          mInterfaceTable.Put(*iid, mBinding);
-
-          // this block adds the parent interfaces of each interface
-          // defined in the xbl definition (implements="nsI...")
-          const nsXPTInterfaceInfo* parentInfo;
-          // if it has a parent, add it to the table
-          while (NS_SUCCEEDED(iinfo->GetParent(&parentInfo)) && parentInfo) {
-            // get the iid
-            parentInfo->GetIIDShared(&iid);
-
-            // don't add nsISupports to the table
-            if (!iid || iid->Equals(NS_GET_IID(nsISupports)))
-              break;
-
-            // add the iid to the table
-            mInterfaceTable.Put(*iid, mBinding);
-
-            // look for the next parent
-            iinfo = parentInfo;
+        // this block adds the parent interfaces of each interface
+        // defined in the xbl definition (implements="nsI...")
+        const nsXPTInterfaceInfo* parentInfo;
+        // if it has a parent, add it to the table
+        while ((parentInfo = iinfo->GetParent())) {
+          // don't add nsISupports to the table
+          if (parentInfo->IID().Equals(NS_GET_IID(nsISupports))) {
+            break;
           }
+
+          // add the iid to the table
+          mInterfaceTable.Put(parentInfo->IID(), mBinding);
+
+          // look for the next parent
+          iinfo = parentInfo;
         }
       }
 
@@ -1547,16 +1539,16 @@ nsXBLPrototypeBinding::WriteNamespace(nsIObjectOutputStream* aStream,
 bool CheckTagNameWhiteList(int32_t aNameSpaceID, nsAtom *aTagName)
 {
   static Element::AttrValuesArray kValidXULTagNames[] =  {
-    &nsGkAtoms::box, &nsGkAtoms::browser,
-    &nsGkAtoms::button, &nsGkAtoms::hbox, &nsGkAtoms::image, &nsGkAtoms::menu,
-    &nsGkAtoms::menubar, &nsGkAtoms::menuitem, &nsGkAtoms::menupopup,
-    &nsGkAtoms::row, &nsGkAtoms::slider, &nsGkAtoms::spacer,
-    &nsGkAtoms::splitter, &nsGkAtoms::text, &nsGkAtoms::tree, nullptr};
+    nsGkAtoms::box, nsGkAtoms::browser,
+    nsGkAtoms::button, nsGkAtoms::hbox, nsGkAtoms::image, nsGkAtoms::menu,
+    nsGkAtoms::menubar, nsGkAtoms::menuitem, nsGkAtoms::menupopup,
+    nsGkAtoms::row, nsGkAtoms::slider, nsGkAtoms::spacer,
+    nsGkAtoms::splitter, nsGkAtoms::text, nsGkAtoms::tree, nullptr};
 
   uint32_t i;
   if (aNameSpaceID == kNameSpaceID_XUL) {
     for (i = 0; kValidXULTagNames[i]; ++i) {
-      if (aTagName == *(kValidXULTagNames[i])) {
+      if (aTagName == kValidXULTagNames[i]) {
         return true;
       }
     }

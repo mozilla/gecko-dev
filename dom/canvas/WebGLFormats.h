@@ -108,10 +108,17 @@ enum class EffectiveFormat : EffectiveFormatValueT {
     COMPRESSED_RGBA8_ETC2_EAC,
     COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
 
-    // AMD_compressed_ATC_texture
-    ATC_RGB_AMD,
-    ATC_RGBA_EXPLICIT_ALPHA_AMD,
-    ATC_RGBA_INTERPOLATED_ALPHA_AMD,
+    // EXT_texture_compression_bptc
+    COMPRESSED_RGBA_BPTC_UNORM,
+    COMPRESSED_SRGB_ALPHA_BPTC_UNORM,
+    COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
+    COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
+
+    // EXT_texture_compression_rgtc
+    COMPRESSED_RED_RGTC1,
+    COMPRESSED_SIGNED_RED_RGTC1,
+    COMPRESSED_RG_RGTC2,
+    COMPRESSED_SIGNED_RG_RGTC2,
 
     // EXT_texture_compression_s3tc
     COMPRESSED_RGB_S3TC_DXT1_EXT,
@@ -200,21 +207,28 @@ enum class UnsizedFormat : uint8_t {
 
 // GLES 3.0.4 p114 Table 3.4, p240
 enum class ComponentType : uint8_t {
-    None,
     Int,          // RGBA32I
-    UInt,         // RGBA32UI, STENCIL_INDEX8
+    UInt,         // RGBA32UI
     NormInt,      // RGBA8_SNORM
-    NormUInt,     // RGBA8, DEPTH_COMPONENT16
+    NormUInt,     // RGBA8
     Float,        // RGBA32F
-    Special,      // DEPTH24_STENCIL8
 };
+
+enum class TextureBaseType : uint8_t {
+    Int = uint8_t(ComponentType::Int),
+    UInt = uint8_t(ComponentType::UInt),
+    Float = uint8_t(ComponentType::Float), // Also includes NormU?Int and Depth
+};
+
+const char* ToString(TextureBaseType);
 
 enum class CompressionFamily : uint8_t {
     ASTC,
-    ATC,
+    BPTC,
     ES3, // ETC2 or EAC
     ETC1,
     PVRTC,
+    RGTC,
     S3TC,
 };
 
@@ -236,6 +250,7 @@ struct FormatInfo
     const GLenum sizedFormat;
     const UnsizedFormat unsizedFormat;
     const ComponentType componentType;
+    const TextureBaseType baseType;
     const bool isSRGB;
 
     const CompressedFormatInfo* const compression;

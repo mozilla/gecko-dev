@@ -25,7 +25,7 @@
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/net/NeckoChild.h"
 #include "nsThreadUtils.h"
-#include "nsISocketProviderService.h"
+#include "nsSocketProviderService.h"
 #include "nsISocketProvider.h"
 #include "nsISSLSocketControl.h"
 #include "nsIPipe.h"
@@ -63,7 +63,6 @@
 
 //-----------------------------------------------------------------------------
 
-static NS_DEFINE_CID(kSocketProviderServiceCID, NS_SOCKETPROVIDERSERVICE_CID);
 static NS_DEFINE_CID(kDNSServiceCID, NS_DNSSERVICE_CID);
 
 //-----------------------------------------------------------------------------
@@ -756,6 +755,15 @@ nsSocketOutputStream::AsyncWait(nsIOutputStreamCallback *callback,
 // socket transport impl
 //-----------------------------------------------------------------------------
 
+// We assume we have connectivity at first.
+bool nsSocketTransport::sHasIPv4Connectivity = true;
+bool nsSocketTransport::sHasIPv6Connectivity = true;
+
+uint32_t nsSocketTransport::sIPv4FailedCounter = 0;
+uint32_t nsSocketTransport::sIPv6FailedCounter = 0;
+
+const uint32_t kFailureThreshold = 50;
+
 nsSocketTransport::nsSocketTransport()
     : mTypes(nullptr)
     , mTypeCount(0)
@@ -886,8 +894,7 @@ nsSocketTransport::Init(const char **types, uint32_t typeCount,
     // better exist!
     nsresult rv;
     nsCOMPtr<nsISocketProviderService> spserv =
-        do_GetService(kSocketProviderServiceCID, &rv);
-    if (NS_FAILED(rv)) return rv;
+        nsSocketProviderService::GetOrCreate();
 
     mTypes = (char **) malloc(mTypeCount * sizeof(char *));
     if (!mTypes)
@@ -1211,8 +1218,7 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
         fd = nullptr;
 
         nsCOMPtr<nsISocketProviderService> spserv =
-            do_GetService(kSocketProviderServiceCID, &rv);
-        if (NS_FAILED(rv)) return rv;
+            nsSocketProviderService::GetOrCreate();
 
         // by setting host to mOriginHost, instead of mHost we send the
         // SocketProvider (e.g. PSM) the origin hostname but can still do DNS
@@ -1604,7 +1610,8 @@ nsSocketTransport::InitiateSocket()
     }
 
     bool tfo = false;
-    if (mFastOpenCallback &&
+    if (!mProxyTransparent &&
+        mFastOpenCallback &&
         mFastOpenCallback->FastOpenEnabled()) {
         if (NS_SUCCEEDED(AttachTCPFastOpenIOLayer(fd))) {
             tfo = true;
@@ -1860,14 +1867,25 @@ nsSocketTransport::RecoverFromError()
         if (NS_SUCCEEDED(mFirstRetryError)) {
             mFirstRetryError = mCondition;
         }
-        if ((mState == STATE_CONNECTING) && mDNSRecord &&
-            mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
+        if ((mState == STATE_CONNECTING) && mDNSRecord) {
             if (mNetAddr.raw.family == AF_INET) {
-                Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                                      UNSUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
+                sIPv4FailedCounter++;
+                if (sIPv4FailedCounter > kFailureThreshold) {
+                    sHasIPv4Connectivity = false;
+                }
+                if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
+                    Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
+                                          UNSUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
+                }
             } else if (mNetAddr.raw.family == AF_INET6) {
-                Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                                      UNSUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
+                sIPv6FailedCounter++;
+                if (sIPv6FailedCounter > kFailureThreshold) {
+                    sHasIPv6Connectivity = false;
+                }
+                if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
+                    Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
+                                          UNSUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
+                }
             }
         }
 
@@ -2349,12 +2367,18 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
             //
             OnSocketConnected();
 
-            if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
-                if (mNetAddr.raw.family == AF_INET) {
+            if (mNetAddr.raw.family == AF_INET) {
+                sIPv4FailedCounter = 0;
+                sHasIPv4Connectivity = true;
+                if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
                     Telemetry::Accumulate(
                         Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
                         SUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
-                } else if (mNetAddr.raw.family == AF_INET6) {
+                }
+            } else if (mNetAddr.raw.family == AF_INET6) {
+                sIPv6FailedCounter = 0;
+                sHasIPv6Connectivity = true;
+                if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
                     Telemetry::Accumulate(
                         Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
                         SUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);

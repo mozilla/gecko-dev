@@ -23,48 +23,6 @@ win64-clang-cl:
             - 'taskcluster/scripts/misc/build-clang-windows-helper64.sh'
         toolchain-artifact: public/build/clang.tar.bz2
 
-win32-clang-cl-st-an:
-    description: "Clang-cl static analysis toolchain build"
-    treeherder:
-        kind: build
-        platform: toolchains/opt
-        symbol: TW32(clang-cl-st-an)
-        tier: 1
-    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
-    worker:
-        max-run-time: 7200
-        env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/build-clang-cl.manifest"
-    run:
-        using: toolchain-script
-        script: build-clang32-st-an-windows.sh
-        resources:
-            - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-win32-st-an.json'
-            - 'taskcluster/scripts/misc/build-clang-windows-helper32.sh'
-        toolchain-artifact: public/build/clang.tar.bz2
-
-win64-clang-cl-st-an:
-    description: "Clang-cl static analysis toolchain build"
-    treeherder:
-        kind: build
-        platform: toolchains/opt
-        symbol: TW64(clang-cl-st-an)
-        tier: 1
-    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
-    worker:
-        max-run-time: 7200
-        env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/build-clang-cl.manifest"
-    run:
-        using: toolchain-script
-        script: build-clang64-st-an-windows.sh
-        resources:
-            - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-win64-st-an.json'
-            - 'taskcluster/scripts/misc/build-clang-windows-helper64.sh'
-        toolchain-artifact: public/build/clang.tar.bz2
-
 win32-clang-tidy:
     description: "Clang-tidy toolchain build"
     index:
@@ -142,7 +100,7 @@ win64-rust-1.28:
         ]
         toolchain-artifact: public/build/rustc.tar.bz2
 
-win64-rust-1.29:
+win64-rust-1.30:
     description: "rust repack"
     treeherder:
         kind: build
@@ -159,7 +117,7 @@ win64-rust-1.29:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.29.0',
+            '--channel', '1.30.0',
             '--host', 'x86_64-pc-windows-msvc',
             '--target', 'x86_64-pc-windows-msvc',
             '--target', 'i686-pc-windows-msvc',
@@ -184,7 +142,7 @@ win64-rust-nightly:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', 'nightly-2018-06-23',
+            '--channel', 'nightly-2018-09-16',
             '--host', 'x86_64-pc-windows-msvc',
             '--target', 'x86_64-pc-windows-msvc',
             '--target', 'i686-pc-windows-msvc',
@@ -208,31 +166,7 @@ win64-node:
         arguments: ['win64']
         toolchain-artifact: public/build/node.tar.bz2
 
-win32-rust-1.29:
-    description: "rust repack"
-    treeherder:
-        kind: build
-        platform: toolchains/opt
-        symbol: TW32(rust)
-        tier: 1
-    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
-    worker:
-        docker-image: {in-tree: toolchain-build}
-        max-run-time: 7200
-        env:
-            UPLOAD_DIR: artifacts
-    run:
-        using: toolchain-script
-        script: repack_rust.py
-        arguments: [
-            '--channel', '1.29.0',
-            '--host', 'i686-pc-windows-msvc',
-            '--target', 'i686-pc-windows-msvc',
-        ]
-        toolchain-alias: win32-rust
-        toolchain-artifact: public/build/rustc.tar.bz2
-
-mingw32-rust-1.29:
+mingw32-rust-1.30:
     description: "rust repack"
     treeherder:
         kind: build
@@ -249,7 +183,7 @@ mingw32-rust-1.29:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.29.0',
+            '--channel', '1.30.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
             '--target', 'i686-pc-windows-gnu',
@@ -322,6 +256,28 @@ win64-rust-size:
         toolchain-artifact: public/build/rust-size.tar.bz2
     toolchains:
         - win64-rust-1.28
+
+win64-grcov:
+    description: "grcov toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TW64(grcov)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
+    worker:
+        max-run-time: 1800
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/sccache-build.manifest"
+    run:
+        using: toolchain-script
+        script: build-grcov.sh
+        resources:
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+        toolchain-artifact: public/build/grcov.tar.bz2
+    toolchains:
+        - win64-rust-1.28
+        - win64-clang-cl
 
 win32-gn:
     description: "gn toolchain build"

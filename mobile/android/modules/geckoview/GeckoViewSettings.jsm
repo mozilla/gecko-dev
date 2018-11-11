@@ -15,10 +15,16 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 });
 
 XPCOMUtils.defineLazyGetter(
-  this, "DESKTOP_USER_AGENT",
+  this, "MOBILE_USER_AGENT",
   function() {
     return Cc["@mozilla.org/network/protocol;1?name=http"]
-           .getService(Ci.nsIHttpProtocolHandler).userAgent
+           .getService(Ci.nsIHttpProtocolHandler).userAgent;
+  });
+
+XPCOMUtils.defineLazyGetter(
+  this, "DESKTOP_USER_AGENT",
+  function() {
+    return MOBILE_USER_AGENT
            .replace(/Android \d.+?; [a-zA-Z]+/, "X11; Linux x86_64")
            .replace(/Gecko\/[0-9\.]+/, "Gecko/20100101");
   });
@@ -26,9 +32,7 @@ XPCOMUtils.defineLazyGetter(
 XPCOMUtils.defineLazyGetter(
   this, "VR_USER_AGENT",
   function() {
-    return Cc["@mozilla.org/network/protocol;1?name=http"]
-           .getService(Ci.nsIHttpProtocolHandler).userAgent
-           .replace(/Android \d+; [a-zA-Z]+/, "VR");
+    return MOBILE_USER_AGENT.replace(/Mobile/, "Mobile VR");
   });
 
 // This needs to match GeckoSessionSettings.java
@@ -40,18 +44,26 @@ const USER_AGENT_MODE_VR = 2;
 // * multiprocess
 // * user agent override
 class GeckoViewSettings extends GeckoViewModule {
-  onInitBrowser() {
-    if (this.settings.useMultiprocess) {
-      this.browser.setAttribute("remote", "true");
-    }
-  }
-
   onInit() {
     debug `onInit`;
     this._useTrackingProtection = false;
     this._userAgentMode = USER_AGENT_MODE_MOBILE;
     // Required for safe browsing and tracking protection.
     SafeBrowsing.init();
+
+    this.registerListener([
+      "GeckoView:GetUserAgent",
+    ]);
+  }
+
+  onEvent(aEvent, aData, aCallback) {
+    debug `onEvent ${aEvent} ${aData}`;
+
+    switch (aEvent) {
+      case "GeckoView:GetUserAgent": {
+        aCallback.onSuccess(this.userAgent);
+      }
+    }
   }
 
   onSettingsUpdate() {
@@ -75,11 +87,20 @@ class GeckoViewSettings extends GeckoViewModule {
       return;
     }
 
-    if (this.userAgentMode === USER_AGENT_MODE_DESKTOP) {
-      channel.setRequestHeader("User-Agent", DESKTOP_USER_AGENT, false);
-    } else if (this.userAgentMode === USER_AGENT_MODE_VR) {
-      channel.setRequestHeader("User-Agent", VR_USER_AGENT, false);
+    if (this.userAgentMode === USER_AGENT_MODE_DESKTOP ||
+        this.userAgentMode === USER_AGENT_MODE_VR) {
+      channel.setRequestHeader("User-Agent", this.userAgent, false);
     }
+  }
+
+  get userAgent() {
+    if (this.userAgentMode === USER_AGENT_MODE_DESKTOP) {
+      return DESKTOP_USER_AGENT;
+    }
+    if (this.userAgentMode === USER_AGENT_MODE_VR) {
+      return VR_USER_AGENT;
+    }
+    return MOBILE_USER_AGENT;
   }
 
   get userAgentMode() {

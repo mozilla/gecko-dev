@@ -36,9 +36,9 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AnimationEffect)
 NS_INTERFACE_MAP_END
 
 AnimationEffect::AnimationEffect(nsIDocument* aDocument,
-                                 const TimingParams& aTiming)
+                                 TimingParams&& aTiming)
   : mDocument(aDocument)
-  , mTiming(aTiming)
+  , mTiming(std::move(aTiming))
 {
 }
 
@@ -66,7 +66,7 @@ AnimationEffect::IsInEffect() const
 }
 
 void
-AnimationEffect::SetSpecifiedTiming(const TimingParams& aTiming)
+AnimationEffect::SetSpecifiedTiming(TimingParams&& aTiming)
 {
   if (mTiming == aTiming) {
     return;
@@ -342,7 +342,7 @@ AnimationEffect::UpdateTiming(const OptionalEffectTiming& aTiming,
     return;
   }
 
-  SetSpecifiedTiming(timing);
+  SetSpecifiedTiming(std::move(timing));
 }
 
 Nullable<TimeDuration>

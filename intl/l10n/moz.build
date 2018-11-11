@@ -6,9 +6,9 @@
 
 EXTRA_JS_MODULES += [
     'DOMLocalization.jsm',
+    'Fluent.jsm',
     'L10nRegistry.jsm',
     'Localization.jsm',
-    'MessageContext.jsm',
 ]
 
 XPIDL_SOURCES += [
@@ -32,12 +32,14 @@ UNIFIED_SOURCES += [
 
 LOCAL_INCLUDES += [
     '/dom/base',
+    '/js/xpconnect/src',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 
 SPHINX_TREES['l10n'] = 'docs'
 

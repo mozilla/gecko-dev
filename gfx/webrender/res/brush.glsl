@@ -9,7 +9,7 @@ void brush_vs(
     int prim_address,
     RectWithSize local_rect,
     RectWithSize segment_rect,
-    ivec3 user_data,
+    ivec4 user_data,
     mat4 transform,
     PictureTask pic_task,
     int brush_flags,
@@ -22,6 +22,7 @@ void brush_vs(
 #define BRUSH_FLAG_SEGMENT_RELATIVE             2
 #define BRUSH_FLAG_SEGMENT_REPEAT_X             4
 #define BRUSH_FLAG_SEGMENT_REPEAT_Y             8
+#define BRUSH_FLAG_TEXEL_RECT                  16
 
 void main(void) {
     // Load the brush instance from vertex attributes.
@@ -30,6 +31,7 @@ void main(void) {
     int segment_index = aData.z & 0xffff;
     int edge_flags = (aData.z >> 16) & 0xff;
     int brush_flags = (aData.z >> 24) & 0xff;
+    int segment_user_data = aData.w;
     PrimitiveHeader ph = fetch_prim_header(prim_header_address);
 
     // Fetch the segment of this brush primitive we are drawing.
@@ -37,7 +39,7 @@ void main(void) {
                           VECS_PER_SPECIFIC_BRUSH +
                           segment_index * VECS_PER_SEGMENT;
 
-    vec4[2] segment_data = fetch_from_resource_cache_2(segment_address);
+    vec4[2] segment_data = fetch_from_gpu_cache_2(segment_address);
     RectWithSize local_segment_rect = RectWithSize(segment_data[0].xy, segment_data[0].zw);
 
     VertexInfo vi;
@@ -66,7 +68,7 @@ void main(void) {
         //           effect. We can tidy this up as we move
         //           more items to be brush shaders.
 #ifdef WR_FEATURE_ALPHA_PASS
-        init_transform_vs(vec4(vec2(-1000000.0), vec2(1000000.0)));
+        init_transform_vs(vec4(vec2(-1.0e16), vec2(1.0e16)));
 #endif
     } else {
         bvec4 edge_mask = notEqual(edge_flags & ivec4(1, 2, 4, 8), ivec4(0));
@@ -102,7 +104,7 @@ void main(void) {
         ph.specific_prim_address,
         ph.local_rect,
         local_segment_rect,
-        ph.user_data,
+        ivec4(ph.user_data, segment_user_data),
         transform.m,
         pic_task,
         brush_flags,

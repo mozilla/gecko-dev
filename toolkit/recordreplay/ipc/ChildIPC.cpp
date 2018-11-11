@@ -18,11 +18,11 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/StackWalk.h"
 #include "mozilla/VsyncDispatcher.h"
 
 #include "InfallibleVector.h"
 #include "MemorySnapshot.h"
+#include "nsPrintfCString.h"
 #include "ParentInternal.h"
 #include "ProcessRecordReplay.h"
 #include "ProcessRedirect.h"
@@ -64,6 +64,13 @@ static IntroductionMessage* gIntroductionMessage;
 // When recording, whether developer tools server code runs in the middleman.
 static bool gDebuggerRunsInMiddleman;
 
+// Any response received to the last MiddlemanCallRequest message.
+static MiddlemanCallResponseMessage* gCallResponseMessage;
+
+// Whether some thread has sent a MiddlemanCallRequest and is waiting for
+// gCallResponseMessage to be filled in.
+static bool gWaitingForCallResponse;
+
 // Processing routine for incoming channel messages.
 static void
 ChannelMessageHandler(Message* aMsg)
@@ -102,8 +109,9 @@ ChannelMessageHandler(Message* aMsg)
       PrintSpew("Terminate message received, exiting...\n");
       _exit(0);
     } else {
-      MOZ_CRASH("Hanged replaying process");
+      ReportFatalError(Nothing(), "Hung replaying process");
     }
+    break;
   }
   case MessageType::SetIsActive: {
     const SetIsActiveMessage& nmsg = (const SetIsActiveMessage&) *aMsg;
@@ -159,6 +167,15 @@ ChannelMessageHandler(Message* aMsg)
       });
     break;
   }
+  case MessageType::MiddlemanCallResponse: {
+    MonitorAutoLock lock(*gMonitor);
+    MOZ_RELEASE_ASSERT(gWaitingForCallResponse);
+    MOZ_RELEASE_ASSERT(!gCallResponseMessage);
+    gCallResponseMessage = (MiddlemanCallResponseMessage*) aMsg;
+    aMsg = nullptr; // Avoid freeing the message below.
+    gMonitor->NotifyAll();
+    break;
+  }
   default:
     MOZ_CRASH();
   }
@@ -177,16 +194,19 @@ ListenForCheckpointThreadMain(void*)
 {
   while (true) {
     uint8_t data = 0;
-    ssize_t rv = read(gCheckpointReadFd, &data, 1);
+    ssize_t rv = HANDLE_EINTR(read(gCheckpointReadFd, &data, 1));
     if (rv > 0) {
       NS_DispatchToMainThread(NewRunnableFunction("NewCheckpoint", NewCheckpoint,
                                                   /* aTemporary = */ false));
     } else {
-      MOZ_RELEASE_ASSERT(errno == EINTR);
+      MOZ_RELEASE_ASSERT(errno == EIO);
+      MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
+      Thread::WaitForever();
     }
   }
 }
 
+// Shared memory block for graphics data.
 void* gGraphicsShmem;
 
 void
@@ -221,9 +241,12 @@ InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv)
 
   pt.reset();
 
-  DirectCreatePipe(&gCheckpointWriteFd, &gCheckpointReadFd);
-
-  Thread::StartThread(ListenForCheckpointThreadMain, nullptr, false);
+  // N.B. We can't spawn recorded threads when replaying if there was an
+  // initialization failure.
+  if (!gInitializationFailureMessage) {
+    DirectCreatePipe(&gCheckpointWriteFd, &gCheckpointReadFd);
+    Thread::StartThread(ListenForCheckpointThreadMain, nullptr, false);
+  }
 
   pt.emplace();
 
@@ -265,6 +288,12 @@ InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv)
   // so they can be sent.
   HitCheckpoint(CheckpointId::Invalid, /* aRecordingEndpoint = */ false);
 
+  // If we failed to initialize then report it to the user.
+  if (gInitializationFailureMessage) {
+    ReportFatalError(Nothing(), "%s", gInitializationFailureMessage);
+    Unreachable();
+  }
+
   // Process the introduction message to fill in arguments.
   MOZ_RELEASE_ASSERT(gParentArgv.empty());
 
@@ -295,12 +324,6 @@ InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv)
 
   *aArgc = gParentArgv.length() - 1; // For the trailing null.
   *aArgv = gParentArgv.begin();
-
-  // If we failed to initialize then report it to the user.
-  if (gInitializationFailureMessage) {
-    ReportFatalError(Nothing(), "%s", gInitializationFailureMessage);
-    Unreachable();
-  }
 }
 
 base::ProcessId
@@ -322,54 +345,20 @@ DebuggerRunsInMiddleman()
 }
 
 void
-MaybeCreateInitialCheckpoint()
+CreateCheckpoint()
 {
-  NewCheckpoint(/* aTemporary = */ false);
-}
-
-struct StackWalkData
-{
-  // Current buffer and allocated size, which may be internal to the original
-  // allocation.
-  char* mBuf;
-  size_t mSize;
-
-  StackWalkData(char* aBuf, size_t aSize)
-    : mBuf(aBuf), mSize(aSize)
-  {}
-
-  void append(const char* aText) {
-    size_t len = strlen(aText);
-    if (len <= mSize) {
-      memcpy(mBuf, aText, len);
-      mBuf += len;
-      mSize -= len;
-    }
+  if (!HasDivergedFromRecording()) {
+    NewCheckpoint(/* aTemporary = */ false);
   }
-};
-
-static void
-StackWalkCallback(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
-{
-  StackWalkData* data = (StackWalkData*) aClosure;
-
-  MozCodeAddressDetails details;
-  MozDescribeCodeAddress(aPC, &details);
-
-  data->append(" ### ");
-  data->append(details.function[0] ? details.function : "???");
-}
-
-static void
-SetCurrentStackString(const char* aAssertion, char* aBuf, size_t aSize)
-{
-  StackWalkData data(aBuf, aSize);
-  MozStackWalk(StackWalkCallback, /* aSkipFrames = */ 2, /* aFrameCount = */ 32, &data);
 }
 
 void
 ReportFatalError(const Maybe<MinidumpInfo>& aMinidump, const char* aFormat, ...)
 {
+  // Notify the middleman that we are crashing and are going to try to write a
+  // minidump.
+  gChannel->SendMessage(BeginFatalErrorMessage());
+
   // Unprotect any memory which might be written while producing the minidump.
   UnrecoverableSnapshotFailure();
 
@@ -388,13 +377,6 @@ ReportFatalError(const Maybe<MinidumpInfo>& aMinidump, const char* aFormat, ...)
   char buf[2048];
   VsprintfLiteral(buf, aFormat, ap);
   va_end(ap);
-
-  // Include stack information in the error message as well, if we are on the
-  // thread where the fatal error occurred.
-  if (aMinidump.isNothing()) {
-    size_t len = strlen(buf);
-    SetCurrentStackString(buf, buf + len, sizeof(buf) - len);
-  }
 
   // Construct a FatalErrorMessage on the stack, to avoid touching the heap.
   char msgBuf[4096];
@@ -442,7 +424,7 @@ SetVsyncObserver(VsyncObserver* aObserver)
   gVsyncObserver = aObserver;
 }
 
-void
+static void
 NotifyVsyncObserver()
 {
   if (gVsyncObserver) {
@@ -450,30 +432,71 @@ NotifyVsyncObserver()
   }
 }
 
+// Whether an update has been sent to the compositor for a normal paint, and we
+// haven't reached PaintFromMainThread yet. This is used to preserve the
+// invariant that there can be at most one paint performed between two
+// checkpoints, other than repaints triggered by the debugger.
+static bool gHasActivePaint;
+
+bool
+OnVsync()
+{
+  // In the repainting stress mode, we create a new checkpoint on every vsync
+  // message received from the UI process. When we notify the parent about the
+  // new checkpoint it will trigger a repaint to make sure that all layout and
+  // painting activity can occur when diverged from the recording.
+  if (parent::InRepaintStressMode()) {
+    CreateCheckpoint();
+  }
+
+  // After a paint starts, ignore incoming vsyncs until the paint completes.
+  return !gHasActivePaint;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Painting
 ///////////////////////////////////////////////////////////////////////////////
 
-// Graphics memory is only written on the compositor thread and read on the
-// main thread and by the middleman. The gPendingPaint flag is used to
-// synchronize access, so that data is not read until the paint has completed.
-static Maybe<PaintMessage> gPaintMessage;
-static bool gPendingPaint;
-
-// Target buffer for the draw target created by the child process widget.
+// Target buffer for the draw target created by the child process widget, which
+// the compositor thread writes to.
 static void* gDrawTargetBuffer;
 static size_t gDrawTargetBufferSize;
+
+// Dimensions of the last paint which the compositor performed.
+static size_t gPaintWidth, gPaintHeight;
+
+// How many updates have been sent to the compositor thread and haven't been
+// processed yet. This can briefly become negative if the main thread sends an
+// update and the compositor processes it before the main thread reaches
+// NotifyPaintStart. Outside of this window, the compositor can only write to
+// gDrawTargetBuffer or update gPaintWidth/gPaintHeight if this is non-zero.
+static Atomic<int32_t, SequentiallyConsistent, Behavior::DontPreserve> gNumPendingPaints;
+
+// ID of the compositor thread.
+static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gCompositorThreadId;
+
+// Whether repaint failures are allowed, or if the process should crash.
+static bool gAllowRepaintFailures;
 
 already_AddRefed<gfx::DrawTarget>
 DrawTargetForRemoteDrawing(LayoutDeviceIntSize aSize)
 {
   MOZ_RELEASE_ASSERT(!NS_IsMainThread());
 
+  // Keep track of the compositor thread ID.
+  size_t threadId = Thread::Current()->Id();
+  if (gCompositorThreadId) {
+    MOZ_RELEASE_ASSERT(threadId == gCompositorThreadId);
+  } else {
+    gCompositorThreadId = threadId;
+  }
+
   if (aSize.IsEmpty()) {
     return nullptr;
   }
 
-  gPaintMessage = Some(PaintMessage(aSize.width, aSize.height));
+  gPaintWidth = aSize.width;
+  gPaintHeight = aSize.height;
 
   gfx::IntSize size(aSize.width, aSize.height);
   size_t bufferSize = layers::ImageDataSerializer::ComputeRGBBufferSize(size, gSurfaceFormat);
@@ -502,42 +525,134 @@ NotifyPaintStart()
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  NewCheckpoint(/* aTemporary = */ false);
+  // Initialize state on the first paint.
+  static bool gPainted;
+  if (!gPainted) {
+    gPainted = true;
 
-  gPendingPaint = true;
+    // Repaint failures are not allowed in the repaint stress mode.
+    gAllowRepaintFailures =
+      Preferences::GetBool("devtools.recordreplay.allowRepaintFailures") &&
+      !parent::InRepaintStressMode();
+  }
+
+  // A new paint cannot be triggered until the last one finishes and has been
+  // sent to the middleman.
+  MOZ_RELEASE_ASSERT(HasDivergedFromRecording() || !gHasActivePaint);
+
+  gNumPendingPaints++;
+  gHasActivePaint = true;
+
+  CreateCheckpoint();
 }
 
-void
-WaitForPaintToComplete()
+static void
+PaintFromMainThread()
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  MonitorAutoLock lock(*gMonitor);
-  while (gPendingPaint) {
-    gMonitor->Wait();
-  }
-  if (IsActiveChild() && gPaintMessage.isSome()) {
+  // There cannot not be any other in flight paints.
+  MOZ_RELEASE_ASSERT(!gNumPendingPaints);
+
+  // Clear the active flag now that we have completed the paint.
+  MOZ_RELEASE_ASSERT(gHasActivePaint);
+  gHasActivePaint = false;
+
+  if (IsActiveChild() && gDrawTargetBuffer) {
     memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
-    gChannel->SendMessage(gPaintMessage.ref());
+    gChannel->SendMessage(PaintMessage(navigation::LastNormalCheckpoint(),
+                                       gPaintWidth, gPaintHeight));
   }
 }
 
 void
 NotifyPaintComplete()
 {
-  MOZ_RELEASE_ASSERT(!NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(!gCompositorThreadId || Thread::Current()->Id() == gCompositorThreadId);
 
-  MonitorAutoLock lock(*gMonitor);
-  MOZ_RELEASE_ASSERT(gPendingPaint);
-  gPendingPaint = false;
-  gMonitor->Notify();
+  // Notify the main thread in case it is waiting for this paint to complete.
+  {
+    MonitorAutoLock lock(*gMonitor);
+    if (--gNumPendingPaints == 0) {
+      gMonitor->Notify();
+    }
+  }
+
+  // Notify the middleman about the completed paint from the main thread.
+  NS_DispatchToMainThread(NewRunnableFunction("PaintFromMainThread", PaintFromMainThread));
+}
+
+// Whether we have repainted since diverging from the recording.
+static bool gDidRepaint;
+
+// Whether we are currently repainting.
+static bool gRepainting;
+
+void
+Repaint(size_t* aWidth, size_t* aHeight)
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
+
+  // Don't try to repaint if the first normal paint hasn't occurred yet.
+  if (!gCompositorThreadId) {
+    *aWidth = 0;
+    *aHeight = 0;
+    return;
+  }
+
+  // Ignore the request to repaint if we already triggered a repaint, in which
+  // case the last graphics we sent will still be correct.
+  if (!gDidRepaint) {
+    gDidRepaint = true;
+    gRepainting = true;
+
+    // Allow other threads to diverge from the recording so the compositor can
+    // perform any paint we are about to trigger, or finish any in flight paint
+    // that existed at the point we are paused at.
+    for (size_t i = MainThreadId + 1; i <= MaxRecordedThreadId; i++) {
+      Thread::GetById(i)->SetShouldDivergeFromRecording();
+    }
+    Thread::ResumeIdleThreads();
+
+    // Create an artifical vsync to see if graphics have changed since the last
+    // paint and a new paint is needed.
+    NotifyVsyncObserver();
+
+    // Wait for the compositor to finish all in flight paints, including any
+    // one we just triggered.
+    {
+      MonitorAutoLock lock(*gMonitor);
+      while (gNumPendingPaints) {
+        gMonitor->Wait();
+      }
+    }
+
+    Thread::WaitForIdleThreads();
+    gRepainting = false;
+  }
+
+  if (gDrawTargetBuffer) {
+    memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
+    *aWidth = gPaintWidth;
+    *aHeight = gPaintHeight;
+  } else {
+    *aWidth = 0;
+    *aHeight = 0;
+  }
+}
+
+bool
+CurrentRepaintCannotFail()
+{
+  return gRepainting && !gAllowRepaintFailures;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Checkpoint Messages
 ///////////////////////////////////////////////////////////////////////////////
 
-// When recording, the time when the last HitCheckpoint message was sent.
+// The time when the last HitCheckpoint message was sent.
 static double gLastCheckpointTime;
 
 // When recording and we are idle, the time when we became idle.
@@ -578,7 +693,7 @@ HitCheckpoint(size_t aId, bool aRecordingEndpoint)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Debugger Messages
+// Message Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
 void
@@ -600,6 +715,42 @@ HitBreakpoint(bool aRecordingEndpoint, const uint32_t* aBreakpoints, size_t aNum
       gChannel->SendMessage(*msg);
       free(msg);
     });
+}
+
+void
+SendMiddlemanCallRequest(const char* aInputData, size_t aInputSize,
+                         InfallibleVector<char>* aOutputData)
+{
+  AutoPassThroughThreadEvents pt;
+  MonitorAutoLock lock(*gMonitor);
+
+  while (gWaitingForCallResponse) {
+    gMonitor->Wait();
+  }
+  gWaitingForCallResponse = true;
+
+  MiddlemanCallRequestMessage* msg = MiddlemanCallRequestMessage::New(aInputData, aInputSize);
+  gChannel->SendMessage(*msg);
+  free(msg);
+
+  while (!gCallResponseMessage) {
+    gMonitor->Wait();
+  }
+
+  aOutputData->append(gCallResponseMessage->BinaryData(), gCallResponseMessage->BinaryDataSize());
+
+  free(gCallResponseMessage);
+  gCallResponseMessage = nullptr;
+  gWaitingForCallResponse = false;
+
+  gMonitor->Notify();
+}
+
+void
+SendResetMiddlemanCalls()
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  gChannel->SendMessage(ResetMiddlemanCallsMessage());
 }
 
 } // namespace child

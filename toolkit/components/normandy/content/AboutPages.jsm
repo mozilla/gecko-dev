@@ -15,11 +15,12 @@ ChromeUtils.defineModuleGetter(this, "RecipeRunner", "resource://normandy/lib/Re
 var EXPORTED_SYMBOLS = ["AboutPages"];
 
 const SHIELD_LEARN_MORE_URL_PREF = "app.normandy.shieldLearnMoreUrl";
+XPCOMUtils.defineLazyPreferenceGetter(this, "gOptOutStudiesEnabled", "app.shield.optoutstudies.enabled");
 
 
 /**
  * Class for managing an about: page that Normandy provides. Adapted from
- * browser/extensions/pocket/content/AboutPocket.jsm.
+ * browser/components/pocket/content/AboutPocket.jsm.
  *
  * @implements nsIFactory
  * @implements nsIAboutModule
@@ -192,10 +193,9 @@ XPCOMUtils.defineLazyGetter(this.AboutPages, "aboutStudies", () => {
      */
     sendStudiesEnabled(target) {
       RecipeRunner.checkPrefs();
+      const studiesEnabled = RecipeRunner.enabled && gOptOutStudiesEnabled;
       try {
-        target.messageManager.sendAsyncMessage("Shield:ReceiveStudiesEnabled", {
-          studiesEnabled: RecipeRunner.enabled,
-        });
+        target.messageManager.sendAsyncMessage("Shield:ReceiveStudiesEnabled", { studiesEnabled });
       } catch (err) {
         // The child process might be gone, so no need to throw here.
         Cu.reportError(err);
@@ -236,11 +236,6 @@ XPCOMUtils.defineLazyGetter(this.AboutPages, "aboutStudies", () => {
 
     getShieldLearnMoreHref() {
       return Services.urlFormatter.formatURLPref(SHIELD_LEARN_MORE_URL_PREF);
-    },
-
-    getStudiesEnabled() {
-      RecipeRunner.checkPrefs();
-      return RecipeRunner.enabled;
     },
   });
 

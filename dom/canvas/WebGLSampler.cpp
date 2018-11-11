@@ -11,8 +11,6 @@
 
 namespace mozilla {
 
-
-
 WebGLSampler::WebGLSampler(WebGLContext* const webgl)
     : WebGLRefCountedObject(webgl)
     , mGLName([&]() {
@@ -143,6 +141,7 @@ WebGLSampler::SamplerParameter(GLenum pname, const FloatOrInt& param)
     if (!ValidateSamplerParameterParams(mContext, pname, param))
         return;
 
+    bool invalidate = true;
     switch (pname) {
     case LOCAL_GL_TEXTURE_MIN_FILTER:
         mState.minFilter = param.i;
@@ -165,12 +164,12 @@ WebGLSampler::SamplerParameter(GLenum pname, const FloatOrInt& param)
         break;
 
     default:
+        invalidate = false;
         break;
     }
 
-    for (uint32_t i = 0; i < mContext->mBoundSamplers.Length(); ++i) {
-        if (this == mContext->mBoundSamplers[i])
-            mContext->InvalidateResolveCacheForTextureWithTexUnit(i);
+    if (invalidate) {
+        InvalidateCaches();
     }
 
     ////

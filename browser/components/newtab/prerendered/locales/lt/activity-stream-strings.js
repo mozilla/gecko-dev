@@ -75,7 +75,7 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "Populiarios temos:",
   "pocket_read_even_more": "Rodyti daugiau straipsnių",
   "pocket_more_reccommendations": "Daugiau rekomendacijų",
-  "pocket_learn_more": "Sužinoti daugiau",
+  "pocket_how_it_works": "Kaip tai veikia",
   "pocket_cta_button": "Gauti „Pocket“",
   "pocket_cta_text": "Išsaugokite patinkančius straipsnius į „Pocket“, bei sužadinkite savo mintis stulbinančiomis istorijomis.",
   "highlights_empty_state": "Pradėkite naršyti, o mes čia pateiksime puikių straipsnių, vaizdo įrašų bei kitų tinklalapių, kuriuose neseniai lankėtės ar įtraukėte į adresyną.",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "paslaugos teikimo nuostatais",
   "firstrun_privacy_notice": "Privatumo pranešimu",
   "firstrun_continue_to_login": "Tęsti",
-  "firstrun_skip_login": "Praleisti šį žingsnį"
+  "firstrun_skip_login": "Praleisti šį žingsnį",
+  "context_menu_title": "Atverti meniu",
+  "pocket_learn_more": "Sužinoti daugiau"
 };

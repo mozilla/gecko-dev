@@ -65,11 +65,26 @@ pub struct UpdateList<S> {
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+pub struct ItemUid<T> {
+    uid: usize,
+    _marker: PhantomData<T>,
+}
+
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 #[derive(Debug, Copy, Clone)]
 pub struct Handle<T> {
-    index: usize,
+    index: u32,
     epoch: Epoch,
+    uid: ItemUid<T>,
     _marker: PhantomData<T>,
+}
+
+impl <T> Handle<T> where T: Copy {
+    pub fn uid(&self) -> ItemUid<T> {
+        self.uid
+    }
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -150,7 +165,7 @@ impl<S, T, M> DataStore<S, T, M> where S: Debug, T: From<S>, M: Debug {
 impl<S, T, M> ops::Index<Handle<M>> for DataStore<S, T, M> {
     type Output = T;
     fn index(&self, handle: Handle<M>) -> &T {
-        let item = &self.items[handle.index];
+        let item = &self.items[handle.index as usize];
         assert_eq!(item.epoch, handle.epoch);
         &item.data
     }
@@ -160,7 +175,7 @@ impl<S, T, M> ops::Index<Handle<M>> for DataStore<S, T, M> {
 /// Retrieve an item from the store via handle
 impl<S, T, M> ops::IndexMut<Handle<M>> for DataStore<S, T, M> {
     fn index_mut(&mut self, handle: Handle<M>) -> &mut T {
-        let item = &mut self.items[handle.index];
+        let item = &mut self.items[handle.index as usize];
         assert_eq!(item.epoch, handle.epoch);
         &mut item.data
     }
@@ -173,28 +188,32 @@ impl<S, T, M> ops::IndexMut<Handle<M>> for DataStore<S, T, M> {
 /// an update list of additions / removals.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct Interner<S : Eq + Hash + Clone + Debug, M> {
+pub struct Interner<S : Eq + Hash + Clone + Debug, D, M> {
     /// Uniquely map an interning key to a handle
     map: FastHashMap<S, Handle<M>>,
     /// List of free slots in the data store for re-use.
     free_list: Vec<usize>,
-    /// The next index to append items to if free-list is empty.
-    next_index: usize,
     /// Pending list of updates that need to be applied.
     updates: Vec<Update<S>>,
     /// The current epoch for the interner.
     current_epoch: Epoch,
+    /// Incrementing counter for identifying stable values.
+    next_uid: usize,
+    /// The information associated with each interned
+    /// item that can be accessed by the interner.
+    local_data: Vec<Item<D>>,
 }
 
-impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
+impl<S, D, M> Interner<S, D, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
     /// Construct a new interner
     pub fn new() -> Self {
         Interner {
             map: FastHashMap::default(),
             free_list: Vec::new(),
-            next_index: 0,
             updates: Vec::new(),
             current_epoch: Epoch(1),
+            next_uid: 0,
+            local_data: Vec::new(),
         }
     }
 
@@ -202,10 +221,14 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
     /// that data. The handle can then be stored in the
     /// frame builder, and safely accessed via the data
     /// store that lives in the frame builder thread.
-    pub fn intern(
+    /// The provided closure is invoked to build the
+    /// local data about an interned structure if the
+    /// key isn't already interned.
+    pub fn intern<F>(
         &mut self,
         data: &S,
-    ) -> Handle<M> {
+        f: F,
+    ) -> Handle<M> where F: FnOnce() -> D {
         // Use get_mut rather than entry here to avoid
         // cloning the (sometimes large) key in the common
         // case, where the data already exists in the interner.
@@ -216,9 +239,10 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
             // via valid handles.
             if handle.epoch != self.current_epoch {
                 self.updates.push(Update {
-                    index: handle.index,
+                    index: handle.index as usize,
                     kind: UpdateKind::UpdateEpoch,
-                })
+                });
+                self.local_data[handle.index as usize].epoch = self.current_epoch;
             }
             handle.epoch = self.current_epoch;
             return *handle;
@@ -229,11 +253,7 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
         // can use. Otherwise, append to the end of the list.
         let index = match self.free_list.pop() {
             Some(index) => index,
-            None => {
-                let index = self.next_index;
-                self.next_index += 1;
-                index
-            }
+            None => self.local_data.len(),
         };
 
         // Add a pending update to insert the new data.
@@ -244,14 +264,31 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
 
         // Generate a handle for access via the data store.
         let handle = Handle {
-            index,
+            index: index as u32,
             epoch: self.current_epoch,
+            uid: ItemUid {
+                uid: self.next_uid,
+                _marker: PhantomData,
+            },
             _marker: PhantomData,
         };
 
         // Store this handle so the next time it is
         // interned, it gets re-used.
         self.map.insert(data.clone(), handle);
+        self.next_uid += 1;
+
+        // Create the local data for this item that is
+        // being interned.
+        let local_item = Item {
+            epoch: self.current_epoch,
+            data: f(),
+        };
+        if self.local_data.len() == index {
+            self.local_data.push(local_item);
+        } else {
+            self.local_data[index] = local_item;
+        }
 
         handle
     }
@@ -277,9 +314,9 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
                 //  - Add index to the free-list for re-use.
                 //  - Add an update to the data store to invalidate this slow.
                 //  - Remove from the hash map.
-                free_list.push(handle.index);
+                free_list.push(handle.index as usize);
                 updates.push(Update {
-                    index: handle.index,
+                    index: handle.index as usize,
                     kind: UpdateKind::Remove,
                 });
                 return false;
@@ -297,5 +334,15 @@ impl<S, M> Interner<S, M> where S: Eq + Hash + Clone + Debug, M: Copy + Debug {
         self.current_epoch = Epoch(self.current_epoch.0 + 1);
 
         updates
+    }
+}
+
+/// Retrieve the local data for an item from the interner via handle
+impl<S, D, M> ops::Index<Handle<M>> for Interner<S, D, M> where S: Eq + Clone + Hash + Debug, M: Copy + Debug {
+    type Output = D;
+    fn index(&self, handle: Handle<M>) -> &D {
+        let item = &self.local_data[handle.index as usize];
+        assert_eq!(item.epoch, handle.epoch);
+        &item.data
     }
 }

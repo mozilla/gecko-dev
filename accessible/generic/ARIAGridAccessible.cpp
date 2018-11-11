@@ -28,7 +28,7 @@ using namespace mozilla::a11y;
 
 ARIAGridAccessible::
   ARIAGridAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  HyperTextAccessibleWrap(aContent, aDoc)
 {
   mGenericTypes |= eTable;
 }
@@ -70,8 +70,10 @@ ARIAGridAccessible::ColCount() const
   Accessible* cell = nullptr;
 
   uint32_t colCount = 0;
-  while ((cell = cellIter.Next()))
-    colCount++;
+  while ((cell = cellIter.Next())) {
+    MOZ_ASSERT(cell->IsTableCell(), "No table or grid cell!");
+    colCount += cell->AsTableCell()->ColExtent();
+  }
 
   return colCount;
 }
@@ -532,7 +534,7 @@ ARIAGridAccessible::SetARIASelected(Accessible* aAccessible,
 
 ARIARowAccessible::
   ARIARowAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  HyperTextAccessibleWrap(aContent, aDoc)
 {
   mGenericTypes |= eTableRow;
 }
@@ -602,10 +604,9 @@ ARIAGridCellAccessible::ColIdx() const
   uint32_t colIdx = 0;
   for (int32_t idx = 0; idx < indexInRow; idx++) {
     Accessible* cell = row->GetChildAt(idx);
-    roles::Role role = cell->Role();
-    if (role == roles::CELL || role == roles::GRID_CELL ||
-        role == roles::ROWHEADER || role == roles::COLUMNHEADER)
-      colIdx++;
+    if (cell->IsTableCell()) {
+      colIdx += cell->AsTableCell()->ColExtent();
+    }
   }
 
   return colIdx;

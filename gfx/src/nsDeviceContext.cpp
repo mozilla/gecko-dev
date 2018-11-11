@@ -49,7 +49,7 @@ class nsFontCache final : public nsIObserver
 public:
     nsFontCache(): mContext(nullptr) {}
 
-    NS_DECL_ISUPPORTS
+    NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIOBSERVER
 
     void Init(nsDeviceContext* aContext);
@@ -60,16 +60,53 @@ public:
 
     void FontMetricsDeleted(const nsFontMetrics* aFontMetrics);
     void Compact();
-    void Flush();
+
+    // Flush aFlushCount oldest entries, or all if aFlushCount is negative
+    void Flush(int32_t aFlushCount = -1);
 
     void UpdateUserFonts(gfxUserFontSet* aUserFontSet);
 
 protected:
+    // If the array of cached entries is about to exceed this threshold,
+    // we'll discard the oldest ones so as to keep the size reasonable.
+    // In practice, the great majority of cache hits are among the last
+    // few entries; keeping thousands of older entries becomes counter-
+    // productive because it can then take too long to scan the cache.
+    static const int32_t kMaxCacheEntries = 128;
+
     ~nsFontCache() {}
 
     nsDeviceContext*          mContext; // owner
     RefPtr<nsAtom>         mLocaleLanguage;
-    nsTArray<nsFontMetrics*>  mFontMetrics;
+
+    // We may not flush older entries immediately the array reaches
+    // kMaxCacheEntries length, because this usually happens on a stylo
+    // thread where we can't safely delete metrics objects. So we allocate an
+    // oversized autoarray buffer here, so that we're unlikely to overflow
+    // it and need separate heap allocation before the flush happens on the
+    // main thread.
+    AutoTArray<nsFontMetrics*,kMaxCacheEntries*2> mFontMetrics;
+
+    bool mFlushPending = false;
+
+    class FlushFontMetricsTask : public mozilla::Runnable
+    {
+    public:
+        explicit FlushFontMetricsTask(nsFontCache* aCache)
+            : mozilla::Runnable("FlushFontMetricsTask")
+            , mCache(aCache)
+        { }
+        NS_IMETHOD Run() override
+        {
+            // Partially flush the cache, leaving the kMaxCacheEntries/2 most
+            // recent entries.
+            mCache->Flush(mCache->mFontMetrics.Length() - kMaxCacheEntries / 2);
+            mCache->mFlushPending = false;
+            return NS_OK;
+        }
+    private:
+        RefPtr<nsFontCache> mCache;
+    };
 };
 
 NS_IMPL_ISUPPORTS(nsFontCache, nsIObserver)
@@ -119,8 +156,7 @@ nsFontCache::GetMetricsFor(const nsFont& aFont,
 
     // First check our cache
     // start from the end, which is where we put the most-recent-used element
-
-    int32_t n = mFontMetrics.Length() - 1;
+    const int32_t n = mFontMetrics.Length() - 1;
     for (int32_t i = n; i >= 0; --i) {
         nsFontMetrics* fm = mFontMetrics[i];
         if (fm->Font().Equals(aFont) &&
@@ -138,6 +174,18 @@ nsFontCache::GetMetricsFor(const nsFont& aFont,
     }
 
     // It's not in the cache. Get font metrics and then cache them.
+    // If the cache has reached its size limit, drop the older half of the
+    // entries; but if we're on a stylo thread (the usual case), we have
+    // to post a task back to the main thread to do the flush.
+    if (n >= kMaxCacheEntries - 1 && !mFlushPending) {
+        if (NS_IsMainThread()) {
+            Flush(mFontMetrics.Length() - kMaxCacheEntries / 2);
+        } else {
+            mFlushPending = true;
+            nsCOMPtr<nsIRunnable> flushTask = new FlushFontMetricsTask(this);
+            MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(flushTask));
+        }
+    }
 
     nsFontMetrics::Params params = aParams;
     params.language = language;
@@ -185,10 +233,14 @@ nsFontCache::Compact()
     }
 }
 
+// Flush the aFlushCount oldest entries, or all if (aFlushCount < 0)
 void
-nsFontCache::Flush()
+nsFontCache::Flush(int32_t aFlushCount)
 {
-    for (int32_t i = mFontMetrics.Length()-1; i >= 0; --i) {
+    int32_t n = aFlushCount < 0
+        ? mFontMetrics.Length()
+        : std::min<int32_t>(aFlushCount, mFontMetrics.Length());
+    for (int32_t i = n - 1; i >= 0; --i) {
         nsFontMetrics* fm = mFontMetrics[i];
         // Destroy() will unhook our device context from the fm so that we
         // won't waste time in triggering the notification of
@@ -196,7 +248,7 @@ nsFontCache::Flush()
         fm->Destroy();
         NS_RELEASE(fm);
     }
-    mFontMetrics.Clear();
+    mFontMetrics.RemoveElementsAt(0, n);
 }
 
 nsDeviceContext::nsDeviceContext()

@@ -8,54 +8,65 @@ const { PureComponent } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
-const Actions = require("../../actions/index");
-
 /**
- * This component displays an item of the Sidebar component.
+ * This component is used as a wrapper by items in the sidebar.
  */
 class SidebarItem extends PureComponent {
   static get propTypes() {
     return {
-      connectComponent: PropTypes.any,
-      dispatch: PropTypes.func.isRequired,
-      icon: PropTypes.string.isRequired,
-      id: PropTypes.string.isRequired,
+      children: PropTypes.node.isRequired,
+      className: PropTypes.string,
       isSelected: PropTypes.bool.isRequired,
-      name: PropTypes.string.isRequired,
-      runtimeId: PropTypes.string,
       selectable: PropTypes.bool.isRequired,
+      // only require `onSelect` function when `selectable` is true
+      onSelect: (props, propName, componentName) => {
+        const isFn = props[propName] && typeof props[propName] === "function";
+        if (props.selectable && !isFn) {
+          return new Error(`Missing ${propName} function supplied to ${componentName}. ` +
+            "(you must set this prop when selectable is true)");
+        }
+        return null; // for eslint (consistent-return rule)
+      },
     };
   }
 
-  onItemClick() {
-    const { id, dispatch, runtimeId } = this.props;
-    dispatch(Actions.selectPage(id, runtimeId));
+  // temporary handler until a router is in place
+  onItemClick(evt) {
+    evt.preventDefault();
+    this.props.onSelect();
+  }
+
+  renderContent() {
+    const { children, selectable } = this.props;
+
+    if (selectable) {
+      return dom.a(
+        {
+          className: "sidebar-item__link js-sidebar-link",
+          href: "#", // to be changed with a path when a router is in place
+          onClick: (evt) => this.onItemClick(evt),
+        },
+        children
+      );
+    }
+
+    return children;
   }
 
   render() {
-    const { connectComponent, icon, isSelected, name, selectable } = this.props;
+    const {className, isSelected, selectable } = this.props;
 
     return dom.li(
       {
         className: "sidebar-item js-sidebar-item" +
+                   (className ? ` ${className}` : "") +
                    (isSelected ?
                       " sidebar-item--selected js-sidebar-item-selected" :
                       ""
                    ) +
                    (selectable ? " sidebar-item--selectable" : ""),
-        onClick: selectable ? () => this.onItemClick() : null
       },
-      dom.img({
-        className: "sidebar-item__icon",
-        src: icon,
-      }),
-      dom.span(
-        {
-          className: "ellipsis-text",
-          title: name,
-        },
-        name),
-      connectComponent ? connectComponent : null
+      this.renderContent()
     );
   }
 }

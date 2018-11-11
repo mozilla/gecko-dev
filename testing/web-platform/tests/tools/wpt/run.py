@@ -1,10 +1,7 @@
 import argparse
 import os
 import platform
-import shutil
-import subprocess
 import sys
-import tarfile
 from distutils.spawn import find_executable
 
 wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
@@ -180,6 +177,9 @@ class Firefox(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
+            if kwargs["browser_channel"] is None:
+                logger.info("No browser channel specified. Running nightly instead.")
+
             binary = self.browser.find_binary(self.venv.path,
                                               kwargs["browser_channel"])
             if binary is None:
@@ -224,6 +224,10 @@ Consider installing certutil via your OS package manager or directly.""")
                                                     channel=kwargs["browser_channel"])
             kwargs["prefs_root"] = prefs_root
 
+        if kwargs["headless"] is None:
+            kwargs["headless"] = True
+            logger.info("Running in headless mode, pass --no-headless to disable")
+
         # Allow WebRTC tests to call getUserMedia.
         kwargs["extra_prefs"].append("media.navigator.streams.fake=true")
 
@@ -260,6 +264,11 @@ class Chrome(BrowserSetup):
         if kwargs["browser_channel"] == "dev":
             logger.info("Automatically turning on experimental features for Chrome Dev")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
+            # TODO(foolip): remove after unified plan is enabled on Chrome stable
+            kwargs["binary_args"].append("--enable-features=RTCUnifiedPlanByDefault")
+
+        # Allow audio autoplay without a user gesture.
+        kwargs["binary_args"].append("--autoplay-policy=no-user-gesture-required")
 
         # Allow WebRTC tests to call getUserMedia.
         kwargs["binary_args"] += ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
@@ -286,15 +295,6 @@ class ChromeAndroid(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
-
-
-class ChromeWebDriver(Chrome):
-    name = "chrome_webdriver"
-    browser_cls = browser.ChromeWebDriver
-
-class ChromeWebDriver(Chrome):
-    name = "chrome_webdriver"
-    browser_cls = browser.ChromeWebDriver
 
 
 class Opera(BrowserSetup):
@@ -346,11 +346,6 @@ class EdgeWebDriver(Edge):
     browser_cls = browser.EdgeWebDriver
 
 
-class EdgeWebDriver(Edge):
-    name = "edge_webdriver"
-    browser_cls = browser.EdgeWebDriver
-
-
 class InternetExplorer(BrowserSetup):
     name = "ie"
     browser_cls = browser.InternetExplorer
@@ -381,17 +376,12 @@ class Safari(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = self.browser.find_webdriver(channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
                 raise WptrunError("Unable to locate safaridriver binary")
 
             kwargs["webdriver_binary"] = webdriver_binary
-
-
-class SafariWebDriver(Safari):
-    name = "safari_webdriver"
-    browser_cls = browser.SafariWebDriver
 
 
 class SafariWebDriver(Safari):
@@ -429,6 +419,11 @@ class Servo(BrowserSetup):
             kwargs["binary"] = binary
 
 
+class ServoWebDriver(Servo):
+    name = "servodriver"
+    browser_cls = browser.ServoWebDriver
+
+
 class WebKit(BrowserSetup):
     name = "webkit"
     browser_cls = browser.WebKit
@@ -445,13 +440,13 @@ product_setup = {
     "firefox": Firefox,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,
-    "chrome_webdriver": ChromeWebDriver,
     "edge": Edge,
     "edge_webdriver": EdgeWebDriver,
     "ie": InternetExplorer,
     "safari": Safari,
     "safari_webdriver": SafariWebDriver,
     "servo": Servo,
+    "servodriver": ServoWebDriver,
     "sauce": Sauce,
     "opera": Opera,
     "webkit": WebKit,
@@ -460,6 +455,7 @@ product_setup = {
 
 def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     from wptrunner import wptrunner, wptcommandline
+    import mozlog
 
     global logger
 
@@ -469,7 +465,12 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     kwargs["product"] = product_parts[0]
     sub_product = product_parts[1:]
 
-    wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
+    # Use the grouped formatter by default where mozlog 3.9+ is installed
+    if hasattr(mozlog.formatters, "GroupingFormatter"):
+        default_formatter = "grouped"
+    else:
+        default_formatter = "mach"
+    wptrunner.setup_logging(kwargs, {default_formatter: sys.stdout})
     logger = wptrunner.logger
 
     check_environ(kwargs["product"])
@@ -487,10 +488,13 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     if kwargs["channel"]:
         channel = install.get_channel(kwargs["product"], kwargs["channel"])
-        if channel != kwargs["channel"]:
-            logger.info("Interpreting channel '%s' as '%s'" % (kwargs["channel"],
-                                                               channel))
-        kwargs["browser_channel"] = channel
+        if channel is not None:
+            if channel != kwargs["channel"]:
+                logger.info("Interpreting channel '%s' as '%s'" % (kwargs["channel"],
+                                                                   channel))
+            kwargs["browser_channel"] = channel
+        else:
+            logger.info("Valid channels for %s not known; using argument unmodified" % kwargs["product"])
     del kwargs["channel"]
 
     if install_browser:
@@ -505,7 +509,8 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
 
-    kwargs['browser_version'] = setup_cls.browser.version(kwargs.get("binary"))
+    kwargs['browser_version'] = setup_cls.browser.version(binary=kwargs.get("binary"),
+                                                          webdriver_binary=kwargs.get("webdriver_binary"))
     return kwargs
 
 
@@ -546,7 +551,7 @@ def main():
 
 if __name__ == "__main__":
     import pdb
-    from tools import localpaths
+    from tools import localpaths  # noqa: flake8
     try:
         main()
     except Exception:

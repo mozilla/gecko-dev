@@ -14,6 +14,7 @@
 #include "jslibmath.h"
 #include "jit/IonIC.h"
 #include "jit/SharedICHelpers.h"
+#include "jit/SharedICRegisters.h"
 
 #include "builtin/Boolean-inl.h"
 
@@ -1616,29 +1617,25 @@ CacheIRCompiler::emitGuardIsInt32Index()
 
     masm.bind(&notInt32);
 
-    if (cx_->runtime()->jitSupportsFloatingPoint) {
-        masm.branchTestDouble(Assembler::NotEqual, input, failure->label());
+    masm.branchTestDouble(Assembler::NotEqual, input, failure->label());
 
-        // If we're compiling a Baseline IC, FloatReg0 is always available.
-        Label failurePopReg;
-        if (mode_ != Mode::Baseline) {
-            masm.push(FloatReg0);
-        }
+    // If we're compiling a Baseline IC, FloatReg0 is always available.
+    Label failurePopReg;
+    if (mode_ != Mode::Baseline) {
+        masm.push(FloatReg0);
+    }
 
-        masm.unboxDouble(input, FloatReg0);
-        // ToPropertyKey(-0.0) is "0", so we can truncate -0.0 to 0 here.
-        masm.convertDoubleToInt32(FloatReg0, output,
-                                  (mode_ == Mode::Baseline) ? failure->label() : &failurePopReg,
-                                  false);
-        if (mode_ != Mode::Baseline) {
-            masm.pop(FloatReg0);
-            masm.jump(&done);
+    masm.unboxDouble(input, FloatReg0);
+    // ToPropertyKey(-0.0) is "0", so we can truncate -0.0 to 0 here.
+    masm.convertDoubleToInt32(FloatReg0, output,
+                              (mode_ == Mode::Baseline) ? failure->label() : &failurePopReg,
+                              false);
+    if (mode_ != Mode::Baseline) {
+        masm.pop(FloatReg0);
+        masm.jump(&done);
 
-            masm.bind(&failurePopReg);
-            masm.pop(FloatReg0);
-            masm.jump(failure->label());
-        }
-    } else {
+        masm.bind(&failurePopReg);
+        masm.pop(FloatReg0);
         masm.jump(failure->label());
     }
 
@@ -1731,6 +1728,35 @@ CacheIRCompiler::emitGuardClass()
                                                     failure->label());
     }
 
+    return true;
+}
+
+bool
+CacheIRCompiler::emitGuardIsExtensible()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    AutoScratchRegister scratch(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure)) {
+        return false;
+    }
+
+    Address shape(obj, ShapedObject::offsetOfShape());
+    masm.loadPtr(shape, scratch);
+
+    Address baseShape(scratch, Shape::offsetOfBaseShape());
+    masm.loadPtr(baseShape, scratch);
+
+    Address baseShapeFlags(scratch, BaseShape::offsetOfFlags());
+    masm.loadPtr(baseShapeFlags, scratch);
+
+    masm.and32(Imm32(js::BaseShape::NOT_EXTENSIBLE), scratch);
+
+    // Spectre-style checks are not needed here because we do not
+    // interpret data based on this check.
+    masm.branch32(Assembler::Equal, scratch, Imm32(js::BaseShape::NOT_EXTENSIBLE),
+                  failure->label());
     return true;
 }
 
@@ -1965,7 +1991,7 @@ CacheIRCompiler::emitGuardAndGetNumberFromString()
         masm.passABIArg(scratch);
         masm.passABIArg(str);
         masm.passABIArg(output.payloadOrValueReg());
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, StringToNumberDontReportOOM));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, StringToNumberPure));
         masm.mov(ReturnReg, scratch);
 
         LiveRegisterSet ignore;
@@ -1975,16 +2001,16 @@ CacheIRCompiler::emitGuardAndGetNumberFromString()
         Label ok;
         masm.branchIfTrueBool(scratch, &ok);
         {
-            // OOM path, recovered by StringToNumberDontReportOOM.
+            // OOM path, recovered by StringToNumberPure.
             //
             // Use addToStackPtr instead of freeStack as freeStack tracks stack height
             // flow-insensitively, and using it twice would confuse the stack height
-            // tracking. 
+            // tracking.
             masm.addToStackPtr(Imm32(sizeof(double)));
             masm.jump(failure->label());
         }
         masm.bind(&ok);
-        
+
         masm.loadDouble(Address(output.payloadOrValueReg(), 0), FloatReg0);
         masm.boxDouble(FloatReg0, output, FloatReg0);
         masm.freeStack(sizeof(double));
@@ -2821,6 +2847,115 @@ CacheIRCompiler::emitGuardIndexIsNonNegative()
 }
 
 bool
+CacheIRCompiler::emitGuardIndexGreaterThanDenseInitLength()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register index = allocator.useRegister(masm, reader.int32OperandId());
+    AutoScratchRegister scratch(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure)) {
+        return false;
+    }
+
+    // Load obj->elements.
+    masm.loadPtr(Address(obj, NativeObject::offsetOfElements()), scratch);
+
+    // Ensure index >= initLength.
+    Label outOfBounds;
+    Address capacity(scratch, ObjectElements::offsetOfInitializedLength());
+    masm.spectreBoundsCheck32(index, capacity, scratch2, &outOfBounds);
+    masm.jump(failure->label());
+    masm.bind(&outOfBounds);
+
+    return true;
+}
+
+bool
+CacheIRCompiler::emitGuardIndexGreaterThanDenseCapacity()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register index = allocator.useRegister(masm, reader.int32OperandId());
+    AutoScratchRegister scratch(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure)) {
+        return false;
+    }
+
+    // Load obj->elements.
+    masm.loadPtr(Address(obj, NativeObject::offsetOfElements()), scratch);
+
+    // Ensure index >= capacity.
+    Label outOfBounds;
+    Address capacity(scratch, ObjectElements::offsetOfCapacity());
+    masm.spectreBoundsCheck32(index, capacity, scratch2, &outOfBounds);
+    masm.jump(failure->label());
+    masm.bind(&outOfBounds);
+
+    return true;
+}
+
+bool
+CacheIRCompiler::emitGuardIndexGreaterThanArrayLength()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register index = allocator.useRegister(masm, reader.int32OperandId());
+    AutoScratchRegister scratch(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure)) {
+        return false;
+    }
+
+    // Load obj->elements.
+    masm.loadPtr(Address(obj, NativeObject::offsetOfElements()), scratch);
+
+    // Ensure index >= length;
+    Label outOfBounds;
+    Address length(scratch, ObjectElements::offsetOfLength());
+    masm.spectreBoundsCheck32(index, length, scratch2, &outOfBounds);
+    masm.jump(failure->label());
+    masm.bind(&outOfBounds);
+    return true;
+}
+
+bool
+CacheIRCompiler::emitGuardIndexIsValidUpdateOrAdd()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register index = allocator.useRegister(masm, reader.int32OperandId());
+    AutoScratchRegister scratch(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure)) {
+        return false;
+    }
+
+    // Load obj->elements.
+    masm.loadPtr(Address(obj, NativeObject::offsetOfElements()), scratch);
+
+    Label success;
+
+    // If length is writable, branch to &success.  All indices are writable.
+    Address flags(scratch, ObjectElements::offsetOfFlags());
+    masm.branchTest32(Assembler::Zero, flags,
+                      Imm32(ObjectElements::Flags::NONWRITABLE_ARRAY_LENGTH),
+                      &success);
+
+    // Otherwise, ensure index is in bounds.
+    Address length(scratch, ObjectElements::offsetOfLength());
+    masm.spectreBoundsCheck32(index, length, scratch2,
+                              /* failure = */ failure->label());
+    masm.bind(&success);
+    return true;
+}
+
+bool
 CacheIRCompiler::emitGuardTagNotEqual()
 {
     Register lhs = allocator.useRegister(masm, reader.valueTagOperandId());
@@ -3403,11 +3538,11 @@ CacheIRCompiler::emitComparePointerResultShared(bool symbol)
     Label ifTrue, done;
     masm.branchPtr(JSOpToCondition(op, /* signed = */true), left, right, &ifTrue);
 
-    masm.moveValue(BooleanValue(false), output.valueReg());
+    EmitStoreBoolean(masm, false, output);
     masm.jump(&done);
 
     masm.bind(&ifTrue);
-    masm.moveValue(BooleanValue(true), output.valueReg());
+    EmitStoreBoolean(masm, true, output);
     masm.bind(&done);
     return true;
 }
@@ -3436,11 +3571,11 @@ CacheIRCompiler::emitCompareInt32Result()
     Label ifTrue, done;
     masm.branch32(JSOpToCondition(op, /* signed = */true), left, right, &ifTrue);
 
-    masm.moveValue(BooleanValue(false), output.valueReg());
+    EmitStoreBoolean(masm, false, output);
     masm.jump(&done);
 
     masm.bind(&ifTrue);
-    masm.moveValue(BooleanValue(true), output.valueReg());
+    EmitStoreBoolean(masm, true, output);
     masm.bind(&done);
     return true;
 }
@@ -3461,11 +3596,11 @@ CacheIRCompiler::emitCompareDoubleResult()
 
     Label done, ifTrue;
     masm.branchDouble(JSOpToDoubleCondition(op), FloatReg0, FloatReg1, &ifTrue);
-    masm.moveValue(BooleanValue(false), output.valueReg());
+    EmitStoreBoolean(masm, false, output);
     masm.jump(&done);
 
     masm.bind(&ifTrue);
-    masm.moveValue(BooleanValue(true), output.valueReg());
+    EmitStoreBoolean(masm, true, output);
     masm.bind(&done);
     return true;
 }
@@ -3485,16 +3620,16 @@ CacheIRCompiler::emitCompareObjectUndefinedNullResult()
 
     if (op == JSOP_STRICTEQ || op == JSOP_STRICTNE) {
         // obj !== undefined/null for all objects.
-        masm.moveValue(BooleanValue(op == JSOP_STRICTNE), output.valueReg());
+        EmitStoreBoolean(masm, op == JSOP_STRICTNE, output);
     } else {
         MOZ_ASSERT(op == JSOP_EQ || op == JSOP_NE);
         AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
         Label done, emulatesUndefined;
         masm.branchIfObjectEmulatesUndefined(obj, scratch, failure->label(), &emulatesUndefined);
-        masm.moveValue(BooleanValue(op == JSOP_NE), output.valueReg());
+        EmitStoreBoolean(masm, op == JSOP_NE, output);
         masm.jump(&done);
         masm.bind(&emulatesUndefined);
-        masm.moveValue(BooleanValue(op == JSOP_EQ), output.valueReg());
+        EmitStoreBoolean(masm, op == JSOP_EQ, output);
         masm.bind(&done);
     }
     return true;
@@ -3803,7 +3938,7 @@ CacheIRCompiler::emitCallObjectHasSparseElementResult()
     masm.passABIArg(obj);
     masm.passABIArg(index);
     masm.passABIArg(scratch2);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, HasNativeElement));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, HasNativeElementPure));
     masm.mov(ReturnReg, scratch1);
     masm.PopRegsInMask(volatileRegs);
 
@@ -3950,9 +4085,9 @@ CacheIRCompiler::emitMegamorphicLoadSlotResult()
     masm.passABIArg(scratch2);
     masm.passABIArg(scratch3);
     if (handleMissing) {
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (GetNativeDataProperty<true>)));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (GetNativeDataPropertyPure<true>)));
     } else {
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (GetNativeDataProperty<false>)));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (GetNativeDataPropertyPure<false>)));
     }
     masm.mov(ReturnReg, scratch2);
     masm.PopRegsInMask(volatileRegs);
@@ -4001,9 +4136,9 @@ CacheIRCompiler::emitMegamorphicStoreSlot()
     masm.passABIArg(scratch2);
     masm.passABIArg(val.scratchReg());
     if (needsTypeBarrier) {
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (SetNativeDataProperty<true>)));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (SetNativeDataPropertyPure<true>)));
     } else {
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (SetNativeDataProperty<false>)));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (SetNativeDataPropertyPure<false>)));
     }
     masm.mov(ReturnReg, scratch1);
     masm.PopRegsInMask(volatileRegs);
@@ -4047,8 +4182,9 @@ CacheIRCompiler::emitCallInt32ToString() {
     Register result = allocator.defineRegister(masm, reader.stringOperandId());
 
     FailurePath* failure;
-    if (!addFailurePath(&failure))
+    if (!addFailurePath(&failure)) {
         return false;
+    }
 
     LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(), liveVolatileFloatRegs());
     volatileRegs.takeUnchecked(result);
@@ -4058,7 +4194,7 @@ CacheIRCompiler::emitCallInt32ToString() {
     masm.loadJSContext(result);
     masm.passABIArg(result);
     masm.passABIArg(input);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (js::Int32ToStringHelper)));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (js::Int32ToStringHelperPure)));
 
     masm.mov(ReturnReg, result);
     masm.PopRegsInMask(volatileRegs);
@@ -4076,8 +4212,9 @@ CacheIRCompiler::emitCallNumberToString() {
     Register result = allocator.defineRegister(masm, reader.stringOperandId());
 
     FailurePath* failure;
-    if (!addFailurePath(&failure))
+    if (!addFailurePath(&failure)) {
         return false;
+    }
 
     LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(), liveVolatileFloatRegs());
     volatileRegs.takeUnchecked(result);
@@ -4088,7 +4225,7 @@ CacheIRCompiler::emitCallNumberToString() {
     masm.loadJSContext(result);
     masm.passABIArg(result);
     masm.passABIArg(FloatReg0, MoveOp::DOUBLE);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (js::NumberToStringHelper)));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, (js::NumberToStringHelperPure)));
 
     masm.mov(ReturnReg, result);
     masm.PopRegsInMask(volatileRegs);

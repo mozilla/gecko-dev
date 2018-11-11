@@ -817,6 +817,7 @@ SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
       csp->LogViolationDetails(
         nsIContentSecurityPolicy::VIOLATION_TYPE_REQUIRE_SRI_FOR_STYLE,
         nullptr, // triggering element
+        nullptr, // nsICSPEventListener
         NS_ConvertUTF8toUTF16(spec), EmptyString(),
         0, 0, EmptyString(), EmptyString());
       return NS_OK;
@@ -2570,15 +2571,11 @@ Loader::HasPendingLoads()
     mDatasToNotifyOn != 0;
 }
 
-nsresult
+void
 Loader::AddObserver(nsICSSLoaderObserver* aObserver)
 {
   MOZ_ASSERT(aObserver, "Must have observer");
-  if (mObservers.AppendElementUnlessExists(aObserver)) {
-    return NS_OK;
-  }
-
-  return NS_ERROR_OUT_OF_MEMORY;
+  mObservers.AppendElementUnlessExists(aObserver);
 }
 
 void

@@ -110,6 +110,18 @@ class TreeMetadataEmitter(LoggingMixin):
         self.populate_logger()
 
         self.config = config
+
+        mozinfo.find_and_update_from_json(config.topobjdir)
+
+        # Python 2.6 doesn't allow unicode keys to be used for keyword
+        # arguments. This gross hack works around the problem until we
+        # rid ourselves of 2.6.
+        self.info = {}
+        for k, v in mozinfo.info.items():
+            if isinstance(k, unicode):
+                k = k.encode('ascii')
+            self.info[k] = v
+
         self._libs = OrderedDefaultDict(list)
         self._binaries = OrderedDict()
         self._compile_dirs = set()
@@ -517,7 +529,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 'crate-type %s is not permitted for %s' % (crate_type, libname),
                 context)
 
-        cargo_target_dir = context.get('RUST_LIBRARY_TARGET_DIR', '.')
+        cargo_target_dir = context.config.topobjdir
 
         dependencies = set(config.get('dependencies', {}).iterkeys())
 
@@ -1025,7 +1037,6 @@ class TreeMetadataEmitter(LoggingMixin):
             'RCINCLUDE',
             'WIN32_EXE_LDFLAGS',
             'USE_EXTENSION_MANIFEST',
-            'NO_JS_MANIFEST',
             'HAS_MISC_RULE',
         ]
         for v in varlist:
@@ -1288,16 +1299,6 @@ class TreeMetadataEmitter(LoggingMixin):
 
             yield cls(context, all_files)
 
-        # Check for manifest declarations in EXTRA_{PP_,}COMPONENTS.
-        if any(e.endswith('.js') for e in components) and \
-                not any(e.endswith('.manifest') for e in components) and \
-                not context.get('NO_JS_MANIFEST', False):
-            raise SandboxValidationError('A .js component was specified in EXTRA_COMPONENTS '
-                                         'or EXTRA_PP_COMPONENTS without a matching '
-                                         '.manifest file.  See '
-                                         'https://developer.mozilla.org/en/XPCOM/XPCOM_changes_in_Gecko_2.0 .',
-                                         context);
-
         for c in components:
             if c.endswith('.manifest'):
                 yield ChromeManifestEntry(context, 'chrome.manifest',
@@ -1328,6 +1329,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 raise SandboxValidationError('yasm is not available', context)
             passthru.variables['AS'] = yasm
             passthru.variables['AS_DASH_C_FLAG'] = ''
+            passthru.variables['ASOUTOPTION'] = '-o '
             computed_as_flags.resolve_flags('OS',
                                             context.config.substs.get('YASM_ASFLAGS', []))
 

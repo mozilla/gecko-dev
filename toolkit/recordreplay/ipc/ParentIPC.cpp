@@ -14,6 +14,7 @@
 #include "js/Proxy.h"
 #include "mozilla/dom/ContentProcessMessageManager.h"
 #include "InfallibleVector.h"
+#include "JSControl.h"
 #include "Monitor.h"
 #include "ProcessRecordReplay.h"
 #include "ProcessRedirect.h"
@@ -226,6 +227,7 @@ static void RecvHitBreakpoint(const HitBreakpointMessage& aMsg);
 static void RecvDebuggerResponse(const DebuggerResponseMessage& aMsg);
 static void RecvRecordingFlushed();
 static void RecvAlwaysMarkMajorCheckpoints();
+static void RecvMiddlemanCallRequest(const MiddlemanCallRequestMessage& aMsg);
 
 // The role taken by the active child.
 class ChildRoleActive final : public ChildRole
@@ -250,7 +252,7 @@ public:
   void OnIncomingMessage(const Message& aMsg) override {
     switch (aMsg.mType) {
     case MessageType::Paint:
-      UpdateGraphicsInUIProcess((const PaintMessage*) &aMsg);
+      MaybeUpdateGraphicsAtPaint((const PaintMessage&) aMsg);
       break;
     case MessageType::HitCheckpoint:
       RecvHitCheckpoint((const HitCheckpointMessage&) aMsg);
@@ -267,6 +269,12 @@ public:
     case MessageType::AlwaysMarkMajorCheckpoints:
       RecvAlwaysMarkMajorCheckpoints();
       break;
+    case MessageType::MiddlemanCallRequest:
+      RecvMiddlemanCallRequest((const MiddlemanCallRequestMessage&) aMsg);
+      break;
+    case MessageType::ResetMiddlemanCalls:
+      ResetMiddlemanCalls();
+      break;
     default:
       MOZ_CRASH("Unexpected message");
     }
@@ -276,7 +284,7 @@ public:
 bool
 ActiveChildIsRecording()
 {
-  return gActiveChild->IsRecording();
+  return gActiveChild && gActiveChild->IsRecording();
 }
 
 ChildProcessInfo*
@@ -363,16 +371,16 @@ ReplayingChildResponsibleForSavingCheckpoint(size_t aId)
 // checkpoint up to the returned checkpoint.
 static Maybe<size_t> ActiveChildTargetCheckpoint();
 
-// Notify a child it does not need to save aCheckpoint, unless it is a major
-// checkpoint for the child.
+// Ensure that a child will save aCheckpoint iff it is a major checkpoint.
 static void
-ClearIfSavedNonMajorCheckpoint(ChildProcessInfo* aChild, size_t aCheckpoint)
+EnsureMajorCheckpointSaved(ChildProcessInfo* aChild, size_t aCheckpoint)
 {
-  if (aChild->ShouldSaveCheckpoint(aCheckpoint) &&
-      !aChild->IsMajorCheckpoint(aCheckpoint) &&
-      aCheckpoint != CheckpointId::First)
-  {
-    aChild->SendMessage(SetSaveCheckpointMessage(aCheckpoint, false));
+  // The first checkpoint is always saved, even if not marked as major.
+  bool childShouldSave = aChild->IsMajorCheckpoint(aCheckpoint) || aCheckpoint == CheckpointId::First;
+  bool childToldToSave = aChild->ShouldSaveCheckpoint(aCheckpoint);
+
+  if (childShouldSave != childToldToSave) {
+    aChild->SendMessage(SetSaveCheckpointMessage(aCheckpoint, childShouldSave));
   }
 }
 
@@ -407,7 +415,7 @@ ChildRoleStandby::Poke()
     // If we haven't reached the last major checkpoint, we need to run forward
     // without saving intermediate checkpoints.
     if (mProcess->LastCheckpoint() < lastMajorCheckpoint) {
-      ClearIfSavedNonMajorCheckpoint(mProcess, mProcess->LastCheckpoint() + 1);
+      EnsureMajorCheckpointSaved(mProcess, mProcess->LastCheckpoint() + 1);
       mProcess->SendMessage(ResumeMessage(/* aForward = */ true));
       return;
     }
@@ -463,7 +471,7 @@ ChildRoleStandby::Poke()
   // checkpoint included in the on-disk recording. Only save major checkpoints.
   if ((mProcess->LastCheckpoint() < gActiveChild->LastCheckpoint()) &&
       (!gRecordingChild || mProcess->LastCheckpoint() < gLastRecordingCheckpoint)) {
-    ClearIfSavedNonMajorCheckpoint(mProcess, mProcess->LastCheckpoint() + 1);
+    EnsureMajorCheckpointSaved(mProcess, mProcess->LastCheckpoint() + 1);
     mProcess->SendMessage(ResumeMessage(/* aForward = */ true));
   }
 }
@@ -499,14 +507,10 @@ AssignMajorCheckpoint(ChildProcessInfo* aChild, size_t aId)
   PrintSpew("AssignMajorCheckpoint: Process %d Checkpoint %d\n",
             (int) aChild->GetId(), (int) aId);
   aChild->AddMajorCheckpoint(aId);
-  if (aId != CheckpointId::First) {
-    aChild->WaitUntilPaused();
-    aChild->SendMessage(SetSaveCheckpointMessage(aId, true));
-  }
   gLastAssignedMajorCheckpoint = aChild;
 }
 
-static void FlushRecording();
+static bool MaybeFlushRecording();
 
 static void
 UpdateCheckpointTimes(const HitCheckpointMessage& aMsg)
@@ -524,8 +528,9 @@ UpdateCheckpointTimes(const HitCheckpointMessage& aMsg)
     if (aMsg.mCheckpointId == CheckpointId::First ||
         gTimeSinceLastFlush >= TimeDuration::FromSeconds(FlushSeconds))
     {
-      FlushRecording();
-      gTimeSinceLastFlush = 0;
+      if (MaybeFlushRecording()) {
+        gTimeSinceLastFlush = 0;
+      }
     }
   }
 
@@ -579,6 +584,10 @@ SpawnReplayingChildren()
   AssignMajorCheckpoint(gSecondReplayingChild, CheckpointId::First);
 }
 
+// Hit any installed breakpoints with the specified kind.
+static void HitBreakpointsWithKind(js::BreakpointPosition::Kind aKind,
+                                   bool aRecordingBoundary = false);
+
 // Change the current active child, and select a new role for the old one.
 static void
 SwitchActiveChild(ChildProcessInfo* aChild, bool aRecoverPosition = true)
@@ -603,6 +612,12 @@ SwitchActiveChild(ChildProcessInfo* aChild, bool aRecoverPosition = true)
   } else {
     oldActiveChild->RecoverToCheckpoint(oldActiveChild->MostRecentSavedCheckpoint());
     oldActiveChild->SetRole(MakeUnique<ChildRoleStandby>());
+  }
+
+  // Position state is affected when we switch between recording and
+  // replaying children.
+  if (aChild->IsRecording() != oldActiveChild->IsRecording()) {
+    HitBreakpointsWithKind(js::BreakpointPosition::Kind::PositionChange);
   }
 }
 
@@ -672,12 +687,14 @@ DebuggerRunsInMiddleman()
 // Saving Recordings
 ///////////////////////////////////////////////////////////////////////////////
 
+// Synchronously flush the recording to disk.
 static void
 FlushRecording()
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gActiveChild->IsRecording() && gActiveChild->IsPaused());
 
+  // All replaying children must be paused while the recording is flushed.
   ForEachReplayingChild([=](ChildProcessInfo* aChild) {
       aChild->SetPauseNeeded();
       aChild->WaitUntilPaused();
@@ -694,6 +711,28 @@ FlushRecording()
     SpawnReplayingChildren();
   }
   gHasFlushed = true;
+}
+
+// Get the replaying children to pause, and flush the recording if they already are.
+static bool
+MaybeFlushRecording()
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(gActiveChild->IsRecording() && gActiveChild->IsPaused());
+
+  bool allPaused = true;
+  ForEachReplayingChild([&](ChildProcessInfo* aChild) {
+      if (!aChild->IsPaused()) {
+        aChild->SetPauseNeeded();
+        allPaused = false;
+      }
+    });
+
+  if (allPaused) {
+    FlushRecording();
+    return true;
+  }
+  return false;
 }
 
 static void
@@ -967,13 +1006,44 @@ static bool gChildExecuteBackward = false;
 // main thread. This will continue execution in the preferred direction.
 static bool gResumeForwardOrBackward = false;
 
-// Hit any breakpoints installed for forced pauses.
-static void HitForcedPauseBreakpoints(bool aRecordingBoundary);
+static void
+MaybeSendRepaintMessage()
+{
+  // In repaint stress mode, we want to trigger a repaint at every checkpoint,
+  // so before resuming after the child pauses at each checkpoint, send it a
+  // repaint message. There might not be a debugger open, so manually craft the
+  // same message which the debugger would send to trigger a repaint and parse
+  // the result.
+  if (InRepaintStressMode()) {
+    MaybeSwitchToReplayingChild();
+
+    const char16_t contents[] = u"{\"type\":\"repaint\"}";
+
+    js::CharBuffer request, response;
+    request.append(contents, ArrayLength(contents) - 1);
+    SendRequest(request, &response);
+
+    AutoSafeJSContext cx;
+    JS::RootedValue value(cx);
+    if (JS_ParseJSON(cx, response.begin(), response.length(), &value)) {
+      MOZ_RELEASE_ASSERT(value.isObject());
+      JS::RootedObject obj(cx, &value.toObject());
+      RootedValue width(cx), height(cx);
+      if (JS_GetProperty(cx, obj, "width", &width) && width.isNumber() && width.toNumber() &&
+          JS_GetProperty(cx, obj, "height", &height) && height.isNumber() && height.toNumber()) {
+        PaintMessage message(CheckpointId::Invalid, width.toNumber(), height.toNumber());
+        UpdateGraphicsInUIProcess(&message);
+      }
+    }
+  }
+}
 
 void
 Resume(bool aForward)
 {
   gActiveChild->WaitUntilPaused();
+
+  MaybeSendRepaintMessage();
 
   // Set the preferred direction of travel.
   gResumeForwardOrBackward = false;
@@ -988,7 +1058,8 @@ Resume(bool aForward)
     // Don't rewind if we are at the beginning of the recording.
     if (targetCheckpoint == CheckpointId::Invalid) {
       SendMessageToUIProcess("HitRecordingBeginning");
-      HitForcedPauseBreakpoints(true);
+      HitBreakpointsWithKind(js::BreakpointPosition::Kind::ForcedPause,
+                             /* aRecordingBoundary = */ true);
       return;
     }
 
@@ -1015,7 +1086,8 @@ Resume(bool aForward)
       MOZ_RELEASE_ASSERT(!gActiveChild->IsRecording());
       if (!gRecordingChild) {
         SendMessageToUIProcess("HitRecordingEndpoint");
-        HitForcedPauseBreakpoints(true);
+        HitBreakpointsWithKind(js::BreakpointPosition::Kind::ForcedPause,
+                               /* aRecordingBoundary = */ true);
         return;
       }
 
@@ -1023,7 +1095,7 @@ Resume(bool aForward)
       SwitchActiveChild(gRecordingChild);
     }
 
-    ClearIfSavedNonMajorCheckpoint(gActiveChild, gActiveChild->LastCheckpoint() + 1);
+    EnsureMajorCheckpointSaved(gActiveChild, gActiveChild->LastCheckpoint() + 1);
 
     // Idle children might change their behavior as we run forward.
     PokeChildren();
@@ -1080,7 +1152,7 @@ TimeWarp(const js::ExecutionPoint& aTarget)
 
   gActiveChild->WaitUntilPaused();
   SendMessageToUIProcess("TimeWarpFinished");
-  HitForcedPauseBreakpoints(false);
+  HitBreakpointsWithKind(js::BreakpointPosition::Kind::ForcedPause);
 }
 
 void
@@ -1125,6 +1197,10 @@ static void
 RecvHitCheckpoint(const HitCheckpointMessage& aMsg)
 {
   UpdateCheckpointTimes(aMsg);
+  MaybeUpdateGraphicsAtCheckpoint(aMsg.mCheckpointId);
+
+  // Position state is affected when new checkpoints are reached.
+  HitBreakpointsWithKind(js::BreakpointPosition::Kind::PositionChange);
 
   // Resume either forwards or backwards. Break the resume off into a separate
   // runnable, to avoid starving any code already on the stack and waiting for
@@ -1184,11 +1260,11 @@ RecvHitBreakpoint(const HitBreakpointMessage& aMsg)
 }
 
 static void
-HitForcedPauseBreakpoints(bool aRecordingBoundary)
+HitBreakpointsWithKind(js::BreakpointPosition::Kind aKind, bool aRecordingBoundary)
 {
   Vector<uint32_t> breakpoints;
-  gActiveChild->GetMatchingInstalledBreakpoints([=](js::BreakpointPosition::Kind aKind) {
-      return aKind == js::BreakpointPosition::ForcedPause;
+  gActiveChild->GetMatchingInstalledBreakpoints([=](js::BreakpointPosition::Kind aInstalled) {
+      return aInstalled == aKind;
     }, breakpoints);
   if (!breakpoints.empty()) {
     uint32_t* newBreakpoints = new uint32_t[breakpoints.length()];
@@ -1197,6 +1273,14 @@ HitForcedPauseBreakpoints(bool aRecordingBoundary)
                                                          newBreakpoints, breakpoints.length(),
                                                          aRecordingBoundary));
   }
+}
+
+static void
+RecvMiddlemanCallRequest(const MiddlemanCallRequestMessage& aMsg)
+{
+  MiddlemanCallResponseMessage* response = ProcessMiddlemanCallMessage(aMsg);
+  gActiveChild->SendMessage(*response);
+  free(response);
 }
 
 } // namespace parent

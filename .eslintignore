@@ -14,7 +14,9 @@ obj*/**
 # We ignore all these directories by default, until we get them enabled.
 # If you are enabling a directory, please add directory specific exclusions
 # below.
-docshell/**
+docshell/test/browser/**
+docshell/test/iframesandbox/**
+docshell/test/mochitest/**
 extensions/cookie/**
 extensions/spellcheck/**
 extensions/universalchardet/**
@@ -26,16 +28,11 @@ image/**
 layout/**
 memory/replace/dmd/test/**
 modules/**
-netwerk/base/NetUtil.jsm
 netwerk/cookie/test/browser/**
-netwerk/cookie/test/unit/**
-netwerk/protocol/**
-netwerk/dns/**
 netwerk/test/browser/**
 netwerk/test/httpserver/**
 netwerk/test/mochitests/**
 netwerk/test/unit*/**
-netwerk/wifi/**
 parser/**
 tools/update-packaging/**
 uriloader/exthandler/**
@@ -83,8 +80,8 @@ browser/extensions/screenshots/**
 browser/extensions/pdfjs/content/build**
 browser/extensions/pdfjs/content/web**
 # generated or library files in pocket
-browser/extensions/pocket/content/panels/js/tmpl.js
-browser/extensions/pocket/content/panels/js/vendor/**
+browser/components/pocket/content/panels/js/tmpl.js
+browser/components/pocket/content/panels/js/vendor/**
 # Activity Stream has incompatible eslintrc. `npm run lint` from its directory
 browser/components/newtab/**
 # The only file in browser/locales/ is pre-processed.
@@ -99,6 +96,8 @@ devtools/client/inspector/markup/test/doc_markup_events_*.html
 devtools/client/inspector/rules/test/doc_media_queries.html
 devtools/client/performance/components/test/test_jit_optimizations_01.html
 devtools/client/responsive.html/test/browser/touch.html
+devtools/client/shared/test/*.html
+devtools/client/shared/test/code_*.js
 devtools/client/shared/components/test/mochitest/*.html
 !devtools/client/shared/components/test/mochitest/test_stack-trace.html
 devtools/client/storage/test/*.html
@@ -173,7 +172,6 @@ devtools/server/tests/unit/xpcshell_debugging_script.js
 dom/abort/**
 dom/animation/**
 dom/asmjscache/**
-dom/audiochannel/**
 dom/base/**
 dom/battery/**
 dom/bindings/**
@@ -182,7 +180,6 @@ dom/browser-element/**
 dom/cache/test/mochitest/**
 dom/cache/test/xpcshell/**
 dom/canvas/**
-dom/commandhandler/**
 dom/console/**
 dom/crypto/**
 dom/encoding/**
@@ -212,7 +209,6 @@ dom/midi/**
 dom/network/**
 dom/notification/Notification*.*
 dom/notification/test/browser/**
-dom/notification/test/unit/**
 dom/notification/test/mochitest/**
 dom/offline/**
 dom/payments/**
@@ -258,6 +254,7 @@ dom/xslt/**
 dom/xul/**
 
 # Third-party
+dom/canvas/test/webgl-conf/**
 dom/media/webvtt/**
 
 # Third-party
@@ -305,6 +302,11 @@ mobile/android/locales/
 
 # Non-standard `(catch ex if ...)`
 mobile/android/chrome/content/browser.js
+
+# Pre-processed/pref files
+modules/libpref/greprefs.js
+modules/libpref/init/all.js
+modules/libpref/test/unit/*data/**
 
 # Only contains non-standard test files.
 python/**

@@ -111,6 +111,8 @@ static const char* const sExtensionNames[] = {
     "GL_ARB_shader_texture_lod",
     "GL_ARB_sync",
     "GL_ARB_texture_compression",
+    "GL_ARB_texture_compression_bptc",
+    "GL_ARB_texture_compression_rgtc",
     "GL_ARB_texture_float",
     "GL_ARB_texture_non_power_of_two",
     "GL_ARB_texture_rectangle",
@@ -146,7 +148,9 @@ static const char* const sExtensionNames[] = {
     "GL_EXT_sRGB_write_control",
     "GL_EXT_shader_texture_lod",
     "GL_EXT_texture3D",
+    "GL_EXT_texture_compression_bptc",
     "GL_EXT_texture_compression_dxt1",
+    "GL_EXT_texture_compression_rgtc",
     "GL_EXT_texture_compression_s3tc",
     "GL_EXT_texture_compression_s3tc_srgb",
     "GL_EXT_texture_filter_anisotropic",
@@ -2053,6 +2057,30 @@ GLContext::MarkDestroyed()
 
     mSymbols = {};
 }
+
+// -
+
+GLenum
+GLContext::RawGetErrorAndClear() const
+{
+    const GLenum ret = mSymbols.fGetError();
+
+    auto flushedErr = ret;
+    uint32_t i = 1;
+    while (flushedErr && flushedErr != LOCAL_GL_CONTEXT_LOST) {
+        if (i == 100) {
+            gfxCriticalError() << "Flushing glGetError still " << gfx::hexa(flushedErr)
+                               << " after " << i << " calls.";
+            break;
+        }
+        flushedErr = mSymbols.fGetError();
+        i += 1;
+    }
+
+    return ret;
+}
+
+// -
 
 #ifdef MOZ_GL_DEBUG
 /* static */ void

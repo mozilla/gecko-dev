@@ -39,7 +39,7 @@ use webdriver::command::WebDriverCommand::{AcceptAlert, AddCookie, CloseWindow, 
 use webdriver::command::{ActionsParameters, AddCookieParameters, GetNamedCookieParameters,
                          GetParameters, JavascriptCommandParameters, LocatorParameters,
                          NewSessionParameters, SwitchToFrameParameters, SwitchToWindowParameters,
-                         TakeScreenshotParameters, TimeoutsParameters, WindowRectParameters};
+                         TimeoutsParameters, WindowRectParameters};
 use webdriver::command::{WebDriverCommand, WebDriverMessage};
 use webdriver::common::{Cookie, FrameId, WebElement, ELEMENT_KEY, FRAME_KEY, WINDOW_KEY};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
@@ -99,19 +99,17 @@ impl MarionetteHandler {
     ) -> WebDriverResult<Map<String, Value>> {
         let (options, capabilities) = {
             let mut fx_capabilities = FirefoxCapabilities::new(self.settings.binary.as_ref());
-            let mut capabilities = try!(
-                try!(new_session_parameters.match_browser(&mut fx_capabilities)).ok_or(
-                    WebDriverError::new(
-                        ErrorStatus::SessionNotCreated,
-                        "Unable to find a matching set of capabilities",
-                    ),
-                )
-            );
+            let mut capabilities = new_session_parameters
+                .match_browser(&mut fx_capabilities)?
+                .ok_or(WebDriverError::new(
+                    ErrorStatus::SessionNotCreated,
+                    "Unable to find a matching set of capabilities",
+                ))?;
 
-            let options = try!(FirefoxOptions::from_capabilities(
+            let options = FirefoxOptions::from_capabilities(
                 fx_capabilities.chosen_binary,
-                &mut capabilities
-            ));
+                &mut capabilities,
+            )?;
             (options, capabilities)
         };
 
@@ -121,7 +119,7 @@ impl MarionetteHandler {
 
         let port = self.settings.port.unwrap_or(get_free_port()?);
         if !self.settings.connect_existing {
-            try!(self.start_browser(port, options));
+            self.start_browser(port, options)?;
         }
 
         let mut connection = MarionetteConnection::new(port, session_id.clone());
@@ -210,24 +208,21 @@ impl MarionetteHandler {
         prefs.insert_slice(&extra_prefs[..]);
 
         if self.settings.jsdebugger {
-            prefs.insert(
-                "devtools.browsertoolbox.panel",
-                Pref::new("jsdebugger".to_owned()),
-            );
+            prefs.insert("devtools.browsertoolbox.panel", Pref::new("jsdebugger"));
             prefs.insert("devtools.debugger.remote-enabled", Pref::new(true));
             prefs.insert("devtools.chrome.enabled", Pref::new(true));
             prefs.insert("devtools.debugger.prompt-connection", Pref::new(false));
             prefs.insert("marionette.debugging.clicktostart", Pref::new(true));
         }
 
-        prefs.insert(
-            "marionette.log.level",
-            Pref::new(logging::max_level().to_string()),
-        );
+        prefs.insert("marionette.log.level", logging::max_level().into());
         prefs.insert("marionette.port", Pref::new(port));
 
-        prefs.write().map_err(|_| {
-            WebDriverError::new(ErrorStatus::UnknownError, "Unable to write Firefox profile")
+        prefs.write().map_err(|e| {
+            WebDriverError::new(
+                ErrorStatus::UnknownError,
+                format!("Unable to write Firefox profile: {}", e),
+            )
         })
     }
 }
@@ -428,6 +423,8 @@ impl MarionetteSession {
         msg: &WebDriverMessage<GeckoExtensionRoute>,
         resp: MarionetteResponse,
     ) -> WebDriverResult<WebDriverResponse> {
+        use self::GeckoExtensionCommand::*;
+
         if resp.id != self.command_id {
             return Err(WebDriverError::new(
                 ErrorStatus::UnknownError,
@@ -720,11 +717,9 @@ impl MarionetteSession {
             }
             DeleteSession => WebDriverResponse::DeleteSession,
             Extension(ref extension) => match extension {
-                &GeckoExtensionCommand::GetContext => {
-                    WebDriverResponse::Generic(resp.to_value_response(true)?)
-                }
-                &GeckoExtensionCommand::SetContext(_) => WebDriverResponse::Void,
-                &GeckoExtensionCommand::XblAnonymousChildren(_) => {
+                GetContext => WebDriverResponse::Generic(resp.to_value_response(true)?),
+                SetContext(_) => WebDriverResponse::Void,
+                XblAnonymousChildren(_) => {
                     let els_vec = try_opt!(
                         resp.result.as_array(),
                         ErrorStatus::UnknownError,
@@ -738,7 +733,7 @@ impl MarionetteSession {
                     );
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(els)?))
                 }
-                &GeckoExtensionCommand::XblAnonymousByAttribute(_, _) => {
+                XblAnonymousByAttribute(_, _) => {
                     let el = try!(self.to_web_element(try_opt!(
                         resp.result.get("value"),
                         ErrorStatus::UnknownError,
@@ -746,10 +741,9 @@ impl MarionetteSession {
                     )));
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(el)?))
                 }
-                &GeckoExtensionCommand::InstallAddon(_) => {
-                    WebDriverResponse::Generic(resp.to_value_response(true)?)
-                }
-                &GeckoExtensionCommand::UninstallAddon(_) => WebDriverResponse::Void,
+                InstallAddon(_) => WebDriverResponse::Generic(resp.to_value_response(true)?),
+                UninstallAddon(_) => WebDriverResponse::Void,
+                TakeFullScreenshot => WebDriverResponse::Generic(resp.to_value_response(true)?),
             },
         })
     }
@@ -786,6 +780,8 @@ impl MarionetteCommand {
         capabilities: Option<Map<String, Value>>,
         msg: &WebDriverMessage<GeckoExtensionRoute>,
     ) -> WebDriverResult<MarionetteCommand> {
+        use self::GeckoExtensionCommand::*;
+
         let (opt_name, opt_parameters) = match msg.command {
             Status => panic!("Got status command that should already have been handled"),
             AcceptAlert => {
@@ -923,8 +919,7 @@ impl MarionetteCommand {
             SwitchToWindow(ref x) => (Some("WebDriver:SwitchToWindow"), Some(x.to_marionette())),
             TakeElementScreenshot(ref e) => {
                 let mut data = Map::new();
-                data.insert("element".to_string(), serde_json::to_value(e)?);
-                // data.insert("id".to_string(), e.id.to_json());
+                data.insert("id".to_string(), Value::String(e.id.clone()));
                 data.insert("highlights".to_string(), Value::Array(vec![]));
                 data.insert("full".to_string(), Value::Bool(false));
                 (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
@@ -937,27 +932,34 @@ impl MarionetteCommand {
                 (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
             }
             Extension(ref extension) => match extension {
-                &GeckoExtensionCommand::GetContext => (Some("Marionette:GetContext"), None),
-                &GeckoExtensionCommand::InstallAddon(ref x) => {
+                GetContext => (Some("Marionette:GetContext"), None),
+                InstallAddon(x) => {
                     (Some("Addon:Install"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::SetContext(ref x) => {
+                SetContext(x) => {
                     (Some("Marionette:SetContext"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::UninstallAddon(ref x) => {
+                UninstallAddon(x) => {
                     (Some("Addon:Uninstall"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::XblAnonymousByAttribute(ref e, ref x) => {
-                    let mut data = try!(x.to_marionette());
+                XblAnonymousByAttribute(e, x) => {
+                    let mut data = x.to_marionette()?;
                     data.insert("element".to_string(), Value::String(e.id.clone()));
                     (Some("WebDriver:FindElement"), Some(Ok(data)))
                 }
-                &GeckoExtensionCommand::XblAnonymousChildren(ref e) => {
+                XblAnonymousChildren(e) => {
                     let mut data = Map::new();
                     data.insert("using".to_owned(), serde_json::to_value("anon")?);
                     data.insert("value".to_owned(), Value::Null);
                     data.insert("element".to_string(), serde_json::to_value(e.id.clone())?);
                     (Some("WebDriver:FindElements"), Some(Ok(data)))
+                }
+                TakeFullScreenshot => {
+                    let mut data = Map::new();
+                    data.insert("id".to_string(), Value::Null);
+                    data.insert("highlights".to_string(), Value::Array(vec![]));
+                    data.insert("full".to_string(), Value::Bool(true));
+                    (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
                 }
             },
         };
@@ -1403,11 +1405,11 @@ impl ToMarionette for GetParameters {
 
 impl ToMarionette for JavascriptCommandParameters {
     fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
-        let mut data = serde_json::to_value(self)?.as_object().unwrap().clone();
-        data.insert("newSandbox".to_string(), Value::Bool(false));
-        data.insert("specialPowers".to_string(), Value::Bool(false));
-        data.insert("scriptTimeout".to_string(), Value::Null);
-        Ok(data)
+        Ok(try_opt!(
+            serde_json::to_value(self)?.as_object(),
+            ErrorStatus::UnknownError,
+            "Expected an object"
+        ).clone())
     }
 }
 
@@ -1447,18 +1449,6 @@ impl ToMarionette for SwitchToWindowParameters {
     }
 }
 
-impl ToMarionette for TakeScreenshotParameters {
-    fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
-        let mut data = Map::new();
-        let element = match self.element {
-            None => Value::Null,
-            Some(ref x) => Value::Object(try!(x.to_marionette())),
-        };
-        data.insert("element".to_string(), element);
-        Ok(data)
-    }
-}
-
 impl ToMarionette for TimeoutsParameters {
     fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
         Ok(try_opt!(
@@ -1488,4 +1478,32 @@ impl ToMarionette for WindowRectParameters {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::{MarionetteHandler, MarionetteSettings};
+    use mozprofile::preferences::PrefValue;
+    use mozprofile::profile::Profile;
+
+    // This is not a pretty test, mostly due to the nature of
+    // mozprofile's and MarionetteHandler's APIs, but we have had
+    // several regressions related to marionette.log.level.
+    #[test]
+    fn test_marionette_log_level() {
+        let mut profile = Profile::new(None).unwrap();
+        let handler = MarionetteHandler::new(MarionetteSettings::default());
+        handler.set_prefs(2828, &mut profile, false, vec![]).ok();
+        let user_prefs = profile.user_prefs().unwrap();
+
+        let pref = user_prefs.get("marionette.log.level").unwrap();
+        let value = match pref.value {
+            PrefValue::String(ref s) => s,
+            _ => panic!(),
+        };
+        for (i, ch) in value.chars().enumerate() {
+            if i == 0 {
+                assert!(ch.is_uppercase());
+            } else {
+                assert!(ch.is_lowercase());
+            }
+        }
+    }
+}

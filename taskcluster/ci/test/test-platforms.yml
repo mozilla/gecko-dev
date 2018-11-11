@@ -53,7 +53,6 @@ linux64/opt:
         - mochitest-headless
         - linux-talos-flex
         - raptor-firefox
-        - raptor-chrome
         - raptor-fetch-firefox
         - raptor-fetch-chrome
 linux64-nightly/opt:
@@ -64,7 +63,7 @@ linux64-nightly/opt:
         - opt-only-tests
         - desktop-screenshot-capture
         - awsy
-        - linux-talos-profiling
+        - raptor-chrome
 linux64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
     test-sets:
@@ -119,10 +118,6 @@ linux64-ccov/debug:
         - awsy
         - talos
         - ccov-code-coverage-tests
-linux64-jsdcov/opt:
-    build-platform: linux64-jsdcov/opt
-    test-sets:
-        - jsdcov-code-coverage-tests
 
 ##
 # Windows platforms (matching /windows.*/)
@@ -130,12 +125,6 @@ linux64-jsdcov/opt:
 # win32
 windows7-32/debug:
     build-platform: win32/debug
-    test-sets:
-        - windows-reftest-gpu
-        - windows-tests
-
-windows7-32-msvc/debug:
-    build-platform: win32-msvc/debug
     test-sets:
         - windows-reftest-gpu
         - windows-tests
@@ -149,7 +138,6 @@ windows7-32/opt:
         - windows-talos
         - windows-tests
         - raptor-firefox
-        - raptor-chrome
 
 windows7-32-pgo/opt:
     build-platform: win32-pgo/opt
@@ -168,21 +156,13 @@ windows7-32-nightly/opt:
         - desktop-screenshot-capture
         - windows-reftest-gpu
         - windows-tests
+        - raptor-chrome
 
 windows7-32-devedition/opt:
     build-platform: win32-devedition-nightly/opt
     test-sets:
         - desktop-screenshot-capture
         - windows-reftest-gpu
-        - windows-tests
-
-windows7-32-msvc/opt:
-    build-platform: win32-msvc/opt
-    test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - windows-reftest-gpu
-        - windows-talos
         - windows-tests
 
 # win64
@@ -202,12 +182,6 @@ windows10-64/debug:
         - windows-tests
         - mochitest-headless
 
-windows10-64-msvc/debug:
-    build-platform: win64-msvc/debug
-    test-sets:
-        - windows-tests
-        - mochitest-headless
-
 windows10-64/opt:
     build-platform: win64/opt
     test-sets:
@@ -217,7 +191,6 @@ windows10-64/opt:
         - windows-tests
         - mochitest-headless
         - raptor-firefox
-        - raptor-chrome
 
 windows10-64-pgo/opt:
     build-platform: win64-pgo/opt
@@ -235,7 +208,7 @@ windows10-64-nightly/opt:
         - desktop-screenshot-capture
         - desktop-instrumentation
         - windows-tests
-        - windows-talos-profiling
+        - raptor-chrome
 
 windows10-64-devedition/opt:
     build-platform: win64-devedition-nightly/opt
@@ -248,15 +221,6 @@ windows10-64-asan/opt:
     test-sets:
         - common-tests
 
-windows10-64-msvc/opt:
-    build-platform: win64-msvc/opt
-    test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - windows-talos
-        - windows-tests
-        - mochitest-headless
-
 # QR builds just run a subset right now.
 windows10-64-qr/debug:
     build-platform: win64/debug
@@ -266,10 +230,10 @@ windows10-64-qr/debug:
 windows10-64-qr/opt:
     build-platform: win64/opt
     test-sets:
+        - awsy
         - windows-qr-tests
         - windows-talos
         - raptor-firefox
-
 
 ##
 # MacOS X platforms (matching /macosx.*/)
@@ -287,14 +251,13 @@ macosx64/opt:
         - desktop-screenshot-capture
         - awsy
         - raptor-firefox
-        - raptor-chrome
 
 macosx64-nightly/opt:
     build-platform: macosx64-nightly/opt
     test-sets:
         - macosx64-tests
-        - macosx64-talos-profiling
         - awsy
+        - raptor-chrome
 
 macosx64-devedition/opt:
     build-platform: macosx64-devedition-nightly/opt
@@ -324,7 +287,6 @@ android-em-4.3-arm7-api-16/debug:
     build-platform: android-api-16/debug
     test-sets:
         - android-common-tests
-        - android-gradle-tests
 
 android-em-4.3-arm7-api-16-ccov/debug:
     build-platform: android-api-16-ccov/debug
@@ -336,7 +298,6 @@ android-em-4.3-arm7-api-16/opt:
     test-sets:
         - android-common-tests
         - android-opt-tests
-        - android-gradle-tests
 
 android-em-4.2-x86/opt:
     build-platform: android-x86/opt
@@ -356,6 +317,7 @@ android-hw-g5-7-0-arm7-api-16/opt:
     build-platform: android-api-16/opt
     test-sets:
         - android-hw-arm7-raptor
+        - raptor-fetch-geckoview
 
 # android-hw-p2-8-0 Google Pixel 2 Android 8.0
 
@@ -364,6 +326,7 @@ android-hw-p2-8-0-arm7-api-16/opt:
     test-sets:
         - android-hw-arm7-opt-unittests
         - android-hw-arm7-raptor
+        - raptor-fetch-geckoview
 
 android-hw-p2-8-0-arm7-api-16/debug:
     build-platform: android-api-16/debug

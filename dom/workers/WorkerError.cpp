@@ -26,7 +26,7 @@ namespace dom {
 
 namespace {
 
-class ReportErrorRunnable final : public WorkerRunnable
+class ReportErrorRunnable final : public WorkerDebuggeeRunnable
 {
   WorkerErrorReport mReport;
 
@@ -159,7 +159,7 @@ public:
 
   ReportErrorRunnable(WorkerPrivate* aWorkerPrivate,
                       const WorkerErrorReport& aReport)
-  : WorkerRunnable(aWorkerPrivate, ParentThreadUnchangedBusyCount),
+  : WorkerDebuggeeRunnable(aWorkerPrivate),
     mReport(aReport)
   { }
 
@@ -188,12 +188,17 @@ private:
     else {
       AssertIsOnMainThread();
 
-      if (aWorkerPrivate->IsFrozen() ||
-          aWorkerPrivate->IsParentWindowPaused()) {
-        MOZ_ASSERT(!IsDebuggerRunnable());
-        aWorkerPrivate->QueueRunnable(this);
-        return true;
-      }
+      // Once a window has frozen its workers, their
+      // mMainThreadDebuggeeEventTargets should be paused, and their
+      // WorkerDebuggeeRunnables should not be being executed. The same goes for
+      // WorkerDebuggeeRunnables sent from child to parent workers, but since a
+      // frozen parent worker runs only control runnables anyway, that is taken
+      // care of naturally.
+      MOZ_ASSERT(!aWorkerPrivate->IsFrozen());
+
+      // Similarly for paused windows; all its workers should have been informed.
+      // (Subworkers are unaffected by paused windows.)
+      MOZ_ASSERT(!aWorkerPrivate->IsParentWindowPaused());
 
       if (aWorkerPrivate->IsSharedWorker()) {
         aWorkerPrivate->BroadcastErrorToSharedWorkers(aCx, &mReport,
@@ -240,7 +245,7 @@ private:
   }
 };
 
-class ReportGenericErrorRunnable final : public WorkerRunnable
+class ReportGenericErrorRunnable final : public WorkerDebuggeeRunnable
 {
 public:
   static void
@@ -256,7 +261,7 @@ public:
 
 private:
   explicit ReportGenericErrorRunnable(WorkerPrivate* aWorkerPrivate)
-    : WorkerRunnable(aWorkerPrivate, ParentThreadUnchangedBusyCount)
+    : WorkerDebuggeeRunnable(aWorkerPrivate)
   {
     aWorkerPrivate->AssertIsOnWorkerThread();
   }
@@ -273,12 +278,17 @@ private:
   bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
-    if (aWorkerPrivate->IsFrozen() ||
-        aWorkerPrivate->IsParentWindowPaused()) {
-      MOZ_ASSERT(!IsDebuggerRunnable());
-      aWorkerPrivate->QueueRunnable(this);
-      return true;
-    }
+    // Once a window has frozen its workers, their
+    // mMainThreadDebuggeeEventTargets should be paused, and their
+    // WorkerDebuggeeRunnables should not be being executed. The same goes for
+    // WorkerDebuggeeRunnables sent from child to parent workers, but since a
+    // frozen parent worker runs only control runnables anyway, that is taken
+    // care of naturally.
+    MOZ_ASSERT(!aWorkerPrivate->IsFrozen());
+
+    // Similarly for paused windows; all its workers should have been informed.
+    // (Subworkers are unaffected by paused windows.)
+    MOZ_ASSERT(!aWorkerPrivate->IsParentWindowPaused());
 
     if (aWorkerPrivate->IsSharedWorker()) {
       aWorkerPrivate->BroadcastErrorToSharedWorkers(aCx, nullptr,

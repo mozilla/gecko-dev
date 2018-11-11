@@ -7,8 +7,10 @@
 #ifndef mozilla_recordreplay_ChildInternal_h
 #define mozilla_recordreplay_ChildInternal_h
 
+#include "Channel.h"
 #include "ChildIPC.h"
 #include "JSControl.h"
+#include "MiddlemanCall.h"
 #include "Monitor.h"
 
 namespace mozilla {
@@ -56,11 +58,15 @@ bool MaybeDivergeFromRecording();
 void PositionHit(const js::BreakpointPosition& aPosition);
 
 // Get an execution point for hitting the specified position right now.
-js::ExecutionPoint CurrentExecutionPoint(const js::BreakpointPosition& aPosition);
+js::ExecutionPoint CurrentExecutionPoint(const Maybe<js::BreakpointPosition>& aPosition);
 
 // Convert an identifier from NewTimeWarpTarget() which we have seen while
 // executing into an ExecutionPoint.
 js::ExecutionPoint TimeWarpTargetExecutionPoint(ProgressCounter aTarget);
+
+// Synchronously paint the current contents into the graphics shared memory
+// object, returning the size of the painted area via aWidth/aHeight.
+void Repaint(size_t* aWidth, size_t* aHeight);
 
 // Called when running forward, immediately before hitting a normal or
 // temporary checkpoint.
@@ -69,6 +75,9 @@ void BeforeCheckpoint();
 // Called immediately after hitting a normal or temporary checkpoint, either
 // when running forward or immediately after rewinding.
 void AfterCheckpoint(const CheckpointId& aCheckpoint);
+
+// Get the ID of the last normal checkpoint.
+size_t LastNormalCheckpoint();
 
 } // namespace navigation
 
@@ -106,15 +115,21 @@ void NotifyFlushedRecording();
 // Notify the middleman about an AlwaysMarkMajorCheckpoints directive.
 void NotifyAlwaysMarkMajorCheckpoints();
 
-// Report a fatal error to the middleman process.
-void ReportFatalError(const char* aFormat, ...);
-
 // Mark a time span when the main thread is idle.
 void BeginIdleTime();
 void EndIdleTime();
 
 // Whether the middleman runs developer tools server code.
 bool DebuggerRunsInMiddleman();
+
+// Send messages operating on middleman calls.
+void SendMiddlemanCallRequest(const char* aInputData, size_t aInputSize,
+                              InfallibleVector<char>* aOutputData);
+void SendResetMiddlemanCalls();
+
+// Return whether a repaint is in progress and is not allowed to trigger an
+// unhandled recording divergence per preferences.
+bool CurrentRepaintCannotFail();
 
 } // namespace child
 

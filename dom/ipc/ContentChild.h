@@ -20,7 +20,6 @@
 #include "nsTHashtable.h"
 #include "nsRefPtrHashtable.h"
 
-#include "nsWeakPtr.h"
 #include "nsIWindowProvider.h"
 
 #if defined(XP_MACOSX) && defined(MOZ_CONTENT_SANDBOX)
@@ -34,7 +33,7 @@ struct OverrideMapping;
 class nsIDomainPolicy;
 class nsIURIClassifierCallback;
 struct LookAndFeelInt;
-class nsDocShellLoadInfo;
+class nsDocShellLoadState;
 
 namespace mozilla {
 class RemoteSpellcheckEngineChild;
@@ -119,7 +118,7 @@ public:
                       const nsAString& aName,
                       const nsACString& aFeatures,
                       bool aForceNoOpener,
-                      nsDocShellLoadInfo* aLoadInfo,
+                      nsDocShellLoadState* aLoadState,
                       bool* aWindowIsNew,
                       mozIDOMWindowProxy** aReturn);
 
@@ -639,10 +638,7 @@ public:
   RecvShareCodeCoverageMutex(const CrossProcessMutexHandle& aHandle) override;
 
   virtual mozilla::ipc::IPCResult
-  RecvDumpCodeCoverageCounters(DumpCodeCoverageCountersResolver&& aResolver) override;
-
-  virtual mozilla::ipc::IPCResult
-  RecvResetCodeCoverageCounters(ResetCodeCoverageCountersResolver&& aResolver) override;
+  RecvFlushCodeCoverageCounters(FlushCodeCoverageCountersResolver&& aResolver) override;
 
   virtual mozilla::ipc::IPCResult
   RecvSetInputEventQueueEnabled() override;

@@ -7,6 +7,7 @@
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   GeckoViewUtils: "resource://gre/modules/GeckoViewUtils.jsm",
   Services: "resource://gre/modules/Services.jsm",
@@ -19,7 +20,7 @@ XPCOMUtils.defineLazyGetter(this, "WindowEventDispatcher",
  * ModuleManager creates and manages GeckoView modules. Each GeckoView module
  * normally consists of a JSM module file with an optional content module file.
  * The module file contains a class that extends GeckoViewModule, and the
- * content module file contains a class that extends GeckoViewContentModule. A
+ * content module file contains a class that extends GeckoViewChildModule. A
  * module usually pairs with a particular GeckoSessionHandler or delegate on the
  * Java side, and automatically receives module lifetime events such as
  * initialization, change in enabled state, and change in settings.
@@ -98,6 +99,64 @@ var ModuleManager = {
     this._modules.forEach(aCallback, this);
   },
 
+  updateRemoteType(aRemoteType) {
+    debug `updateRemoteType remoteType=${aRemoteType}`;
+
+    const currentRemoteType = this.browser.getAttribute("remoteType") || E10SUtils.NOT_REMOTE;
+
+    if (aRemoteType && !this.settings.useMultiprocess) {
+      warn `Tried to create a remote browser in multiprocess mode`;
+      return false;
+    }
+
+    if (currentRemoteType === aRemoteType) {
+      // We're already using a child process of the correct type.
+      return false;
+    }
+
+    // Now we're switching the remoteness (value of "remote" attr).
+    debug `updateRemoteType: changing from '${currentRemoteType}' to '${aRemoteType}'`;
+
+    this.forEach(module => {
+      if (module.enabled && module.impl) {
+        module.impl.onDisable();
+      }
+    });
+
+    this.forEach(module => {
+      if (module.impl) {
+        module.impl.onDestroyBrowser();
+      }
+    });
+
+    const parent = this.browser.parentNode;
+    this.browser.remove();
+    if (aRemoteType) {
+      this.browser.setAttribute("remote", "true");
+      this.browser.setAttribute("remoteType", aRemoteType);
+    } else {
+      this.browser.setAttribute("remote", "false");
+      this.browser.removeAttribute("remoteType");
+    }
+
+    this.forEach(module => {
+      if (module.impl) {
+        module.impl.onInitBrowser();
+      }
+    });
+
+    parent.appendChild(this.browser);
+
+    this.forEach(module => {
+      if (module.enabled && module.impl) {
+        module.impl.onEnable();
+      }
+    });
+
+    this.browser.focus();
+    return true;
+  },
+
   _updateSettings(aSettings) {
     Object.assign(this._settings, aSettings);
     this._frozenSettings = Object.freeze(Object.assign({}, this._settings));
@@ -135,6 +194,9 @@ var ModuleManager = {
             module.enabled = initData.modules[name];
           }
         }
+
+        // Notify child of the transfer.
+        this._browser.messageManager.sendAsyncMessage(aEvent);
         break;
       }
 
@@ -229,7 +291,7 @@ class ModuleInfo {
     if (aPhase.resource && !this._impl) {
       const scope = {};
       const global = ChromeUtils.import(aPhase.resource, scope);
-      const tag = this._name.replace("GeckoView", "GeckoView.");
+      const tag = this._name.replace("GeckoView", "");
       GeckoViewUtils.initLogging(tag, global);
       this._impl = new scope[this._name](this);
     }
@@ -304,11 +366,18 @@ function createBrowser() {
   browser.setAttribute("type", "content");
   browser.setAttribute("primary", "true");
   browser.setAttribute("flex", "1");
+
+  const settings = window.arguments[0].QueryInterface(Ci.nsIAndroidView).initData.settings;
+  if (settings.useMultiprocess) {
+    browser.setAttribute("remote", "true");
+    browser.setAttribute("remoteType", E10SUtils.DEFAULT_REMOTE_TYPE);
+  }
+
   return browser;
 }
 
 function startup() {
-  GeckoViewUtils.initLogging("GeckoView.XUL", window);
+  GeckoViewUtils.initLogging("XUL", window);
 
   const browser = createBrowser();
   ModuleManager.init(browser, [{
@@ -320,35 +389,41 @@ function startup() {
     name: "GeckoViewContent",
     onInit: {
       resource: "resource://gre/modules/GeckoViewContent.jsm",
-      frameScript: "chrome://geckoview/content/GeckoViewContent.js",
+      frameScript: "chrome://geckoview/content/GeckoViewContentChild.js",
+    },
+  }, {
+    name: "GeckoViewMedia",
+    onEnable: {
+      resource: "resource://gre/modules/GeckoViewMedia.jsm",
+      frameScript: "chrome://geckoview/content/GeckoViewMediaChild.js",
     },
   }, {
     name: "GeckoViewNavigation",
     onInit: {
       resource: "resource://gre/modules/GeckoViewNavigation.jsm",
-      frameScript: "chrome://geckoview/content/GeckoViewNavigationContent.js",
+      frameScript: "chrome://geckoview/content/GeckoViewNavigationChild.js",
     },
   }, {
     name: "GeckoViewProgress",
     onEnable: {
       resource: "resource://gre/modules/GeckoViewProgress.jsm",
-      frameScript: "chrome://geckoview/content/GeckoViewProgressContent.js",
+      frameScript: "chrome://geckoview/content/GeckoViewProgressChild.js",
     },
   }, {
     name: "GeckoViewScroll",
     onEnable: {
-      frameScript: "chrome://geckoview/content/GeckoViewScrollContent.js",
+      frameScript: "chrome://geckoview/content/GeckoViewScrollChild.js",
     },
   }, {
     name: "GeckoViewSelectionAction",
     onEnable: {
-      frameScript: "chrome://geckoview/content/GeckoViewSelectionActionContent.js",
+      frameScript: "chrome://geckoview/content/GeckoViewSelectionActionChild.js",
     },
   }, {
     name: "GeckoViewSettings",
     onInit: {
       resource: "resource://gre/modules/GeckoViewSettings.jsm",
-      frameScript: "chrome://geckoview/content/GeckoViewContentSettings.js",
+      frameScript: "chrome://geckoview/content/GeckoViewSettingsChild.js",
     },
   }, {
     name: "GeckoViewTab",

@@ -89,12 +89,6 @@ endif
 ####################################
 # Configure
 
-MAKEFILE      = $(wildcard $(OBJDIR)/Makefile)
-CONFIG_STATUS = $(wildcard $(OBJDIR)/config.status)
-
-# Include deps for configure written by configure itself.
-CONFIG_STATUS_DEPS := $(if $(wildcard $(OBJDIR)/config_status_deps.in),$(shell cat $(OBJDIR)/config_status_deps.in),)
-
 $(CONFIGURES): %: %.in
 	@echo Generating $@
 	cp -f $< $@
@@ -113,52 +107,26 @@ else
   CONFIGURE = $(TOPSRCDIR)/configure
 endif
 
-configure-files: $(CONFIGURES)
-
-configure-preqs = \
-  configure-files \
-  $(OBJDIR)/.mozconfig.json \
-  $(NULL)
-
-configure:: $(configure-preqs)
+configure:: $(CONFIGURES)
 	$(call BUILDSTATUS,TIERS configure)
 	$(call BUILDSTATUS,TIER_START configure)
 	@echo cd $(OBJDIR);
 	@echo $(CONFIGURE) $(CONFIGURE_ARGS)
 	@cd $(OBJDIR) && $(CONFIGURE_ENV_ARGS) $(CONFIGURE) $(CONFIGURE_ARGS) \
 	  || ( echo '*** Fix above errors and then restart with\
-               "$(MAKE) -f client.mk build"' && exit 1 )
+               "./mach build"' && exit 1 )
 	@touch $(OBJDIR)/Makefile
 	$(call BUILDSTATUS,TIER_FINISH configure)
-
-ifneq (,$(MAKEFILE))
-$(OBJDIR)/Makefile: $(OBJDIR)/config.status
-
-
-
-
-
-$(OBJDIR)/config.status: $(CONFIG_STATUS_DEPS)
-else
-$(OBJDIR)/Makefile: $(CONFIG_STATUS_DEPS)
-endif
-	@$(MAKE) -f $(TOPSRCDIR)/client.mk configure
 
 ####################################
 # Build it
 
-build::  $(OBJDIR)/Makefile $(OBJDIR)/config.status
+build::
 	+$(MOZ_MAKE)
 
 ifdef MOZ_AUTOMATION
 build::
 	+$(MOZ_MAKE) automation/build
-endif
-
-ifdef MOZBUILD_MANAGE_SCCACHE_DAEMON
-build::
-	# Terminate sccache server. This prints sccache stats.
-	-$(MOZBUILD_MANAGE_SCCACHE_DAEMON) --stop-server
 endif
 
 # This makefile doesn't support parallel execution. It does pass

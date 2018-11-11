@@ -6,10 +6,10 @@
 
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Integration.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   Accounts: "resource://gre/modules/Accounts.jsm",
-  DownloadIntegration: "resource://gre/modules/DownloadIntegration.jsm",
   Downloads: "resource://gre/modules/Downloads.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   FormHistory: "resource://gre/modules/FormHistory.jsm",
@@ -17,19 +17,22 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   OS: "resource://gre/modules/osfile.jsm",
   ServiceWorkerCleanUp: "resource://gre/modules/ServiceWorkerCleanUp.jsm",
   Task: "resource://gre/modules/Task.jsm",
-  TelemetryStopwatch: "resource://gre/modules/TelemetryStopwatch.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
   quotaManagerService: ["@mozilla.org/dom/quota-manager-service;1", "nsIQuotaManagerService"],
 });
 
+/* global DownloadIntegration */
+Integration.downloads.defineModuleGetter(this, "DownloadIntegration",
+            "resource://gre/modules/DownloadIntegration.jsm");
+
 
 var EXPORTED_SYMBOLS = ["Sanitizer"];
 
 function Sanitizer() {}
 Sanitizer.prototype = {
-  clearItem: function(aItemName, startTime) {
+  clearItem: function(aItemName, startTime, clearUnfinishedDownloads) {
     // Only a subset of items support deletion with startTime.
     // Those who do not will be rejected with error message.
     if (typeof startTime != "undefined") {
@@ -43,6 +46,8 @@ Sanitizer.prototype = {
         default:
           return Promise.reject({message: `Invalid argument: ${aItemName} does not support startTime argument.`});
       }
+    } else if (aItemName === "downloadFiles" && typeof clearUnfinishedDownloads != "undefined") {
+      return this._clear(aItemName, { clearUnfinishedDownloads });
     } else {
       return this._clear(aItemName);
     }
@@ -100,7 +105,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Compared to desktop, we don't clear plugin data, as plugins
@@ -128,7 +133,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Same as desktop Firefox.
@@ -168,7 +173,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Same as desktop Firefox.
@@ -214,7 +219,7 @@ Sanitizer.prototype = {
 
       get canClear() {
           return true;
-      }
+      },
     },
 
     // History on Android is implemented by the Java frontend and requires
@@ -243,7 +248,7 @@ Sanitizer.prototype = {
         // bug 347231: Always allow clearing history due to dependencies on
         // the browser:purge-session-history notification. (like error console)
         return true;
-      }
+      },
     },
 
     // Equivalent to openWindows on desktop, but specific to Fennec's implementation
@@ -266,7 +271,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Specific to Fennec.
@@ -278,7 +283,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Browser search is handled by searchHistory above and the find bar doesn't
@@ -293,12 +298,12 @@ Sanitizer.prototype = {
           let time = startTime * 1000;
           FormHistory.update({
             op: "remove",
-            firstUsedStart: time
+            firstUsedStart: time,
           }, {
             handleCompletion() {
               TelemetryStopwatch.finish("FX_SANITIZE_FORMDATA", refObj);
               resolve();
-            }
+            },
           });
         });
       },
@@ -308,15 +313,17 @@ Sanitizer.prototype = {
         let countDone = {
           handleResult: function(aResult) { count = aResult; },
           handleError: function(aError) { Cu.reportError(aError); },
-          handleCompletion: function(aReason) { aCallback(aReason == 0 && count > 0); }
+          handleCompletion: function(aReason) { aCallback(aReason == 0 && count > 0); },
         };
         FormHistory.count({}, countDone);
-      }
+      },
     },
 
     // Adapted from desktop, but heavily modified - see comments below.
     downloadFiles: {
-      clear: Task.async(function* ({ startTime = 0, deleteFiles = true} = {}) {
+      clear: Task.async(function* ({ startTime = 0,
+                                     deleteFiles = true,
+                                     clearUnfinishedDownloads = false } = {}) {
         let refObj = {};
         TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS", refObj);
 
@@ -328,12 +335,10 @@ Sanitizer.prototype = {
         // just use that method directly, but we want to be able to remove the
         // downloaded files as well.
         for (let download of downloads) {
-          // Remove downloads that have been canceled, even if the cancellation
-          // operation hasn't completed yet so we don't check "stopped" here.
-          // Failed downloads with partial data are also removed. The startTime
-          // check is provided for addons that may want to delete only recent downloads.
-          if (download.stopped && (!download.hasPartialData || download.error) &&
-              download.startTime.getTime() >= startTime) {
+          let downloadFinished = download.stopped &&
+                                 (!download.hasPartialData || download.error);
+          if ((downloadFinished || clearUnfinishedDownloads) &&
+               download.startTime.getTime() >= startTime) {
             // Remove the download first, so that the views don't get the change
             // notifications that may occur during finalization.
             yield list.remove(download);
@@ -361,7 +366,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Specific to Fennec.
@@ -376,7 +381,7 @@ Sanitizer.prototype = {
       get canClear() {
         let count = Services.logins.countLogins("", "", ""); // count all logins
         return (count > 0);
-      }
+      },
     },
 
     // Same as desktop Firefox.
@@ -400,7 +405,7 @@ Sanitizer.prototype = {
 
       get canClear() {
         return true;
-      }
+      },
     },
 
     // Specific to Fennec.
@@ -416,10 +421,10 @@ Sanitizer.prototype = {
             Cu.reportError("Java-side synced tabs clearing failed: " + err);
             aCallback(false);
           });
-      }
-    }
+      },
+    },
 
-  }
+  },
 };
 
 var Sanitizer = new Sanitizer();

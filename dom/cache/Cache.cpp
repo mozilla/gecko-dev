@@ -205,6 +205,7 @@ public:
     // its state could be the wrong one. The spec doesn't say anything
     // about it, yet (bug 1384006)
     RefPtr<Promise> put = mCache->PutAll(aCx, mRequestList, responseList, result);
+    result.WouldReportJSException();
     if (NS_WARN_IF(result.Failed())) {
       // TODO: abort the fetch requests we have running (bug 1157434)
       mPromise->MaybeReject(result);
@@ -352,7 +353,7 @@ Cache::Add(JSContext* aContext, const RequestOrUSVString& aRequest,
 
   nsTArray<RefPtr<Request>> requestList(1);
   RefPtr<Request> request = Request::Constructor(global, aRequest,
-                                                   RequestInit(), aRv);
+                                                 RequestInit(), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -400,7 +401,7 @@ Cache::AddAll(JSContext* aContext,
     }
 
     RefPtr<Request> request = Request::Constructor(global, requestOrString,
-                                                     RequestInit(), aRv);
+                                                   RequestInit(), aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }

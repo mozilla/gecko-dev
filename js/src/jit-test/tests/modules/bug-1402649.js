@@ -1,10 +1,9 @@
-if (!('oomTest' in this))
-   quit();
+// |jit-test| skip-if: !('oomTest' in this)
 
 loadFile(`
 function parseAndEvaluate(source) {
     let m = parseModule(source);
-    instantiateModule(m);
+    m.declarationInstantiation();
 }
 parseAndEvaluate("async function a() { await 2 + 3; }")
 `);

@@ -27,28 +27,6 @@ linux64-clang-3.9:
     toolchains:
         - linux64-gcc-4.9
 
-linux64-clang-6:
-    description: "Clang 6 toolchain build"
-    treeherder:
-        kind: build
-        platform: toolchains/opt
-        symbol: TL(clang6)
-        tier: 1
-    worker-type: aws-provisioner-v1/gecko-{level}-b-linux-xlarge
-    worker:
-        max-run-time: 7200
-    run:
-        using: toolchain-script
-        script: build-clang-6-linux.sh
-        resources:
-            - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-6-linux64.json'
-            - 'taskcluster/scripts/misc/tooltool-download.sh'
-        toolchain-alias: linux64-clang
-        toolchain-artifact: public/build/clang.tar.xz
-    toolchains:
-        - linux64-gcc-4.9
-
 linux64-clang-7:
     description: "Clang 7 toolchain build"
     treeherder:
@@ -66,64 +44,65 @@ linux64-clang-7:
             - 'build/build-clang/build-clang.py'
             - 'build/build-clang/clang-7-linux64.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
+        toolchain-alias: linux64-clang
         toolchain-artifact: public/build/clang.tar.xz
     toolchains:
         - linux64-gcc-4.9
 
-linux64-clang-7-mingw-x86:
-    description: "MinGW-Clang 7 x86 toolchain build"
+linux64-clang-trunk-mingw-x86:
+    description: "MinGW-Clang Trunk x86 toolchain build"
     treeherder:
         kind: build
         platform: toolchains/opt
-        symbol: TMW(clang7-32)
+        symbol: TMW(clang-x86)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux-xlarge
     worker:
         max-run-time: 7200
     run:
         using: toolchain-script
-        script: build-clang-7-mingw.sh
+        script: build-clang-trunk-mingw.sh
         arguments: [
             'x86'
         ]
         resources:
             - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-7-mingw.json'
+            - 'build/build-clang/clang-trunk-mingw.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/clangmingw.tar.xz
     toolchains:
         - linux64-gcc-4.9
 
-linux64-clang-7-mingw-x64:
-    description: "MinGW-Clang 7 Pre x64 toolchain build"
+linux64-clang-trunk-mingw-x64:
+    description: "MinGW-Clang Trunk x64 toolchain build"
     treeherder:
         kind: build
         platform: toolchains/opt
-        symbol: TMW(clang7-64)
+        symbol: TMW(clang-x64)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux-xlarge
     worker:
         max-run-time: 7200
     run:
         using: toolchain-script
-        script: build-clang-7-mingw.sh
+        script: build-clang-trunk-mingw.sh
         arguments: [
             'x64'
         ]
         resources:
             - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-7-mingw.json'
+            - 'build/build-clang/clang-trunk-mingw.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/clangmingw.tar.xz
     toolchains:
         - linux64-gcc-4.9
 
-linux64-clang-6-macosx-cross:
-    description: "Clang 6 toolchain build with MacOS Compiler RT libs"
+linux64-clang-7-macosx-cross:
+    description: "Clang 7 toolchain build with MacOS Compiler RT libs"
     treeherder:
         kind: build
         platform: toolchains/opt
-        symbol: TL(clang6-macosx-cross)
+        symbol: TL(clang7-macosx-cross)
         tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
@@ -132,17 +111,17 @@ linux64-clang-6-macosx-cross:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
     run:
         using: toolchain-script
-        script: build-clang-6-linux-macosx-cross.sh
+        script: build-clang-7-linux-macosx-cross.sh
         resources:
             - 'build/build-clang/build-clang.py'
-            - 'build/build-clang/clang-6-macosx64.json'
+            - 'build/build-clang/clang-7-macosx64.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-alias: linux64-clang-macosx-cross
         toolchain-artifact: public/build/clang.tar.xz
         tooltool-downloads: internal
     toolchains:
         - linux64-cctools-port
-        - linux64-clang-6
+        - linux64-clang-7
         - linux64-gcc-4.9
 
 linux64-clang-tidy:
@@ -185,7 +164,7 @@ linux64-infer:
         tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
-        docker-image: {in-tree: infer-build}
+        docker-image: {in-tree: static-analysis-build}
         max-run-time: 3600
     run:
         using: toolchain-script
@@ -354,7 +333,7 @@ linux64-cctools-port:
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/cctools.tar.xz
     toolchains:
-        - linux64-clang-6
+        - linux64-clang-7
 
 linux64-hfsplus:
     description: "hfsplus toolchain build"
@@ -374,7 +353,7 @@ linux64-hfsplus:
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/hfsplus-tools.tar.xz
     toolchains:
-        - linux64-clang-6
+        - linux64-clang-7
 
 linux64-libdmg:
     description: "libdmg-hfsplus toolchain build"
@@ -509,7 +488,7 @@ linux64-rust-1.28:
         ]
         toolchain-artifact: public/build/rustc.tar.xz
 
-linux64-rust-1.29:
+linux64-rust-1.30:
     description: "rust repack"
     treeherder:
         kind: build
@@ -525,7 +504,7 @@ linux64-rust-1.29:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.29.0',
+            '--channel', '1.30.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
@@ -549,14 +528,14 @@ linux64-rust-nightly:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', 'nightly-2018-08-18',
+            '--channel', 'nightly-2018-09-16',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
         ]
         toolchain-artifact: public/build/rustc.tar.xz
 
-linux64-rust-macos-1.29:
+linux64-rust-macos-1.30:
     description: "rust repack with macos-cross support"
     treeherder:
         kind: build
@@ -572,7 +551,7 @@ linux64-rust-macos-1.29:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.29.0',
+            '--channel', '1.30.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-apple-darwin',
@@ -580,7 +559,7 @@ linux64-rust-macos-1.29:
         toolchain-alias: linux64-rust-macos
         toolchain-artifact: public/build/rustc.tar.xz
 
-linux64-rust-android-1.29:
+linux64-rust-android-1.30:
     description: "rust repack with android-cross support"
     treeherder:
         kind: build
@@ -596,7 +575,7 @@ linux64-rust-android-1.29:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.29.0',
+            '--channel', '1.30.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'armv7-linux-androideabi',
@@ -683,7 +662,7 @@ linux64-grcov:
         toolchain-artifact: public/build/grcov.tar.xz
     toolchains:
         - linux64-rust-1.28
-        - linux64-clang-6
+        - linux64-clang-7
 
 linux64-gn:
     description: "gn toolchain build"
@@ -715,7 +694,7 @@ linux64-tup:
         kind: build
         platform: toolchains/opt
         symbol: TL(tup)
-        tier: 2
+        tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 3600
@@ -810,12 +789,12 @@ linux64-mingw32-nsis:
     toolchains:
         - linux64-mingw32-gcc
 
-linux64-mingw32-fxc2:
-    description: "fxc2.exe build for MinGW32 Cross Compile"
+linux64-mingw-fxc2-x86:
+    description: "fxc2.exe x86 build for MinGW Cross Compile"
     treeherder:
         kind: build
         platform: toolchains/opt
-        symbol: TMW(mingw32-fxc2)
+        symbol: TMW(mingw-fxc2-x86)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
@@ -823,10 +802,11 @@ linux64-mingw32-fxc2:
         max-run-time: 1800
     run:
         using: toolchain-script
-        script: build-mingw32-fxc2.sh
+        script: build-mingw-fxc2-x86.sh
         resources:
-            - 'build/unix/build-gcc/build-gcc.sh'
-            - 'taskcluster/scripts/misc/build-gcc-mingw32.sh'
+            - 'build/build-clang/build-clang.py'
+            - 'build/build-clang/clang-trunk-mingw.json'
+            - 'taskcluster/scripts/misc/build-clang-trunk-mingw.sh'
         toolchain-artifact: public/build/fxc2.tar.xz
     toolchains:
-        - linux64-mingw32-gcc
+        - linux64-clang-trunk-mingw-x86

@@ -6,6 +6,7 @@
 
 const promise = require("promise");
 const Services = require("Services");
+const flags = require("devtools/shared/flags");
 const nodeConstants = require("devtools/shared/dom-node-constants");
 const nodeFilterConstants = require("devtools/shared/dom-node-filter-constants");
 const EventEmitter = require("devtools/shared/event-emitter");
@@ -14,17 +15,18 @@ const {PluralForm} = require("devtools/shared/plural-form");
 const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const {scrollIntoViewIfNeeded} = require("devtools/client/shared/scroll");
-const {UndoStack} = require("devtools/client/shared/undo");
-const {HTMLTooltip} = require("devtools/client/shared/widgets/tooltip/HTMLTooltip");
 const {PrefObserver} = require("devtools/client/shared/prefs");
 const MarkupElementContainer = require("devtools/client/inspector/markup/views/element-container");
 const MarkupReadOnlyContainer = require("devtools/client/inspector/markup/views/read-only-container");
 const MarkupTextContainer = require("devtools/client/inspector/markup/views/text-container");
-const SlottedNodeContainer = require("devtools/client/inspector/markup/views/slotted-node-container");
 const RootContainer = require("devtools/client/inspector/markup/views/root-container");
 
+loader.lazyRequireGetter(this, "SlottedNodeContainer", "devtools/client/inspector/markup/views/slotted-node-container");
+loader.lazyRequireGetter(this, "HTMLTooltip", "devtools/client/shared/widgets/tooltip/HTMLTooltip", true);
+loader.lazyRequireGetter(this, "UndoStack", "devtools/client/shared/undo", true);
+
 const INSPECTOR_L10N =
-      new LocalizationHelper("devtools/client/locales/inspector.properties");
+  new LocalizationHelper("devtools/client/locales/inspector.properties");
 
 // Page size for pageup/pagedown
 const PAGE_SIZE = 10;
@@ -64,13 +66,14 @@ const ATTR_COLLAPSE_LENGTH_PREF = "devtools.markup.collapseAttributeLength";
 function MarkupView(inspector, frame, controllerWindow) {
   EventEmitter.decorate(this);
 
+  this.controllerWindow = controllerWindow;
   this.inspector = inspector;
   this.highlighters = inspector.highlighters;
   this.walker = this.inspector.walker;
   this._frame = frame;
   this.win = this._frame.contentWindow;
   this.doc = this._frame.contentDocument;
-  this._elt = this.doc.querySelector("#root");
+  this._elt = this.doc.getElementById("root");
   this.telemetry = this.inspector.telemetry;
 
   this.maxChildren = Services.prefs.getIntPref("devtools.markup.pagesize",
@@ -84,9 +87,6 @@ function MarkupView(inspector, frame, controllerWindow) {
   this.popup = new AutocompletePopup(inspector.toolbox.doc, {
     autoSelect: true,
   });
-
-  this.undo = new UndoStack();
-  this.undo.installController(controllerWindow);
 
   this._containers = new Map();
   // This weakmap will hold keys used with the _containers map, in order to retrieve the
@@ -124,8 +124,17 @@ function MarkupView(inspector, frame, controllerWindow) {
   this.toolbox.on("picker-canceled", this._onToolboxPickerCanceled);
   this.toolbox.on("picker-node-hovered", this._onToolboxPickerHover);
 
+  if (flags.testing) {
+    // In tests, we start listening immediately to avoid having to simulate a mousemove.
+    this._initTooltips();
+  } else {
+    this._elt.addEventListener("mousemove", () => {
+      this._initTooltips();
+    }, { once: true });
+  }
+
   this._onNewSelection();
-  this._initTooltips();
+  this.expandNode(this.inspector.selection.nodeFront);
 
   this._prefObserver = new PrefObserver("devtools.markup");
   this._prefObserver.on(ATTR_COLLAPSE_ENABLED_PREF, this._onCollapseAttributesPrefChange);
@@ -142,8 +151,29 @@ MarkupView.prototype = {
 
   _selectedContainer: null,
 
+  get eventDetailsTooltip() {
+    if (!this._eventDetailsTooltip) {
+      // This tooltip will be attached to the toolbox document.
+      this._eventDetailsTooltip = new HTMLTooltip(this.toolbox.doc, {
+        type: "arrow",
+        consumeOutsideClicks: false,
+      });
+    }
+
+    return this._eventDetailsTooltip;
+  },
+
   get toolbox() {
     return this.inspector.toolbox;
+  },
+
+  get undo() {
+    if (!this._undo) {
+      this._undo = new UndoStack();
+      this._undo.installController(this.controllerWindow);
+    }
+
+    return this._undo;
   },
 
   /**
@@ -160,10 +190,6 @@ MarkupView.prototype = {
 
   _initTooltips: function() {
     // The tooltips will be attached to the toolbox document.
-    this.eventDetailsTooltip = new HTMLTooltip(this.toolbox.doc, {
-      type: "arrow",
-      consumeOutsideClicks: false,
-    });
     this.imagePreviewTooltip = new HTMLTooltip(this.toolbox.doc, {
       type: "arrow",
       useXulWrapper: true,
@@ -172,8 +198,7 @@ MarkupView.prototype = {
   },
 
   _enableImagePreviewTooltip: function() {
-    this.imagePreviewTooltip.startTogglingOnHover(this._elt,
-      this._isImagePreviewTarget);
+    this.imagePreviewTooltip.startTogglingOnHover(this._elt, this._isImagePreviewTarget);
   },
 
   _disableImagePreviewTooltip: function() {
@@ -619,7 +644,7 @@ MarkupView.prototype = {
       "inspector-open",
       "navigateaway",
       "nodeselected",
-      "test"
+      "test",
     ];
 
     const isHighlight = this._isContainerSelected(this._hoveredContainer);
@@ -692,7 +717,7 @@ MarkupView.prototype = {
       // If the user selected an element with the browser context menu.
       "browser-context-menu",
       // If the user added a new node by clicking in the inspector toolbar.
-      "node-inserted"
+      "node-inserted",
     ];
 
     // If the user performed an action with a keyboard, move keyboard focus to
@@ -1553,7 +1578,7 @@ MarkupView.prototype = {
         this.telemetry.recordEvent("edit_html", "inspector", null, {
           "made_changes": commit,
           "time_open": end - start,
-          "session_id": this.toolbox.sessionId
+          "session_id": this.toolbox.sessionId,
         });
       });
 
@@ -1865,7 +1890,7 @@ MarkupView.prototype = {
 
     return this.walker.children(container.node, {
       maxNodes: maxChildren,
-      center: centered
+      center: centered,
     });
   },
 
@@ -1895,13 +1920,25 @@ MarkupView.prototype = {
 
     this._hoveredContainer = null;
 
+    if (this._eventDetailsTooltip) {
+      this._eventDetailsTooltip.destroy();
+      this._eventDetailsTooltip = null;
+    }
+
     if (this.htmlEditor) {
       this.htmlEditor.destroy();
       this.htmlEditor = null;
     }
 
-    this.undo.destroy();
-    this.undo = null;
+    if (this.imagePreviewTooltip) {
+      this.imagePreviewTooltip.destroy();
+      this.imagePreviewTooltip = null;
+    }
+
+    if (this._undo) {
+      this._undo.destroy();
+      this._undo = null;
+    }
 
     this.popup.destroy();
     this.popup = null;
@@ -1924,19 +1961,15 @@ MarkupView.prototype = {
                            this._onCollapseAttributesPrefChange);
     this._prefObserver.destroy();
 
-    this._elt = null;
-
     for (const [, container] of this._containers) {
       container.destroy();
     }
     this._containers = null;
 
-    this.eventDetailsTooltip.destroy();
-    this.eventDetailsTooltip = null;
+    this._elt.innerHTML = "";
+    this._elt = null;
 
-    this.imagePreviewTooltip.destroy();
-    this.imagePreviewTooltip = null;
-
+    this.controllerWindow = null;
     this.doc = null;
     this.highlighters = null;
     this.win = null;
@@ -2034,7 +2067,7 @@ MarkupView.prototype = {
     }
 
     return {parent, nextSibling};
-  }
+  },
 };
 
 /**

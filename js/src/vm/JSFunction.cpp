@@ -14,6 +14,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Range.h"
+#include "mozilla/Utf8.h"
 
 #include <string.h>
 
@@ -65,6 +66,7 @@ using mozilla::ArrayLength;
 using mozilla::CheckedInt;
 using mozilla::Maybe;
 using mozilla::Some;
+using mozilla::Utf8Unit;
 
 using JS::AutoStableStringChars;
 using JS::CompileOptions;
@@ -1051,7 +1053,7 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool isToSource)
     // that eval returns lambda, not function statement.
     bool addParentheses = haveSource && isToSource && (fun->isLambda() && !fun->isArrow());
 
-    if (haveSource && !script->scriptSource()->hasSourceData() &&
+    if (haveSource && !script->scriptSource()->hasSourceText() &&
         !JSScript::loadSource(cx, script->scriptSource(), &haveSource))
     {
         return nullptr;
@@ -1377,27 +1379,6 @@ js::fun_apply(JSContext* cx, unsigned argc, Value* vp)
 
     // Step 9.
     return Call(cx, fval, args[0], args2, args.rval());
-}
-
-bool
-JSFunction::infallibleIsDefaultClassConstructor(JSContext* cx) const
-{
-    if (!isSelfHostedBuiltin()) {
-        return false;
-    }
-
-    bool isDefault = false;
-    if (isInterpretedLazy()) {
-        JSAtom* name = &getExtendedSlot(LAZY_FUNCTION_NAME_SLOT).toString()->asAtom();
-        isDefault = name == cx->names().DefaultDerivedClassConstructor ||
-                    name == cx->names().DefaultBaseClassConstructor;
-    } else {
-        isDefault = nonLazyScript()->isDefaultClassConstructor();
-    }
-
-    MOZ_ASSERT_IF(isDefault, isConstructor());
-    MOZ_ASSERT_IF(isDefault, isClassConstructor());
-    return isDefault;
 }
 
 bool
@@ -1750,6 +1731,7 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
         // StaticScopeIter queries needsCallObject of those functions, which
         // requires a non-lazy script.  Note that if this ever changes,
         // XDRRelazificationInfo will have to be fixed.
+        bool isBinAST = lazy->scriptSource()->hasBinASTSource();
         bool canRelazify = !lazy->numInnerFunctions() && !lazy->hasDirectEval();
 
         if (script) {
@@ -1783,24 +1765,56 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
 
         // This is lazy canonical-function.
 
-        MOZ_ASSERT(lazy->scriptSource()->hasSourceData());
-
-        // Parse and compile the script from source.
         size_t lazyLength = lazy->sourceEnd() - lazy->sourceStart();
-        UncompressedSourceCache::AutoHoldEntry holder;
-        ScriptSource::PinnedChars chars(cx, lazy->scriptSource(), holder,
-                                        lazy->sourceStart(), lazyLength);
-        if (!chars.get()) {
-            return false;
-        }
+        if (isBinAST) {
+#if defined(JS_BUILD_BINAST)
+            if (!frontend::CompileLazyBinASTFunction(cx, lazy,
+                    lazy->scriptSource()->binASTSource() + lazy->sourceStart(), lazyLength))
+            {
+                MOZ_ASSERT(fun->isInterpretedLazy());
+                MOZ_ASSERT(fun->lazyScript() == lazy);
+                MOZ_ASSERT(!lazy->hasScript());
+                return false;
+            }
+#else
+            MOZ_CRASH("Trying to delazify BinAST function in non-BinAST build");
+#endif /*JS_BUILD_BINAST */
+        } else {
+            MOZ_ASSERT(lazy->scriptSource()->hasSourceText());
 
-        if (!frontend::CompileLazyFunction(cx, lazy, chars.get(), lazyLength)) {
-            // The frontend shouldn't fail after linking the function and the
-            // non-lazy script together.
-            MOZ_ASSERT(fun->isInterpretedLazy());
-            MOZ_ASSERT(fun->lazyScript() == lazy);
-            MOZ_ASSERT(!lazy->hasScript());
-            return false;
+            // Parse and compile the script from source.
+            UncompressedSourceCache::AutoHoldEntry holder;
+
+            if (lazy->scriptSource()->hasSourceType<Utf8Unit>()) {
+                // UTF-8 source text.
+                ScriptSource::PinnedUnits<Utf8Unit> units(cx, lazy->scriptSource(), holder,
+                                                          lazy->sourceStart(), lazyLength);
+                if (!units.get()) {
+                    return false;
+                }
+
+                // XXX There are no UTF-8 ScriptSources now, so just crash so this
+                //     gets filled in later.
+                MOZ_CRASH("UTF-8 lazy function compilation not implemented yet");
+            } else {
+                MOZ_ASSERT(lazy->scriptSource()->hasSourceType<char16_t>());
+
+                // UTF-16 source text.
+                ScriptSource::PinnedUnits<char16_t> units(cx, lazy->scriptSource(), holder,
+                                                          lazy->sourceStart(), lazyLength);
+                if (!units.get()) {
+                    return false;
+                }
+
+                if (!frontend::CompileLazyFunction(cx, lazy, units.get(), lazyLength)) {
+                    // The frontend shouldn't fail after linking the function and the
+                    // non-lazy script together.
+                    MOZ_ASSERT(fun->isInterpretedLazy());
+                    MOZ_ASSERT(fun->lazyScript() == lazy);
+                    MOZ_ASSERT(!lazy->hasScript());
+                    return false;
+                }
+            }
         }
 
         script = fun->nonLazyScript();
@@ -1913,6 +1927,7 @@ JSFunction::maybeRelazify(JSRuntime* rt)
 }
 
 const JSFunctionSpec js::function_methods[] = {
+    // clang-format off
     JS_FN(js_toSource_str,   fun_toSource,   0,0),
     JS_FN(js_toString_str,   fun_toString,   0,0),
     JS_FN(js_apply_str,      fun_apply,      2,0),
@@ -1920,6 +1935,7 @@ const JSFunctionSpec js::function_methods[] = {
     JS_SELF_HOSTED_FN("bind", "FunctionBind", 2, 0),
     JS_SYM_FN(hasInstance, fun_symbolHasInstance, 1, JSPROP_READONLY | JSPROP_PERMANENT),
     JS_FS_END
+    // clang-format on
 };
 
 // ES2018 draft rev 2aea8f3e617b49df06414eb062ab44fad87661d3

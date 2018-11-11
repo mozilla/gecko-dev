@@ -127,6 +127,10 @@ class JitRuntime
     // Thunk to enter the interpreter from JIT code.
     WriteOnceData<uint32_t> interpreterStubOffset_;
 
+    // Thunk to convert the value in R0 to int32 if it's a double.
+    // Note: this stub treats -0 as +0 and may clobber R1.scratchReg().
+    WriteOnceData<uint32_t> doubleToInt32ValueStubOffset_;
+
     // Thunk used by the debugger for breakpoint and step mode.
     WriteOnceData<JitCode*> debugTrapHandler_;
 
@@ -169,6 +173,7 @@ class JitRuntime
   private:
     void generateLazyLinkStub(MacroAssembler& masm);
     void generateInterpreterStub(MacroAssembler& masm);
+    void generateDoubleToInt32ValueStub(MacroAssembler& masm);
     void generateProfilerExitFrameTailStub(MacroAssembler& masm, Label* profilerExitTail);
     void generateExceptionTailStub(MacroAssembler& masm, void* handler, Label* profilerExitTail);
     void generateBailoutTailStub(MacroAssembler& masm, Label* bailoutTail);
@@ -288,6 +293,10 @@ class JitRuntime
     }
     TrampolinePtr interpreterStub() const {
         return trampolineCode(interpreterStubOffset_);
+    }
+
+    TrampolinePtr getDoubleToInt32ValueStub() const {
+        return trampolineCode(doubleToInt32ValueStubOffset_);
     }
 
     bool hasJitcodeGlobalTable() const {
@@ -621,12 +630,6 @@ class JitRealm
 void InvalidateAll(FreeOp* fop, JS::Zone* zone);
 void FinishInvalidation(FreeOp* fop, JSScript* script);
 
-// On windows systems, really large frames need to be incrementally touched.
-// The following constant defines the minimum increment of the touch.
-#ifdef XP_WIN
-const unsigned WINDOWS_BIG_FRAME_TOUCH_INCREMENT = 4096 - 1;
-#endif
-
 // This class ensures JIT code is executable on its destruction. Creators
 // must call makeWritable(), and not attempt to write to the buffer if it fails.
 //
@@ -638,11 +641,10 @@ class MOZ_RAII AutoWritableJitCodeFallible
     JSRuntime* rt_;
     void* addr_;
     size_t size_;
-    bool madeWritable_;
 
   public:
     AutoWritableJitCodeFallible(JSRuntime* rt, void* addr, size_t size)
-      : rt_(rt), addr_(addr), size_(size), madeWritable_(false)
+      : rt_(rt), addr_(addr), size_(size)
     {
         rt_->toggleAutoWritableJitCodeActive(true);
     }
@@ -657,15 +659,12 @@ class MOZ_RAII AutoWritableJitCodeFallible
     {}
 
     MOZ_MUST_USE bool makeWritable() {
-        madeWritable_ = ExecutableAllocator::makeWritable(addr_, size_);
-        return madeWritable_;
+        return ExecutableAllocator::makeWritable(addr_, size_);
     }
 
     ~AutoWritableJitCodeFallible() {
-        if (madeWritable_) {
-            if (!ExecutableAllocator::makeExecutable(addr_, size_)) {
-                MOZ_CRASH();
-            }
+        if (!ExecutableAllocator::makeExecutable(addr_, size_)) {
+            MOZ_CRASH();
         }
         rt_->toggleAutoWritableJitCodeActive(false);
     }

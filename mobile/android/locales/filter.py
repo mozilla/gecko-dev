@@ -18,7 +18,6 @@ def test(mod, path, entity=None):
     if mod == "toolkit":
         # keep this file list in sync with jar.mn
         if path in (
-            "chrome/global/aboutAbout.dtd",
             "chrome/global/aboutReader.properties",
             "chrome/global/aboutRights.dtd",
             "chrome/global/charsetMenu.properties",
@@ -37,6 +36,9 @@ def test(mod, path, entity=None):
             return "error"
         if re.match(r"crashreporter/[^/]*.ftl", path):
             # error on crashreporter/*.ftl
+            return "error"
+        if re.match(r"toolkit/about/[^/]*About.ftl", path):
+            # error on toolkit/about/*About.ftl
             return "error"
         return "ignore"
 
@@ -66,9 +68,7 @@ def test(mod, path, entity=None):
     # we're in mod == "mobile"
     if path == "chrome/region.properties":
         # only region.properties exceptions remain
-        if (re.match(r"browser\.search\.order\.[1-9]", entity) or
-            re.match(r"browser\.search\.[a-zA-Z]+\.US", entity) or
-            re.match(r"browser\.contentHandlers\.types\.[0-5]", entity) or
+        if (re.match(r"browser\.contentHandlers\.types\.[0-5]", entity) or
             re.match(r"gecko\.handlerService\.schemes\.", entity) or
             re.match(r"gecko\.handlerService\.defaultHandlersVersion", entity) or
             re.match(r"browser\.suggestedsites\.", entity)):

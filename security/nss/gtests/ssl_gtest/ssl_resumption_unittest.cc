@@ -18,7 +18,8 @@ extern "C" {
 }
 
 #include "gtest_utils.h"
-#include "scoped_ptrs.h"
+#include "nss_scoped_ptrs.h"
+#include "scoped_ptrs_ssl.h"
 #include "tls_connect.h"
 #include "tls_filter.h"
 #include "tls_parser.h"
@@ -548,6 +549,37 @@ TEST_P(TlsConnectTls13, TestTls13ResumeNoCertificateRequest) {
   EXPECT_TRUE(SECITEM_ItemsAreEqual(&cert1->derCert, &cert2->derCert));
 }
 
+// Here we test that 0.5 RTT is available at the server when resuming, even if
+// configured to request a client certificate.  The resumed handshake relies on
+// the authentication from the original handshake, so no certificate is
+// requested this time around.  The server can write before the handshake
+// completes because the PSK binder is sufficient authentication for the client.
+TEST_P(TlsConnectTls13, WriteBeforeHandshakeCompleteOnResumption) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  SendReceive();  // Absorb the session ticket.
+  ScopedCERTCertificate cert1(SSL_LocalCertificate(client_->ssl_fd()));
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_TICKET);
+  server_->RequestClientAuth(false);
+  StartConnect();
+  client_->Handshake();  // ClientHello
+  server_->Handshake();  // ServerHello
+
+  server_->SendData(10);
+  client_->ReadBytes(10);  // Client should emit the Finished as a side-effect.
+  server_->Handshake();    // Server consumes the Finished.
+  CheckConnected();
+
+  // Check whether the client certificate matches the one from the ticket.
+  ScopedCERTCertificate cert2(SSL_PeerCertificate(server_->ssl_fd()));
+  EXPECT_TRUE(SECITEM_ItemsAreEqual(&cert1->derCert, &cert2->derCert));
+}
+
 // We need to enable different cipher suites at different times in the following
 // tests.  Those cipher suites need to be suited to the version.
 static uint16_t ChooseOneCipher(uint16_t version) {
@@ -914,6 +946,36 @@ TEST_F(TlsConnectDatagram13, SendSessionTicketDtls) {
   EXPECT_EQ(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION, PORT_GetError());
 }
 
+TEST_F(TlsConnectStreamTls13, ExternalResumptionUseSecondTicket) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+
+  struct ResumptionTicketState {
+    std::vector<uint8_t> ticket;
+    size_t invoked = 0;
+  } ticket_state;
+  auto cb = [](PRFileDesc* fd, const PRUint8* ticket, unsigned int ticket_len,
+               void* arg) -> SECStatus {
+    auto state = reinterpret_cast<ResumptionTicketState*>(arg);
+    state->ticket.assign(ticket, ticket + ticket_len);
+    state->invoked++;
+    return SECSuccess;
+  };
+  SSL_SetResumptionTokenCallback(client_->ssl_fd(), cb, &ticket_state);
+
+  Connect();
+  EXPECT_EQ(SECSuccess, SSL_SendSessionTicket(server_->ssl_fd(), nullptr, 0));
+  SendReceive();
+  EXPECT_EQ(2U, ticket_state.invoked);
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  client_->SetResumptionToken(ticket_state.ticket);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  SendReceive();
+}
+
 TEST_F(TlsConnectTest, TestTls13ResumptionDowngrade) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
@@ -1062,6 +1124,36 @@ void CheckGetInfoResult(uint32_t alpnSize, uint32_t earlyDataSize,
   EXPECT_EQ(0, memcmp("a", token->alpnSelection, token->alpnSelectionLen));
 
   ASSERT_EQ(earlyDataSize, token->maxEarlyDataSize);
+
+  ASSERT_LT(ssl_TimeUsec(), token->expirationTime);
+}
+
+// The client should generate a new, randomized session_id
+// when resuming using an external token.
+TEST_P(TlsConnectGenericResumptionToken, CheckSessionId) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  auto original_sid = MakeTlsFilter<CaptureSessionId>(client_);
+  Connect();
+  SendReceive();
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
+
+  StartConnect();
+  ASSERT_TRUE(client_->MaybeSetResumptionToken());
+  auto resumed_sid = MakeTlsFilter<CaptureSessionId>(client_);
+
+  Handshake();
+  CheckConnected();
+  SendReceive();
+
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_3) {
+    EXPECT_NE(resumed_sid->sid(), original_sid->sid());
+    EXPECT_EQ(32U, resumed_sid->sid().len());
+  } else {
+    EXPECT_EQ(0U, resumed_sid->sid().len());
+  }
 }
 
 TEST_P(TlsConnectGenericResumptionToken, ConnectResumeGetInfo) {

@@ -18,7 +18,6 @@
 #include "mozilla/dom/AudioTrackList.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
-#include "mozilla/dom/LocalMediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamTrackEvent.h"
 #include "mozilla/dom/Promise.h"
@@ -33,21 +32,8 @@
 #include "nsRFPService.h"
 #include "nsServiceManagerUtils.h"
 
-// GetCurrentTime is defined in winbase.h as zero argument macro forwarding to
-// GetTickCount() and conflicts with NS_DECL_NSIDOMMEDIASTREAM, containing
-// currentTime getter.
-#ifdef GetCurrentTime
-#undef GetCurrentTime
-#endif
-
 #ifdef LOG
 #undef LOG
-#endif
-
-// GetCurrentTime is defined in winbase.h as zero argument macro forwarding to
-// GetTickCount() and conflicts with MediaStream::GetCurrentTime.
-#ifdef GetCurrentTime
-#undef GetCurrentTime
 #endif
 
 using namespace mozilla;
@@ -404,13 +390,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMMediaStream)
   NS_INTERFACE_MAP_ENTRY(DOMMediaStream)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(DOMLocalMediaStream, DOMMediaStream)
-NS_IMPL_RELEASE_INHERITED(DOMLocalMediaStream, DOMMediaStream)
-
-NS_INTERFACE_MAP_BEGIN(DOMLocalMediaStream)
-  NS_INTERFACE_MAP_ENTRY(DOMLocalMediaStream)
-NS_INTERFACE_MAP_END_INHERITING(DOMMediaStream)
-
 NS_IMPL_CYCLE_COLLECTION_INHERITED(DOMAudioNodeMediaStream, DOMMediaStream,
                                    mStreamNode)
 
@@ -422,9 +401,9 @@ NS_INTERFACE_MAP_END_INHERITING(DOMMediaStream)
 
 DOMMediaStream::DOMMediaStream(nsPIDOMWindowInner* aWindow,
                                MediaStreamTrackSourceGetter* aTrackSourceGetter)
-  : mLogicalStreamStartTime(0), mWindow(aWindow),
-    mInputStream(nullptr), mOwnedStream(nullptr), mPlaybackStream(nullptr),
-    mTracksPendingRemoval(0), mTrackSourceGetter(aTrackSourceGetter),
+  : mWindow(aWindow), mInputStream(nullptr), mOwnedStream(nullptr),
+    mPlaybackStream(nullptr), mTracksPendingRemoval(0),
+    mTrackSourceGetter(aTrackSourceGetter),
     mPlaybackTrackListener(MakeAndAddRef<PlaybackTrackListener>(this)),
     mTracksCreated(false), mNotifiedOfMediaStreamGraphShutdown(false),
     mActive(false), mSetInactiveOnFinish(false), mCORSMode(CORS_NONE)
@@ -573,20 +552,6 @@ DOMMediaStream::Constructor(const GlobalObject& aGlobal,
   return newStream.forget();
 }
 
-double
-DOMMediaStream::CurrentTime()
-{
-  if (!mPlaybackStream) {
-    return 0.0;
-  }
-  // The value of a MediaStream's CurrentTime will always advance forward; it will never
-  // reset (even if one rewinds a video.) Therefore we can use a single Random Seed
-  // initialized at the same time as the object.
-  return nsRFPService::ReduceTimePrecisionAsSecs(mPlaybackStream->
-    StreamTimeToSeconds(mPlaybackStream->GetCurrentTime() - mLogicalStreamStartTime),
-    GetRandomTimelineSeed());
-}
-
 already_AddRefed<Promise>
 DOMMediaStream::CountUnderlyingStreams(const GlobalObject& aGlobal, ErrorResult& aRv)
 {
@@ -657,23 +622,41 @@ DOMMediaStream::GetId(nsAString& aID) const
 }
 
 void
-DOMMediaStream::GetAudioTracks(nsTArray<RefPtr<AudioStreamTrack> >& aTracks) const
+DOMMediaStream::GetAudioTracks(nsTArray<RefPtr<AudioStreamTrack>>& aTracks) const
 {
   for (const RefPtr<TrackPort>& info : mTracks) {
-    AudioStreamTrack* t = info->GetTrack()->AsAudioStreamTrack();
-    if (t) {
+    if (AudioStreamTrack* t = info->GetTrack()->AsAudioStreamTrack()) {
       aTracks.AppendElement(t);
     }
   }
 }
 
 void
-DOMMediaStream::GetVideoTracks(nsTArray<RefPtr<VideoStreamTrack> >& aTracks) const
+DOMMediaStream::GetAudioTracks(nsTArray<RefPtr<MediaStreamTrack>>& aTracks) const
 {
   for (const RefPtr<TrackPort>& info : mTracks) {
-    VideoStreamTrack* t = info->GetTrack()->AsVideoStreamTrack();
-    if (t) {
+    if (info->GetTrack()->AsAudioStreamTrack()) {
+      aTracks.AppendElement(info->GetTrack());
+    }
+  }
+}
+
+void
+DOMMediaStream::GetVideoTracks(nsTArray<RefPtr<VideoStreamTrack>>& aTracks) const
+{
+  for (const RefPtr<TrackPort>& info : mTracks) {
+    if (VideoStreamTrack* t = info->GetTrack()->AsVideoStreamTrack()) {
       aTracks.AppendElement(t);
+    }
+  }
+}
+
+void
+DOMMediaStream::GetVideoTracks(nsTArray<RefPtr<MediaStreamTrack>>& aTracks) const
+{
+  for (const RefPtr<TrackPort>& info : mTracks) {
+    if (info->GetTrack()->AsVideoStreamTrack()) {
+      aTracks.AppendElement(info->GetTrack());
     }
   }
 }
@@ -1513,65 +1496,6 @@ DOMMediaStream::NotifyPlaybackTrackBlocked()
                           "finish. Recomputing principal.", this));
     RecomputePrincipal();
   }
-}
-
-DOMLocalMediaStream::~DOMLocalMediaStream()
-{
-  if (mInputStream) {
-    // Make sure Listeners of this stream know it's going away
-    StopImpl();
-  }
-}
-
-JSObject*
-DOMLocalMediaStream::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
-  return dom::LocalMediaStream_Binding::Wrap(aCx, this, aGivenProto);
-}
-
-void
-DOMLocalMediaStream::Stop()
-{
-  LOG(LogLevel::Debug, ("DOMMediaStream %p Stop()", this));
-  nsCOMPtr<nsPIDOMWindowInner> pWindow = GetParentObject();
-  nsIDocument* document = pWindow ? pWindow->GetExtantDoc() : nullptr;
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  NS_LITERAL_CSTRING("Media"),
-                                  document,
-                                  nsContentUtils::eDOM_PROPERTIES,
-                                  "MediaStreamStopDeprecatedWarning");
-
-  StopImpl();
-}
-
-void
-DOMLocalMediaStream::StopImpl()
-{
-  if (mInputStream && mInputStream->AsSourceStream()) {
-    mInputStream->AsSourceStream()->EndAllTrackAndFinish();
-  }
-}
-
-already_AddRefed<DOMLocalMediaStream>
-DOMLocalMediaStream::CreateSourceStreamAsInput(nsPIDOMWindowInner* aWindow,
-                                               MediaStreamGraph* aGraph,
-                                               MediaStreamTrackSourceGetter* aTrackSourceGetter)
-{
-  RefPtr<DOMLocalMediaStream> stream =
-    new DOMLocalMediaStream(aWindow, aTrackSourceGetter);
-  stream->InitSourceStream(aGraph);
-  return stream.forget();
-}
-
-already_AddRefed<DOMLocalMediaStream>
-DOMLocalMediaStream::CreateTrackUnionStreamAsInput(nsPIDOMWindowInner* aWindow,
-                                                   MediaStreamGraph* aGraph,
-                                                   MediaStreamTrackSourceGetter* aTrackSourceGetter)
-{
-  RefPtr<DOMLocalMediaStream> stream =
-    new DOMLocalMediaStream(aWindow, aTrackSourceGetter);
-  stream->InitTrackUnionStream(aGraph);
-  return stream.forget();
 }
 
 DOMAudioNodeMediaStream::DOMAudioNodeMediaStream(nsPIDOMWindowInner* aWindow, AudioNode* aNode)

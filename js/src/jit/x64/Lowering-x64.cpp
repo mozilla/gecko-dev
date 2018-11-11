@@ -139,12 +139,6 @@ LIRGenerator::visitReturn(MReturn* ret)
 }
 
 void
-LIRGeneratorX64::defineUntypedPhi(MPhi* phi, size_t lirIndex)
-{
-    defineTypedPhi(phi, lirIndex);
-}
-
-void
 LIRGeneratorX64::lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
     lowerTypedPhiInput(phi, inputPosition, block, lirIndex);
@@ -248,45 +242,6 @@ LIRGenerator::visitWasmStore(MWasmStore* ins)
 
     LAllocation baseAlloc = useRegisterOrZeroAtStart(base);
     auto* lir = new(alloc()) LWasmStore(baseAlloc, valueAlloc);
-    add(lir, ins);
-}
-
-void
-LIRGenerator::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins)
-{
-    MDefinition* base = ins->base();
-    MOZ_ASSERT(base->type() == MIRType::Int32);
-
-    define(new(alloc()) LAsmJSLoadHeap(useRegisterOrZeroAtStart(base)), ins);
-}
-
-void
-LIRGenerator::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins)
-{
-    MDefinition* base = ins->base();
-    MOZ_ASSERT(base->type() == MIRType::Int32);
-
-    LAsmJSStoreHeap* lir = nullptr;  // initialize to silence GCC warning
-    switch (ins->access().type()) {
-      case Scalar::Int8:
-      case Scalar::Uint8:
-      case Scalar::Int16:
-      case Scalar::Uint16:
-      case Scalar::Int32:
-      case Scalar::Uint32:
-        lir = new(alloc()) LAsmJSStoreHeap(useRegisterOrZeroAtStart(base),
-                                           useRegisterOrConstantAtStart(ins->value()));
-        break;
-      case Scalar::Float32:
-      case Scalar::Float64:
-        lir = new(alloc()) LAsmJSStoreHeap(useRegisterOrZeroAtStart(base),
-                                           useRegisterAtStart(ins->value()));
-        break;
-      case Scalar::Int64:
-      case Scalar::Uint8Clamped:
-      case Scalar::MaxTypedArrayViewType:
-        MOZ_CRASH("unexpected array type");
-    }
     add(lir, ins);
 }
 

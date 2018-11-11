@@ -149,7 +149,7 @@ public:
 
   void AssertIsOnTargetThread() const
   {
-    MOZ_ASSERT(IsTargetThread());
+    MOZ_DIAGNOSTIC_ASSERT(IsTargetThread());
   }
 
   bool IsTargetThread() const
@@ -844,7 +844,7 @@ EventSourceImpl::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
   if (IsClosed()) {
     return NS_ERROR_ABORT;
   }
-  nsCOMPtr<nsIRequest> aOldRequest = do_QueryInterface(aOldChannel);
+  nsCOMPtr<nsIRequest> aOldRequest = aOldChannel;
   MOZ_ASSERT(aOldRequest, "Redirect from a null request?");
 
   nsresult rv = CheckHealthOfRequestCallback(aOldRequest);

@@ -44,6 +44,7 @@ bool SandboxBroker::sRunningFromNetworkDrive = false;
 static UniquePtr<nsString> sBinDir;
 static UniquePtr<nsString> sProfileDir;
 static UniquePtr<nsString> sContentTempDir;
+static UniquePtr<nsString> sPluginTempDir;
 static UniquePtr<nsString> sRoamingAppDataDir;
 static UniquePtr<nsString> sLocalAppDataDir;
 static UniquePtr<nsString> sUserExtensionsDevDir;
@@ -115,6 +116,7 @@ SandboxBroker::GeckoDependentInitialize()
   CacheDirAndAutoClear(dirSvc, NS_GRE_DIR, &sBinDir);
   CacheDirAndAutoClear(dirSvc, NS_APP_USER_PROFILE_50_DIR, &sProfileDir);
   CacheDirAndAutoClear(dirSvc, NS_APP_CONTENT_PROCESS_TEMP_DIR, &sContentTempDir);
+  CacheDirAndAutoClear(dirSvc, NS_APP_PLUGIN_PROCESS_TEMP_DIR, &sPluginTempDir);
   CacheDirAndAutoClear(dirSvc, NS_WIN_APPDATA_DIR, &sRoamingAppDataDir);
   CacheDirAndAutoClear(dirSvc, NS_WIN_LOCAL_APPDATA_DIR, &sLocalAppDataDir);
   CacheDirAndAutoClear(dirSvc, XRE_USER_SYS_EXTENSION_DEV_DIR, &sUserExtensionsDevDir);
@@ -387,7 +389,9 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     accessTokenLevel = sandbox::USER_INTERACTIVE;
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
-  } else if (aSandboxLevel == 1) {
+  } else {
+    MOZ_ASSERT(aSandboxLevel == 1);
+    
     jobLevel = sandbox::JOB_NONE;
     accessTokenLevel = sandbox::USER_NON_ADMIN;
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
@@ -440,7 +444,8 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     sandbox::MITIGATION_SEHOP |
     sandbox::MITIGATION_DEP_NO_ATL_THUNK |
     sandbox::MITIGATION_DEP |
-    sandbox::MITIGATION_EXTENSION_POINT_DISABLE;
+    sandbox::MITIGATION_EXTENSION_POINT_DISABLE |
+    sandbox::MITIGATION_IMAGE_LOAD_PREFER_SYS32;
 
   if (aSandboxLevel > 4) {
     result = mPolicy->SetAlternateDesktop(false);
@@ -698,11 +703,6 @@ SandboxBroker::SetSecurityLevelForPluginProcess(int32_t aSandboxLevel)
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
   }
 
-#ifndef NIGHTLY_BUILD
-  // We are experimenting with using restricting SIDs in the nightly builds
-  mPolicy->SetDoNotUseRestrictingSIDs();
-#endif
-
   sandbox::ResultCode result = SetJobLevel(mPolicy, jobLevel,
                                            0 /* ui_exceptions */);
   SANDBOX_ENSURE_SUCCESS(result,
@@ -747,6 +747,10 @@ SandboxBroker::SetSecurityLevelForPluginProcess(int32_t aSandboxLevel)
   result = mPolicy->SetDelayedProcessMitigations(delayedMitigations);
   SANDBOX_ENSURE_SUCCESS(result,
                          "Invalid flags for SetDelayedProcessMitigations.");
+
+  // Add rule to allow read / write access to a special plugin temp dir.
+  AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                   sPluginTempDir, NS_LITERAL_STRING("\\*"));
 
   if (aSandboxLevel >= 2) {
     // Level 2 and above uses low integrity, so we need to give write access to

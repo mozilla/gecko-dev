@@ -45,6 +45,7 @@
 #include "nsIScriptError.h"
 #include "nsISupportsPrimitives.h"
 #include "nsThreadUtils.h"
+#include "nsIWeakReferenceUtils.h"
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
 #include "ScriptErrorHelper.h"
@@ -449,7 +450,10 @@ IDBDatabase::CreateObjectStore(
        index < count;
        index++) {
     if (aName == objectStores[index].metadata().name()) {
-      aRv.Throw(NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR);
+      aRv.ThrowDOMException(NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR,
+        nsPrintfCString(
+          "Object store named '%s' already exists at index '%u'",
+          NS_ConvertUTF16toUTF8(aName).get(), index));
       return nullptr;
     }
   }
@@ -915,7 +919,7 @@ IDBDatabase::GetOrCreateFileActorForBlob(Blob* aBlob)
   // a) it is unique per blob, b) it is reference-counted so that we can
   // guarantee that it stays alive, and c) it doesn't hold the actual File
   // alive.
-  nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(aBlob);
+  nsWeakPtr weakRef = do_GetWeakReference(aBlob);
   MOZ_ASSERT(weakRef);
 
   PBackgroundIDBDatabaseFileChild* actor = nullptr;
@@ -1071,7 +1075,7 @@ IDBDatabase::ExpireFileActors(bool aExpireAll)
 
       bool shouldExpire = aExpireAll;
       if (!shouldExpire) {
-        nsCOMPtr<nsIWeakReference> weakRef = do_QueryInterface(key);
+        nsWeakPtr weakRef = do_QueryInterface(key);
         MOZ_ASSERT(weakRef);
 
         nsCOMPtr<nsISupports> referent = do_QueryReferent(weakRef);
@@ -1323,7 +1327,7 @@ IDBDatabase::RenameObjectStore(int64_t aObjectStoreId, const nsAString& aName)
       continue;
     }
     if (aName == objSpec.metadata().name()) {
-      return NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR;
+      return NS_ERROR_DOM_INDEXEDDB_RENAME_OBJECT_STORE_ERR;
     }
   }
 
@@ -1371,7 +1375,7 @@ IDBDatabase::RenameIndex(int64_t aObjectStoreId,
       continue;
     }
     if (aName == metadata.name()) {
-      return NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR;
+      return NS_ERROR_DOM_INDEXEDDB_RENAME_INDEX_ERR;
     }
   }
 

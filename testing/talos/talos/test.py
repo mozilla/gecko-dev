@@ -177,7 +177,7 @@ class sessionrestore(TsBase):
     2. Launch Firefox.
     3. Measure the delta between firstPaint and sessionRestored.
     """
-    extensions = ['${talos}/pageloader', '${talos}/startup_test/sessionrestore/addon']
+    extensions = ['${talos}/startup_test/sessionrestore/addon']
     cycles = 10
     timeout = 900
     gecko_profile_startup = True
@@ -200,7 +200,10 @@ class sessionrestore_no_auto_restore(sessionrestore):
     2. Launch Firefox.
     3. Measure the delta between firstPaint and sessionRestored.
     """
-    preferences = {'browser.startup.page': 1}
+    preferences = {
+        'browser.startup.page': 1,
+        'talos.sessionrestore.norestore': True,
+    }
 
 
 @register_test()
@@ -213,22 +216,6 @@ class sessionrestore_many_windows(sessionrestore):
     3. Measure the delta between firstPaint and sessionRestored.
     """
     profile_path = '${talos}/startup_test/sessionrestore/profile-manywindows'
-
-
-@register_test()
-class tresize(TsBase):
-    """
-    This test does some resize thing.
-    """
-    extensions = ['${talos}/startup_test/tresize/addon']
-    cycles = 20
-    url = 'startup_test/tresize/addon/content/tresize-test.html'
-    timeout = 150
-    gecko_profile_interval = 2
-    gecko_profile_entries = 1000000
-    tpmozafterpaint = True
-    filters = filter.ignore_first.prepare(5) + filter.median.prepare()
-    unit = 'ms'
 
 
 # pageloader tests(tp5, etc)
@@ -301,14 +288,13 @@ class cpstartup(PageloaderTest):
     initialize it to the point where it can start processing incoming URLs
     to load.
     """
-    extensions = ['${talos}/tests/cpstartup', '${talos}/pageloader']
+    extensions = ['${talos}/pageloader', '${talos}/tests/cpstartup/extension']
     tpmanifest = '${talos}/tests/cpstartup/cpstartup.manifest'
     tppagecycles = 20
     gecko_profile_entries = 1000000
     tploadnocache = True
     unit = 'ms'
     preferences = {
-        'addon.test.cpstartup.webserver': '${webserver}',
         # By default, Talos is configured to open links from
         # content in new windows. We're overriding them so that
         # they open in new tabs instead.
@@ -339,6 +325,7 @@ class tabpaint(PageloaderTest):
         # and http://kb.mozillazine.org/Browser.link.open_newwindow.restriction
         'browser.link.open_newwindow': 3,
         'browser.link.open_newwindow.restriction': 2,
+        'browser.newtab.preload': False,
     }
 
 
@@ -432,9 +419,7 @@ class damp(PageloaderTest):
     win_counters = w7_counters = linux_counters = mac_counters = None
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     preferences = {'devtools.memory.enabled': True,
-                   'addon.test.damp.webserver': '${webserver}',
-                   'startup.homepage_welcome_url': '',
-                   'startup.homepage_welcome_url.additional': ''}
+                   'addon.test.damp.webserver': '${webserver}'}
     unit = 'ms'
     subtest_alerts = True
     perfherder_framework = 'devtools'
@@ -684,6 +669,22 @@ class dromaeo_dom(dromaeo):
     gecko_profile_entries = 10000000
     tpmanifest = '${talos}/tests/dromaeo/dom.manifest'
     unit = 'score'
+
+
+@register_test()
+class tresize(PageloaderTest):
+    """
+    This test does some resize thing.
+    """
+    tpmanifest = '${talos}/tests/tresize/tresize.manifest'
+    extensions = ['${talos}/pageloader', '${talos}/tests/tresize/addon']
+    tppagecycles = 20
+    timeout = 900
+    gecko_profile_interval = 2
+    gecko_profile_entries = 1000000
+    tpmozafterpaint = True
+    filters = filter.ignore_first.prepare(5) + filter.median.prepare()
+    unit = 'ms'
 
 
 @register_test()

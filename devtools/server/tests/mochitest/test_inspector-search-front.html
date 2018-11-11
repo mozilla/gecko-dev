@@ -13,9 +13,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=835896
 "use strict";
 
 window.onload = function() {
-  const {require} = ChromeUtils.import("resource://devtools/shared/Loader.jsm", {});
-  const {InspectorFront} = require("devtools/shared/fronts/inspector");
-
   SimpleTest.waitForExplicitFinish();
 
   let walkerFront = null;
@@ -31,16 +28,9 @@ window.onload = function() {
 
     const url = document.getElementById("inspectorContent").href;
 
-    // eslint-disable-next-line new-cap
-    await new Promise(resolve => {
-      attachURL(url, function(err, client, tab, doc) {
-        inspector = InspectorFront(client, tab);
-        resolve();
-      });
-    });
-
-    walkerFront = await inspector.getWalker();
-    ok(walkerFront, "getWalker() should return an actor.");
+    const { target } = await attachURL(url);
+    inspector = await target.getInspector();
+    walkerFront = inspector.walker;
 
     runNextTest();
   });
@@ -58,7 +48,7 @@ window.onload = function() {
       node: fronts[0],
       type: "search",
       resultsIndex: 0,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Default options work");
 
     results = await walkerFront.search("h2", { });
@@ -66,7 +56,7 @@ window.onload = function() {
       node: fronts[1],
       type: "search",
       resultsIndex: 1,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with empty options");
 
     // Clear search data to remove result state on the front
@@ -84,7 +74,7 @@ window.onload = function() {
       node: fronts[0],
       type: "search",
       resultsIndex: 0,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=false)");
 
     results = await walkerFront.search("h2");
@@ -92,7 +82,7 @@ window.onload = function() {
       node: fronts[1],
       type: "search",
       resultsIndex: 1,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=false)");
 
     results = await walkerFront.search("h2");
@@ -100,7 +90,7 @@ window.onload = function() {
       node: fronts[2],
       type: "search",
       resultsIndex: 2,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=false)");
 
     results = await walkerFront.search("h2");
@@ -108,7 +98,7 @@ window.onload = function() {
       node: fronts[0],
       type: "search",
       resultsIndex: 0,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=false)");
 
     // Clear search data to remove result state on the front
@@ -126,7 +116,7 @@ window.onload = function() {
       node: fronts[2],
       type: "search",
       resultsIndex: 2,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=true)");
 
     results = await walkerFront.search("h2", {reverse: true});
@@ -134,7 +124,7 @@ window.onload = function() {
       node: fronts[1],
       type: "search",
       resultsIndex: 1,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=true)");
 
     results = await walkerFront.search("h2", {reverse: true});
@@ -142,7 +132,7 @@ window.onload = function() {
       node: fronts[0],
       type: "search",
       resultsIndex: 0,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=true)");
 
     results = await walkerFront.search("h2", {reverse: true});
@@ -150,7 +140,7 @@ window.onload = function() {
       node: fronts[2],
       type: "search",
       resultsIndex: 2,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=true)");
 
     results = await walkerFront.search("h2", {reverse: false});
@@ -158,7 +148,7 @@ window.onload = function() {
       node: fronts[0],
       type: "search",
       resultsIndex: 0,
-      resultsLength: 3
+      resultsLength: 3,
     }, "Search works with multiple results (reverse=false)");
 
     // Clear search data to remove result state on the front

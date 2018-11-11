@@ -55,17 +55,17 @@ using namespace mozilla::a11y;
 ////////////////////////////////////////////////////////////////////////////////
 // Static member initialization
 
-static nsStaticAtom** kRelationAttrs[] =
+static nsStaticAtom* const kRelationAttrs[] =
 {
-  &nsGkAtoms::aria_labelledby,
-  &nsGkAtoms::aria_describedby,
-  &nsGkAtoms::aria_details,
-  &nsGkAtoms::aria_owns,
-  &nsGkAtoms::aria_controls,
-  &nsGkAtoms::aria_flowto,
-  &nsGkAtoms::aria_errormessage,
-  &nsGkAtoms::_for,
-  &nsGkAtoms::control
+  nsGkAtoms::aria_labelledby,
+  nsGkAtoms::aria_describedby,
+  nsGkAtoms::aria_details,
+  nsGkAtoms::aria_owns,
+  nsGkAtoms::aria_controls,
+  nsGkAtoms::aria_flowto,
+  nsGkAtoms::aria_errormessage,
+  nsGkAtoms::_for,
+  nsGkAtoms::control
 };
 
 static const uint32_t kRelationAttrsLen = ArrayLength(kRelationAttrs);
@@ -117,18 +117,19 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DocAccessible, Accessible)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNotificationController)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVirtualCursor)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChildDocuments)
-  for (auto iter = tmp->mDependentIDsHash.Iter(); !iter.Done(); iter.Next()) {
-    AttrRelProviderArray* providers = iter.UserData();
+  for (auto hashesIter = tmp->mDependentIDsHashes.Iter(); !hashesIter.Done();
+       hashesIter.Next()) {
+    auto dependentIDsHash = hashesIter.UserData();
+    for (auto providersIter = dependentIDsHash->Iter(); !providersIter.Done();
+         providersIter.Next()) {
+      AttrRelProviders* providers = providersIter.UserData();
+      for (int32_t provIdx = providers->Length() - 1; provIdx >= 0; provIdx--) {
+        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
+          cb, "content of dependent ids hash entry of document accessible");
 
-    for (int32_t jdx = providers->Length() - 1; jdx >= 0; jdx--) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
-        cb, "content of dependent ids hash entry of document accessible");
-
-      AttrRelProvider* provider = (*providers)[jdx];
-      cb.NoteXPCOMChild(provider->mContent);
-
-      NS_ASSERTION(provider->mContent->IsInUncomposedDoc(),
-                   "Referred content is not in document!");
+        AttrRelProvider* provider = (*providers)[provIdx];
+        cb.NoteXPCOMChild(provider->mContent);
+      }
     }
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAccessibleCache)
@@ -148,7 +149,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DocAccessible, Accessible)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNotificationController)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVirtualCursor)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mChildDocuments)
-  tmp->mDependentIDsHash.Clear();
+  tmp->mDependentIDsHashes.Clear();
   tmp->mNodeToAccessibleMap.Clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAccessibleCache)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAnchorJumpElm)
@@ -475,7 +476,7 @@ DocAccessible::Shutdown()
   mPresShell->SetDocAccessible(nullptr);
   mPresShell = nullptr;  // Avoid reentrancy
 
-  mDependentIDsHash.Clear();
+  mDependentIDsHashes.Clear();
   mNodeToAccessibleMap.Clear();
 
   for (auto iter = mAccessibleCache.Iter(); !iter.Done(); iter.Next()) {
@@ -777,10 +778,8 @@ DocAccessible::AttributeChanged(dom::Element* aElement,
   if (aAttribute == nsGkAtoms::aria_hidden) {
     if (aria::HasDefinedARIAHidden(aElement)) {
       ContentRemoved(aElement);
-    }
-    else {
-      ContentInserted(aElement->GetFlattenedTreeParent(),
-                      aElement, aElement->GetNextSibling());
+    } else {
+      ContentInserted(aElement, aElement->GetNextSibling());
     }
     return;
   }
@@ -1353,8 +1352,7 @@ DocAccessible::UnbindFromDocument(Accessible* aAccessible)
 }
 
 void
-DocAccessible::ContentInserted(nsIContent* aContainerNode,
-                               nsIContent* aStartChildNode,
+DocAccessible::ContentInserted(nsIContent* aStartChildNode,
                                nsIContent* aEndChildNode)
 {
   // Ignore content insertions until we constructed accessible tree. Otherwise
@@ -1362,14 +1360,8 @@ DocAccessible::ContentInserted(nsIContent* aContainerNode,
   if (mNotificationController && HasLoadState(eTreeConstructed)) {
     // Update the whole tree of this document accessible when the container is
     // null (document element is inserted or removed).
-    Accessible* container = aContainerNode ?
-      AccessibleOrTrueContainer(aContainerNode) : this;
-    if (container) {
-      // Ignore notification if the container node is no longer in the DOM tree.
-      mNotificationController->ScheduleContentInsertion(container,
-                                                        aStartChildNode,
-                                                        aEndChildNode);
-    }
+    mNotificationController->ScheduleContentInsertion(aStartChildNode,
+                                                      aEndChildNode);
   }
 }
 
@@ -1388,10 +1380,8 @@ DocAccessible::RecreateAccessible(nsIContent* aContent)
   // subclass hide and show events to handle them separately and implement their
   // coalescence with normal hide and show events. Note, in this case they
   // should be coalesced with normal show/hide events.
-
-  nsIContent* parent = aContent->GetFlattenedTreeParent();
   ContentRemoved(aContent);
-  ContentInserted(parent, aContent, aContent->GetNextSibling());
+  ContentInserted(aContent, aContent->GetNextSibling());
 }
 
 void
@@ -1407,8 +1397,9 @@ DocAccessible::ProcessInvalidationList()
       if (container) {
         // Check if the node is a target of aria-owns, and if so, don't process
         // it here and let DoARIAOwnsRelocation process it.
-        AttrRelProviderArray* list =
-          mDependentIDsHash.Get(nsDependentAtomString(content->GetID()));
+        AttrRelProviders* list =
+          GetRelProviders(content->AsElement(),
+                          nsDependentAtomString(content->GetID()));
         bool shouldProcess = !!list;
         if (shouldProcess) {
           for (uint32_t idx = 0; idx < list->Length(); idx++) {
@@ -1583,7 +1574,7 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsAtom* aRelAttr)
     return;
 
   for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
-    nsAtom* relAttr = *kRelationAttrs[idx];
+    nsStaticAtom* relAttr = kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != relAttr)
       continue;
 
@@ -1605,21 +1596,15 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsAtom* aRelAttr)
         break;
 
       nsIContent* dependentContent = iter.GetElem(id);
-      if (relAttr == nsGkAtoms::aria_owns && dependentContent &&
-          !aRelProvider->IsAcceptableChild(dependentContent))
+      if (!dependentContent ||
+          (relAttr == nsGkAtoms::aria_owns &&
+           !aRelProvider->IsAcceptableChild(dependentContent)))
         continue;
 
-      AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
-      if (!providers) {
-        providers = new AttrRelProviderArray();
-        if (providers) {
-          mDependentIDsHash.Put(id, providers);
-        }
-      }
-
+      AttrRelProviders* providers =
+        GetOrCreateRelProviders(dependentContent->AsElement(), id);
       if (providers) {
-        AttrRelProvider* provider =
-          new AttrRelProvider(relAttr, relProviderEl);
+        AttrRelProvider* provider = new AttrRelProvider(relAttr, relProviderEl);
         if (provider) {
           providers->AppendElement(provider);
 
@@ -1655,8 +1640,8 @@ DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
     return;
 
   for (uint32_t idx = 0; idx < kRelationAttrsLen; idx++) {
-    nsAtom* relAttr = *kRelationAttrs[idx];
-    if (aRelAttr && aRelAttr != *kRelationAttrs[idx])
+    nsStaticAtom* relAttr = kRelationAttrs[idx];
+    if (aRelAttr && aRelAttr != kRelationAttrs[idx])
       continue;
 
     IDRefsIterator iter(this, relProviderElm, relAttr);
@@ -1665,7 +1650,7 @@ DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
       if (id.IsEmpty())
         break;
 
-      AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
+      AttrRelProviders* providers = GetRelProviders(relProviderElm, id);
       if (providers) {
         for (uint32_t jdx = 0; jdx < providers->Length(); ) {
           AttrRelProvider* provider = (*providers)[jdx];
@@ -1675,8 +1660,7 @@ DocAccessible::RemoveDependentIDsFor(Accessible* aRelProvider,
           else
             jdx++;
         }
-        if (providers->Length() == 0)
-          mDependentIDsHash.Remove(id);
+        RemoveRelProvidersIfEmpty(relProviderElm, id);
       }
     }
 
@@ -2053,8 +2037,9 @@ DocAccessible::RelocateARIAOwnedIfNeeded(nsIContent* aElement)
   if (!aElement->HasID())
     return false;
 
-  AttrRelProviderArray* list =
-    mDependentIDsHash.Get(nsDependentAtomString(aElement->GetID()));
+  AttrRelProviders* list =
+    GetRelProviders(aElement->AsElement(),
+                    nsDependentAtomString(aElement->GetID()));
   if (list) {
     for (uint32_t idx = 0; idx < list->Length(); idx++) {
       if (list->ElementAt(idx)->mRelAttr == nsGkAtoms::aria_owns) {

@@ -10,6 +10,9 @@ with Files("**"):
 with Files("ChannelWrapper.webidl"):
     BUG_COMPONENT = ("WebExtensions", "Request Handling")
 
+with Files("Flex.webidl"):
+    BUG_COMPONENT = ("Core", "CSS Parsing and Computation")
+
 with Files("HeapSnapshot.webidl"):
     BUG_COMPONENT = ("DevTools", "Memory")
 
@@ -33,6 +36,7 @@ WEBIDL_FILES = [
     'BrowsingContext.webidl',
     'ChannelWrapper.webidl',
     'DominatorTree.webidl',
+    'Flex.webidl',
     'HeapSnapshot.webidl',
     'InspectorUtils.webidl',
     'IteratorResult.webidl',
@@ -47,11 +51,13 @@ WEBIDL_FILES = [
     'PrecompiledScript.webidl',
     'PromiseDebugging.webidl',
     'StructuredCloneHolder.webidl',
+    'TelemetryStopwatch.webidl',
     'WebExtensionContentScript.webidl',
     'WebExtensionPolicy.webidl',
     'XULFrameElement.webidl',
     'XULMenuElement.webidl',
-    'XULScrollElement.webidl'
+    'XULScrollElement.webidl',
+    'XULTextElement.webidl'
 ]
 
 if CONFIG['MOZ_PLACES']:

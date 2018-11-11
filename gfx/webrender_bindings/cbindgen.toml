@@ -14,6 +14,10 @@ tab_width = 2
 language = "C++"
 namespaces = ["mozilla", "wr"]
 
+[export]
+# Skip constants because we don't have any
+item_types = ["globals", "enums", "structs", "unions", "typedefs", "opaque", "functions"]
+
 [parse]
 parse_deps = true
 include = ["log", "webrender", "webrender_api"]
@@ -35,4 +39,4 @@ derive_helper_methods = true
 [defines]
 "target_os = windows" = "XP_WIN"
 "target_os = macos" = "XP_MACOSX"
-
+"target_os = android" = "ANDROID"

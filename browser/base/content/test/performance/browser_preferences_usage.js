@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const DEFAULT_PROCESS_COUNT = Services.prefs.getDefaultBranch(null).getIntPref("dom.ipc.processCount");
+
 /**
  * A test that checks whether any preference getter from the given list
  * of stats was called more often than the max parameter.
@@ -90,20 +92,15 @@ add_task(async function startup() {
     },
     "layout.css.dpi": {
       min: 45,
-      max: 75,
+      max: 81,
     },
     "network.loadinfo.skip_type_assertion": {
       // This is accessed in debug only.
     },
     "extensions.getAddons.cache.enabled": {
-      min: 6,
+      min: 4,
       max: 55,
     },
-
-    // Disabling screenshots in the default test profile triggers some
-    // work in the chrome registry that reads this pref.  This can be removed
-    // when bootstrapped extensions are gone, or even when screenshots
-    // moves away from bootstrap (bug 1422437)
     "chrome.override_package.global": {
       min: 0,
       max: 50,
@@ -120,7 +117,10 @@ add_task(async function startup() {
 
 // This opens 10 tabs and checks pref getters.
 add_task(async function open_10_tabs() {
-  let max = 15;
+  // This is somewhat arbitrary. When we had a default of 4 content processes
+  // the value was 15. We need to scale it as we increase the number of
+  // content processes so we approximate with 4 * process_count.
+  const max = 4 * DEFAULT_PROCESS_COUNT;
 
   let whitelist = {
     "layout.css.dpi": {
@@ -145,10 +145,6 @@ add_task(async function open_10_tabs() {
     "security.insecure_connection_text.pbmode.enabled": {
       min: 10,
       max: 18,
-    },
-    "dom.ipc.processCount": {
-      min: 10,
-      max: 15,
     },
     "browser.startup.record": {
       max: 20,

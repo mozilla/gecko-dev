@@ -95,6 +95,12 @@
       "properties": {
         "ImportEnterpriseRoots": {
           "type": "boolean"
+        },
+        "Install": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -135,6 +141,21 @@
           "type": "boolean"
         },
 
+        "Locked": {
+          "type": "boolean"
+        }
+      }
+    },
+
+    "DNSOverHTTPS": {
+      "type": "object",
+      "properties": {
+        "Enabled": {
+          "type": "boolean"
+        },
+        "ProviderURL": {
+          "type": "URLorEmpty"
+        },
         "Locked": {
           "type": "boolean"
         }
@@ -333,9 +354,12 @@
           "items": {
             "type": "URL"
           }
+        },
+        "StartPage": {
+          "type": "string",
+          "enum": ["none", "homepage", "previous-session"]
         }
-      },
-      "required": ["URL"]
+      }
     },
 
     "InstallAddonsPermission": {
@@ -571,6 +595,13 @@
       }
     },
 
+    "RequestedLocales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+
     "SanitizeOnShutdown": {
       "type": "boolean"
     },
@@ -629,6 +660,13 @@
             "type": "string"
           }
         }
+      }
+    },
+
+    "SecurityDevices": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": { "type": "string" }
       }
     },
 

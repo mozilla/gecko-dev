@@ -443,16 +443,6 @@ class FennecInstance(GeckoInstance):
             exc, val, tb = sys.exc_info()
             message = "Error possibly due to runner or device args: {}"
             reraise(exc, message.format(e.message), tb)
-        # gecko_log comes from logcat when running with device/emulator
-        logcat_args = {
-            "filterspec": "Gecko",
-            "serial": self.runner.device.app_ctx.device_serial
-        }
-        if self.gecko_log == "-":
-            logcat_args["stream"] = sys.stdout
-        else:
-            logcat_args["logfile"] = self.gecko_log
-        self.runner.device.start_logcat(**logcat_args)
 
         # forward marionette port
         self.runner.device.device.forward(
@@ -509,6 +499,10 @@ class DesktopInstance(GeckoInstance):
         # app.update.enabled is being removed. Once Firefox 62 becomes stable,
         # the line below can be removed as well.
         "app.update.enabled": False,
+
+        # Don't show the content blocking introduction panel
+        # We use a larger number than the default 22 to have some buffer
+        "browser.contentblocking.introCount": 99,
 
         # Enable output of dump()
         "browser.dom.window.dump.enabled": True,

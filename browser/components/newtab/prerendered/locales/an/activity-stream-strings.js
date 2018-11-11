@@ -75,7 +75,7 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "Temas populars:",
   "pocket_read_even_more": "Amostrar mas articlos",
   "pocket_more_reccommendations": "More Recommendations",
-  "pocket_learn_more": "Learn More",
+  "pocket_how_it_works": "How it works",
   "pocket_cta_button": "Get Pocket",
   "pocket_cta_text": "Save the stories you love in Pocket, and fuel your mind with fascinating reads.",
   "highlights_empty_state": "Empecipia a navegar, y t'iremos amostrando aquí grans articlos, videos y atras pachinas que has vesitau u marcau en zagueras.",
@@ -106,5 +106,6 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "Condicions d'uso",
   "firstrun_privacy_notice": "Nota sobre privacidat",
   "firstrun_continue_to_login": "Continar",
-  "firstrun_skip_login": "Blinca-te este paso"
+  "firstrun_skip_login": "Blinca-te este paso",
+  "context_menu_title": "Open menu"
 };

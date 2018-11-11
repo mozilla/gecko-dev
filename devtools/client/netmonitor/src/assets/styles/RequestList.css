@@ -180,39 +180,6 @@
   text-overflow: initial;
 }
 
-.requests-list-status-code {
-  margin-inline-start: 3px;
-  padding: 0 2px;
-  border-radius: 3px;
-  font-family: var(--monospace-font-family);
-  /* prevent status code from having full line height width from .request-list-item */
-  line-height: normal;
-}
-
-.status-code[data-code^="1"] {
-  background-color: var(--status-code-color-1xx);
-}
-
-.status-code[data-code^="2"] {
-  background-color: var(--status-code-color-2xx);
-}
-
-.status-code[data-code^="3"] {
-  background-color: var(--status-code-color-3xx);
-}
-
-.status-code[data-code^="4"] {
-  background-color: var(--status-code-color-4xx);
-}
-
-.status-code[data-code^="5"] {
-  background-color: var(--status-code-color-5xx);
-}
-
-.status-code:not([data-code^="3"]) {
-  color: var(--theme-body-background);
-}
-
 .requests-list-status-icon {
   background: #fff;
   height: 10px;
@@ -281,6 +248,28 @@
 
 .requests-list-file.requests-list-column {
   text-align: start;
+}
+
+.requests-file-type-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 0 4px;
+  vertical-align: text-bottom;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+.request-list-item.selected .requests-file-type-icon {
+  filter: brightness(1.3);
+}
+
+.file-type-general {
+  background-image: url(chrome://devtools/skin/images/file-type-general.svg);
+}
+
+.file-type-image {
+  background-image: url(chrome://devtools/skin/images/file-type-image.svg);
 }
 
 /* Protocol column */
@@ -627,9 +616,5 @@
 
   .requests-list-waterfall {
     display: none;
-  }
-
-  :root[platform="linux"] .requests-list-header-button {
-    font-size: 85%;
   }
 }

@@ -33,14 +33,8 @@ add_task(async function checkCtrlWorks() {
   for (let [inputValue, expectedURL, options] of testcases) {
     let promiseLoad = waitForDocLoadAndStopIt(expectedURL);
     gURLBar.focus();
-    if (Object.keys(options).length > 0) {
-      gURLBar.selectionStart = gURLBar.selectionEnd =
-        gURLBar.inputField.value.length;
-      gURLBar.inputField.value = inputValue.slice(0, -1);
-      EventUtils.sendString(inputValue.slice(-1));
-    } else {
-      gURLBar.textValue = inputValue;
-    }
+    gURLBar.inputField.value = inputValue.slice(0, -1);
+    EventUtils.sendString(inputValue.slice(-1));
     EventUtils.synthesizeKey("KEY_Enter", options);
     await promiseLoad;
   }
@@ -56,7 +50,7 @@ add_task(async function checkPrefTurnsOffCanonize() {
 
   let tabsToClose = [];
   // Ensure we don't end up loading something in the current tab becuase it's empty:
-  if (isTabEmpty(gBrowser.selectedTab)) {
+  if (gBrowser.selectedTab.isEmpty) {
     tabsToClose.push(await BrowserTestUtils.openNewForegroundTab({gBrowser, opening: "about:mozilla"}));
   }
   let initialTabURL = gBrowser.selectedBrowser.currentURI.spec;

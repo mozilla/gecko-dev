@@ -12,16 +12,14 @@
   --toolbar-non-lwt-bgcolor: -moz-dialog;
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
   --toolbar-non-lwt-bgimage: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.15));
-  --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
-  --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
 
   --toolbarbutton-border-radius: 4px;
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) - 1px);
   --toolbarbutton-icon-fill-opacity: .85;
 
   --panel-separator-color: ThreeDShadow;
-  --arrowpanel-dimmed: hsla(0,0%,80%,.3);
-  --arrowpanel-dimmed-further: hsla(0,0%,80%,.45);
+  --arrowpanel-dimmed: hsla(0,0%,80%,.35);
+  --arrowpanel-dimmed-further: hsla(0,0%,80%,.5);
   --arrowpanel-dimmed-even-further: hsla(0,0%,80%,.8);
 
   --urlbar-separator-color: ThreeDShadow;
@@ -38,9 +36,6 @@
 }
 
 :root:-moz-lwtheme {
-  --toolbar-bgcolor: rgba(255,255,255,.4);
-  --toolbar-bgimage: none;
-
   --toolbox-border-bottom-color: rgba(0,0,0,.3);
 
   --panel-separator-color: hsla(210,4%,10%,.14);
@@ -58,10 +53,6 @@
   -moz-box-orient: vertical; /* for flex hack */
 }
 
-#main-menubar {
-  -moz-box-flex: 1; /* make menu items expand to fill toolbar height */
-}
-
 #navigator-toolbox {
   -moz-appearance: none;
   background-color: transparent;
@@ -75,12 +66,12 @@
 .browser-toolbar:not(.titlebar-color) {
   background-color: var(--toolbar-bgcolor);
   background-image: var(--toolbar-bgimage);
-  color: var(--toolbar-color, inherit);
+  color: var(--toolbar-color);
   -moz-appearance: none;
   border-style: none;
 }
 
-#TabsToolbar:not([collapsed="true"]) + #nav-bar {
+#nav-bar:not([tabs-hidden="true"]) {
   box-shadow: 0 -@navbarTabsShadowSize@ 0 var(--tabs-border-color);
   /* This is needed for some toolbar button animations. Gross :( */
   position: relative;
@@ -458,14 +449,14 @@ notification[value="translation"] menulist > .menulist-dropmarker {
 }
 
 .browserContainer > findbar {
-  background-color: -moz-dialog;
-  color: -moz-DialogText;
-  text-shadow: none;
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
 }
 
 .browserContainer > findbar:-moz-lwtheme {
-  background-color: var(--toolbar-bgcolor);
-  color: var(--toolbar-color, -moz-DialogText);
+  background-color: var(--lwt-accent-color);
+  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+  text-shadow: none;
 }
 
 /* Tabstrip */
@@ -627,14 +618,6 @@ notification[value="translation"] menulist > .menulist-dropmarker {
   border-radius: inherit;
 }
 
-/* Hide the titlebar explicitly on versions of GTK+ where
- * it's rendered by window manager. */
-@media (-moz-gtk-csd-available: 0) {
-  #titlebar {
-    display: none;
-  }
-}
-
 /* We draw to titlebar when Gkt+ CSD is available */
 @media (-moz-gtk-csd-available) {
   /* Some Gtk+ themes use non-rectangular toplevel windows. To fully support
@@ -643,24 +626,24 @@ notification[value="translation"] menulist > .menulist-dropmarker {
    * and enable it for desktop environment which do that by default.
    * See nsWindow::TopLevelWindowUseARGBVisual() for details. */
   @media (-moz-gtk-csd-transparent-background) {
-    :root[tabsintitlebar]:not(:-moz-lwtheme) {
+    :root[tabsintitlebar][sizemode="normal"]:not(:-moz-lwtheme) {
       background-color: transparent;
       -moz-appearance: none;
     }
   }
 
-  :root[tabsintitlebar] > #titlebar:-moz-lwtheme {
-    visibility: hidden;
-  }
-  :root[tabsintitlebar] #titlebar-content:-moz-lwtheme {
-    visibility: visible;
-  }
-
-  :root[tabsintitlebar] > #titlebar {
+  :root[tabsintitlebar] > #navigator-toolbox > #titlebar {
     -moz-appearance: -moz-window-titlebar-maximized;
   }
-  :root[tabsintitlebar][sizemode="normal"] > #titlebar {
+  :root[tabsintitlebar][sizemode="normal"] > #navigator-toolbox > #titlebar {
     -moz-appearance: -moz-window-titlebar;
+  }
+  :root[tabsintitlebar] > #navigator-toolbox > #titlebar:-moz-lwtheme {
+    visibility: hidden;
+  }
+  :root[tabsintitlebar] #toolbar-menubar:-moz-lwtheme,
+  :root[tabsintitlebar] #TabsToolbar:-moz-lwtheme {
+    visibility: visible;
   }
 
   /* Add extra space to titlebar for dragging */
@@ -669,12 +652,13 @@ notification[value="translation"] menulist > .menulist-dropmarker {
     padding-top: var(--space-above-tabbar);
   }
 
-  /* Private browsing and accessibility indicators */
-  :root[sizemode="normal"][chromehidden~="menubar"] #TabsToolbar > .private-browsing-indicator,
-  :root[sizemode="normal"][chromehidden~="menubar"] #TabsToolbar > .accessibility-indicator,
-  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] + #TabsToolbar > .private-browsing-indicator,
-  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] + #TabsToolbar > .accessibility-indicator {
-    padding-top: calc(-1 * var(--space-above-tabbar));
+  /**
+   * Titlebar items (window caption buttons, private browsing indicator,
+   * accessibility indicator, etc)
+   */
+  :root[sizemode="normal"][chromehidden~="menubar"] #TabsToolbar > .titlebar-item,
+  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] + #TabsToolbar > .titlebar-item {
+    margin-top: calc(-1 * var(--space-above-tabbar));
   }
 
   /* Make #TabsToolbar transparent as we style underlying #titlebar with
@@ -691,7 +675,7 @@ notification[value="translation"] menulist > .menulist-dropmarker {
    * window state. Otherwise, elements in the navigator-toolbox, like the menubar,
    * can swallow those events.
    */
-  #titlebar-buttonbox {
+  .titlebar-buttonbox {
     z-index: 1;
     -moz-box-align: center;
   }
@@ -700,37 +684,37 @@ notification[value="translation"] menulist > .menulist-dropmarker {
    * Use full scale icons here as the Gtk+ does.
    */
   @media (-moz-gtk-csd-minimize-button) {
-    #titlebar-min {
+    .titlebar-min {
       -moz-appearance: -moz-window-button-minimize;
     }
   }
   @media (-moz-gtk-csd-minimize-button: 0) {
-    #titlebar-min {
+    .titlebar-min {
       display: none;
     }
   }
 
   @media (-moz-gtk-csd-maximize-button) {
-    #titlebar-max {
+    .titlebar-max {
       -moz-appearance: -moz-window-button-maximize;
     }
-    :root[sizemode="maximized"] #titlebar-max {
+    :root[sizemode="maximized"] .titlebar-max {
       -moz-appearance: -moz-window-button-restore;
     }
   }
   @media (-moz-gtk-csd-maximize-button: 0) {
-    #titlebar-max {
+    .titlebar-max {
       display: none;
     }
   }
 
   @media (-moz-gtk-csd-close-button) {
-    #titlebar-close {
+    .titlebar-close {
       -moz-appearance: -moz-window-button-close;
     }
   }
   @media (-moz-gtk-csd-close-button: 0) {
-    #titlebar-close {
+    .titlebar-close {
       display: none;
     }
   }

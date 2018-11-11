@@ -1,27 +1,3 @@
-geckoview:
-    description: "Geckoview run"
-    suite: geckoview
-    treeherder-symbol: gv
-    instance-size: xlarge
-    loopback-video: true
-    e10s: false
-    target: geckoview_example.apk
-    mozharness:
-        script: android_emulator_unittest.py
-        config:
-            by-test-platform:
-                android-em-4.2-x86/opt:
-                    - android/android_common.py
-                    - android/androidx86.py
-                android-em-7.0-x86/opt:
-                    - android/android_common.py
-                    - android/androidx86_7_0.py
-                android-em.*:
-                    - android/android_common.py
-                    - android/androidarm_4_3.py
-        extra-options:
-            - --test-suite=geckoview
-
 geckoview-junit:
     description: "Geckoview junit run"
     suite: geckoview-junit
@@ -35,10 +11,6 @@ geckoview-junit:
         by-test-platform:
             android-em-7.0-x86/opt: 3
             default: default
-    run-on-projects:
-        by-test-platform:
-            android-em-7.0-x86/opt: ['mozilla-central']
-            default: built-projects
     chunks:
         by-test-platform:
             android-em-4.3-arm7-api-16-ccov/debug: 4
@@ -86,8 +58,7 @@ telemetry-tests-client:
     suite: telemetry-tests-client
     treeherder-symbol: tt(c)
     max-run-time: 5400
-    checkout: true
-    tier: 3
+    tier: 2
     mozharness:
         script: telemetry/telemetry_client.py
         config:
@@ -109,12 +80,10 @@ test-verify:
     allow-software-gl-layers: false
     run-on-projects:
         by-test-platform:
-            # do not run on ccov or jsdcov
+            # do not run on ccov
             .*-ccov/.*: []
-            .*-jsdcov/.*: []
             .*-asan/.*: []
             # do not run on beta or release: usually just confirms earlier results
-            .*-msvc/.*: ['mozilla-central', 'try']
             default: ['trunk', 'try']
     tier: 2
     mozharness:
@@ -154,12 +123,10 @@ test-verify-gpu:
     allow-software-gl-layers: false
     run-on-projects:
         by-test-platform:
-            # do not run on ccov or jsdcov
+            # do not run on ccov
             .*-ccov/.*: []
-            .*-jsdcov/.*: []
             .*-asan/.*: []
             # do not run on beta or release: usually just confirms earlier results
-            .*-msvc/.*: ['mozilla-central', 'try']
             default: ['trunk', 'try']
     tier: 2
     mozharness:

@@ -6,12 +6,13 @@
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm", {});
 const EventEmitter = require("devtools/shared/event-emitter");
+const { adbAddon, ADB_ADDON_STATES } = require("devtools/shared/adb/adb-addon");
 
 /* exported EXPORTED_SYMBOLS */
 
 const EXPORTED_SYMBOLS = ["Devices"];
 
-var addonInstalled = false;
+var addonInstalled = adbAddon.status === ADB_ADDON_STATES.INSTALLED;
 
 const Devices = {
   _devices: {},
@@ -45,12 +46,19 @@ const Devices = {
 
   getByName: function(name) {
     return this._devices[name];
-  }
+  },
+
+  updateAdbAddonStatus: function() {
+    this.adbExtensionInstalled = adbAddon.status === ADB_ADDON_STATES.INSTALLED;
+  },
 };
+
 Object.defineProperty(this, "Devices", {
   value: Devices,
   enumerable: true,
-  writable: false
+  writable: false,
 });
 
 EventEmitter.decorate(Devices);
+
+adbAddon.on("update", () => Devices.updateAdbAddonStatus());

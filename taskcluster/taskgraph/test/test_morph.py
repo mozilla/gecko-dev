@@ -59,13 +59,16 @@ def test_make_index_tasks(make_taskgraph):
             "index.gecko.v2.mozilla-central.revision."
             "b5d8b27a753725c1de41ffae2e338798f3b5cacd.firefox-l10n.linux64-opt.uk",
             "index.gecko.v2.mozilla-central.revision."
-            "b5d8b27a753725c1de41ffae2e338798f3b5cacd.firefox-l10n.linux64-opt.zh-CN"
+            "b5d8b27a753725c1de41ffae2e338798f3b5cacd.firefox-l10n.linux64-opt.zh-CN",
         ],
         'deadline': 'soon',
         'metadata': {
             'description': 'desc',
             'owner': 'owner@foo.com',
             'source': 'https://source',
+        },
+        'extra': {
+            'index': {'rank': 1540722354},
         },
     }
     task = Task(kind='test', label='a', attributes={}, task=task_def)
@@ -80,6 +83,7 @@ def test_make_index_tasks(make_taskgraph):
 
     assert index_task.task['payload']['command'][0] == 'insert-indexes.js'
     assert index_task.task['payload']['env']['TARGET_TASKID'] == 'a-tid'
+    assert index_task.task['payload']['env']['INDEX_RANK'] == 1540722354
 
     # check the scope summary
     assert index_task.task['scopes'] == ['index:insert-task:gecko.v2.mozilla-central.*']
@@ -221,14 +225,14 @@ def test_template_rebuild(get_morphed):
     [['foo']],
     [['foo', '--bar']],
 ))
-def test_template_talos_profile(get_morphed, command):
+def test_template_gecko_profile(get_morphed, command):
     tasks = TASKS[:]
     for t in tasks:
         t['task']['payload']['command'] = command
 
     morphed = get_morphed({
         'templates': {
-            'talos-profile': True,
+            'gecko-profile': True,
         }
     }, tasks)
 
@@ -239,9 +243,9 @@ def test_template_talos_profile(get_morphed, command):
         command = ' '.join(command)
 
         if t.label == 'a':
-            assert not command.endswith('--geckoProfile')
+            assert not command.endswith('--gecko-profile')
         elif t.label == 'b':
-            assert command.endswith('--geckoProfile')
+            assert command.endswith('--gecko-profile')
 
 
 if __name__ == '__main__':

@@ -40,10 +40,6 @@
   -moz-image-region: rect(0px, 64px, 32px, 32px)
 }
 
-#feedTab {
-  -moz-image-region: rect(0px, 96px, 32px, 64px)
-}
-
 #permTab {
   -moz-image-region: rect(0px, 128px, 32px, 96px)
 }
@@ -136,39 +132,6 @@ treechildren::-moz-tree-cell-text(broken) {
   color: graytext;
 }
 
-/* Feeds Tab */
-#feedPanel {
-  margin-left: 2px;
-  margin-right: 2px;
-}
-
-#feedtree {
-  margin-bottom: 0px;
-}
-
-#feedListbox richlistitem {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-inline-start: 7px;
-  padding-inline-end: 7px;
-  min-height: 25px;
-  border-bottom: 1px dotted ThreeDShadow;
-  color: -moz-FieldText;
-}
-
-#feedListbox richlistitem[selected="true"] {
-  background-color: -moz-Dialog;
-  color: -moz-DialogText;
-}
-
-#feedListbox {
-  margin-bottom: 0;
-}
-
-.feedTitle {
-  font-weight: bold;
-}
-
 /* Permissions Tab */
 
 #permList {
@@ -194,21 +157,9 @@ treechildren::-moz-tree-cell-text(broken) {
 }
 
 /* Security Tab */
-#securityPanel .caption-icon {
-  display: none;
-}
 
-#securityPanel .header {
-  font-size: 120%;
-}
-
-#securityPanel .fieldLabel {
-  margin: 2px 10px 3px;
-}
-
-#securityPanel .fieldValue {
-  font-weight: bold;
-  margin: 2px 10px 3px;
+#securityPanel grid {
+  margin-bottom: 1em;
 }
 
 #securityPanel row {

@@ -16,6 +16,7 @@
 
 #include "builtin/Array.h"
 #include "builtin/Reflect.h"
+#include "frontend/ParseNode.h"
 #include "frontend/Parser.h"
 #include "frontend/TokenStream.h"
 #include "js/CharacterEncoding.h"
@@ -24,7 +25,6 @@
 #include "vm/JSObject.h"
 #include "vm/RegExpObject.h"
 
-#include "frontend/ParseNode-inl.h"
 #include "vm/JSObject-inl.h"
 
 using namespace js;
@@ -549,7 +549,7 @@ class NodeBuilder
 
     MOZ_MUST_USE bool classDefinition(bool expr, HandleValue name, HandleValue heritage,
                                       HandleValue block, TokenPos* pos, MutableHandleValue dst);
-    MOZ_MUST_USE bool classMethods(NodeVector& methods, MutableHandleValue dst);
+    MOZ_MUST_USE bool classMembers(NodeVector& members, MutableHandleValue dst);
     MOZ_MUST_USE bool classMethod(HandleValue name, HandleValue body, PropKind kind, bool isStatic,
                                   TokenPos* pos, MutableHandleValue dst);
 
@@ -1652,9 +1652,9 @@ NodeBuilder::classMethod(HandleValue name, HandleValue body, PropKind kind, bool
 }
 
 bool
-NodeBuilder::classMethods(NodeVector& methods, MutableHandleValue dst)
+NodeBuilder::classMembers(NodeVector& members, MutableHandleValue dst)
 {
-    return newArray(methods, dst);
+    return newArray(members, dst);
 }
 
 bool
@@ -1693,8 +1693,9 @@ NodeBuilder::callImportExpression(HandleValue ident, HandleValue arg, TokenPos* 
                                   MutableHandleValue dst)
 {
     RootedValue cb(cx, callbacks[AST_CALL_IMPORT]);
-    if (!cb.isNull())
+    if (!cb.isNull()) {
         return callback(cb, arg, pos, dst);
+    }
 
     return newNode(AST_CALL_IMPORT, pos,
                    "ident", ident,
@@ -2391,7 +2392,7 @@ ASTSerializer::classDefinition(ClassNode* pn, bool expr, MutableHandleValue dst)
     }
 
     return optExpression(pn->heritage(), &heritage) &&
-           statement(pn->methodList(), &classBody) &&
+           statement(pn->memberList(), &classBody) &&
            builder.classDefinition(expr, className, heritage, classBody, &pn->pn_pos, dst);
 }
 
@@ -2619,26 +2620,31 @@ ASTSerializer::statement(ParseNode* pn, MutableHandleValue dst)
       case ParseNodeKind::Class:
         return classDefinition(&pn->as<ClassNode>(), false, dst);
 
-      case ParseNodeKind::ClassMethodList:
+      case ParseNodeKind::ClassMemberList:
       {
-        ListNode* methodList = &pn->as<ListNode>();
-        NodeVector methods(cx);
-        if (!methods.reserve(methodList->count())) {
+        ListNode* memberList = &pn->as<ListNode>();
+        NodeVector members(cx);
+        if (!members.reserve(memberList->count())) {
             return false;
         }
 
-        for (ParseNode* item : methodList->contents()) {
+        for (ParseNode* item : memberList->contents()) {
+            if (item->is<ClassField>()) {
+                // TODO(khyperia): Implement private field access.
+                return false;
+            }
+
             ClassMethod* method = &item->as<ClassMethod>();
-            MOZ_ASSERT(methodList->pn_pos.encloses(method->pn_pos));
+            MOZ_ASSERT(memberList->pn_pos.encloses(method->pn_pos));
 
             RootedValue prop(cx);
             if (!classMethod(method, &prop)) {
                 return false;
             }
-            methods.infallibleAppend(prop);
+            members.infallibleAppend(prop);
         }
 
-        return builder.classMethods(methods, dst);
+        return builder.classMembers(members, dst);
       }
 
       default:
@@ -2959,6 +2965,7 @@ ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst)
       case ParseNodeKind::Dot:
       {
         PropertyAccess* prop = &pn->as<PropertyAccess>();
+        // TODO(khyperia): Implement private field access.
         MOZ_ASSERT(prop->pn_pos.encloses(prop->expression().pn_pos));
 
         RootedValue expr(cx);

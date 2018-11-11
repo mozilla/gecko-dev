@@ -575,11 +575,12 @@ BlockReflowInput::AddFloat(nsLineLayout*       aLineLayout,
   MOZ_ASSERT(aFloat->GetParent(), "float must have parent");
   MOZ_ASSERT(aFloat->GetParent()->IsFrameOfType(nsIFrame::eBlockFrame),
              "float's parent must be block");
-  MOZ_ASSERT(aFloat->GetParent() == mBlock ||
-             (aFloat->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT),
-             "float should be in this block unless it was marked as "
-             "pushed float");
-  if (aFloat->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT) {
+  if (aFloat->HasAnyStateBits(NS_FRAME_IS_PUSHED_FLOAT) ||
+      aFloat->GetParent() != mBlock) {
+    MOZ_ASSERT(aFloat->HasAnyStateBits(NS_FRAME_IS_PUSHED_FLOAT | NS_FRAME_FIRST_REFLOW),
+               "float should be in this block unless it was marked as "
+               "pushed float, or just inserted");
+    MOZ_ASSERT(aFloat->GetParent()->FirstContinuation() == mBlock->FirstContinuation());
     // If, in a previous reflow, the float was pushed entirely to
     // another column/page, we need to steal it back.  (We might just
     // push it again, though.)  Likewise, if that previous reflow
@@ -588,8 +589,7 @@ BlockReflowInput::AddFloat(nsLineLayout*       aLineLayout,
     //
     // For more about pushed floats, see the comment above
     // nsBlockFrame::DrainPushedFloats.
-    nsBlockFrame *floatParent =
-      static_cast<nsBlockFrame*>(aFloat->GetParent());
+    auto* floatParent = static_cast<nsBlockFrame*>(aFloat->GetParent());
     floatParent->StealFrame(aFloat);
 
     aFloat->RemoveStateBits(NS_FRAME_IS_PUSHED_FLOAT);
@@ -713,6 +713,52 @@ FloatMarginISize(const ReflowInput& aCBReflowInput,
            ConvertTo(cbwm, wm).ISize(cbwm);
 }
 
+// A frame property that stores the last shape source / margin / etc. if there's
+// any shape, in order to invalidate the float area properly when it changes.
+//
+// TODO(emilio): This could really belong to GetRegionFor / StoreRegionFor, but
+// when I tried it was a bit awkward because of the logical -> physical
+// conversion that happens there.
+//
+// Maybe all this code could be refactored to make this cleaner, but keeping the
+// two properties separated was slightly nicer.
+struct ShapeInvalidationData
+{
+
+  StyleShapeSource mShapeOutside;
+  float mShapeImageThreshold = 0.0;
+  nsStyleCoord mShapeMargin;
+
+  ShapeInvalidationData() = default;
+
+  explicit ShapeInvalidationData(const nsStyleDisplay& aDisplay)
+  {
+    Update(aDisplay);
+  }
+
+  static bool IsNeeded(const nsStyleDisplay& aDisplay)
+  {
+    return aDisplay.mShapeOutside.GetType() != StyleShapeSourceType::None;
+  }
+
+  void Update(const nsStyleDisplay& aDisplay)
+  {
+    MOZ_ASSERT(IsNeeded(aDisplay));
+    mShapeOutside = aDisplay.mShapeOutside;
+    mShapeImageThreshold = aDisplay.mShapeImageThreshold;
+    mShapeMargin = aDisplay.mShapeMargin;
+  }
+
+  bool Matches(const nsStyleDisplay& aDisplay) const
+  {
+    return mShapeOutside == aDisplay.mShapeOutside &&
+           mShapeImageThreshold == aDisplay.mShapeImageThreshold &&
+           mShapeMargin == aDisplay.mShapeMargin;
+  }
+};
+
+NS_DECLARE_FRAME_PROPERTY_DELETABLE(ShapeInvalidationDataProperty, ShapeInvalidationData)
+
 bool
 BlockReflowInput::FlowAndPlaceFloat(nsIFrame* aFloat)
 {
@@ -732,6 +778,9 @@ BlockReflowInput::FlowAndPlaceFloat(nsIFrame* aFloat)
   // The float's old region, so we can propagate damage.
   LogicalRect oldRegion = nsFloatManager::GetRegionFor(wm, aFloat,
                                                        ContainerSize());
+
+  ShapeInvalidationData* invalidationData =
+    aFloat->GetProperty(ShapeInvalidationDataProperty());
 
   // Enforce CSS2 9.5.1 rule [2], i.e., make sure that a float isn't
   // ``above'' another float that preceded it in the flow.
@@ -996,9 +1045,14 @@ BlockReflowInput::FlowAndPlaceFloat(nsIFrame* aFloat)
   // store region
   nsFloatManager::StoreRegionFor(wm, aFloat, region, ContainerSize());
 
-  // If the float's dimensions have changed, note the damage in the
+  const bool invalidationDataNeeded =
+    ShapeInvalidationData::IsNeeded(*floatDisplay);
+
+  // If the float's dimensions or shape have changed, note the damage in the
   // float manager.
-  if (!region.IsEqualEdges(oldRegion)) {
+  if (!region.IsEqualEdges(oldRegion) ||
+      !!invalidationData != invalidationDataNeeded ||
+      (invalidationData && !invalidationData->Matches(*floatDisplay))) {
     // XXXwaterson conservative: we could probably get away with noting
     // less damage; e.g., if only height has changed, then only note the
     // area into which the float has grown or from which the float has
@@ -1006,6 +1060,18 @@ BlockReflowInput::FlowAndPlaceFloat(nsIFrame* aFloat)
     nscoord blockStart = std::min(region.BStart(wm), oldRegion.BStart(wm));
     nscoord blockEnd = std::max(region.BEnd(wm), oldRegion.BEnd(wm));
     FloatManager()->IncludeInDamage(blockStart, blockEnd);
+  }
+
+  if (invalidationDataNeeded) {
+    if (invalidationData) {
+      invalidationData->Update(*floatDisplay);
+    } else {
+      aFloat->SetProperty(ShapeInvalidationDataProperty(),
+                          new ShapeInvalidationData(*floatDisplay));
+    }
+  } else if (invalidationData) {
+    invalidationData = nullptr;
+    aFloat->DeleteProperty(ShapeInvalidationDataProperty());
   }
 
   if (!reflowStatus.IsFullyComplete()) {

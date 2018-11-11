@@ -24,6 +24,7 @@ const { TabSources } = require("devtools/server/actors/utils/TabSources");
 
 loader.lazyRequireGetter(this, "WorkerTargetActorList", "devtools/server/actors/worker/worker-list", true);
 loader.lazyRequireGetter(this, "MemoryActor", "devtools/server/actors/memory", true);
+loader.lazyRequireGetter(this, "PromisesActor", "devtools/server/actors/promises", true);
 
 function ContentProcessTargetActor(connection) {
   this.conn = connection;
@@ -34,7 +35,7 @@ function ContentProcessTargetActor(connection) {
   // Use a see-everything debugger
   this.makeDebugger = makeDebugger.bind(null, {
     findDebuggees: dbg => dbg.findAllGlobals(),
-    shouldAddNewGlobalAsDebuggee: global => true
+    shouldAddNewGlobalAsDebuggee: global => true,
   });
 
   const sandboxPrototype = {
@@ -101,6 +102,13 @@ ContentProcessTargetActor.prototype = {
       this.memoryActor = new MemoryActor(this.conn, this);
       this._contextPool.addActor(this.memoryActor);
     }
+    // Promises actor is being tested by xpcshell test, which uses the content process
+    // target actor. But this actor isn't being used outside of tests yet.
+    if (!this._promisesActor) {
+      this._promisesActor = new PromisesActor(this.conn, this);
+      this._contextPool.addActor(this._promisesActor);
+    }
+
     return {
       actor: this.actorID,
       name: "Content process",
@@ -108,9 +116,9 @@ ContentProcessTargetActor.prototype = {
       consoleActor: this._consoleActor.actorID,
       chromeDebugger: this.threadActor.actorID,
       memoryActor: this.memoryActor.actorID,
+      promisesActor: this._promisesActor.actorID,
 
       traits: {
-        highlightable: false,
         networkMonitor: false,
       },
     };
@@ -137,7 +145,7 @@ ContentProcessTargetActor.prototype = {
 
       return {
         "from": this.actorID,
-        "workers": actors.map(actor => actor.form())
+        "workers": actors.map(actor => actor.form()),
       };
     });
   },

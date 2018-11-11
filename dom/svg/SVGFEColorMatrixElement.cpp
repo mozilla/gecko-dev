@@ -25,16 +25,16 @@ SVGFEColorMatrixElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenPr
 }
 
 nsSVGEnumMapping SVGFEColorMatrixElement::sTypeMap[] = {
-  {&nsGkAtoms::matrix, SVG_FECOLORMATRIX_TYPE_MATRIX},
-  {&nsGkAtoms::saturate, SVG_FECOLORMATRIX_TYPE_SATURATE},
-  {&nsGkAtoms::hueRotate, SVG_FECOLORMATRIX_TYPE_HUE_ROTATE},
-  {&nsGkAtoms::luminanceToAlpha, SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA},
+  {nsGkAtoms::matrix, SVG_FECOLORMATRIX_TYPE_MATRIX},
+  {nsGkAtoms::saturate, SVG_FECOLORMATRIX_TYPE_SATURATE},
+  {nsGkAtoms::hueRotate, SVG_FECOLORMATRIX_TYPE_HUE_ROTATE},
+  {nsGkAtoms::luminanceToAlpha, SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA},
   {nullptr, 0}
 };
 
 nsSVGElement::EnumInfo SVGFEColorMatrixElement::sEnumInfo[1] =
 {
-  { &nsGkAtoms::type,
+  { nsGkAtoms::type,
     sTypeMap,
     SVG_FECOLORMATRIX_TYPE_MATRIX
   }
@@ -42,13 +42,13 @@ nsSVGElement::EnumInfo SVGFEColorMatrixElement::sEnumInfo[1] =
 
 nsSVGElement::StringInfo SVGFEColorMatrixElement::sStringInfo[2] =
 {
-  { &nsGkAtoms::result, kNameSpaceID_None, true },
-  { &nsGkAtoms::in, kNameSpaceID_None, true }
+  { nsGkAtoms::result, kNameSpaceID_None, true },
+  { nsGkAtoms::in, kNameSpaceID_None, true }
 };
 
 nsSVGElement::NumberListInfo SVGFEColorMatrixElement::sNumberListInfo[1] =
 {
-  { &nsGkAtoms::values }
+  { nsGkAtoms::values }
 };
 
 //----------------------------------------------------------------------
@@ -100,11 +100,14 @@ SVGFEColorMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
        type == SVG_FECOLORMATRIX_TYPE_SATURATE ||
        type == SVG_FECOLORMATRIX_TYPE_HUE_ROTATE)) {
     atts.mType = (uint32_t)SVG_FECOLORMATRIX_TYPE_MATRIX;
-    static const float identityMatrix[] =
-      { 1, 0, 0, 0, 0,
+    static const float identityMatrix[] = {
+      // clang-format off
+        1, 0, 0, 0, 0,
         0, 1, 0, 0, 0,
         0, 0, 1, 0, 0,
-        0, 0, 0, 1, 0 };
+        0, 0, 0, 1, 0
+      // clang-format on
+    };
     atts.mValues.AppendElements(identityMatrix, 20);
   } else {
     atts.mType = type;

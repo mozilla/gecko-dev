@@ -1,4 +1,5 @@
 .ASRouterButton {
+  font-weight: bold;
   white-space: nowrap;
   border-radius: 4px;
   border: 1px solid var(--newtab-border-secondary-color);
@@ -7,8 +8,22 @@
   padding: 8px 15px;
   margin-inline-start: 12px;
   color: inherit;
+  cursor: pointer;
 
   .tall & {
     margin-inline-start: 20px;
+  }
+
+  &.primary {
+    border: 1px solid var(--newtab-button-primary-color);
+    background-color: var(--newtab-button-primary-color);
+    color: $grey-10;
+  }
+
+  &.secondary {
+    background: var(--newtab-button-secondary-color);
+    border: 1px solid var(--newtab-border-primary-color);
+    font-size: 14px;
+    font-weight: 600;
   }
 }

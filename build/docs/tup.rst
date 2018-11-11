@@ -13,7 +13,7 @@ future.
 
 As part of the mozbuild architecture, the Tup backend shares a significant
 portion of frontend (developer-facing) code in the build system. When using the
-Tup backend, ``mach build`` is still the entry point to run the build system,
+Tup backend, ``./mach build`` is still the entry point to run the build system,
 and moz.build files are still used for the build description. Familiar parts of
 the build system like configure and generating the build files (the
 ``Reticulating splines...`` step) are virtually identical in both backends. The
@@ -32,9 +32,10 @@ Installation
 ============
 
 You'll need to install the Tup executable, as well as the nightly rust/cargo
-toolchain::
+toolchain (Note: Replace $topsrcdir with the path to your mozilla-central
+source tree)::
 
-   cd ~/.mozbuild && mach artifact toolchain --from-build linux64-tup
+   cd ~/.mozbuild && $topsrcdir/mach artifact toolchain --from-build linux64-tup
    rustup install nightly
    rustup default nightly
 
@@ -47,15 +48,23 @@ PATH, and enable the Tup backend::
    export TUP=~/.mozbuild/tup/tup
    ac_add_options --enable-build-backends=Tup
 
+Configuring Parallel Jobs
+-------------------------
+
+To override the default number of jobs run in parallel, set MOZ_PARALLEL_BUILD
+in your mozconfig::
+
+    mk_add_options MOZ_PARALLEL_BUILD=8
+
 What Works
 ==========
 
 You should expect a Linux desktop build to generate a working Firefox binary
-from a ``mach build``, and be able to run test suites against it (eg:
+from a ``./mach build``, and be able to run test suites against it (eg:
 mochitests, xpcshell, gtest). Top-level incremental builds should be fast
 enough to use them during a regular compile/edit/test cycle. If you wish to
 stop compilation partway through the build to more quickly iterate on a
-particular file, you can expect ``mach build objdir/path/to/file.o`` to
+particular file, you can expect ``./mach build objdir/path/to/file.o`` to
 correctly produce all inputs required to build file.o before compiling it. For
 example, you don't have to run the build system in various subdirectories to
 get generated headers built in the right order.

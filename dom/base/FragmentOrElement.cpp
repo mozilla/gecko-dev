@@ -1483,9 +1483,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(FragmentOrElement)
     }
 
     if (tmp->IsHTMLElement() || tmp->IsSVGElement()) {
-      nsStaticAtom*** props = Element::HTMLSVGPropertiesToTraverseAndUnlink();
+      nsStaticAtom* const* props =
+        Element::HTMLSVGPropertiesToTraverseAndUnlink();
       for (uint32_t i = 0; props[i]; ++i) {
-        tmp->DeleteProperty(*props[i]);
+        tmp->DeleteProperty(props[i]);
       }
       if (tmp->MayHaveAnimations()) {
         nsAtom** effectProps = EffectSet::GetEffectSetPropertyAtoms();
@@ -2039,10 +2040,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
       }
     }
     if (tmp->IsHTMLElement() || tmp->IsSVGElement()) {
-      nsStaticAtom*** props = Element::HTMLSVGPropertiesToTraverseAndUnlink();
+      nsStaticAtom* const* props =
+        Element::HTMLSVGPropertiesToTraverseAndUnlink();
       for (uint32_t i = 0; props[i]; ++i) {
         nsISupports* property =
-          static_cast<nsISupports*>(tmp->GetProperty(*props[i]));
+          static_cast<nsISupports*>(tmp->GetProperty(props[i]));
         cb.NoteXPCOMChild(property);
       }
       if (tmp->MayHaveAnimations()) {
@@ -2186,8 +2188,7 @@ FragmentOrElement::GetMarkup(bool aIncludeSelf, nsAString& aMarkup)
   nsCOMPtr<nsIDocumentEncoder> docEncoder = doc->GetCachedEncoder();
   if (!docEncoder) {
     docEncoder =
-      do_CreateInstance(PromiseFlatCString(
-        nsDependentCString(NS_DOC_ENCODER_CONTRACTID_BASE) +
+      do_createDocumentEncoder(PromiseFlatCString(
         NS_ConvertUTF16toUTF8(contentType)
       ).get());
   }
@@ -2195,7 +2196,7 @@ FragmentOrElement::GetMarkup(bool aIncludeSelf, nsAString& aMarkup)
     // This could be some type for which we create a synthetic document.  Try
     // again as XML
     contentType.AssignLiteral("application/xml");
-    docEncoder = do_CreateInstance(NS_DOC_ENCODER_CONTRACTID_BASE "application/xml");
+    docEncoder = do_createDocumentEncoder("application/xml");
     // Don't try to cache the encoder since it would point to a different
     // contentType once it has been reinitialized.
     tryToCacheEncoder = false;

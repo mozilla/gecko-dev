@@ -1,8 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-pref("devtools.debugger.new-debugger-frontend", true);
-
 // Enable the Debugger
 pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.chrome-debugging-host", "localhost");
@@ -34,6 +32,7 @@ pref("devtools.debugger.component-visible", true);
 pref("devtools.debugger.workers-visible", true);
 pref("devtools.debugger.breakpoints-visible", true);
 pref("devtools.debugger.expressions-visible", true);
+pref("devtools.debugger.xhr-breakpoints-visible", true);
 pref("devtools.debugger.start-panel-collapsed", false);
 pref("devtools.debugger.end-panel-collapsed", false);
 pref("devtools.debugger.tabs", "[]");
@@ -65,3 +64,4 @@ pref("devtools.debugger.features.async-stepping", true);
 pref("devtools.debugger.features.skip-pausing", true);
 pref("devtools.debugger.features.autocomplete-expressions", false);
 pref("devtools.debugger.features.map-expression-bindings", true);
+pref("devtools.debugger.features.xhr-breakpoints", true);

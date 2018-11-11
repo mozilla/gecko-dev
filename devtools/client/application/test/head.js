@@ -41,7 +41,7 @@ function getWorkerContainers(doc) {
 }
 
 function navigate(target, url, waitForTargetEvent = "navigate") {
-  executeSoon(() => target.activeTab.navigateTo(url));
+  executeSoon(() => target.activeTab.navigateTo({ url }));
   return once(target, waitForTargetEvent);
 }
 
@@ -68,7 +68,7 @@ async function unregisterAllWorkers(client) {
   for (const worker of workers.service) {
     await client.request({
       to: worker.registrationActor,
-      type: "unregister"
+      type: "unregister",
     });
   }
 }

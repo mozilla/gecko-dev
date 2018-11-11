@@ -115,7 +115,7 @@ const PROP_JSON_FIELDS = ["id", "syncGUID", "version", "type",
                           "strictCompatibility", "locales", "targetApplications",
                           "targetPlatforms", "signedState",
                           "seen", "dependencies", "hasEmbeddedWebExtension",
-                          "userPermissions", "icons", "iconURL", "icon64URL",
+                          "userPermissions", "icons", "iconURL",
                           "blocklistState", "blocklistURL", "startupData",
                           "previewImage", "hidden", "installTelemetryInfo"];
 
@@ -807,10 +807,6 @@ AddonWrapper = class {
     return AddonManager.getPreferredIconURL(this, 48);
   }
 
-  get icon64URL() {
-    return AddonManager.getPreferredIconURL(this, 64);
-  }
-
   get icons() {
     let addon = addonFor(this);
     let icons = {};
@@ -831,10 +827,6 @@ AddonWrapper = class {
     if (canUseIconURLs && addon.iconURL) {
       icons[32] = addon.iconURL;
       icons[48] = addon.iconURL;
-    }
-
-    if (canUseIconURLs && addon.icon64URL) {
-      icons[64] = addon.icon64URL;
     }
 
     Object.freeze(icons);
@@ -2451,6 +2443,11 @@ this.XPIDatabaseReconcile = {
 
     // appDisabled depends on whether the add-on is a foreignInstall so update
     aNewAddon.appDisabled = !XPIDatabase.isUsableAddon(aNewAddon);
+
+    if (aLocation.isSystem) {
+      const pref = `extensions.${aId.split("@")[0]}.enabled`;
+      aNewAddon.userDisabled = !Services.prefs.getBoolPref(pref, true);
+    }
 
     if (isDetectedInstall && aNewAddon.foreignInstall) {
       // Add the installation source info for the sideloaded extension.

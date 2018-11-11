@@ -301,18 +301,14 @@ class GCMarker : public JSTracer
         return isMarkStackEmpty() && !unmarkedArenaStackTop;
     }
 
-    MOZ_MUST_USE bool drainMarkStack(SliceBudget& budget);
+    MOZ_MUST_USE bool markUntilBudgetExhaused(SliceBudget& budget);
 
     void setGCMode(JSGCMode mode) { stack.setGCMode(mode); }
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
 #ifdef DEBUG
-
     bool shouldCheckCompartments() { return strictCompartmentChecking; }
-
-    JS::Zone* stackContainsCrossZonePointerTo(const gc::Cell* cell);
-
 #endif
 
     void markEphemeronValues(gc::Cell* markedCell, gc::WeakEntryVector& entry);

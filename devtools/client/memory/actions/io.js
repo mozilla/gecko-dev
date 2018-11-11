@@ -10,7 +10,7 @@ const { OS } = require("resource://gre/modules/osfile.jsm");
 const {
   selectSnapshot,
   computeSnapshotData,
-  readSnapshot
+  readSnapshot,
 } = require("./snapshot");
 const VALID_EXPORT_STATES = [states.SAVED, states.READ];
 
@@ -19,8 +19,7 @@ exports.pickFileAndExportSnapshot = function(snapshot) {
     const outputFile = await openFilePicker({
       title: L10N.getFormatStr("snapshot.io.save.window"),
       defaultName: OS.Path.basename(snapshot.path),
-      filters: [[L10N.getFormatStr("snapshot.io.filter"),
-                 "*.fxsnapshot; *.fxsnapshot.gz"]],
+      filters: [[L10N.getFormatStr("snapshot.io.filter"), "*.fxsnapshot"]],
       mode: "save",
     });
 
@@ -54,8 +53,7 @@ exports.pickFileAndImportSnapshotAndCensus = function(heapWorker) {
   return async function(dispatch, getState) {
     const input = await openFilePicker({
       title: L10N.getFormatStr("snapshot.io.import.window"),
-      filters: [[L10N.getFormatStr("snapshot.io.filter"),
-                 "*.fxsnapshot; *.fxsnapshot.gz"]],
+      filters: [[L10N.getFormatStr("snapshot.io.filter"), "*.fxsnapshot"]],
       mode: "open",
     });
 

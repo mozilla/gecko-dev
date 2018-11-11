@@ -901,18 +901,6 @@ nsDataObj::GetDib(const nsACString& inFlavor,
   nsCOMPtr<nsISupports> genericDataWrapper;
   mTransferable->GetTransferData(PromiseFlatCString(inFlavor).get(), getter_AddRefs(genericDataWrapper), &len);
   nsCOMPtr<imgIContainer> image ( do_QueryInterface(genericDataWrapper) );
-  if ( !image ) {
-    // Check if the image was put in an nsISupportsInterfacePointer wrapper.
-    // This might not be necessary any more, but could be useful for backwards
-    // compatibility.
-    nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
-    if ( ptr ) {
-      nsCOMPtr<nsISupports> supports;
-      ptr->GetData(getter_AddRefs(supports));
-      image = do_QueryInterface(supports);
-    }
-  }
-  
   if ( image ) {
     // use the |nsImageToClipboard| helper class to build up a bitmap. We now own
     // the bits, and pass them back to the OS in |aSTG|.
@@ -1290,22 +1278,15 @@ bool nsDataObj :: IsFlavourPresent(const char *inFlavour)
   NS_ENSURE_TRUE(mTransferable, false);
   
   // get the list of flavors available in the transferable
-  nsCOMPtr<nsIArray> flavorList;
-  mTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavorList));
-  NS_ENSURE_TRUE(flavorList, false);
+  nsTArray<nsCString> flavors;
+  nsresult rv = mTransferable->FlavorsTransferableCanExport(flavors);
+  NS_ENSURE_SUCCESS(rv, false);
 
   // try to find requested flavour
-  uint32_t cnt;
-  flavorList->GetLength(&cnt);
-  for (uint32_t i = 0; i < cnt; ++i) {
-    nsCOMPtr<nsISupportsCString> currentFlavor = do_QueryElementAt(flavorList, i);
-    if (currentFlavor) {
-      nsAutoCString flavorStr;
-      currentFlavor->GetData(flavorStr);
-      if (flavorStr.Equals(inFlavour)) {
-        retval = true;         // found it!
-        break;
-      }
+  for (uint32_t i = 0; i < flavors.Length(); ++i) {
+    if (flavors[i].Equals(inFlavour)) {
+      retval = true;         // found it!
+      break;
     }
   } // for each flavor
 
@@ -1358,7 +1339,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   if ( !len )
     return E_FAIL;
   nsPrimitiveHelpers::CreateDataFromPrimitive(
-    nsDependentCString(flavorStr), genericDataWrapper, &data, len);
+    nsDependentCString(flavorStr), genericDataWrapper, &data, &len);
   if ( !data )
     return E_FAIL;
 
@@ -1466,17 +1447,6 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   mTransferable->GetTransferData(kFileMime, getter_AddRefs(genericDataWrapper),
                                  &len);
   nsCOMPtr<nsIFile> file ( do_QueryInterface(genericDataWrapper) );
-
-  if (!file)
-  {
-    nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
-    if (ptr) {
-      nsCOMPtr<nsISupports> supports;
-      ptr->GetData(getter_AddRefs(supports));
-      file = do_QueryInterface(supports);
-    }
-  }
-
   if (!file)
     return E_FAIL;
 
@@ -1531,19 +1501,6 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
 
     mTransferable->GetTransferData(kNativeImageMime, getter_AddRefs(genericDataWrapper), &len);
     nsCOMPtr<imgIContainer> image(do_QueryInterface(genericDataWrapper));
-
-    if (!image) {
-      // Check if the image was put in an nsISupportsInterfacePointer wrapper.
-      // This might not be necessary any more, but could be useful for backwards
-      // compatibility.
-      nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
-      if (ptr) {
-        nsCOMPtr<nsISupports> supports;
-        ptr->GetData(getter_AddRefs(supports));
-        image = do_QueryInterface(supports);
-      }
-    }
-
     if (!image) 
       return E_FAIL;
 

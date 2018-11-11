@@ -963,6 +963,19 @@ WindowsVersionToOperatingSystem(int32_t aWindowsVersion)
     }
 }
 
+static bool
+OnlyAllowFeatureOnWhitelistedVendor(int32_t aFeature)
+{
+  switch(aFeature) {
+    // The GPU process doesn't need hardware acceleration and can run on
+    // devices that we normally block from not being on our whitelist.
+    case nsIGfxInfo::FEATURE_GPU_PROCESS:
+      return false;
+    default:
+      return true;
+  }
+}
+
 // Return true if the CPU supports AVX, but the operating system does not.
 #if defined(_M_X64)
 static inline bool
@@ -1410,34 +1423,38 @@ GfxInfo::GetGfxDriverInfo()
       DRIVER_BUILD_ID_LESS_THAN_OR_EQUAL, 4459, "FEATURE_BLOCKED_DRIVER_VERSION");
 
     ////////////////////////////////////
+    // FEATURE_DX_P010
+
+    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_DX_P010, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_P010_NVIDIA");
+
+    ////////////////////////////////////
     // FEATURE_WEBRENDER
 
-    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel), GfxDriverInfo::allDevices,
+    // We are blocking all non-Nvidia cards in gfxPlatform.cpp where we check
+    // for the WEBRENDER_QUALIFIED feature. However we also want to block some
+    // specific Nvidia cards for being too low-powered, so we do that here.
+    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows10,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA),
+      (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(NvidiaBlockWebRender),
       nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WIN_INTEL");
-    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WIN_ATI");
-    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAMD), GfxDriverInfo::allDevices,
-      nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WIN_AMD");
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_NVIDIA_BLOCKED");
 
-    // Allow Nvidia on Windows 10
+    // Block all windows versions other than windows 10
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows7,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), GfxDriverInfo::allDevices,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_NVIDIA_7");
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_7");
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows8,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), GfxDriverInfo::allDevices,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_NVIDIA_8");
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_8");
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows8_1,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), GfxDriverInfo::allDevices,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_NVIDIA_8_1");
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions, "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_8_1");
   }
   return *sDriverInfo;
 }
@@ -1475,7 +1492,8 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       return NS_OK;
     }
 
-    if (!adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorIntel), nsCaseInsensitiveStringComparator()) &&
+    if (OnlyAllowFeatureOnWhitelistedVendor(aFeature) &&
+        !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorIntel), nsCaseInsensitiveStringComparator()) &&
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorNVIDIA), nsCaseInsensitiveStringComparator()) &&
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorAMD), nsCaseInsensitiveStringComparator()) &&
         !adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(VendorATI), nsCaseInsensitiveStringComparator()) &&

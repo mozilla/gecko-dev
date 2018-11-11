@@ -117,10 +117,10 @@ public:
   virtual void ApplyAsyncProperties(LayerTransactionParent* aLayerTree,
                                     TransformsToSkip aSkip) = 0;
   virtual void SetTestAsyncScrollOffset(const LayersId& aLayersId,
-                                        const FrameMetrics::ViewID& aScrollId,
+                                        const ScrollableLayerGuid::ViewID& aScrollId,
                                         const CSSPoint& aPoint) = 0;
   virtual void SetTestAsyncZoom(const LayersId& aLayersId,
-                                const FrameMetrics::ViewID& aScrollId,
+                                const ScrollableLayerGuid::ViewID& aScrollId,
                                 const LayerToParentLayerScale& aZoom) = 0;
   virtual void FlushApzRepaints(const LayersId& aLayersId) = 0;
   virtual void GetAPZTestData(const LayersId& aLayersId,
@@ -164,7 +164,7 @@ public:
                            CrossProcessMutexHandle aMutexHandle,
                            LayersId aLayersId,
                            uint32_t aApzcId) override;
-  bool StopSharingMetrics(FrameMetrics::ViewID aScrollId,
+  bool StopSharingMetrics(ScrollableLayerGuid::ViewID aScrollId,
                           uint32_t aApzcId) override;
 
   virtual bool IsRemote() const {
@@ -255,10 +255,10 @@ public:
                             TransformsToSkip aSkip) override;
   CompositorAnimationStorage* GetAnimationStorage();
   void SetTestAsyncScrollOffset(const LayersId& aLayersId,
-                                const FrameMetrics::ViewID& aScrollId,
+                                const ScrollableLayerGuid::ViewID& aScrollId,
                                 const CSSPoint& aPoint) override;
   void SetTestAsyncZoom(const LayersId& aLayersId,
-                        const FrameMetrics::ViewID& aScrollId,
+                        const ScrollableLayerGuid::ViewID& aScrollId,
                         const LayerToParentLayerScale& aZoom) override;
   void FlushApzRepaints(const LayersId& aLayersId) override;
   void GetAPZTestData(const LayersId& aLayersId,
@@ -481,15 +481,13 @@ public:
     return mOptions;
   }
 
-  TimeDuration GetVsyncInterval() const {
+  TimeDuration GetVsyncInterval() const override {
     // the variable is called "rate" but really it's an interval
     return mVsyncRate;
   }
 
   PWebRenderBridgeParent* AllocPWebRenderBridgeParent(const wr::PipelineId& aPipelineId,
-                                                      const LayoutDeviceIntSize& aSize,
-                                                      TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                                                      wr::IdNamespace* aIdNamespace) override;
+                                                      const LayoutDeviceIntSize& aSize) override;
   bool DeallocPWebRenderBridgeParent(PWebRenderBridgeParent* aActor) override;
   RefPtr<WebRenderBridgeParent> GetWebRenderBridgeParent() const;
   Maybe<TimeStamp> GetTestingTimeStamp() const;

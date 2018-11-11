@@ -50,7 +50,7 @@ window.gActivityStreamStrings = {
   "prefs_highlights_options_visited_label": "หน้าที่เยี่ยมชมแล้ว",
   "prefs_highlights_options_download_label": "การดาวน์โหลดล่าสุด",
   "prefs_highlights_options_pocket_label": "หน้าที่บันทึกไว้ใน Pocket",
-  "prefs_snippets_description": "ข้อมูลอัปเดตจาก Mozilla และ Firefox",
+  "prefs_snippets_description": "การอัปเดตจาก Mozilla และ Firefox",
   "settings_pane_button_label": "ปรับแต่งหน้าแท็บใหม่ของคุณ",
   "settings_pane_topsites_header": "ไซต์เด่น",
   "settings_pane_highlights_header": "รายการเด่น",
@@ -75,7 +75,7 @@ window.gActivityStreamStrings = {
   "pocket_read_more": "หัวข้อยอดนิยม:",
   "pocket_read_even_more": "ดูเรื่องราวเพิ่มเติม",
   "pocket_more_reccommendations": "คำแนะนำเพิ่มเติม",
-  "pocket_learn_more": "เรียนรู้เพิ่มเติม",
+  "pocket_how_it_works": "How it works",
   "pocket_cta_button": "รับ Pocket",
   "pocket_cta_text": "Save the stories you love in Pocket, and fuel your mind with fascinating reads.",
   "highlights_empty_state": "เริ่มการท่องเว็บและเราจะแสดงบทความ, วิดีโอ และหน้าอื่น ๆ บางส่วนที่ยอดเยี่ยมที่คุณได้เยี่ยมชมหรือเพิ่มที่คั่นหน้าไว้ล่าสุดที่นี่",
@@ -106,5 +106,7 @@ window.gActivityStreamStrings = {
   "firstrun_terms_of_service": "เงื่อนไขการให้บริการ",
   "firstrun_privacy_notice": "ประกาศความเป็นส่วนตัว",
   "firstrun_continue_to_login": "ดำเนินการต่อ",
-  "firstrun_skip_login": "ข้ามขั้นตอนนี้"
+  "firstrun_skip_login": "ข้ามขั้นตอนนี้",
+  "context_menu_title": "เปิดเมนู",
+  "pocket_learn_more": "เรียนรู้เพิ่มเติม"
 };

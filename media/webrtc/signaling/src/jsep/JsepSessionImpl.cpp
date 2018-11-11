@@ -21,7 +21,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 
-#include "webrtc/config.h"
+#include "webrtc/api/rtpparameters.h"
 
 #include "signaling/src/jsep/JsepTrack.h"
 #include "signaling/src/jsep/JsepTransport.h"
@@ -122,10 +122,15 @@ JsepSessionImpl::AddTransceiver(RefPtr<JsepTransceiver> transceiver)
     // Datachannel transceivers should always be sendrecv. Just set it instead
     // of asserting.
     transceiver->mJsDirection = SdpDirectionAttribute::kSendrecv;
+#ifdef DEBUG
+    for (auto& transceiver : mTransceivers) {
+      MOZ_ASSERT(transceiver->GetMediaType() != SdpMediaSection::kApplication);
+    }
+#endif
   }
 
-  transceiver->mSendTrack.PopulateCodecs(mSupportedCodecs.values);
-  transceiver->mRecvTrack.PopulateCodecs(mSupportedCodecs.values);
+  transceiver->mSendTrack.PopulateCodecs(mSupportedCodecs);
+  transceiver->mRecvTrack.PopulateCodecs(mSupportedCodecs);
   // We do not set mLevel yet, we do that either on createOffer, or setRemote
 
   mTransceivers.push_back(transceiver);
@@ -228,11 +233,8 @@ JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
                                      JsepTransceiver& transceiver,
                                      Sdp* local)
 {
-  JsepTrack& sendTrack(transceiver.mSendTrack);
-  JsepTrack& recvTrack(transceiver.mRecvTrack);
-
   SdpMediaSection::Protocol protocol(
-      SdpHelper::GetProtocolForMediaType(sendTrack.GetMediaType()));
+      SdpHelper::GetProtocolForMediaType(transceiver.GetMediaType()));
 
   const Sdp* answer(GetAnswer());
   const SdpMediaSection* lastAnswerMsection = nullptr;
@@ -247,7 +249,7 @@ JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
   }
 
   SdpMediaSection* msection = &local->AddMediaSection(
-      sendTrack.GetMediaType(),
+      transceiver.GetMediaType(),
       transceiver.mJsDirection,
       0,
       protocol,
@@ -256,6 +258,7 @@ JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
 
   // Some of this stuff (eg; mid) sticks around even if disabled
   if (lastAnswerMsection) {
+    MOZ_ASSERT(lastAnswerMsection->GetMediaType() == transceiver.GetMediaType());
     nsresult rv = mSdpHelper.CopyStickyParams(*lastAnswerMsection, msection);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -278,8 +281,8 @@ JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
   nsresult rv = AddTransportAttributes(msection, SdpSetupAttribute::kActpass);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  sendTrack.AddToOffer(mSsrcGenerator, msection);
-  recvTrack.AddToOffer(mSsrcGenerator, msection);
+  transceiver.mSendTrack.AddToOffer(mSsrcGenerator, msection);
+  transceiver.mRecvTrack.AddToOffer(mSsrcGenerator, msection);
 
   AddExtmap(msection);
 
@@ -632,6 +635,7 @@ JsepSessionImpl::CreateAnswerMsection(const JsepAnswerOptions& options,
                                       const SdpMediaSection& remoteMsection,
                                       Sdp* sdp)
 {
+  MOZ_ASSERT(transceiver.GetMediaType() == remoteMsection.GetMediaType());
   SdpDirectionAttribute::Direction direction =
     reverse(remoteMsection.GetDirection()) & transceiver.mJsDirection;
   SdpMediaSection& msection =
@@ -651,6 +655,15 @@ JsepSessionImpl::CreateAnswerMsection(const JsepAnswerOptions& options,
     SdpHelper::DisableMsection(sdp, &msection);
     return NS_OK;
   }
+
+  MOZ_ASSERT(transceiver.IsAssociated());
+  if (msection.GetAttributeList().GetMid().empty()) {
+    msection.GetAttributeList().SetAttribute(
+        new SdpStringAttribute(SdpAttribute::kMidAttribute,
+          transceiver.GetMid()));
+  }
+
+  MOZ_ASSERT(transceiver.GetMid() == msection.GetAttributeList().GetMid());
 
   SdpSetupAttribute::Role role;
   rv = DetermineAnswererSetupRole(remoteMsection, &role);
@@ -959,6 +972,11 @@ JsepSessionImpl::SetRemoteDescription(JsepSdpType type, const std::string& sdp)
   if (type == kJsepSdpOffer) {
     mOldTransceivers.clear();
     for (const auto& transceiver : mTransceivers) {
+      if (!transceiver->IsNegotiated()) {
+        // We chose a level for this transceiver, but never negotiated it.
+        // Discard this state.
+        transceiver->ClearLevel();
+      }
       mOldTransceivers.push_back(new JsepTransceiver(*transceiver));
     }
   }
@@ -1483,7 +1501,9 @@ JsepTransceiver*
 JsepSessionImpl::GetTransceiverForLocal(size_t level)
 {
   if (JsepTransceiver* transceiver = GetTransceiverForLevel(level)) {
-    if (WasMsectionDisabledLastNegotiation(level) && transceiver->IsStopped()) {
+    if (WasMsectionDisabledLastNegotiation(level) &&
+        transceiver->IsStopped() &&
+        transceiver->GetMediaType() != SdpMediaSection::kApplication) {
       // Attempt to recycle. If this fails, the old transceiver stays put.
       transceiver->Disassociate();
       JsepTransceiver* newTransceiver = FindUnassociatedTransceiver(
@@ -1635,6 +1655,11 @@ JsepSessionImpl::FindUnassociatedTransceiver(
 {
   // Look through transceivers that are not mapped to an m-section
   for (RefPtr<JsepTransceiver>& transceiver : mTransceivers) {
+    if (type == SdpMediaSection::kApplication &&
+        type == transceiver->GetMediaType()) {
+      transceiver->RestartDatachannelTransceiver();
+      return transceiver.get();
+    }
     if (!transceiver->IsStopped() &&
         !transceiver->HasLevel() &&
         (!magic || transceiver->HasAddTrackMagic()) &&
@@ -2051,7 +2076,7 @@ JsepSessionImpl::SetupDefaultCodecs()
   // 9KHz tone.  This should be adaptive when we're at the low-end of video
   // bandwidth (say <100Kbps), and if we're audio-only, down to 8 or
   // 12Kbps.
-  mSupportedCodecs.values.push_back(new JsepAudioCodecDescription(
+  mSupportedCodecs.emplace_back(new JsepAudioCodecDescription(
       "109",
       "opus",
       48000,
@@ -2061,7 +2086,7 @@ JsepSessionImpl::SetupDefaultCodecs()
       40000
       ));
 
-  mSupportedCodecs.values.push_back(new JsepAudioCodecDescription(
+  mSupportedCodecs.emplace_back(new JsepAudioCodecDescription(
       "9",
       "G722",
       8000,
@@ -2071,7 +2096,7 @@ JsepSessionImpl::SetupDefaultCodecs()
 
   // packet size and bitrate values below copied from sipcc.
   // May need reevaluation from a media expert.
-  mSupportedCodecs.values.push_back(
+  mSupportedCodecs.emplace_back(
       new JsepAudioCodecDescription("0",
                                     "PCMU",
                                     8000,
@@ -2080,7 +2105,7 @@ JsepSessionImpl::SetupDefaultCodecs()
                                     8 * 8000 * 1 // 8 * frequency * channels
                                     ));
 
-  mSupportedCodecs.values.push_back(
+  mSupportedCodecs.emplace_back(
       new JsepAudioCodecDescription("8",
                                     "PCMA",
                                     8000,
@@ -2092,7 +2117,7 @@ JsepSessionImpl::SetupDefaultCodecs()
   // note: because telephone-event is effectively a marker codec that indicates
   // that dtmf rtp packets may be passed, the packetSize and bitRate fields
   // don't make sense here.  For now, use zero. (mjf)
-  mSupportedCodecs.values.push_back(
+  mSupportedCodecs.emplace_back(
       new JsepAudioCodecDescription("101",
                                     "telephone-event",
                                     8000,
@@ -2103,70 +2128,69 @@ JsepSessionImpl::SetupDefaultCodecs()
 
   // Supported video codecs.
   // Note: order here implies priority for building offers!
-  JsepVideoCodecDescription* vp8 = new JsepVideoCodecDescription(
+  UniquePtr<JsepVideoCodecDescription> vp8(new JsepVideoCodecDescription(
       "120",
       "VP8",
       90000
-      );
+      ));
   // Defaults for mandatory params
   vp8->mConstraints.maxFs = 12288; // Enough for 2048x1536
   vp8->mConstraints.maxFps = 60;
-  mSupportedCodecs.values.push_back(vp8);
+  mSupportedCodecs.push_back(std::move(vp8));
 
-  JsepVideoCodecDescription* vp9 = new JsepVideoCodecDescription(
+  UniquePtr<JsepVideoCodecDescription> vp9(new JsepVideoCodecDescription(
       "121",
       "VP9",
       90000
-      );
+      ));
   // Defaults for mandatory params
   vp9->mConstraints.maxFs = 12288; // Enough for 2048x1536
   vp9->mConstraints.maxFps = 60;
-  mSupportedCodecs.values.push_back(vp9);
+  mSupportedCodecs.push_back(std::move(vp9));
 
-  JsepVideoCodecDescription* h264_1 = new JsepVideoCodecDescription(
+  UniquePtr<JsepVideoCodecDescription> h264_1(new JsepVideoCodecDescription(
       "126",
       "H264",
       90000
-      );
+      ));
   h264_1->mPacketizationMode = 1;
   // Defaults for mandatory params
   h264_1->mProfileLevelId = 0x42E00D;
-  mSupportedCodecs.values.push_back(h264_1);
+  mSupportedCodecs.push_back(std::move(h264_1));
 
-  JsepVideoCodecDescription* h264_0 = new JsepVideoCodecDescription(
+  UniquePtr<JsepVideoCodecDescription> h264_0(new JsepVideoCodecDescription(
       "97",
       "H264",
       90000
-      );
+      ));
   h264_0->mPacketizationMode = 0;
   // Defaults for mandatory params
   h264_0->mProfileLevelId = 0x42E00D;
-  mSupportedCodecs.values.push_back(h264_0);
+  mSupportedCodecs.push_back(std::move(h264_0));
 
-  JsepVideoCodecDescription* red = new JsepVideoCodecDescription(
-      "122", // payload type
-      "red", // codec name
-      90000  // clock rate (match other video codecs)
-      );
-  mSupportedCodecs.values.push_back(red);
-
-  JsepVideoCodecDescription* ulpfec = new JsepVideoCodecDescription(
+  UniquePtr<JsepVideoCodecDescription> ulpfec(new JsepVideoCodecDescription(
       "123",    // payload type
       "ulpfec", // codec name
       90000     // clock rate (match other video codecs)
-      );
-  mSupportedCodecs.values.push_back(ulpfec);
+      ));
+  mSupportedCodecs.push_back(std::move(ulpfec));
 
-  mSupportedCodecs.values.push_back(new JsepApplicationCodecDescription(
+  mSupportedCodecs.emplace_back(new JsepApplicationCodecDescription(
       "webrtc-datachannel",
       WEBRTC_DATACHANNEL_STREAMS_DEFAULT,
       WEBRTC_DATACHANNEL_PORT_DEFAULT,
       WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL
       ));
 
+  UniquePtr<JsepVideoCodecDescription> red(new JsepVideoCodecDescription(
+      "122", // payload type
+      "red", // codec name
+      90000  // clock rate (match other video codecs)
+      ));
   // Update the redundant encodings for the RED codec with the supported
   // codecs.  Note: only uses the video codecs.
-  red->UpdateRedundantEncodings(mSupportedCodecs.values);
+  red->UpdateRedundantEncodings(mSupportedCodecs);
+  mSupportedCodecs.push_back(std::move(red));
 }
 
 void

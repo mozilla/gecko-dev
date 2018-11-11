@@ -157,7 +157,7 @@ GetAlgorithmName(JSContext* aCx, const OOS& aAlgorithm, nsString& aName)
   }
 
   if (!NormalizeToken(aName, aName)) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
   return NS_OK;
@@ -532,7 +532,7 @@ public:
 
       mMechanism = CKM_AES_CBC_PAD;
       telemetryAlg = TA_AES_CBC;
-      AesCbcParams params;
+      RootedDictionary<AesCbcParams> params(aCx);
       nsresult rv = Coerce(aCx, params, aAlgorithm);
       if (NS_FAILED(rv)) {
         mEarlyRv = NS_ERROR_DOM_INVALID_ACCESS_ERR;
@@ -549,7 +549,7 @@ public:
 
       mMechanism = CKM_AES_CTR;
       telemetryAlg = TA_AES_CTR;
-      AesCtrParams params;
+      RootedDictionary<AesCtrParams> params(aCx);
       nsresult rv = Coerce(aCx, params, aAlgorithm);
       if (NS_FAILED(rv)) {
         mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
@@ -568,7 +568,7 @@ public:
 
       mMechanism = CKM_AES_GCM;
       telemetryAlg = TA_AES_GCM;
-      AesGcmParams params;
+      RootedDictionary<AesGcmParams> params(aCx);
       nsresult rv = Coerce(aCx, params, aAlgorithm);
       if (NS_FAILED(rv)) {
         mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
@@ -1568,9 +1568,8 @@ public:
         return NS_ERROR_DOM_DATA_ERR;
       }
     }
-
     // Check that we have valid key data.
-    if (mKeyData.Length() == 0) {
+    if (mKeyData.Length() == 0 && !mAlgName.EqualsLiteral(WEBCRYPTO_ALG_PBKDF2)) {
       return NS_ERROR_DOM_DATA_ERR;
     }
 
@@ -2221,7 +2220,6 @@ public:
     nsString algName;
     mEarlyRv = GetAlgorithmName(aCx, aAlgorithm, algName);
     if (NS_FAILED(mEarlyRv)) {
-      mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
       return;
     }
 
@@ -2250,7 +2248,6 @@ public:
       nsString hashName;
       mEarlyRv = GetAlgorithmName(aCx, params.mHash, hashName);
       if (NS_FAILED(mEarlyRv)) {
-        mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
         return;
       }
 
@@ -2351,7 +2348,6 @@ GenerateAsymmetricKeyTask::GenerateAsymmetricKeyTask(
   // Extract algorithm name
   mEarlyRv = GetAlgorithmName(aCx, aAlgorithm, mAlgName);
   if (NS_FAILED(mEarlyRv)) {
-    mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
     return;
   }
 
@@ -2374,7 +2370,6 @@ GenerateAsymmetricKeyTask::GenerateAsymmetricKeyTask(
     nsString hashName;
     mEarlyRv = GetAlgorithmName(aCx, params.mHash, hashName);
     if (NS_FAILED(mEarlyRv)) {
-      mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
       return;
     }
 
@@ -2757,12 +2752,6 @@ public:
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_PBKDF2);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_PBKDF2);
 
-    // Check that we got a symmetric key
-    if (mSymKey.Length() == 0) {
-      mEarlyRv = NS_ERROR_DOM_INVALID_ACCESS_ERR;
-      return;
-    }
-
     RootedDictionary<Pbkdf2Params> params(aCx);
     mEarlyRv = Coerce(aCx, params, aAlgorithm);
     if (NS_FAILED(mEarlyRv)) {
@@ -2772,7 +2761,7 @@ public:
 
     // length must be a multiple of 8 bigger than zero.
     if (aLength == 0 || aLength % 8) {
-      mEarlyRv = NS_ERROR_DOM_DATA_ERR;
+      mEarlyRv = NS_ERROR_DOM_OPERATION_ERR;
       return;
     }
 

@@ -9,14 +9,12 @@ toolkit.jar:
   skin/classic/global/button.css
   skin/classic/global/checkbox.css
   skin/classic/global/dropmarker.css
-  skin/classic/global/groupbox.css
 * skin/classic/global/menu.css
   skin/classic/global/menulist.css
 * skin/classic/global/popup.css
   skin/classic/global/radio.css
   skin/classic/global/tabbox.css
   skin/classic/global/textbox.css
-  skin/classic/global/colorpicker.css
   skin/classic/global/commonDialog.css
 * skin/classic/global/findBar.css
 * skin/classic/global/global.css
@@ -39,8 +37,7 @@ toolkit.jar:
   skin/classic/global/arrow/arrow-dn-dis.gif               (arrow/arrow-dn-dis.gif)
   skin/classic/global/dirListing/folder.png                (dirListing/folder.png)
   skin/classic/global/dirListing/up.png                    (dirListing/up.png)
-  skin/classic/global/icons/blacklist_favicon.png          (icons/blacklist_favicon.png)
-  skin/classic/global/icons/blacklist_large.png            (icons/blacklist_large.png)
+  skin/classic/global/icons/blocklist_favicon.png          (icons/blocklist_favicon.png)
   skin/classic/global/icons/Error.png                      (icons/Error.png)
   skin/classic/global/icons/collapse.png                   (icons/collapse.png)
   skin/classic/global/icons/expand.png                     (icons/expand.png)

@@ -16,7 +16,7 @@ const {
   isLegacyTemporaryExtension,
   isTemporaryID,
   parseFileUri,
-  uninstallAddon
+  uninstallAddon,
 } = require("../../modules/addon");
 const Services = require("Services");
 
@@ -127,14 +127,14 @@ function warningMessages(target) {
   if (isLegacyTemporaryExtension(target.form)) {
     messages.push(dom.li(
       {
-        className: "addon-target-warning-message addon-target-message"
+        className: "addon-target-warning-message addon-target-message",
       },
       Strings.GetStringFromName("legacyExtensionWarning"),
       " ",
       dom.a(
         {
           href: LEGACY_WARNING_URL,
-          target: "_blank"
+          target: "_blank",
         },
         Strings.GetStringFromName("legacyExtensionWarning.learnMore"))
     ));
@@ -165,7 +165,7 @@ class AddonTarget extends Component {
         temporarilyInstalled: PropTypes.bool,
         url: PropTypes.string,
         warnings: PropTypes.array,
-      }).isRequired
+      }).isRequired,
     };
   }
 
@@ -180,7 +180,7 @@ class AddonTarget extends Component {
     const { client, connect, target } = this.props;
 
     if (connect.type === "REMOTE") {
-      debugRemoteAddon(target.form, client);
+      debugRemoteAddon(target.addonID, client);
     } else if (connect.type === "LOCAL") {
       debugLocalAddon(target.addonID);
     }
@@ -197,7 +197,7 @@ class AddonTarget extends Component {
     try {
       await client.request({
         to: target.addonTargetActor,
-        type: "reload"
+        type: "reload",
       });
       AboutDebugging.emit("addon-reload");
     } catch (e) {
@@ -209,12 +209,12 @@ class AddonTarget extends Component {
     const { target, debugDisabled } = this.props;
 
     return dom.li(
-      { className: "addon-target-container", "data-addon-id": target.addonID },
-      dom.div({ className: "target" },
+      { className: "card addon-target-container", "data-addon-id": target.addonID },
+      dom.div({ className: "target-card-heading target" },
         dom.img({
-          className: "target-icon",
+          className: "target-icon addon-target-icon",
           role: "presentation",
-          src: target.icon
+          src: target.icon,
         }),
         dom.span(
           { className: "target-name addon-target-name", title: target.name },
@@ -227,21 +227,21 @@ class AddonTarget extends Component {
         ...addonIDforTarget(target),
         ...internalIDForTarget(target),
       ),
-      dom.div({className: "addon-target-actions"},
+      dom.div({className: "target-card-actions"},
         dom.button({
-          className: "debug-button addon-target-button",
+          className: "target-card-action-link debug-button addon-target-button",
           onClick: this.debug,
           disabled: debugDisabled,
         }, Strings.GetStringFromName("debug")),
         target.temporarilyInstalled
           ? dom.button({
-            className: "reload-button addon-target-button",
+            className: "target-card-action-link reload-button addon-target-button",
             onClick: this.reload,
           }, Strings.GetStringFromName("reload"))
           : null,
         target.temporarilyInstalled
           ? dom.button({
-            className: "uninstall-button addon-target-button",
+            className: "target-card-action-link uninstall-button addon-target-button",
             onClick: this.uninstall,
           }, Strings.GetStringFromName("remove"))
           : null,

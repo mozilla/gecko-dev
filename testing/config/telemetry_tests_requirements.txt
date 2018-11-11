@@ -1,9 +1,4 @@
--r mozbase_requirements.txt
+-r marionette_requirements.txt
 
-../marionette/client/
-../marionette/harness/
+../telemetry/marionette/harness
 
-# Allows to use the Puppeteer page object model for Firefox
-../marionette/puppeteer/firefox/
-
-../../toolkit/components/telemetry/tests/marionette/harness

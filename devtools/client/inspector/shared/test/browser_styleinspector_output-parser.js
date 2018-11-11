@@ -10,6 +10,7 @@
 // tested with an xpcshell test as the output-parser requires the DOM to work.
 
 const OutputParser = require("devtools/client/shared/output-parser");
+const { CSS_PROPERTIES_DB} = require("devtools/shared/css/properties-db");
 const {initCssProperties, getCssProperties} = require("devtools/shared/fronts/css-properties");
 
 const COLOR_CLASS = "color-class";
@@ -24,35 +25,35 @@ const TEST_DATA = [
     test: fragment => {
       is(countAll(fragment), 0);
       is(fragment.textContent, "100%");
-    }
+    },
   },
   {
     name: "width",
     value: "blue",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "content",
     value: "'red url(test.png) repeat top left'",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "content",
     value: "\"blue\"",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "margin-left",
     value: "url(something.jpg)",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "background-color",
@@ -61,7 +62,7 @@ const TEST_DATA = [
       is(countAll(fragment), 2);
       is(countColors(fragment), 1);
       is(fragment.textContent, "transparent");
-    }
+    },
   },
   {
     name: "color",
@@ -69,7 +70,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countColors(fragment), 1);
       is(fragment.textContent, "red");
-    }
+    },
   },
   {
     name: "color",
@@ -77,7 +78,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countColors(fragment), 1);
       is(fragment.textContent, "#F06");
-    }
+    },
   },
   {
     name: "border",
@@ -86,7 +87,7 @@ const TEST_DATA = [
       is(countAll(fragment), 2);
       is(countColors(fragment), 1);
       is(getColor(fragment), "pink");
-    }
+    },
   },
   {
     name: "color",
@@ -94,7 +95,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countColors(fragment), 1);
       is(fragment.textContent, "red !important");
-    }
+    },
   },
   {
     name: "background",
@@ -105,7 +106,7 @@ const TEST_DATA = [
       is(getColor(fragment), "red");
       is(getUrl(fragment), "test.png");
       is(countAll(fragment), 3);
-    }
+    },
   },
   {
     name: "background",
@@ -116,7 +117,7 @@ const TEST_DATA = [
       is(getColor(fragment), "blue");
       is(getUrl(fragment), "test.png");
       is(countAll(fragment), 3);
-    }
+    },
   },
   {
     name: "list-style-image",
@@ -124,7 +125,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countAll(fragment), 1);
       is(getUrl(fragment), "images/arrow.gif");
-    }
+    },
   },
   {
     name: "list-style-image",
@@ -133,7 +134,7 @@ const TEST_DATA = [
       is(countAll(fragment), 1);
       is(getUrl(fragment), "images/arrow.gif");
       is(fragment.textContent, "url(\"images/arrow.gif\")!important");
-    }
+    },
   },
   {
     name: "-moz-binding",
@@ -142,7 +143,7 @@ const TEST_DATA = [
       is(countAll(fragment), 1);
       is(countUrls(fragment), 1);
       is(getUrl(fragment), "http://somesite.com/path/to/binding.xml#someid");
-    }
+    },
   },
   {
     name: "background",
@@ -158,7 +159,7 @@ const TEST_DATA = [
       is(allSwatches[2].textContent, "rgba(31,170,217,.5)");
       is(allSwatches[3].textContent, "#F06");
       is(allSwatches[4].textContent, "red");
-    }
+    },
   },
   {
     name: "background",
@@ -169,7 +170,7 @@ const TEST_DATA = [
       is(colorSwatches.length, 2);
       is(colorSwatches[0].textContent, "orange");
       is(colorSwatches[1].textContent, "red");
-    }
+    },
   },
   {
     name: "background",
@@ -178,7 +179,7 @@ const TEST_DATA = [
       is(countAll(fragment), 3);
       is(countUrls(fragment), 1);
       is(countColors(fragment), 1);
-    }
+    },
   },
   {
     name: "background",
@@ -186,7 +187,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countAll(fragment), 1);
       is(getUrl(fragment), "http://test.com/wow_such_(oh-noes)image.png?testid=1&color=red#w00t");
-    }
+    },
   },
   {
     name: "background-image",
@@ -194,7 +195,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countAll(fragment), 1);
       is(getUrl(fragment), "this-is-an-incredible-image.jpeg");
-    }
+    },
   },
   {
     name: "background",
@@ -203,7 +204,7 @@ const TEST_DATA = [
       is(countAll(fragment), 3);
       is(countColors(fragment), 1);
       is(getUrl(fragment), "http://wow.com/cool/../../../you're(doingit)wrong");
-    }
+    },
   },
   {
     name: "background-image",
@@ -213,7 +214,7 @@ const TEST_DATA = [
       is(countAll(fragment), 1);
       is(getUrl(fragment), "../../../look/at/this/folder/structure/../" +
                            "../red.blue.green.svg");
-    }
+    },
   },
   {
     name: "transition-timing-function",
@@ -221,7 +222,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countCubicBeziers(fragment), 1);
       is(getCubicBezier(fragment), "linear");
-    }
+    },
   },
   {
     name: "animation-timing-function",
@@ -229,7 +230,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countCubicBeziers(fragment), 1);
       is(getCubicBezier(fragment), "ease-in-out");
-    }
+    },
   },
   {
     name: "animation-timing-function",
@@ -237,7 +238,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countCubicBeziers(fragment), 1);
       is(getCubicBezier(fragment), "cubic-bezier(.1, 0.55, .9, -3.45)");
-    }
+    },
   },
   {
     name: "animation",
@@ -245,7 +246,7 @@ const TEST_DATA = [
     test: fragment => {
       is(countCubicBeziers(fragment), 1);
       is(getCubicBezier(fragment), "cubic-bezier(.1, 0.55, .9, -3.45)");
-    }
+    },
   },
   {
     name: "transition",
@@ -253,48 +254,54 @@ const TEST_DATA = [
     test: fragment => {
       is(countCubicBeziers(fragment), 1);
       is(getCubicBezier(fragment), "ease-in");
-    }
+    },
   },
   {
     name: "transition",
     value: "top 3s steps(4, end)",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "transition",
     value: "top 3s step-start",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "transition",
     value: "top 3s step-end",
     test: fragment => {
       is(countAll(fragment), 0);
-    }
+    },
   },
   {
     name: "background",
     value: "rgb(255, var(--g-value), 192)",
     test: fragment => {
       is(fragment.textContent, "rgb(255, var(--g-value), 192)");
-    }
+    },
   },
   {
     name: "background",
     value: "rgb(255, var(--g-value, 0), 192)",
     test: fragment => {
       is(fragment.textContent, "rgb(255, var(--g-value, 0), 192)");
-    }
-  }
+    },
+  },
 ];
 
 add_task(async function() {
   // Mock the toolbox that initCssProperties expect so we get the fallback css properties.
-  const toolbox = {target: {client: {}, hasActor: () => false}};
+  const toolbox = {
+    target: {
+      client: {},
+      hasActor: () => false,
+      getFront: typeName => ({getCSSDatabase: () => CSS_PROPERTIES_DB}),
+    },
+  };
   await initCssProperties(toolbox);
   const cssProperties = getCssProperties(toolbox);
 
@@ -308,7 +315,7 @@ add_task(async function() {
       urlClass: URL_CLASS,
       bezierClass: CUBIC_BEZIER_CLASS,
       angleClass: ANGLE_CLASS,
-      defaultColorType: false
+      defaultColorType: false,
     }));
   }
 });

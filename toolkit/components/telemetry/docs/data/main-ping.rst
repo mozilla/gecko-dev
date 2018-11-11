@@ -299,7 +299,7 @@ in Firefox Nightly or in builds using ``--enable-profiling`` switch.
 Limits for captured stacks are the same as for chromeHangs (see below). Furthermore:
 
 * the key length is limited to 50 characters,
-* keys are restricted to alpha-numeric characters and `-`.
+* keys are restricted to alphanumeric characters and `-`.
 
 The module names can contain unicode characters.
 
@@ -679,15 +679,16 @@ This section contains experimental data encoded with a basic version of the Prio
 See `the Prio paper <https://crypto.stanford.edu/prio/>`_ and `the libprio Github repo <https://github.com/mozilla/libprio>`_
 for more information.
 
-Prio splits data packets into two "shares", signed for different servers that will do the decryption+decoding and
+Prio splits data packets into two "shares", signed for different servers that will do the decryption and
 aggregation. We call these "Server A" and "Server B", represented as `a` and `b` keys in `payload.prio`.
 
 Structure:
 
 .. code-block:: js
+
     "prio": {
-      a: ... // Uint8Array containing data signed for Server A
-      b: ... // Uint8Array containing data signed for Server B
+      a: [...],
+      b: [...]
     }
 
 

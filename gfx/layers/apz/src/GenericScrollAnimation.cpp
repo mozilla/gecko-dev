@@ -7,6 +7,7 @@
 #include "GenericScrollAnimation.h"
 
 #include "AsyncPanZoomController.h"
+#include "FrameMetrics.h"
 #include "gfxPrefs.h"
 #include "nsPoint.h"
 #include "ScrollAnimationPhysics.h"
@@ -107,6 +108,16 @@ GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration
 
   mApzc.ScrollBy(adjustedOffset / zoom);
   return !finished;
+}
+
+bool
+GenericScrollAnimation::HandleScrollOffsetUpdate(const Maybe<CSSPoint>& aRelativeDelta)
+{
+  if (aRelativeDelta) {
+    mAnimationPhysics->ApplyContentShift(*aRelativeDelta);
+    return true;
+  }
+  return false;
 }
 
 } // namespace layers

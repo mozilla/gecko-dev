@@ -1,9 +1,15 @@
 use std::ffi::{CStr, CString};
+use std::io::Cursor;
 use std::{mem, slice, ptr, env};
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::ops::Range;
 use std::os::raw::{c_void, c_char, c_float};
+#[cfg(target_os = "android")]
+use std::os::raw::{c_int};
 use gleam::gl;
 
 use webrender::api::*;
@@ -13,6 +19,7 @@ use webrender::DebugFlags;
 use webrender::{ApiRecordingReceiver, BinaryRecorder};
 use webrender::{AsyncPropertySampler, PipelineInfo, SceneBuilderHooks};
 use webrender::{UploadMethod, VertexUsageHint};
+use webrender::{Device, Shaders, WrShaders, ShaderPrecacheFlags};
 use thread_profiler::register_thread_with_profiler;
 use moz2d_renderer::Moz2dBlobImageHandler;
 use program_cache::{WrProgramCache, remove_disk_cache};
@@ -28,6 +35,18 @@ use dwrote::{FontDescriptor, FontWeight, FontStretch, FontStyle};
 use core_foundation::string::CFString;
 #[cfg(target_os = "macos")]
 use core_graphics::font::CGFont;
+
+extern "C" {
+    #[cfg(target_os = "android")]
+    fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
+}
+
+/// The unique id for WR resource identification.
+static NEXT_NAMESPACE_ID: AtomicUsize = AtomicUsize::new(1);
+
+fn next_namespace_id() -> IdNamespace {
+    IdNamespace(NEXT_NAMESPACE_ID.fetch_add(1, Ordering::Relaxed) as u32)
+}
 
 /// Whether a border should be antialiased.
 #[repr(C)]
@@ -425,6 +444,8 @@ pub enum WrFilterOpType {
   Sepia = 8,
   DropShadow = 9,
   ColorMatrix = 10,
+  SrgbToLinear = 11,
+  LinearToSrgb = 12,
 }
 
 #[repr(C)]
@@ -587,7 +608,11 @@ pub extern "C" fn wr_renderer_update(renderer: &mut Renderer) {
 #[no_mangle]
 pub extern "C" fn wr_renderer_render(renderer: &mut Renderer,
                                      width: u32,
-                                     height: u32) -> bool {
+                                     height: u32,
+                                     had_slow_frame: bool) -> bool {
+    if had_slow_frame {
+      renderer.notify_slow_frame();
+    }
     match renderer.render(DeviceUintSize::new(width, height)) {
         Ok(_) => true,
         Err(errors) => {
@@ -662,6 +687,11 @@ pub unsafe extern "C" fn wr_renderer_delete(renderer: *mut Renderer) {
 pub unsafe extern "C" fn wr_renderer_accumulate_memory_report(renderer: &mut Renderer,
                                                               report: &mut MemoryReport) {
     *report += renderer.report_memory();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wr_total_gpu_bytes_allocated() -> usize {
+    ::webrender::total_gpu_bytes_allocated()
 }
 
 // cbindgen doesn't support tuples, so we have a little struct instead, with
@@ -916,12 +946,57 @@ fn env_var_to_bool(key: &'static str) -> bool {
 }
 
 // Call MakeCurrent before this.
+fn wr_device_new(gl_context: *mut c_void, pc: Option<&mut WrProgramCache>)
+    -> Device
+{
+    assert!(unsafe { is_in_render_thread() });
+
+    let gl;
+    if unsafe { is_glcontext_egl(gl_context) } {
+        gl = unsafe { gl::GlesFns::load_with(|symbol| get_proc_address(gl_context, symbol)) };
+    } else {
+        gl = unsafe { gl::GlFns::load_with(|symbol| get_proc_address(gl_context, symbol)) };
+    }
+
+    let version = gl.get_string(gl::VERSION);
+
+    info!("WebRender - OpenGL version new {}", version);
+
+    let upload_method = if unsafe { is_glcontext_angle(gl_context) } {
+        UploadMethod::Immediate
+    } else {
+        UploadMethod::PixelBuffer(VertexUsageHint::Dynamic)
+    };
+
+    let resource_override_path = unsafe {
+        let override_charptr = gfx_wr_resource_path_override();
+        if override_charptr.is_null() {
+            None
+        } else {
+            match CStr::from_ptr(override_charptr).to_str() {
+                Ok(override_str) => Some(PathBuf::from(override_str)),
+                _ => None
+            }
+        }
+    };
+
+    let cached_programs = match pc {
+      Some(cached_programs) => Some(Rc::clone(cached_programs.rc_get())),
+      None => None,
+    };
+
+    Device::new(gl, resource_override_path, upload_method, cached_programs)
+}
+
+// Call MakeCurrent before this.
 #[no_mangle]
 pub extern "C" fn wr_window_new(window_id: WrWindowId,
                                 window_width: u32,
                                 window_height: u32,
                                 support_low_priority_transactions: bool,
                                 gl_context: *mut c_void,
+                                program_cache: Option<&mut WrProgramCache>,
+                                shaders: Option<&mut WrShaders>,
                                 thread_pool: *mut WrThreadPool,
                                 size_of_op: VoidPtrToSizeFn,
                                 out_handle: &mut *mut DocumentHandle,
@@ -959,6 +1034,17 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         UploadMethod::PixelBuffer(VertexUsageHint::Dynamic)
     };
 
+    let precache_flags = if env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
+        ShaderPrecacheFlags::FULL_COMPILE
+    } else {
+        ShaderPrecacheFlags::empty()
+    };
+
+    let cached_programs = match program_cache {
+        Some(program_cache) => Some(Rc::clone(&program_cache.rc_get())),
+        None => None,
+    };
+
     let opts = RendererOptions {
         enable_aa: true,
         enable_subpixel_aa: true,
@@ -968,6 +1054,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         workers: Some(workers.clone()),
         thread_listener: Some(Box::new(GeckoProfilerThreadListener::new())),
         size_of_op: Some(size_of_op),
+        cached_programs,
         resource_override_path: unsafe {
             let override_charptr = gfx_wr_resource_path_override();
             if override_charptr.is_null() {
@@ -985,14 +1072,15 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         sampler: Some(Box::new(SamplerCallback::new(window_id))),
         max_texture_size: Some(8192), // Moz2D doesn't like textures bigger than this
         clear_color: Some(ColorF::new(0.0, 0.0, 0.0, 0.0)),
-        precache_shaders: env_var_to_bool("MOZ_WR_PRECACHE_SHADERS"),
+        precache_flags,
+        namespace_alloc_by_client: true,
         ..Default::default()
     };
 
     let notifier = Box::new(CppNotifier {
         window_id: window_id,
     });
-    let (renderer, sender) = match Renderer::new(gl, notifier, opts) {
+    let (renderer, sender) = match Renderer::new(gl, notifier, opts, shaders) {
         Ok((renderer, sender)) => (renderer, sender),
         Err(e) => {
             warn!(" Failed to create a Renderer: {:?}", e);
@@ -1010,7 +1098,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
     let window_size = DeviceUintSize::new(window_width, window_height);
     let layer = 0;
     *out_handle = Box::into_raw(Box::new(
-            DocumentHandle::new(sender.create_api(), window_size, layer)));
+            DocumentHandle::new(sender.create_api_by_client(next_namespace_id()), window_size, layer)));
     *out_renderer = Box::into_raw(Box::new(renderer));
 
     return true;
@@ -1026,7 +1114,7 @@ pub extern "C" fn wr_api_create_document(
     assert!(unsafe { is_in_compositor_thread() });
 
     *out_handle = Box::into_raw(Box::new(DocumentHandle::new(
-        root_dh.api.clone_sender().create_api(),
+        root_dh.api.clone_sender().create_api_by_client(next_namespace_id()),
         doc_size,
         layer
     )));
@@ -1046,7 +1134,7 @@ pub extern "C" fn wr_api_clone(
     assert!(unsafe { is_in_compositor_thread() });
 
     let handle = DocumentHandle {
-        api: dh.api.clone_sender().create_api(),
+        api: dh.api.clone_sender().create_api_by_client(next_namespace_id()),
         document_id: dh.document_id,
     };
     *out_handle = Box::into_raw(Box::new(handle));
@@ -1128,7 +1216,7 @@ pub extern "C" fn wr_transaction_notify(txn: &mut Transaction, when: Checkpoint,
         }
     }
 
-    let handler = Arc::new(GeckoNotification(event));
+    let handler = Box::new(GeckoNotification(event));
     txn.notify(NotificationRequest::new(when, handler));
 }
 
@@ -1204,6 +1292,11 @@ pub extern "C" fn wr_transaction_set_window_parameters(
 #[no_mangle]
 pub extern "C" fn wr_transaction_generate_frame(txn: &mut Transaction) {
     txn.generate_frame();
+}
+
+#[no_mangle]
+pub extern "C" fn wr_transaction_invalidate_rendered_frame(txn: &mut Transaction) {
+    txn.invalidate_rendered_frame();
 }
 
 #[no_mangle]
@@ -1288,6 +1381,14 @@ pub extern "C" fn wr_transaction_scroll_layer(
 }
 
 #[no_mangle]
+pub extern "C" fn wr_transaction_pinch_zoom(
+    txn: &mut Transaction,
+    pinch_zoom: f32
+) {
+    txn.set_pinch_zoom(ZoomFactor::new(pinch_zoom));
+}
+
+#[no_mangle]
 pub extern "C" fn wr_resource_updates_add_image(
     txn: &mut Transaction,
     image_key: WrImageKey,
@@ -1313,7 +1414,7 @@ pub extern "C" fn wr_resource_updates_add_blob_image(
         image_key,
         descriptor.into(),
         ImageData::new_blob_image(bytes.flush_into_vec()),
-        None
+        if descriptor.format == ImageFormat::BGRA8 { Some(256) } else { None }
     );
 }
 
@@ -1359,7 +1460,7 @@ pub extern "C" fn wr_resource_updates_update_image(
 pub extern "C" fn wr_resource_updates_set_image_visible_area(
     txn: &mut Transaction,
     key: WrImageKey,
-    area: &NormalizedRect,
+    area: &DeviceUintRect,
 ) {
     txn.set_image_visible_area(key, *area);
 }
@@ -1496,7 +1597,19 @@ pub extern "C" fn wr_api_capture(
     use std::io::Write;
 
     let cstr = unsafe { CStr::from_ptr(path) };
-    let path = PathBuf::from(&*cstr.to_string_lossy());
+    let mut path = PathBuf::from(&*cstr.to_string_lossy());
+
+    // Increment the extension until we find a fresh path
+    while path.is_dir() {
+        let count: u32 = path.extension()
+            .and_then(|x| x.to_str())
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(0);
+        path.set_extension((count + 1).to_string());
+    }
+
+    let border = "--------------------------\n";
+    print!("{} Capturing WR state to: {:?}\n{}", &border, &path, &border);
 
     let _ = create_dir_all(&path);
     match File::create(path.join("wr.txt")) {
@@ -1735,6 +1848,8 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
                                                                c_filter.argument,
                                                                c_filter.color),
             WrFilterOpType::ColorMatrix => FilterOp::ColorMatrix(c_filter.matrix),
+            WrFilterOpType::SrgbToLinear => FilterOp::SrgbToLinear,
+            WrFilterOpType::LinearToSrgb => FilterOp::LinearToSrgb,
         }
     }).collect();
 
@@ -1810,7 +1925,7 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
                                 clip_node_id,
                                 transform_style,
                                 mix_blend_mode,
-                                filters,
+                                &filters,
                                 glyph_raster_space);
 }
 
@@ -2457,9 +2572,26 @@ pub extern "C" fn wr_dump_display_list(state: &mut WrState,
                                        end: *const usize) -> usize {
     let start = unsafe { start.as_ref().cloned() };
     let end = unsafe { end.as_ref().cloned() };
-    state.frame_builder
-         .dl_builder
-         .print_display_list(indent, start, end)
+    let range = Range { start, end };
+    let mut sink = Cursor::new(Vec::new());
+    let index = state.frame_builder
+                     .dl_builder
+                     .emit_display_list(indent, range, &mut sink);
+
+    // For Android, dump to logcat instead of stderr. This is the same as
+    // what printf_stderr does on the C++ side.
+
+    #[cfg(target_os = "android")]
+    unsafe {
+        __android_log_write(4 /* info */,
+                            CString::new("Gecko").unwrap().as_ptr(),
+                            CString::new(sink.into_inner()).unwrap().as_ptr());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    eprint!("{}", String::from_utf8(sink.into_inner()).unwrap());
+
+    index
 }
 
 #[no_mangle]
@@ -2532,9 +2664,9 @@ extern "C" {
                                width: u32,
                                height: u32,
                                format: ImageFormat,
-                               tile_size: *const u16,
-                               tile_offset: *const TileOffset,
-                               dirty_rect: *const DeviceUintRect,
+                               tile_size: Option<&u16>,
+                               tile_offset: Option<&TileOffset>,
+                               dirty_rect: Option<&DeviceUintRect>,
                                output: MutByteSlice)
                                -> bool;
 }
@@ -2566,4 +2698,59 @@ fn unpack_clip_id(id: usize, pipeline_id: PipelineId) -> ClipId {
         1 => ClipId::Clip(id, pipeline_id),
         _ => unreachable!("Got a bizarre value for the clip type"),
     }
+}
+
+/// cbindgen:postfix=WR_DESTRUCTOR_SAFE_FUNC
+#[no_mangle]
+pub unsafe extern "C" fn wr_device_delete(device: *mut Device) {
+    Box::from_raw(device);
+}
+
+// Call MakeCurrent before this.
+#[no_mangle]
+pub extern "C" fn wr_shaders_new(gl_context: *mut c_void,
+                                 program_cache: Option<&mut WrProgramCache>) -> *mut WrShaders {
+    let mut device = wr_device_new(gl_context, program_cache);
+
+    let precache_flags = if env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
+        ShaderPrecacheFlags::FULL_COMPILE
+    } else {
+        ShaderPrecacheFlags::ASYNC_COMPILE
+    };
+
+    let opts = RendererOptions {
+        precache_flags,
+        ..Default::default()
+    };
+
+    let gl_type = device.gl().get_type();
+    device.begin_frame();
+
+    let shaders = Rc::new(RefCell::new(match Shaders::new(&mut device, gl_type, &opts) {
+        Ok(shaders) => shaders,
+        Err(e) => {
+            warn!(" Failed to create a Shaders: {:?}", e);
+            let msg = CString::new(format!("wr_shaders_new: {:?}", e)).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return ptr::null_mut();
+        }
+    }));
+
+    let shaders = WrShaders { shaders };
+
+    device.end_frame();
+    Box::into_raw(Box::new(shaders))
+}
+
+/// cbindgen:postfix=WR_DESTRUCTOR_SAFE_FUNC
+#[no_mangle]
+pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders, gl_context: *mut c_void) {
+    let mut device = wr_device_new(gl_context, None);
+    let shaders = Box::from_raw(shaders);
+    if let Ok(shaders) = Rc::try_unwrap(shaders.shaders) {
+      shaders.into_inner().deinit(&mut device);
+    }
+    // let shaders go out of scope and get dropped
 }

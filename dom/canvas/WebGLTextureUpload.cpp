@@ -12,6 +12,7 @@
 #include "GLBlitHelper.h"
 #include "GLContext.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageData.h"
@@ -222,11 +223,16 @@ FromPboOffset(WebGLContext* webgl, TexImageTarget target,
 static UniquePtr<webgl::TexUnpackBlob>
 FromImageBitmap(WebGLContext* webgl, TexImageTarget target,
                 uint32_t width, uint32_t height, uint32_t depth,
-                const dom::ImageBitmap& imageBitmap)
+                const dom::ImageBitmap& imageBitmap, ErrorResult* aRv)
 {
+    if (imageBitmap.IsWriteOnly()) {
+        aRv->Throw(NS_ERROR_DOM_SECURITY_ERR);
+        return nullptr;
+    }
+
     UniquePtr<dom::ImageBitmapCloneData> cloneData = imageBitmap.ToCloneData();
     if (!cloneData) {
-      return nullptr;
+        return nullptr;
     }
 
     const RefPtr<gfx::DataSourceSurface> surf = cloneData->mSurface;
@@ -300,6 +306,14 @@ WebGLContext::FromDomElem(TexImageTarget target, uint32_t width,
                           uint32_t height, uint32_t depth, const dom::Element& elem,
                           ErrorResult* const out_error)
 {
+    if (elem.IsHTMLElement(nsGkAtoms::canvas)) {
+        const dom::HTMLCanvasElement* canvas = static_cast<const dom::HTMLCanvasElement*>(&elem);
+        if (canvas->IsWriteOnly()) {
+            out_error->Throw(NS_ERROR_DOM_SECURITY_ERR);
+            return nullptr;
+        }
+    }
+
     // The canvas spec says that drawImage should draw the first frame of
     // animated images. The webgl spec doesn't mention the issue, so we do the
     // same as drawImage.
@@ -421,7 +435,7 @@ WebGLContext::From(TexImageTarget target, GLsizei rawWidth,
 
     if (src.mImageBitmap) {
         return FromImageBitmap(this, target, width, height, depth,
-                               *(src.mImageBitmap));
+                               *(src.mImageBitmap), src.mOut_error);
     }
 
     if (src.mImageData) {
@@ -502,7 +516,7 @@ WebGLTexture::TexSubImage(TexImageTarget target, GLint level,
 static bool
 ValidateTexImage(WebGLContext* webgl, WebGLTexture* texture,
                  TexImageTarget target, GLint level,
-                 WebGLTexture::ImageInfo** const out_imageInfo)
+                 webgl::ImageInfo** const out_imageInfo)
 {
     // Check level
     if (level < 0) {
@@ -515,8 +529,7 @@ ValidateTexImage(WebGLContext* webgl, WebGLTexture* texture,
         return false;
     }
 
-    WebGLTexture::ImageInfo& imageInfo = texture->ImageInfoAt(target, level);
-
+    auto& imageInfo = texture->ImageInfoAt(target, level);
     *out_imageInfo = &imageInfo;
     return true;
 }
@@ -526,7 +539,7 @@ bool
 WebGLTexture::ValidateTexImageSpecification(TexImageTarget target,
                                             GLint rawLevel, uint32_t width,
                                             uint32_t height, uint32_t depth,
-                                            WebGLTexture::ImageInfo** const out_imageInfo)
+                                            webgl::ImageInfo** const out_imageInfo)
 {
     if (mImmutable) {
         mContext->ErrorInvalidOperation("Specified texture is immutable.");
@@ -534,7 +547,7 @@ WebGLTexture::ValidateTexImageSpecification(TexImageTarget target,
     }
 
     // Do this early to validate `level`.
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImage(mContext, this, target, rawLevel, &imageInfo))
         return false;
     const uint32_t level(rawLevel);
@@ -636,7 +649,7 @@ WebGLTexture::ValidateTexImageSelection(TexImageTarget target,
                                         GLint level, GLint xOffset, GLint yOffset,
                                         GLint zOffset, uint32_t width, uint32_t height,
                                         uint32_t depth,
-                                        WebGLTexture::ImageInfo** const out_imageInfo)
+                                        webgl::ImageInfo** const out_imageInfo)
 {
     // The conformance test wants bad arg checks before imageInfo checks.
     if (xOffset < 0 || yOffset < 0 || zOffset < 0) {
@@ -644,7 +657,7 @@ WebGLTexture::ValidateTexImageSelection(TexImageTarget target,
         return false;
     }
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImage(mContext, this, target, level, &imageInfo))
         return false;
 
@@ -768,24 +781,19 @@ EnsureImageDataInitializedForUpload(WebGLTexture* tex,
                                     TexImageTarget target, GLint level, GLint xOffset,
                                     GLint yOffset, GLint zOffset, uint32_t width,
                                     uint32_t height, uint32_t depth,
-                                    WebGLTexture::ImageInfo* imageInfo,
-                                    bool* const out_uploadWillInitialize)
+                                    webgl::ImageInfo* imageInfo)
 {
-    *out_uploadWillInitialize = false;
-
-    if (!imageInfo->IsDataInitialized()) {
+    if (!imageInfo->mHasData) {
         const bool isFullUpload = (!xOffset && !yOffset && !zOffset &&
                                    width == imageInfo->mWidth &&
                                    height == imageInfo->mHeight &&
                                    depth == imageInfo->mDepth);
-        if (isFullUpload) {
-            *out_uploadWillInitialize = true;
-        } else {
+        if (!isFullUpload) {
             WebGLContext* webgl = tex->mContext;
             webgl->GenerateWarning("Texture has not been initialized prior to a"
                                    " partial upload, forcing the browser to clear it."
                                    " This may be slow.");
-            if (!tex->InitializeImageData(target, level)) {
+            if (!tex->EnsureImageDataInitialized(target, level)) {
                 MOZ_ASSERT(false, "Unexpected failure to init image data.");
                 return false;
             }
@@ -1002,7 +1010,7 @@ ValidateCompressedTexImageRestrictions(WebGLContext* webgl,
         break;
 
     // Default: There are no restrictions on CompressedTexImage.
-    default: // ATC, ETC1, ES3
+    default: // ETC1, ES3
         break;
     }
 
@@ -1018,62 +1026,37 @@ ValidateTargetForFormat(WebGLContext* webgl, TexImageTarget target,
     //  supported by texture image specification commands only if `target` is TEXTURE_2D,
     //  TEXTURE_2D_ARRAY, or TEXTURE_CUBE_MAP. Using these formats in conjunction with any
     //  other `target` will result in an INVALID_OPERATION error."
-
-    switch (format->effectiveFormat) {
-    // TEXTURE_2D_ARRAY but not TEXTURE_3D:
-    // D and DS formats
-    case webgl::EffectiveFormat::DEPTH_COMPONENT16:
-    case webgl::EffectiveFormat::DEPTH_COMPONENT24:
-    case webgl::EffectiveFormat::DEPTH_COMPONENT32F:
-    case webgl::EffectiveFormat::DEPTH24_STENCIL8:
-    case webgl::EffectiveFormat::DEPTH32F_STENCIL8:
-    // CompressionFamily::ES3
-    case webgl::EffectiveFormat::COMPRESSED_R11_EAC:
-    case webgl::EffectiveFormat::COMPRESSED_SIGNED_R11_EAC:
-    case webgl::EffectiveFormat::COMPRESSED_RG11_EAC:
-    case webgl::EffectiveFormat::COMPRESSED_SIGNED_RG11_EAC:
-    case webgl::EffectiveFormat::COMPRESSED_RGB8_ETC2:
-    case webgl::EffectiveFormat::COMPRESSED_SRGB8_ETC2:
-    case webgl::EffectiveFormat::COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-    case webgl::EffectiveFormat::COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA8_ETC2_EAC:
-    case webgl::EffectiveFormat::COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-    // CompressionFamily::S3TC
-    case webgl::EffectiveFormat::COMPRESSED_RGB_S3TC_DXT1_EXT:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA_S3TC_DXT1_EXT:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA_S3TC_DXT3_EXT:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA_S3TC_DXT5_EXT:
-        if (target == LOCAL_GL_TEXTURE_3D) {
-            webgl->ErrorInvalidOperation("Format %s cannot be used with TEXTURE_3D.",
-                                         format->name);
+    const bool ok = [&]() {
+        if (bool(format->d) & (target == LOCAL_GL_TEXTURE_3D))
             return false;
-        }
-        break;
 
-    // No 3D targets:
-    // CompressionFamily::ATC
-    case webgl::EffectiveFormat::ATC_RGB_AMD:
-    case webgl::EffectiveFormat::ATC_RGBA_EXPLICIT_ALPHA_AMD:
-    case webgl::EffectiveFormat::ATC_RGBA_INTERPOLATED_ALPHA_AMD:
-    // CompressionFamily::PVRTC
-    case webgl::EffectiveFormat::COMPRESSED_RGB_PVRTC_4BPPV1:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA_PVRTC_4BPPV1:
-    case webgl::EffectiveFormat::COMPRESSED_RGB_PVRTC_2BPPV1:
-    case webgl::EffectiveFormat::COMPRESSED_RGBA_PVRTC_2BPPV1:
-    // CompressionFamily::ETC1
-    case webgl::EffectiveFormat::ETC1_RGB8_OES:
-        if (target == LOCAL_GL_TEXTURE_3D ||
-            target == LOCAL_GL_TEXTURE_2D_ARRAY)
-        {
-            webgl->ErrorInvalidOperation("Format %s cannot be used with TEXTURE_3D or"
-                                         " TEXTURE_2D_ARRAY.",
-                                         format->name);
-            return false;
-        }
-        break;
+        if (format->compression) {
+            switch (format->compression->family) {
+            case webgl::CompressionFamily::ES3:
+            case webgl::CompressionFamily::S3TC:
+                if (target == LOCAL_GL_TEXTURE_3D)
+                    return false;
+                break;
 
-    default:
-        break;
+            case webgl::CompressionFamily::ETC1:
+            case webgl::CompressionFamily::PVRTC:
+            case webgl::CompressionFamily::RGTC:
+                if (target == LOCAL_GL_TEXTURE_3D ||
+                    target == LOCAL_GL_TEXTURE_2D_ARRAY)
+                {
+                    return false;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        return true;
+    }();
+    if (!ok) {
+        webgl->ErrorInvalidOperation("Format %s cannot be used with target %s.",
+                                     format->name, GetEnumName(target.get()));
+        return false;
     }
 
     return true;
@@ -1096,7 +1079,7 @@ WebGLTexture::TexStorage(TexTarget target, GLsizei levels,
 
     const TexImageTarget testTarget = IsCubeMap() ? LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X
                                                   : target.get();
-    WebGLTexture::ImageInfo* baseImageInfo;
+    webgl::ImageInfo* baseImageInfo;
     if (!ValidateTexImageSpecification(testTarget, 0, width, height, depth,
                                        &baseImageInfo))
     {
@@ -1171,14 +1154,22 @@ WebGLTexture::TexStorage(TexTarget target, GLsizei levels,
     // Update our specification data.
 
     const bool isDataInitialized = false;
-    const WebGLTexture::ImageInfo newInfo(dstUsage, width, height, depth,
-                                          isDataInitialized);
-    SetImageInfosAtLevel(0, newInfo);
+    const webgl::ImageInfo newInfo { dstUsage, uint32_t(width), uint32_t(height),
+                                     uint32_t(depth), isDataInitialized };
 
-    PopulateMipChain(0, levels-1);
+    {
+        const auto base_level = mBaseMipmapLevel;
+        mBaseMipmapLevel = 0;
+
+        ImageInfoAtFace(0, 0) = newInfo;
+        PopulateMipChain(levels-1);
+
+        mBaseMipmapLevel = base_level;
+    }
 
     mImmutable = true;
     mImmutableLevelCount = levels;
+    ClampLevelBaseAndMax();
 }
 
 ////////////////////////////////////////
@@ -1192,7 +1183,7 @@ WebGLTexture::TexImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Get dest info
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSpecification(target, level, blob->mWidth,
                                        blob->mHeight, blob->mDepth, &imageInfo))
     {
@@ -1264,8 +1255,8 @@ WebGLTexture::TexImage(TexImageTarget target, GLint level,
     // It's tempting to do allocation first, and TexSubImage second, but this is generally
     // slower.
 
-    const ImageInfo newImageInfo(dstUsage, blob->mWidth, blob->mHeight, blob->mDepth,
-                                 blob->HasData());
+    const webgl::ImageInfo newImageInfo { dstUsage, blob->mWidth, blob->mHeight,
+                                          blob->mDepth, blob->HasData() };
 
     const bool isSubImage = false;
     const bool needsRespec = (imageInfo->mWidth  != newImageInfo.mWidth ||
@@ -1304,7 +1295,8 @@ WebGLTexture::TexImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Update our specification data.
 
-    SetImageInfo(imageInfo, newImageInfo);
+    *imageInfo = newImageInfo;
+    InvalidateCaches();
 }
 
 void
@@ -1315,7 +1307,7 @@ WebGLTexture::TexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Get dest info
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSelection(target, level, xOffset, yOffset, zOffset,
                                    blob->mWidth, blob->mHeight, blob->mDepth, &imageInfo))
     {
@@ -1325,11 +1317,6 @@ WebGLTexture::TexSubImage(TexImageTarget target, GLint level,
 
     auto dstUsage = imageInfo->mFormat;
     auto dstFormat = dstUsage->format;
-
-    if (dstFormat->compression) {
-        mContext->ErrorInvalidEnum("Specified TexImage must not be compressed.");
-        return;
-    }
 
     if (!mContext->IsWebGL2() && dstFormat->d) {
         mContext->ErrorInvalidOperation("Function may not be called on a texture of"
@@ -1352,11 +1339,9 @@ WebGLTexture::TexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Do the thing!
 
-    bool uploadWillInitialize;
     if (!EnsureImageDataInitializedForUpload(this, target, level, xOffset,
                                              yOffset, zOffset, blob->mWidth,
-                                             blob->mHeight, blob->mDepth, imageInfo,
-                                             &uploadWillInitialize))
+                                             blob->mHeight, blob->mDepth, imageInfo))
     {
         return;
     }
@@ -1390,9 +1375,7 @@ WebGLTexture::TexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Update our specification data?
 
-    if (uploadWillInitialize) {
-        imageInfo->SetIsDataInitialized(true, this);
-    }
+    imageInfo->mHasData = true;
 }
 
 ////////////////////////////////////////
@@ -1439,7 +1422,7 @@ WebGLTexture::CompressedTexImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Get dest info
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSpecification(target, level, blob->mWidth,
                                        blob->mHeight, blob->mDepth, &imageInfo))
     {
@@ -1448,17 +1431,11 @@ WebGLTexture::CompressedTexImage(TexImageTarget target, GLint level,
     MOZ_ASSERT(imageInfo);
 
     auto usage = mContext->mFormatUsage->GetSizedTexUsage(internalFormat);
-    if (!usage) {
-        mContext->ErrorInvalidEnum("Invalid internalFormat: 0x%04x",
-                                   internalFormat);
+    if (!usage || !usage->format->compression) {
+        mContext->ErrorInvalidEnumArg("internalFormat", internalFormat);
         return;
     }
-
     auto format = usage->format;
-    if (!format->compression) {
-        mContext->ErrorInvalidEnum("Specified internalFormat must be compressed.");
-        return;
-    }
 
     if (!ValidateTargetForFormat(mContext, target, format))
         return;
@@ -1509,14 +1486,15 @@ WebGLTexture::CompressedTexImage(TexImageTarget target, GLint level,
     // Update our specification data.
 
     const bool isDataInitialized = true;
-    const ImageInfo newImageInfo(usage, blob->mWidth, blob->mHeight, blob->mDepth,
-                                 isDataInitialized);
-    SetImageInfo(imageInfo, newImageInfo);
+    const webgl::ImageInfo newImageInfo { usage, blob->mWidth, blob->mHeight,
+                                          blob->mDepth, isDataInitialized };
+    *imageInfo = newImageInfo;
+    InvalidateCaches();
 }
 
 static inline bool
 IsSubImageBlockAligned(const webgl::CompressedFormatInfo* compression,
-                       const WebGLTexture::ImageInfo* imageInfo, GLint xOffset,
+                       const webgl::ImageInfo* imageInfo, GLint xOffset,
                        GLint yOffset, uint32_t width, uint32_t height)
 {
     if (xOffset % compression->blockWidth != 0 ||
@@ -1550,7 +1528,7 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     ////////////////////////////////////
     // Get dest info
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSelection(target, level, xOffset, yOffset, zOffset,
                                    blob->mWidth, blob->mHeight, blob->mDepth, &imageInfo))
     {
@@ -1565,11 +1543,10 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     // Get source info
 
     auto srcUsage = mContext->mFormatUsage->GetSizedTexUsage(sizedUnpackFormat);
-    if (!srcUsage->format->compression) {
-        mContext->ErrorInvalidEnum("Specified format must be compressed.");
+    if (!srcUsage || !srcUsage->format->compression) {
+        mContext->ErrorInvalidEnumArg("sizedUnpackFormat", sizedUnpackFormat);
         return;
     }
-
     if (srcUsage != dstUsage) {
         mContext->ErrorInvalidOperation("`format` must match the format of the"
                                         " existing texture image.");
@@ -1590,7 +1567,6 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     switch (format->compression->family) {
     // Forbidden:
     case webgl::CompressionFamily::ETC1:
-    case webgl::CompressionFamily::ATC:
         mContext->ErrorInvalidOperation("Format does not allow sub-image"
                                         " updates.");
         return;
@@ -1598,6 +1574,8 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     // Block-aligned:
     case webgl::CompressionFamily::ES3:  // Yes, the ES3 formats don't match the ES3
     case webgl::CompressionFamily::S3TC: // default behavior.
+    case webgl::CompressionFamily::BPTC:
+    case webgl::CompressionFamily::RGTC:
         if (!IsSubImageBlockAligned(dstFormat->compression, imageInfo, xOffset, yOffset,
                                     blob->mWidth, blob->mHeight))
         {
@@ -1623,11 +1601,9 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     ////////////////////////////////////
     // Do the thing!
 
-    bool uploadWillInitialize;
     if (!EnsureImageDataInitializedForUpload(this, target, level, xOffset,
                                              yOffset, zOffset, blob->mWidth,
-                                             blob->mHeight, blob->mDepth, imageInfo,
-                                             &uploadWillInitialize))
+                                             blob->mHeight, blob->mDepth, imageInfo))
     {
         return;
     }
@@ -1655,9 +1631,7 @@ WebGLTexture::CompressedTexSubImage(TexImageTarget target,
     ////////////////////////////////////
     // Update our specification data?
 
-    if (uploadWillInitialize) {
-        imageInfo->SetIsDataInitialized(true, this);
-    }
+    imageInfo->mHasData = true;
 }
 
 ////////////////////////////////////////
@@ -1907,21 +1881,7 @@ ValidateCopyDestUsage(WebGLContext* webgl,
 
     const auto dstFormat = dstUsage->format;
 
-    const auto fnNarrowType = [&](webgl::ComponentType type) {
-        switch (type) {
-        case webgl::ComponentType::NormInt:
-        case webgl::ComponentType::NormUInt:
-            // These both count as "fixed-point".
-            return webgl::ComponentType::NormInt;
-
-        default:
-            return type;
-        }
-    };
-
-    const auto srcType = fnNarrowType(srcFormat->componentType);
-    const auto dstType = fnNarrowType(dstFormat->componentType);
-    if (dstType != srcType) {
+    if (dstFormat->componentType != srcFormat->componentType) {
         webgl->ErrorInvalidOperation("For sized internalFormats, source and dest"
                                      " component types must match. (source: %s, dest:"
                                      " %s)",
@@ -2087,7 +2047,7 @@ WebGLTexture::CopyTexImage2D(TexImageTarget target, GLint level, GLenum internal
         return;
     }
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSpecification(target, level, width, height, depth, &imageInfo))
         return;
     MOZ_ASSERT(imageInfo);
@@ -2146,8 +2106,10 @@ WebGLTexture::CopyTexImage2D(TexImageTarget target, GLint level, GLenum internal
     // Update our specification data.
 
     const bool isDataInitialized = true;
-    const ImageInfo newImageInfo(dstUsage, width, height, depth, isDataInitialized);
-    SetImageInfo(imageInfo, newImageInfo);
+    const webgl::ImageInfo newImageInfo { dstUsage, width, height, depth,
+                                          isDataInitialized };
+    *imageInfo = newImageInfo;
+    InvalidateCaches();
 }
 
 void
@@ -2165,7 +2127,7 @@ WebGLTexture::CopyTexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Get dest info
 
-    WebGLTexture::ImageInfo* imageInfo;
+    webgl::ImageInfo* imageInfo;
     if (!ValidateTexImageSelection(target, level, xOffset, yOffset, zOffset,
                                    width, height, depth, &imageInfo))
     {
@@ -2209,10 +2171,9 @@ WebGLTexture::CopyTexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Do the thing!
 
-    bool uploadWillInitialize;
     if (!EnsureImageDataInitializedForUpload(this, target, level, xOffset,
                                              yOffset, zOffset, width, height, depth,
-                                             imageInfo, &uploadWillInitialize))
+                                             imageInfo))
     {
         return;
     }
@@ -2228,9 +2189,7 @@ WebGLTexture::CopyTexSubImage(TexImageTarget target, GLint level,
     ////////////////////////////////////
     // Update our specification data?
 
-    if (uploadWillInitialize) {
-        imageInfo->SetIsDataInitialized(true, this);
-    }
+    imageInfo->mHasData = true;
 }
 
 } // namespace mozilla

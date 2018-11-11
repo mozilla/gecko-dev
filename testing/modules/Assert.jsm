@@ -13,7 +13,7 @@
 "use strict";
 
 var EXPORTED_SYMBOLS = [
-  "Assert"
+  "Assert",
 ];
 
 ChromeUtils.import("resource://gre/modules/ObjectUtils.jsm");
@@ -130,8 +130,8 @@ Assert.AssertionError.prototype = Object.create(Error.prototype, {
     value: Assert.AssertionError,
     enumerable: false,
     writable: true,
-    configurable: true
-  }
+    configurable: true,
+  },
 });
 
 var proto = Assert.prototype;
@@ -203,7 +203,7 @@ proto.report = function(failed, actual, expected, message, operator, truncate = 
     actual,
     expected,
     operator,
-    truncate
+    truncate,
   });
   if (!this._reporter) {
     // If no custom reporter is set, throw the error.
@@ -228,7 +228,11 @@ proto.report = function(failed, actual, expected, message, operator, truncate = 
  *        (string) Short explanation of the expected result
  */
 proto.ok = function(value, message) {
-  this.report(!value, value, true, message, "==");
+  if (arguments.length > 2) {
+    this.report(true, false, true, "Too many arguments passed to `Assert.ok()`", "==");
+  } else {
+    this.report(!value, value, true, message, "==");
+  }
 };
 
 /**

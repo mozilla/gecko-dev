@@ -28,6 +28,16 @@ js::Debugger::onLeaveFrame(JSContext* cx, AbstractFramePtr frame, jsbytecode* pc
     return ok;
 }
 
+/* static */ inline bool
+js::Debugger::onNewGenerator(JSContext* cx, AbstractFramePtr frame,
+                             Handle<GeneratorObject*> genObj)
+{
+    if (frame.isDebuggee()) {
+        return slowPathOnNewGenerator(cx, frame, genObj);
+    }
+    return true;
+}
+
 /* static */ inline js::Debugger*
 js::Debugger::fromJSObject(const JSObject* obj)
 {
@@ -52,6 +62,16 @@ js::Debugger::onEnterFrame(JSContext* cx, AbstractFramePtr frame)
         return ResumeMode::Continue;
     }
     return slowPathOnEnterFrame(cx, frame);
+}
+
+/* static */ js::ResumeMode
+js::Debugger::onResumeFrame(JSContext* cx, AbstractFramePtr frame)
+{
+    MOZ_ASSERT_IF(frame.hasScript() && frame.script()->isDebuggee(), frame.isDebuggee());
+    if (!frame.isDebuggee()) {
+        return ResumeMode::Continue;
+    }
+    return slowPathOnResumeFrame(cx, frame);
 }
 
 /* static */ js::ResumeMode
@@ -98,13 +118,6 @@ js::Debugger::onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise)
 
 inline js::Debugger*
 js::DebuggerEnvironment::owner() const
-{
-    JSObject* dbgobj = &getReservedSlot(OWNER_SLOT).toObject();
-    return Debugger::fromJSObject(dbgobj);
-}
-
-inline js::Debugger*
-js::DebuggerFrame::owner() const
 {
     JSObject* dbgobj = &getReservedSlot(OWNER_SLOT).toObject();
     return Debugger::fromJSObject(dbgobj);

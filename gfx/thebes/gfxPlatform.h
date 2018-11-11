@@ -754,6 +754,10 @@ protected:
     gfxPlatform();
     virtual ~gfxPlatform();
 
+    virtual bool HasBattery() {
+      return true;
+    }
+
     virtual void InitAcceleration();
     virtual void InitWebRenderConfig();
 
@@ -888,6 +892,8 @@ private:
 
     static bool IsDXInterop2Blocked();
     static bool IsDXNV12Blocked();
+    static bool IsDXP010Blocked();
+    static bool IsDXP016Blocked();
 
     RefPtr<gfxASurface> mScreenReferenceSurface;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;

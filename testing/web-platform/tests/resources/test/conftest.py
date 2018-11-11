@@ -2,11 +2,13 @@ import io
 import json
 import os
 import ssl
-import urllib2
 
 import html5lib
+import py
 import pytest
 from selenium import webdriver
+from six import text_type
+from six.moves import urllib
 
 from wptserver import WPTServer
 
@@ -15,8 +17,10 @@ WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
 TEST_TYPES = ('functional', 'unit')
 
+
 def pytest_addoption(parser):
     parser.addoption("--binary", action="store", default=None, help="path to browser binary")
+
 
 def pytest_collect_file(path, parent):
     if path.ext.lower() != '.html':
@@ -26,6 +30,7 @@ def pytest_collect_file(path, parent):
     test_type = os.path.relpath(str(path), HERE).split(os.path.sep)[1]
 
     return HTMLItem(str(path), test_type, parent)
+
 
 def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
@@ -45,6 +50,7 @@ def pytest_configure(config):
     config.ssl_context = ssl._create_unverified_context()
     config.add_cleanup(config.server.stop)
 
+
 def resolve_uri(context, uri):
     if uri.startswith('/'):
         base = WPT_ROOT
@@ -55,6 +61,7 @@ def resolve_uri(context, uri):
 
     return os.path.exists(os.path.join(base, path))
 
+
 class HTMLItem(pytest.Item, pytest.Collector):
     def __init__(self, filename, test_type, parent):
         self.url = parent.session.config.server.url(filename)
@@ -63,8 +70,8 @@ class HTMLItem(pytest.Item, pytest.Collector):
         # Some tests are reliant on the WPT servers substitution functionality,
         # so tests must be retrieved from the server rather than read from the
         # file system directly.
-        handle = urllib2.urlopen(self.url,
-                                 context=parent.session.config.ssl_context)
+        handle = urllib.request.urlopen(self.url,
+                                        context=parent.session.config.ssl_context)
         try:
             markup = handle.read()
         finally:
@@ -87,7 +94,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
                 continue
             if element.tag == 'script':
                 if element.attrib.get('id') == 'expected':
-                    self.expected = json.loads(unicode(element.text))
+                    self.expected = json.loads(text_type(element.text))
 
                 src = element.attrib.get('src', '')
 
@@ -115,7 +122,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
         # This cannot use super(HTMLItem, self).__init__(..) because only the
         # Collector constructor takes the fspath argument.
         pytest.Item.__init__(self, name, parent)
-        pytest.Collector.__init__(self, name, parent, fspath=filename)
+        pytest.Collector.__init__(self, name, parent, fspath=py.path.local(filename))
 
 
     def reportinfo(self):
@@ -186,7 +193,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
     @staticmethod
     def _assert_sequence(nums):
         if nums and len(nums) > 0:
-            assert nums == range(1, nums[-1] + 1)
+            assert nums == list(range(1, nums[-1] + 1))
 
     @staticmethod
     def _scrub_stack(test_obj):

@@ -165,6 +165,12 @@ ARCHIVE_FILES = {
         },
         {
             'source': buildconfig.topsrcdir,
+            'base': 'toolkit/components/telemetry/tests/marionette',
+            'pattern': '/**',
+            'dest': 'telemetry/marionette',
+        },
+        {
+            'source': buildconfig.topsrcdir,
             'base': 'js/src',
             'pattern': 'jit-test/**',
             'dest': 'jit-test',
@@ -303,7 +309,15 @@ ARCHIVE_FILES = {
             'base': 'build/pgo/certs',
             'pattern': '**',
             'dest': 'certs',
-        }
+        },
+        {
+            'source': buildconfig.topobjdir,
+            'base': 'build/unix/elfhack',
+            'patterns': [
+                'elfhack%s' % buildconfig.substs['BIN_SUFFIX'],
+            ],
+            'dest': 'bin',
+        },
     ],
     'cppunittest': [
         {
@@ -409,7 +423,19 @@ ARCHIVE_FILES = {
                 'testing/crashtest/crashtests.list',
             ],
             'dest': 'reftest/tests',
-        }
+        },
+        {
+            'source': buildconfig.topobjdir,
+            'base': 'dist/xpi-stage',
+            'pattern': 'reftest/**',
+            'dest': 'reftest'
+        },
+        {
+            'source': buildconfig.topobjdir,
+            'base': 'dist/xpi-stage',
+            'pattern': 'specialpowers/**',
+            'dest': 'reftest'
+        },
     ],
     'talos': [
         {
@@ -518,6 +544,12 @@ ARCHIVE_FILES = {
             'base': 'build',
             'pattern': 'automation.py',
             'dest': 'xpcshell',
+        },
+        {
+            'source': buildconfig.topsrcdir,
+            'base': 'testing/profiles',
+            'pattern': '**',
+            'dest': 'xpcshell/profile_data',
         },
     ],
     'updater-dep': [

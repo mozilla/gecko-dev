@@ -512,13 +512,9 @@ nsMozIconURI::SchemeIs(const char* aScheme, bool* aEquals)
 nsresult
 nsMozIconURI::Clone(nsIURI** result)
 {
-  nsresult rv;
   nsCOMPtr<nsIURL> newIconURL;
   if (mIconURL) {
-    newIconURL = do_QueryInterface(mIconURL, &rv);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    newIconURL = mIconURL;
   }
 
   RefPtr<nsMozIconURI> uri = new nsMozIconURI();
@@ -713,7 +709,7 @@ nsMozIconURI::Deserialize(const URIParams& aParams)
 NS_IMETHODIMP
 nsMozIconURI::GetInnerURI(nsIURI** aURI)
 {
-  nsCOMPtr<nsIURI> iconURL = do_QueryInterface(mIconURL);
+  nsCOMPtr<nsIURI> iconURL = mIconURL;
   if (!iconURL) {
     *aURI = nullptr;
     return NS_ERROR_FAILURE;

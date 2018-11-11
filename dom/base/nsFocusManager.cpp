@@ -2367,11 +2367,11 @@ nsFocusManager::UpdateCaret(bool aMoveCaretToFocus,
   // this is called when a document is focused or when the caretbrowsing
   // preference is changed
   nsCOMPtr<nsIDocShell> focusedDocShell = mFocusedWindow->GetDocShell();
-  nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(focusedDocShell);
-  if (!dsti)
+  if (!focusedDocShell) {
     return;
+  }
 
-  if (dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
+  if (focusedDocShell->ItemType() == nsIDocShellTreeItem::typeChrome) {
     return;  // Never browse with caret in chrome
   }
 
@@ -2866,7 +2866,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindowOuter* aWindow,
   // from there but instead from the beginning of the document. Otherwise, the
   // content that appears before the retargetdocumentfocus element will never
   // get checked as it will be skipped when the focus is retargetted to it.
-  if (forDocumentNavigation && doc->IsXULDocument()) {
+  if (forDocumentNavigation && nsContentUtils::IsChromeDoc(doc)) {
     nsAutoString retarget;
 
     if (rootContent->GetAttr(kNameSpaceID_None,
@@ -3313,10 +3313,18 @@ nsFocusManager::GetNextTabbableContentInScope(nsIContent* aOwner,
         // This happens for example with <input type="date">.
         // So, try to find NAC and then traverse the frame tree to find elements
         // to focus.
+        // Yet, even if the frame is a nsIAnonymousContentCreator, don't
+        // traverse into the element again when the element is in a UA Widget,
+        // because there isn't any NAC to focus.
         nsIFrame* possibleAnonOwnerFrame = iterContent->GetPrimaryFrame();
         nsIAnonymousContentCreator* anonCreator =
           do_QueryFrame(possibleAnonOwnerFrame);
-        if (anonCreator && !iterContent->IsInNativeAnonymousSubtree()) {
+        bool isIterContentInUAWidgetShadow =
+          iterContent->GetContainingShadow() &&
+          iterContent->GetContainingShadow()->IsUAWidget();
+        if (anonCreator &&
+            !isIterContentInUAWidgetShadow &&
+            !iterContent->IsInNativeAnonymousSubtree()) {
           nsIFrame* frame = nullptr;
           // Find the first or last frame in tree order so that
           // we can scope frame traversing to NAC.
@@ -4047,7 +4055,7 @@ nsFocusManager::FocusFirst(Element* aRootElement, nsIContent** aNextContent)
 
   nsIDocument* doc = aRootElement->GetComposedDoc();
   if (doc) {
-    if (doc->IsXULDocument()) {
+    if (nsContentUtils::IsChromeDoc(doc)) {
       // If the redirectdocumentfocus attribute is set, redirect the focus to a
       // specific element. This is primarily used to retarget the focus to the
       // urlbar during document navigation.

@@ -11,6 +11,8 @@ ChromeUtils.defineModuleGetter(this, "PrivateBrowsingUtils",
                                "resource://gre/modules/PrivateBrowsingUtils.jsm");
 ChromeUtils.defineModuleGetter(this, "Services",
                                "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyPreferenceGetter(this, "containersEnabled",
+                                      "privacy.userContext.enabled");
 
 var {
   DefaultMap,
@@ -296,7 +298,7 @@ class TabBase {
    *        @readonly
    */
   get frameLoader() {
-    return this.browser.frameLoader;
+    return this.browser && this.browser.frameLoader;
   }
 
   /**
@@ -581,12 +583,12 @@ class TabBase {
    * of its properties which the extension is permitted to access, in the format
    * required to be returned by WebExtension APIs.
    *
-   * @param {Tab} [fallbackTab]
-   *        A tab to retrieve geometry data from if the lazy geometry data for
-   *        this tab hasn't been initialized yet.
+   * @param {Object} [fallbackTabSize]
+   *        A geometry data if the lazy geometry data for this tab hasn't been
+   *        initialized yet.
    * @returns {object}
    */
-  convert(fallbackTab = null) {
+  convert(fallbackTabSize = null) {
     let result = {
       id: this.id,
       index: this.index,
@@ -611,9 +613,9 @@ class TabBase {
 
     // If the tab has not been fully layed-out yet, fallback to the geometry
     // from a different tab (usually the currently active tab).
-    if (fallbackTab && (!result.width || !result.height)) {
-      result.width = fallbackTab.width;
-      result.height = fallbackTab.height;
+    if (fallbackTabSize && (!result.width || !result.height)) {
+      result.width = fallbackTabSize.width;
+      result.height = fallbackTabSize.height;
     }
 
     let opener = this.openerTabId;
@@ -1831,15 +1833,15 @@ class TabManagerBase {
    *
    * @param {NativeTab} nativeTab
    *        The native tab to convert.
-   * @param {NativeTab} [fallbackTab]
-   *        A tab to retrieve geometry data from if the lazy geometry data for
-   *        this tab hasn't been initialized yet.
+   * @param {Object} [fallbackTabSize]
+   *        A geometry data if the lazy geometry data for this tab hasn't been
+   *        initialized yet.
    *
    * @returns {Object}
    */
-  convert(nativeTab, fallbackTab = null) {
+  convert(nativeTab, fallbackTabSize = null) {
     return this.getWrapper(nativeTab)
-               .convert(fallbackTab && this.getWrapper(fallbackTab));
+               .convert(fallbackTabSize);
   }
 
   // The JSDoc validator does not support @returns tags in abstract functions or
@@ -2072,6 +2074,13 @@ function getUserContextIdForCookieStoreId(extension, cookieStoreId, isPrivateBro
   }
 
   if (isContainerCookieStoreId(cookieStoreId)) {
+    if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      // Container tabs are not supported in perma-private browsing mode - bug 1320757
+      throw new ExtensionError(`Contextual identities are unavailable in permanent private browsing mode`);
+    }
+    if (!containersEnabled) {
+      throw new ExtensionError(`Contextual identities are currently disabled`);
+    }
     let userContextId = getContainerForCookieStoreId(cookieStoreId);
     if (!userContextId) {
       throw new ExtensionError(`No cookie store exists with ID ${cookieStoreId}`);

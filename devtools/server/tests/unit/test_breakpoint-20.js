@@ -21,7 +21,7 @@ function run_test() {
   do_test_pending();
 }
 
-const testBreakpoint = async function(threadResponse, tabClient,
+const testBreakpoint = async function(threadResponse, targetFront,
                                              threadClient, tabResponse) {
   evalSetupCode();
 
@@ -34,8 +34,8 @@ const testBreakpoint = async function(threadResponse, tabClient,
   // Set a breakpoint in the test source.
 
   const source = await getSource(threadClient, "test.js");
-  const [response, ] = await setBreakpoint(source, {
-    line: 3
+  const [response ] = await setBreakpoint(source, {
+    line: 3,
   });
   ok(!response.error, "Shouldn't get an error setting the BP.");
   ok(!response.actualLocation,

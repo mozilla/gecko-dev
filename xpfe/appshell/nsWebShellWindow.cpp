@@ -56,11 +56,14 @@
 
 #include "nsIBaseWindow.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsDocShell.h"
 
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/MouseEvents.h"
+
+#include "mozilla/dom/BrowsingContext.h"
 
 #include "nsPIWindowRoot.h"
 
@@ -179,21 +182,23 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   mWindow->SetBackgroundColor(NS_RGB(255,255,255));
 
   // Create web shell
-  mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
+  RefPtr<BrowsingContext> browsingContext =
+    BrowsingContext::Create(nullptr, EmptyString(), BrowsingContext::Type::Chrome);
+  mDocShell = nsDocShell::Create(browsingContext);
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
+  // XXX(nika): This is used to handle propagating opener across remote tab
+  // creation. We should come up with a better system for doing this (probably
+  // based on BrowsingContext).
   mDocShell->SetOpener(aOpeningTab);
 
   // Make sure to set the item type on the docshell _before_ calling
   // Create() so it knows what type it is.
-  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
+  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(mDocShell);
   NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
   NS_ENSURE_SUCCESS(EnsureChromeTreeOwner(), NS_ERROR_FAILURE);
 
   docShellAsItem->SetTreeOwner(mChromeTreeOwner);
-  docShellAsItem->SetItemType(nsIDocShellTreeItem::typeChrome);
-
-  mDocShell->AttachBrowsingContext(nullptr);
 
   r.MoveTo(0, 0);
   nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(mDocShell));
@@ -676,7 +681,9 @@ nsWebShellWindow::OnStatusChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsWebShellWindow::OnSecurityChange(nsIWebProgress *aWebProgress,
                                    nsIRequest *aRequest,
-                                   uint32_t state)
+                                   uint32_t aOldState,
+                                   uint32_t aState,
+                                   const nsAString& aContentBlockingLogJSON)
 {
   MOZ_ASSERT_UNREACHABLE("notification excluded in AddProgressListener(...)");
   return NS_OK;

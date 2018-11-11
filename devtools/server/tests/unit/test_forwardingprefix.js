@@ -83,22 +83,27 @@ function tryActors(reachables, completed) {
 
     count++;
 
+    let promise;
     // phone home
-    gClient.request(
-      { to: actor, type: "echo", value: "tango"},
-      (response) => {
-        if (reachables.has(actor)) {
-          Assert.deepEqual({ from: actor, to: actor,
-                             type: "echo", value: "tango" }, response);
-        } else {
-          Assert.deepEqual({ from: actor, error: "noSuchActor",
-                             message: "No such actor for ID: " + actor }, response);
-        }
+    if (actor == "root") {
+      promise = gClient.mainRoot.echo({ value: "tango" });
+    } else {
+      promise = gClient.request({ to: actor, type: "echo", value: "tango"});
+    }
+    const callback = (response) => {
+      if (reachables.has(actor)) {
+        Assert.deepEqual({ from: actor, to: actor,
+                           type: "echo", value: "tango" }, response);
+      } else {
+        Assert.deepEqual({ from: actor, error: "noSuchActor",
+                           message: "No such actor for ID: " + actor }, response);
+      }
 
-        if (--count == 0) {
-          executeSoon(completed, "tryActors callback " + completed.name);
-        }
-      });
+      if (--count == 0) {
+        executeSoon(completed, "tryActors callback " + completed.name);
+      }
+    };
+    promise.then(callback, callback);
   }
 }
 
@@ -122,7 +127,7 @@ function newSubconnection(prefix) {
   const { conn, transport } = newConnection(prefix);
   transport.hooks = {
     onPacket: (packet) => gMainConnection.send(packet),
-    onClosed: () => {}
+    onClosed: () => {},
   };
   gMainConnection.setForwarding(prefix, transport);
 
@@ -172,7 +177,7 @@ EchoActor.prototype.onEcho = function(request) {
   return JSON.parse(JSON.stringify(request));
 };
 EchoActor.prototype.requestTypes = {
-  "echo": EchoActor.prototype.onEcho
+  "echo": EchoActor.prototype.onEcho,
 };
 
 function TestForwardPrefix12WithActor1() {

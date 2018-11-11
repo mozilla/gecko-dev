@@ -16,6 +16,7 @@ const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { assert, fetch } = DevToolsUtils;
 const { joinURI } = require("devtools/shared/path");
 const { sourceSpec } = require("devtools/shared/specs/source");
+const { findClosestScriptBySource } = require("devtools/server/actors/utils/closest-scripts");
 
 loader.lazyRequireGetter(this, "SourceMapConsumer", "source-map", true);
 loader.lazyRequireGetter(this, "SourceMapGenerator", "source-map", true);
@@ -241,7 +242,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       isSourceMapped: this.isSourceMapped,
       sourceMapURL: source ? source.sourceMapURL : null,
       introductionUrl: introductionUrl ? introductionUrl.split(" -> ").pop() : null,
-      introductionType: source ? source.introductionType : null
+      introductionType: source ? source.introductionType : null,
     };
   },
 
@@ -336,7 +337,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
   _getSourceText: function() {
     const toResolvedContent = t => ({
       content: t,
-      contentType: this._contentType
+      contentType: this._contentType,
     });
     const isWasm = this.source && this.source.introductionType === "wasm";
 
@@ -417,7 +418,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       const sourceFetched = fetch(this.url, {
         principal,
         cacheKey,
-        loadFromCache
+        loadFromCache,
       });
 
       // Record the contentType we just learned during fetching
@@ -455,7 +456,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         for (const offset of offsets) {
           const {line, source: sourceUrl} = sm.originalPositionFor({
             line: offset.lineNumber,
-            column: offset.columnNumber
+            column: offset.columnNumber,
           });
 
           if (sourceUrl === this.url) {
@@ -505,7 +506,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         return {
           source: createValueGrip(content, this.threadActor.threadLifetimePool,
             this.threadActor.objectGrip),
-          contentType: contentType
+          contentType: contentType,
         };
       })
       .catch(error => {
@@ -554,7 +555,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       return this.prettyPrintWorker.performTask("pretty-print", {
         url: this.url,
         indent,
-        source: content
+        source: content,
       });
     };
   },
@@ -573,14 +574,14 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       const mapping = {
         generated: {
           line: m.originalLine,
-          column: m.originalColumn
-        }
+          column: m.originalColumn,
+        },
       };
       if (m.source) {
         mapping.source = m.source;
         mapping.original = {
           line: m.generatedLine,
-          column: m.generatedColumn
+          column: m.generatedColumn,
         };
         mapping.name = m.name;
       }
@@ -591,7 +592,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
       return {
         code: code,
-        map: consumer
+        map: consumer,
       };
     });
   },
@@ -611,7 +612,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         // Compose the source maps
         this._oldSourceMapping = {
           url: source.sourceMapURL,
-          map: prevMap
+          map: prevMap,
         };
 
         prevMap = SourceMapGenerator.fromSourceMap(prevMap);
@@ -683,7 +684,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       0: {},
       1: { break: true },
       2: { step: true },
-      3: { break: true, step: true }
+      3: { break: true, step: true },
     };
 
     for (const line in pausePoints) {
@@ -716,7 +717,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     if (this.threadActor.state !== "paused") {
       const errorObject = {
         error: "wrongState",
-        message: "Cannot set breakpoint while debuggee is running."
+        message: "Cannot set breakpoint while debuggee is running.",
       };
       throw errorObject;
     }
@@ -729,7 +730,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     ).then((actor) => {
       const response = {
         actor: actor.actorID,
-        isPending: actor.isPending
+        isPending: actor.isPending,
       };
 
       const actualLocation = actor.originalLocation;
@@ -865,7 +866,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
             message:
               "Could not find any entry points to set a breakpoint on, " +
               "even though I was told a script existed on the line I started " +
-              "the search with."
+              "the search with.",
           });
         }
 
@@ -928,7 +929,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       generatedSourceActor,
       generatedLine,
       generatedColumn,
-      generatedLastColumn
+      generatedLastColumn,
     } = generatedLocation;
 
     // Find all scripts that match the given source actor and line
@@ -961,7 +962,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
         [
           script,
           script.getAllColumnOffsets()
-            .filter(({ lineNumber }) => lineNumber === generatedLine)
+            .filter(({ lineNumber }) => lineNumber === generatedLine),
         ]
       );
 
@@ -978,7 +979,20 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       // If we don't find any matching entrypoints,
       // then we should see if the breakpoint comes before or after the column offsets.
       if (entryPoints.length === 0) {
-        for (const [script, columnToOffsetMap] of columnToOffsetMaps) {
+        // It's not entirely clear if the scripts that make it here can come
+        // from a variety of sources. This function allows filtering by URL
+        // so it seems like it may be possible and we are erring on the side
+        // of caution by handling it here.
+        const closestScripts = findClosestScriptBySource(
+          columnToOffsetMaps.map(pair => pair[0]),
+          generatedLine,
+          generatedColumn,
+        );
+
+        const columnToOffsetLookup = new Map(columnToOffsetMaps);
+        for (const script of closestScripts) {
+          const columnToOffsetMap = columnToOffsetLookup.get(script);
+
           if (columnToOffsetMap.length > 0) {
             const firstColumnOffset = columnToOffsetMap[0];
             const lastColumnOffset = columnToOffsetMap[columnToOffsetMap.length - 1];
@@ -1001,7 +1015,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     setBreakpointAtEntryPoints(actor, entryPoints);
     return true;
-  }
+  },
 });
 
 exports.SourceActor = SourceActor;

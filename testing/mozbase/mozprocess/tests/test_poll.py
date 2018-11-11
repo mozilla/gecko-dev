@@ -4,6 +4,9 @@ from __future__ import absolute_import
 
 import os
 import signal
+import sys
+import time
+import unittest
 
 import mozinfo
 import mozunit
@@ -102,14 +105,22 @@ class ProcTestPoll(proctest.ProcTest):
 
         self.determine_status(p)
 
+    @unittest.skipIf(sys.platform.startswith("win"), "Bug 1493796")
     def test_poll_after_external_kill(self):
         """Process is killed externally, and poll() is called."""
         p = processhandler.ProcessHandler([self.python, self.proclaunch,
                                            "process_normal_finish.ini"],
                                           cwd=here)
         p.run()
+
         os.kill(p.pid, signal.SIGTERM)
-        returncode = p.wait()
+
+        # Allow the output reader thread to finish processing remaining data
+        for i in xrange(0, 100):
+            time.sleep(processhandler.INTERVAL_PROCESS_ALIVE_CHECK)
+            returncode = p.poll()
+            if returncode is not None:
+                break
 
         # We killed the process, so the returncode should be non-zero
         if mozinfo.isWin:
@@ -119,7 +130,7 @@ class ProcTestPoll(proctest.ProcTest):
             self.assertEqual(returncode, -signal.SIGTERM,
                              '%s expected, got "%s"' % (-signal.SIGTERM, returncode))
 
-        self.assertEqual(returncode, p.poll())
+        self.assertEqual(returncode, p.wait())
 
         self.determine_status(p)
 

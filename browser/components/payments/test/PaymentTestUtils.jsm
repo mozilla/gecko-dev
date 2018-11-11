@@ -1,5 +1,7 @@
 "use strict";
 
+/* global info */
+
 var EXPORTED_SYMBOLS = ["PaymentTestUtils"];
 
 var PaymentTestUtils = {
@@ -22,6 +24,7 @@ var PaymentTestUtils = {
       try {
         await response.complete(result);
       } catch (ex) {
+        info(`Complete error: ${ex}`);
         completeException = {
           name: ex.name,
           message: ex.message,
@@ -29,6 +32,34 @@ var PaymentTestUtils = {
       }
       return {
         completeException,
+        response: response.toJSON(),
+        // XXX: Bug NNN: workaround for `details` not being included in `toJSON`.
+        methodDetails: response.details,
+      };
+    },
+
+    /**
+     * Add a retry handler to the existing `showPromise` to call .retry().
+     * @returns {Object} representing the PaymentResponse
+     */
+    addRetryHandler: async ({validationErrors, delayMs = 0}) => {
+      let response = await content.showPromise;
+      let retryException;
+
+      // delay the given # milliseconds
+      await new Promise(resolve => content.setTimeout(resolve, delayMs));
+
+      try {
+        await response.retry(Cu.cloneInto(validationErrors, content));
+      } catch (ex) {
+        info(`Retry error: ${ex}`);
+        retryException = {
+          name: ex.name,
+          message: ex.message,
+        };
+      }
+      return {
+        retryException,
         response: response.toJSON(),
         // XXX: Bug NNN: workaround for `details` not being included in `toJSON`.
         methodDetails: response.details,
@@ -81,6 +112,7 @@ var PaymentTestUtils = {
      * @param {PaymentMethodData[]} methodData
      * @param {PaymentDetailsInit} details
      * @param {PaymentOptions} options
+     * @returns {Object}
      */
     createAndShowRequest: ({methodData, details, options}) => {
       const rq = new content.PaymentRequest(Cu.cloneInto(methodData, content), details, options);
@@ -90,19 +122,9 @@ var PaymentTestUtils = {
       content.showPromise = rq.show();
 
       handle.destruct();
-    },
-
-    /**
-     * Add a rejection handler for the `showPromise` created by createAndShowRequest
-     * and stash details of any eventual exception or response in `rqResult`
-     */
-    catchShowPromiseRejection: () => {
-      content.rqResult = {};
-      content.showPromise.then(res => content.rqResult.response = res)
-                         .catch(ex => content.rqResult.showException = {
-                           name: ex.name,
-                           message: ex.message,
-                         });
+      return {
+        requestId: rq.id,
+      };
     },
   },
 
@@ -262,7 +284,7 @@ var PaymentTestUtils = {
       let picker = Cu.waiveXrays(content.document.querySelector("payment-method-picker"));
       // Unwaive to access the ChromeOnly `setUserInput` API.
       // setUserInput dispatches changes events.
-      Cu.unwaiveXrays(picker.securityCodeInput).setUserInput(securityCode);
+      Cu.unwaiveXrays(picker.securityCodeInput).querySelector("input").setUserInput(securityCode);
     },
   },
 
@@ -399,9 +421,7 @@ var PaymentTestUtils = {
             label: "Total due",
             amount: { currency: "USD", value: "2.50" },
           },
-          data: {
-            supportedTypes: "credit",
-          },
+          data: {},
         },
         {
           additionalDisplayItems: [

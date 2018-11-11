@@ -105,6 +105,15 @@ protected:
                                     const uint64_t& aChannelId,
                                     nsIURI* aOriginalURI,
                                     const uint64_t& aIdentifier) override;
+
+  virtual PTrackingDummyChannelChild*
+    AllocPTrackingDummyChannelChild(nsIURI* aURI,
+                                    nsIURI* aTopWindowURI,
+                                    const nsresult& aTopWindowURIResult,
+                                    const OptionalLoadInfoArgs& aLoadInfo) override;
+
+  virtual bool
+    DeallocPTrackingDummyChannelChild(PTrackingDummyChannelChild* aChannel) override;
 };
 
 /**

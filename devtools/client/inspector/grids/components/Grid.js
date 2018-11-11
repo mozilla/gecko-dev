@@ -9,9 +9,18 @@ const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const { getStr } = require("devtools/client/inspector/layout/utils/l10n");
 
-const GridDisplaySettings = createFactory(require("./GridDisplaySettings"));
-const GridList = createFactory(require("./GridList"));
-const GridOutline = createFactory(require("./GridOutline"));
+// Normally, we would only lazy load GridOutline, but we also lazy load
+// GridDisplaySettings and GridList because we assume the CSS grid usage is low
+// and usually will not appear on the page.
+loader.lazyGetter(this, "GridDisplaySettings", function() {
+  return createFactory(require("./GridDisplaySettings"));
+});
+loader.lazyGetter(this, "GridList", function() {
+  return createFactory(require("./GridList"));
+});
+loader.lazyGetter(this, "GridOutline", function() {
+  return createFactory(require("./GridOutline"));
+});
 
 const Types = require("../types");
 
@@ -34,6 +43,14 @@ class Grid extends PureComponent {
   }
 
   render() {
+    if (!this.props.grids.length) {
+      return (
+        dom.div({ className: "devtools-sidepanel-no-result" },
+          getStr("layout.noGridsOnThisPage")
+        )
+      );
+    }
+
     const {
       getSwatchColorPickerTooltip,
       grids,
@@ -48,14 +65,7 @@ class Grid extends PureComponent {
       onToggleShowInfiniteLines,
       setSelectedNode,
     } = this.props;
-
-    if (!grids.length) {
-      return (
-        dom.div({ className: "devtools-sidepanel-no-result" },
-          getStr("layout.noGridsOnThisPage")
-        )
-      );
-    }
+    const highlightedGrids = grids.filter(grid => grid.highlighted);
 
     return (
       dom.div({ id: "layout-grid-container" },
@@ -76,10 +86,13 @@ class Grid extends PureComponent {
             onToggleShowInfiniteLines,
           })
         ),
-        GridOutline({
-          grids,
-          onShowGridOutlineHighlight,
-        })
+        highlightedGrids.length === 1 ?
+          GridOutline({
+            grids,
+            onShowGridOutlineHighlight,
+          })
+          :
+          null
       )
     );
   }

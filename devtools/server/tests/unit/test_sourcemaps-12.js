@@ -20,7 +20,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-source-map",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              define_code();
                            });
@@ -42,7 +42,7 @@ function define_code() {
     new SourceNode(3, 0, "a.js", "}\n"),
   ])).toStringWithSourceMap({
     file: "abc.js",
-    sourceRoot: "http://example.com/"
+    sourceRoot: "http://example.com/",
   });
 
   code += "//# sourceMappingURL=data:text/json," + map.toString();

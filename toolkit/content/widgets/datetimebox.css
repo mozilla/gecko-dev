@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @namespace url("http://www.w3.org/1999/xhtml");
-@namespace xul url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+.datetimebox {
+  display: flex;
+}
 
 .datetime-input-box-wrapper {
-  -moz-appearance: none;
   display: inline-flex;
   flex: 1;
-  cursor: default;
   background-color: inherit;
-  color: inherit;
   min-width: 0;
   justify-content: space-between;
 }
@@ -23,14 +23,12 @@
 
 .datetime-edit-field {
   display: inline;
-  cursor: default;
   -moz-user-select: none;
   text-align: center;
   padding: 1px 3px;
   border: 0;
   margin: 0;
   ime-mode: disabled;
-  font: inherit;
   outline: none;
 }
 
@@ -42,7 +40,6 @@
 
 .datetime-edit-field[disabled="true"],
 .datetime-edit-field[readonly="true"]  {
-  color: GrayText;
   -moz-user-select: none;
 }
 

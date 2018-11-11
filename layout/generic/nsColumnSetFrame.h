@@ -102,42 +102,42 @@ protected:
   struct ReflowConfig {
     // The number of columns that we want to balance across. If we're not
     // balancing, this will be set to INT32_MAX.
-    int32_t mBalanceColCount;
+    int32_t mBalanceColCount = INT32_MAX;
 
     // The inline-size of each individual column.
-    nscoord mColISize;
+    nscoord mColISize = NS_INTRINSICSIZE;
 
     // The amount of inline-size that is expected to be left over after all the
     // columns and column gaps are laid out.
-    nscoord mExpectedISizeLeftOver;
+    nscoord mExpectedISizeLeftOver = 0;
 
     // The width (inline-size) of each column gap.
-    nscoord mColGap;
+    nscoord mColGap = NS_INTRINSICSIZE;
 
     // The maximum bSize of any individual column during a reflow iteration.
     // This parameter is set during each iteration of the binary search for
     // the best column block-size.
-    nscoord mColMaxBSize;
+    nscoord mColMaxBSize = NS_INTRINSICSIZE;
 
     // A boolean controlling whether or not we are balancing. This should be
-    // equivalent to mBalanceColCount == INT32_MAX.
-    bool mIsBalancing;
+    // equivalent to mBalanceColCount != INT32_MAX.
+    bool mIsBalancing = false;
 
     // The last known column block-size that was 'feasible'. A column bSize is
     // feasible if all child content fits within the specified bSize.
-    nscoord mKnownFeasibleBSize;
+    nscoord mKnownFeasibleBSize = NS_INTRINSICSIZE;
 
     // The last known block-size that was 'infeasible'. A column bSize is
     // infeasible if not all child content fits within the specified bSize.
-    nscoord mKnownInfeasibleBSize;
+    nscoord mKnownInfeasibleBSize = 0;
 
     // block-size of the column set frame
-    nscoord mComputedBSize;
+    nscoord mComputedBSize = NS_INTRINSICSIZE;
 
     // The block-size "consumed" by previous-in-flows.
     // The computed block-size should be equal to the block-size of the element
     // (i.e. the computed block-size itself) plus the consumed block-size.
-    nscoord mConsumedBSize;
+    nscoord mConsumedBSize = 0;
   };
 
   /**
@@ -145,18 +145,22 @@ protected:
    */
   struct ColumnBalanceData {
     // The maximum "content block-size" of any column
-    nscoord mMaxBSize;
+    nscoord mMaxBSize = 0;
+
     // The sum of the "content block-size" for all columns
-    nscoord mSumBSize;
+    nscoord mSumBSize = 0;
+
     // The "content block-size" of the last column
-    nscoord mLastBSize;
+    nscoord mLastBSize = 0;
+
     // The maximum "content block-size" of all columns that overflowed
     // their available block-size
-    nscoord mMaxOverflowingBSize;
+    nscoord mMaxOverflowingBSize = 0;
+
     // This flag determines whether the last reflow of children exceeded the
     // computed block-size of the column set frame. If so, we set the bSize to
     // this maximum allowable bSize, and continue reflow without balancing.
-    bool mHasExcessBSize;
+    bool mHasExcessBSize = false;
 
     void Reset() {
       mMaxBSize = mSumBSize = mLastBSize = mMaxOverflowingBSize = 0;
@@ -169,7 +173,6 @@ protected:
                      nsReflowStatus& aReflowStatus,
                      ReflowConfig& aConfig,
                      bool aLastColumnUnbounded,
-                     nsCollapsingMargin* aCarriedOutBEndMargin,
                      ColumnBalanceData& aColData);
 
   /**
@@ -180,8 +183,7 @@ protected:
    * the state machine that controls column balancing.
    */
   ReflowConfig ChooseColumnStrategy(const ReflowInput& aReflowInput,
-                                    bool aForceAuto, nscoord aFeasibleBSize,
-                                    nscoord aInfeasibleBSize);
+                                    bool aForceAuto);
 
   /**
    * Perform the binary search for the best balance height for this column set.
@@ -195,8 +197,6 @@ protected:
    *        successive iterations of the balancing process.
    * @param aDesiredSize The final output size of the column set frame (output
    *        of reflow procedure).
-   * @param aOutMargin The bottom margin of the column set frame that may be
-   *        carried out from reflow (and thus collapsed).
    * @param aUnboundedLastColumn A boolean value indicating that the last column
    *        can be of any height. Used during the first iteration of the
    *        balancing procedure to measure the height of all content in
@@ -212,7 +212,6 @@ protected:
                             ReflowConfig& aConfig,
                             ColumnBalanceData& aColData,
                             ReflowOutput& aDesiredSize,
-                            nsCollapsingMargin& aOutMargin,
                             bool& aUnboundedLastColumn,
                             bool& aRunWasFeasible,
                             nsReflowStatus& aStatus);
@@ -225,7 +224,6 @@ protected:
                         nsReflowStatus& aStatus,
                         const ReflowConfig& aConfig,
                         bool aLastColumnUnbounded,
-                        nsCollapsingMargin* aCarriedOutBEndMargin,
                         ColumnBalanceData& aColData);
 
   void ForEachColumnRule(const std::function<void(const nsRect& lineRect)>& aSetLineRect,

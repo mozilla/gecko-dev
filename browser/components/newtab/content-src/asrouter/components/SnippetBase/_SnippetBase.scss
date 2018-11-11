@@ -12,6 +12,16 @@
   display: flex;
   align-items: center;
 
+  a {
+    cursor: pointer;
+    color: var(--newtab-link-primary-color);
+    text-decoration: underline;
+
+    [lwt-newtab-brighttext] & {
+      font-weight: bold;
+    }
+  }
+
   .innerWrapper {
     margin: 0 auto;
     display: flex;
@@ -54,6 +64,13 @@
 
   &:hover .blockButton {
     display: block;
+  }
+
+  .icon {
+    height: 42px;
+    width: 42px;
+    margin-inline-end: 12px;
+    flex-shrink: 0;
   }
 }
 

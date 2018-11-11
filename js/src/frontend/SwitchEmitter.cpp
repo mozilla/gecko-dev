@@ -6,6 +6,8 @@
 
 #include "frontend/SwitchEmitter.h"
 
+#include "mozilla/Span.h"
+
 #include "jsutil.h"
 
 #include "frontend/BytecodeEmitter.h"
@@ -202,9 +204,6 @@ SwitchEmitter::emitTable(const TableGenerator& tableGen)
     top_ = bce_->offset();
 
     // The note has one offset that tells total switch code length.
-
-    // 3 offsets (len, low, high) before the table, 1 per entry.
-    size_t switchSize = size_t(JUMP_OFFSET_LEN * (3 + tableGen.tableLength()));
     if (!bce_->newSrcNote2(SRC_TABLESWITCH, 0, &noteIndex_)) {
         return false;
     }
@@ -215,7 +214,7 @@ SwitchEmitter::emitTable(const TableGenerator& tableGen)
     }
 
     MOZ_ASSERT(top_ == bce_->offset());
-    if (!bce_->emitN(JSOP_TABLESWITCH, switchSize)) {
+    if (!bce_->emitN(JSOP_TABLESWITCH, JSOP_TABLESWITCH_LENGTH - sizeof(jsbytecode))) {
         return false;
     }
 
@@ -242,7 +241,7 @@ SwitchEmitter::emitCaseOrDefaultJump(uint32_t caseIndex, bool isDefault)
         return true;
     }
 
-    if (state_ == State::Case) {
+    if (caseIndex > 0) {
         // Link the last JSOP_CASE's SRC_NEXTCASE to current JSOP_CASE for the
         // benefit of IonBuilder.
         if (!bce_->setSrcNoteOffset(caseNoteIndex_, SrcNote::NextCase::NextCaseOffset,
@@ -263,7 +262,7 @@ SwitchEmitter::emitCaseOrDefaultJump(uint32_t caseIndex, bool isDefault)
     caseOffsets_[caseIndex] = caseJump.offset;
     lastCaseOffset_ = caseJump.offset;
 
-    if (state_ == State::Cond) {
+    if (caseIndex == 0) {
         // Switch note's second offset is to first JSOP_CASE.
         unsigned noteCount = bce_->notes().length();
         if (!bce_->setSrcNoteOffset(noteIndex_, 1, lastCaseOffset_ - top_)) {
@@ -279,10 +278,29 @@ SwitchEmitter::emitCaseOrDefaultJump(uint32_t caseIndex, bool isDefault)
 }
 
 bool
-SwitchEmitter::emitCaseJump()
+SwitchEmitter::prepareForCaseValue()
 {
     MOZ_ASSERT(kind_ == Kind::Cond);
     MOZ_ASSERT(state_ == State::Cond || state_ == State::Case);
+
+    if (!bce_->emit1(JSOP_DUP)) {
+        return false;
+    }
+
+    state_ = State::CaseValue;
+    return true;
+}
+
+bool
+SwitchEmitter::emitCaseJump()
+{
+    MOZ_ASSERT(kind_ == Kind::Cond);
+    MOZ_ASSERT(state_ == State::CaseValue);
+
+    if (!bce_->emit1(JSOP_STRICTEQ)) {
+        return false;
+    }
+
     if (!emitCaseOrDefaultJump(caseIndex_, false)) {
         return false;
     }
@@ -433,12 +451,21 @@ SwitchEmitter::emitEnd()
         // Skip over the already-initialized switch bounds.
         pc += 2 * JUMP_OFFSET_LEN;
 
-        // Fill in the jump table, if there is one.
+        // Use the 'default' offset for missing cases.
         for (uint32_t i = 0, length = caseOffsets_.length(); i < length; i++) {
-            ptrdiff_t off = caseOffsets_[i];
-            SET_JUMP_OFFSET(pc, off == 0 ? 0 : off - top_);
-            pc += JUMP_OFFSET_LEN;
+            if (caseOffsets_[i] == 0) {
+                caseOffsets_[i] = defaultJumpTargetOffset_.offset;
+            }
         }
+
+        // Allocate resume index range.
+        uint32_t firstResumeIndex = 0;
+        mozilla::Span<ptrdiff_t> offsets = mozilla::MakeSpan(caseOffsets_.begin(),
+                                                             caseOffsets_.end());
+        if (!bce_->allocateResumeIndexRange(offsets, &firstResumeIndex)) {
+            return false;
+        }
+        SET_RESUMEINDEX(pc, firstResumeIndex);
     }
 
     // Patch breaks before leaving the scope, as all breaks are under the

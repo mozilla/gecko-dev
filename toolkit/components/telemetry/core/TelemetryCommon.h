@@ -6,31 +6,31 @@
 #ifndef TelemetryCommon_h__
 #define TelemetryCommon_h__
 
-#include "nsTHashtable.h"
 #include "jsapi.h"
-#include "nsIScriptError.h"
-#include "nsXULAppAPI.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/TelemetryProcessEnums.h"
+#include "nsIScriptError.h"
+#include "nsTHashtable.h"
+#include "nsXULAppAPI.h"
 
 namespace mozilla {
 namespace Telemetry {
 namespace Common {
 
-enum class RecordedProcessType : uint32_t {
+enum class RecordedProcessType : uint8_t {
   Main         = (1 << GeckoProcessType_Default),  // Also known as "parent process"
   Content      = (1 << GeckoProcessType_Content),
   Gpu          = (1 << GeckoProcessType_GPU),
-  AllChildren  = 0xFFFFFFFF - 1,  // All the child processes (i.e. content, gpu, ...)
-  All          = 0xFFFFFFFF       // All the processes
+  AllChildren  = 0xFF - 1,  // All the child processes (i.e. content, gpu, ...)
+  All          = 0xFF       // All the processes
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RecordedProcessType);
 
-enum class SupportedProduct : uint32_t {
+enum class SupportedProduct : uint8_t {
   Firefox    = (1 << 0),
   Fennec     = (1 << 1),
   Geckoview  = (1 << 2),
-  All        = 0xFFFFFFFF       // All the products
+  All        = 0xFF       // All the products
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(SupportedProduct);
 

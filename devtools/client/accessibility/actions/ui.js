@@ -8,14 +8,14 @@ const {
   DISABLE,
   RESET,
   UPDATE_CAN_BE_DISABLED,
-  UPDATE_CAN_BE_ENABLED
+  UPDATE_CAN_BE_ENABLED,
 } = require("../constants");
 
 /**
  * Reset accessibility panel UI.
  */
-exports.reset = accessibility =>
-  dispatch => dispatch({ accessibility, type: RESET });
+exports.reset = (accessibility, supports) =>
+  dispatch => dispatch({ accessibility, supports, type: RESET });
 
 /**
  * Update a "canBeDisabled" flag for accessibility service.

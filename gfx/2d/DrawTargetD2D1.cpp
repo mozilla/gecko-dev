@@ -16,7 +16,6 @@
 #include "HelpersD2D.h"
 #include "FilterNodeD2D1.h"
 #include "ExtendInputEffectD2D1.h"
-#include "Tools.h"
 #include "nsAppRunner.h"
 #include "MainThreadUtils.h"
 
@@ -211,7 +210,7 @@ DrawTargetD2D1::DrawSurface(SourceSurface *aSurface,
   }
 
   RefPtr<ID2D1Bitmap> bitmap;
-  HRESULT hr;
+  HRESULT hr = E_FAIL;
   if (aSurface->GetType() == SurfaceType::D2D1_1_IMAGE) {
     // If this is called with a DataSourceSurface it might do a partial upload
     // that our DrawBitmap call doesn't support.
@@ -646,7 +645,7 @@ DrawTargetD2D1::FillGlyphs(ScaledFont *aFont,
   bool forceClearType = false;
   if (!CurrentLayer().mIsOpaque && mPermitSubpixelAA &&
       aOptions.mCompositionOp == CompositionOp::OP_OVER && aaMode == AntialiasMode::SUBPIXEL) {
-    forceClearType = true;    
+    forceClearType = true;
   }
 
 
@@ -767,7 +766,7 @@ DrawTargetD2D1::Mask(const Pattern &aSource,
   Rect rect(0, 0, (Float)mSize.width, (Float)mSize.height);
   Matrix mat = mTransform;
   mat.Invert();
-  
+
   mDC->FillRectangle(D2DRect(mat.TransformBounds(rect)), source);
 
   mDC->PopLayer();
@@ -1747,7 +1746,7 @@ DrawTargetD2D1::PopAllClips()
 {
   if (CurrentLayer().mClipsArePushed) {
     PopClipsFromDC(mDC);
-  
+
     CurrentLayer().mClipsArePushed = false;
   }
 }
@@ -1757,7 +1756,7 @@ DrawTargetD2D1::PushAllClips()
 {
   if (!CurrentLayer().mClipsArePushed) {
     PushClipsToDC(mDC);
-  
+
     CurrentLayer().mClipsArePushed = true;
   }
 }
@@ -2013,7 +2012,7 @@ DrawTargetD2D1::GetImageForSurface(SourceSurface *aSurface, Matrix &aSourceTrans
         MOZ_ASSERT(surface->SameSurfaceTypes());
         SourceSurfaceD2D1* d2dSurface = static_cast<SourceSurfaceD2D1*>(first);
         image = d2dSurface->GetImage();
-        AddDependencyOnSource(d2dSurface); 
+        AddDependencyOnSource(d2dSurface);
         break;
       }
       // Otherwise fall through

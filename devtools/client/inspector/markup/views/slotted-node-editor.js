@@ -6,7 +6,7 @@
 
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const INSPECTOR_L10N =
-      new LocalizationHelper("devtools/client/locales/inspector.properties");
+  new LocalizationHelper("devtools/client/locales/inspector.properties");
 
 function SlottedNodeEditor(container, node) {
   this.container = container;
@@ -54,7 +54,7 @@ SlottedNodeEditor.prototype = {
    */
   getInfoAtNode: function() {
     return null;
-  }
+  },
 };
 
 module.exports = SlottedNodeEditor;

@@ -135,11 +135,6 @@ public:
   nsTextFrame* LastInFlow() const final;
   nsTextFrame* LastContinuation() const final;
 
-  nsSplittableType GetSplittableType() const final
-  {
-    return NS_FRAME_SPLITTABLE;
-  }
-
   bool IsFrameOfType(uint32_t aFlags) const final
   {
     // Set the frame state bit for text frames to mark them as replaced.
@@ -667,6 +662,13 @@ public:
   uint32_t CountGraphemeClusters() const;
 
   bool HasAnyNoncollapsedCharacters() override;
+
+  /**
+   * Call this after you have manually changed the text node contents without
+   * notifying that change.  This behaves as if all the text contents changed.
+   * (You should only use this for native anonymous content.)
+   */
+  void NotifyNativeAnonymousTextnodeChange(uint32_t aOldLength);
 
 protected:
   virtual ~nsTextFrame();

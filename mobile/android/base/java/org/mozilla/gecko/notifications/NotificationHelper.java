@@ -97,7 +97,7 @@ public final class NotificationHelper implements BundleEventListener {
          */
         MLS,
         /**
-         * Mozilla Location Services notification channel.
+         * File downloads.
          */
         DOWNLOAD,
         /**
@@ -116,6 +116,10 @@ public final class NotificationHelper implements BundleEventListener {
          * Leanplum notification channel - use only when <code>AppConstants.MOZ_ANDROID_MMA</code> is true.
          */
         LP_DEFAULT,
+        /**
+         * HTML5 web site notifications
+         */
+        SITE_NOTIFICATIONS,
     }
 
     // Holds the mapping between the Channel enum used by the rest of our codebase and the
@@ -143,6 +147,9 @@ public final class NotificationHelper implements BundleEventListener {
 
         final String SYNCED_TABS_CHANNEL_TAG = "synced-tabs-notification-channel";
         put(Channel.SYNCED_TABS, SYNCED_TABS_CHANNEL_TAG);
+
+        final String SITE_NOTIFICATIONS_CHANNEL_TAG = "site-notifications";
+        put(Channel.SITE_NOTIFICATIONS, SITE_NOTIFICATIONS_CHANNEL_TAG);
     }};
 
     // These are channels we no longer require and want to retire from Android's settings UI.
@@ -235,7 +242,7 @@ public final class NotificationHelper implements BundleEventListener {
 
                 case MEDIA: {
                     channel = new NotificationChannel(mDefinedNotificationChannels.get(definedChannel),
-                            mContext.getString(R.string.media_notification_channel),
+                            mContext.getString(R.string.media_notification_channel2),
                             NotificationManager.IMPORTANCE_LOW);
                 }
                 break;
@@ -256,15 +263,22 @@ public final class NotificationHelper implements BundleEventListener {
 
                 case LP_DEFAULT: {
                     channel = new NotificationChannel(mDefinedNotificationChannels.get(definedChannel),
-                            mContext.getString(R.string.leanplum_default_notifications_channel),
+                            mContext.getString(R.string.leanplum_default_notifications_channel2),
                             NotificationManager.IMPORTANCE_LOW);
+                }
+                break;
+
+                case SITE_NOTIFICATIONS: {
+                    channel = new NotificationChannel(mDefinedNotificationChannels.get(definedChannel),
+                            mContext.getString(R.string.site_notifications_channel),
+                            NotificationManager.IMPORTANCE_DEFAULT);
                 }
                 break;
 
                 case DEFAULT:
                 default: {
                     channel = new NotificationChannel(mDefinedNotificationChannels.get(definedChannel),
-                            mContext.getString(R.string.default_notification_channel),
+                            mContext.getString(R.string.default_notification_channel2),
                             NotificationManager.IMPORTANCE_LOW);
                 }
                 break;

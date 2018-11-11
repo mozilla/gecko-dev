@@ -53,7 +53,7 @@ GeckoProfilerEntryMarker::GeckoProfilerEntryMarker(JSContext* cx,
   : profiler_(&cx->geckoProfiler())
 {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    if (MOZ_LIKELY(!profiler_->installed())) {
+    if (MOZ_LIKELY(!profiler_->infraInstalled())) {
         profiler_ = nullptr;
         return;
     }
@@ -88,7 +88,7 @@ AutoGeckoProfilerEntry::AutoGeckoProfilerEntry(JSContext* cx, const char* label,
   : profiler_(&cx->geckoProfiler())
 {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    if (MOZ_LIKELY(!profiler_->installed())) {
+    if (MOZ_LIKELY(!profiler_->infraInstalled())) {
         profiler_ = nullptr;
         return;
     }
@@ -98,7 +98,6 @@ AutoGeckoProfilerEntry::AutoGeckoProfilerEntry(JSContext* cx, const char* label,
     profiler_->profilingStack_->pushLabelFrame(label,
                                             /* dynamicString = */ nullptr,
                                             /* sp = */ this,
-                                            /* line = */ 0,
                                             category);
 }
 

@@ -5,14 +5,11 @@
 "use strict";
 
 const Services = require("Services");
-
-loader.lazyRequireGetter(this, "CSS_ANGLEUNIT",
-  "devtools/shared/css/properties-db", true);
-
-const {getAngleValueInDegrees} = require("devtools/shared/css/parsing-utils");
-
 const {getCSSLexer} = require("devtools/shared/css/lexer");
 const {cssColors} = require("devtools/shared/css/color-db");
+
+loader.lazyRequireGetter(this, "CSS_ANGLEUNIT", "devtools/shared/css/constants", true);
+loader.lazyRequireGetter(this, "getAngleValueInDegrees", "devtools/shared/css/parsing-utils", true);
 
 const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
@@ -21,7 +18,7 @@ const SPECIALVALUES = new Set([
   "initial",
   "inherit",
   "transparent",
-  "unset"
+  "unset",
 ]);
 
 /**
@@ -88,7 +85,7 @@ CssColor.COLORUNIT = {
   "hex": "hex",
   "name": "name",
   "rgb": "rgb",
-  "hsl": "hsl"
+  "hsl": "hsl",
 };
 
 CssColor.prototype = {
@@ -420,7 +417,7 @@ CssColor.prototype = {
       h,
       s,
       l,
-      a: parseFloat(a.toFixed(1))
+      a: parseFloat(a.toFixed(1)),
     };
   },
 
@@ -1163,6 +1160,31 @@ function calculateLuminance(rgba) {
 }
 
 /**
+ * Blend background and foreground colors takign alpha into account.
+ * @param  {Array} foregroundColor
+ *         An array with [r,g,b,a] values containing the foreground color.
+ * @param  {Array} backgroundColor
+ *         An array with [r,g,b,a] values containing the background color. Defaults to
+ *         [ 255, 255, 255, 1 ].
+ * @return {Array}
+ *         An array with combined [r,g,b,a] colors.
+ */
+function blendColors(foregroundColor, backgroundColor = [ 255, 255, 255, 1 ]) {
+  const [ fgR, fgG, fgB, fgA ] = foregroundColor;
+  const [ bgR, bgG, bgB, bgA ] = backgroundColor;
+  if (fgA === 1) {
+    return foregroundColor;
+  }
+
+  return [
+    (1 - fgA) * bgR + fgA * fgR,
+    (1 - fgA) * bgG + fgA * fgG,
+    (1 - fgA) * bgB + fgA * fgB,
+    fgA + bgA * (1 - fgA),
+  ];
+}
+
+/**
  * Calculates the contrast ratio of 2 rgba tuples based on the formula in
  * https://www.w3.org/TR/2008/REC-WCAG20-20081211/#visual-audio-contrast7
  *
@@ -1173,6 +1195,9 @@ function calculateLuminance(rgba) {
  * @return {Number} The calculated luminance.
  */
 function calculateContrastRatio(backgroundColor, textColor) {
+  backgroundColor = blendColors(backgroundColor);
+  textColor = blendColors(textColor, backgroundColor);
+
   const backgroundLuminance = calculateLuminance(backgroundColor);
   const textLuminance = calculateLuminance(textColor);
   const ratio = (textLuminance + 0.05) / (backgroundLuminance + 0.05);

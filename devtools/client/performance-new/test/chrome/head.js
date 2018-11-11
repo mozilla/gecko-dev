@@ -9,7 +9,7 @@
 const { BrowserLoader } = ChromeUtils.import("resource://devtools/client/shared/browser-loader.js", {});
 var { require } = BrowserLoader({
   baseURI: "resource://devtools/client/performance-new/",
-  window
+  window,
 });
 
 const EventEmitter = require("devtools/shared/event-emitter");
@@ -106,7 +106,11 @@ class MockPerfFront extends EventEmitter {
     this._isActive = false;
     this.emit("profiler-stopped");
     // Return a fake profile.
-    return {};
+    return { meta: {}, libs: [], threads: [], processes: [] };
+  }
+
+  async getSymbolTable() {
+    throw new Error("unimplemented");
   }
 
   stopProfilerAndDiscardProfile() {
@@ -174,7 +178,7 @@ function createPerfComponent() {
   const receiveProfileCalls = [];
   const recordingPreferencesCalls = [];
 
-  function receiveProfileMock(profile) {
+  function receiveProfileMock(profile, getSymbolTableCallback) {
     receiveProfileCalls.push(profile);
   }
 
@@ -187,7 +191,7 @@ function createPerfComponent() {
       perfFront: perfFrontMock,
       receiveProfile: receiveProfileMock,
       recordingSettingsFromPreferences: selectors.getRecordingSettings(store.getState()),
-      setRecordingPreferences: recordingPreferencesMock
+      setRecordingPreferences: recordingPreferencesMock,
     }));
 
     return ReactDOM.render(
@@ -222,6 +226,6 @@ function createPerfComponent() {
     getState: store.getState,
     dispatch: store.dispatch,
     // Provide a common shortcut for this selector.
-    getRecordingState: () => selectors.getRecordingState(store.getState())
+    getRecordingState: () => selectors.getRecordingState(store.getState()),
   };
 }

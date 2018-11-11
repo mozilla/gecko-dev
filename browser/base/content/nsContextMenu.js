@@ -129,6 +129,7 @@ nsContextMenu.prototype = {
         linkUrl: this.linkURL,
         selectionText: this.isTextSelected ? this.selectionInfo.fullText : undefined,
         frameId: this.frameOuterWindowID,
+        webExtBrowserType: this.webExtBrowserType,
         webExtContextData: gContextMenuContentData ? gContextMenuContentData.webExtContextData : undefined,
       };
       subject.wrappedJSObject = subject;
@@ -1505,7 +1506,7 @@ nsContextMenu.prototype = {
     }
 
     // format "Search <engine> for <selection>" string to show in menu
-    let engineName = Services.search.currentEngine.name;
+    let engineName = Services.search.defaultEngine.name;
     var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
                                                         [engineName,
                                                          selectedText]);

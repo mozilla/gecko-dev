@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <!-- The viewport tag will result in APZ being in a "zoomed-in" state, assuming
-       the device width is less than 980px. -->
-  <meta name="viewport" content="width=980; initial-scale=1.0">
+       the device width is less than 2500px. -->
+  <meta name="viewport" content="width=2500; initial-scale=1.0">
   <title>Test for bug 1280013</title>
   <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
   <script type="application/javascript" src="apz_test_utils.js"></script>
@@ -17,10 +17,15 @@ function* test(testDriver) {
   // processing the scroll.
   SpecialPowers.Services.obs.addObserver(testDriver, "APZ:TransformEnd");
 
+  // Note on the synthesizeNativeTouchDrag() calls in this file: by using
+  // yield and *not* passing |testDriver| as the |aObserver| argument, these
+  // calls block until something else (in this case, the APZ:TransformEnd
+  // notification) resumes the test.
+
   // Scroll down to the iframe. Do it in two drags instead of one in case the
-  // device screen is short
-  yield synthesizeNativeTouchDrag(document.body, 10, 400, 0, -350);
-  yield synthesizeNativeTouchDrag(document.body, 10, 400, 0, -350);
+  // device screen is short.
+  yield synthesizeNativeTouchDrag(window, 10, 400, 0, -350);
+  yield synthesizeNativeTouchDrag(window, 10, 400, 0, -350);
   // Now the top of the visible area should be at y=700 of the top-level page,
   // so if the screen is >= 500px tall, the entire iframe should be visible, at
   // least vertically.
@@ -32,11 +37,9 @@ function* test(testDriver) {
   yield flushApzRepaints(testDriver);
   is(window.scrollY, 0, "Main-thread scroll position is still at 0");
 
-  // Scroll the iframe by 300px. Note that since the main-thread scroll position
-  // is still 0, the subframe's getBoundingClientRect is going to be off by
-  // 700 pixels, so we compensate for that here.
+  // Scroll the iframe by 300px.
   var subframe = document.getElementById('subframe');
-  yield synthesizeNativeTouchDrag(subframe, 10, 200 - 700, 0, -300);
+  yield synthesizeNativeTouchDrag(subframe, 10, 200, 0, -300);
 
   // Remove the observer, we don't need it any more.
   SpecialPowers.Services.obs.removeObserver(testDriver, "APZ:TransformEnd", false);
@@ -47,18 +50,18 @@ function* test(testDriver) {
   // get the displayport for the subframe
   var utils = SpecialPowers.getDOMWindowUtils(window);
   var contentPaints = utils.getContentAPZTestData().paints;
-  var lastPaint = convertScrollFrameData(contentPaints[contentPaints.length - 1].scrollFrames);
+  var lastPaint = convertScrollFrameData(getLastNonemptyBucket(contentPaints).scrollFrames);
   var foundIt = 0;
   for (var scrollId in lastPaint) {
     if (('contentDescription' in lastPaint[scrollId]) &&
         (lastPaint[scrollId]['contentDescription'].includes('tall_html'))) {
-      var dp = getPropertyAsRect(lastPaint, scrollId, 'criticalDisplayport');
-      ok(dp.y <= 0, 'The critical displayport top should be less than or equal to zero to cover the visible part of the subframe; it is ' + dp.y);
-      ok(dp.y + dp.h >= subframe.clientHeight, 'The critical displayport bottom should be greater than the clientHeight; it is ' + (dp.y + dp.h));
+      var dp = getPropertyAsRect(lastPaint, scrollId, 'displayport');
+      ok(dp.y <= 0, 'The displayport top should be less than or equal to zero to cover the visible part of the subframe; it is ' + dp.y);
+      ok(dp.y + dp.h >= subframe.clientHeight, 'The displayport bottom should be greater than the clientHeight; it is ' + (dp.y + dp.h));
       foundIt++;
     }
   }
-  is(foundIt, 1, "Found exactly one critical displayport for the subframe we were interested in.");
+  is(foundIt, 1, "Found exactly one displayport for the subframe we were interested in.");
 }
 
 waitUntilApzStable()

@@ -42,7 +42,7 @@ def make_task_description(config, jobs):
     if not config.params.get('release_history'):
         return
     for job in jobs:
-        dep_job = job['dependent-task']
+        dep_job = job['primary-dependency']
 
         treeherder = job.get('treeherder', {})
         treeherder.setdefault('symbol', 'p(N)')
@@ -144,6 +144,8 @@ def make_task_description(config, jobs):
         }
         if mar_channel_id:
             worker['env']['ACCEPTED_MAR_CHANNEL_IDS'] = mar_channel_id
+        if config.params.release_level() == 'staging':
+            worker['env']['FUNSIZE_ALLOW_STAGING_PREFIXES'] = 'true'
 
         task = {
             'label': label,

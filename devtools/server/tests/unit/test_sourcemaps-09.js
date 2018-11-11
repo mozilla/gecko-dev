@@ -17,7 +17,7 @@ function run_test() {
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect().then(function() {
     attachTestTabAndResume(gClient, "test-source-map",
-                           function(response, tabClient, threadClient) {
+                           function(response, targetFront, threadClient) {
                              gThreadClient = threadClient;
                              test_minified();
                            });
@@ -42,7 +42,7 @@ function test_minified() {
     Assert.equal(packet.why.type, "debuggerStatement");
 
     const location = {
-      line: 5
+      line: 5,
     };
 
     getSource(gThreadClient, "http://example.com/foo.js").then(source => {

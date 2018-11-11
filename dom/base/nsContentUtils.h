@@ -219,6 +219,7 @@ public:
   static bool IsCallerChrome();
   static bool ThreadsafeIsCallerChrome();
   static bool IsCallerContentXBL();
+  static bool IsCallerUAWidget();
   static bool IsFuzzingEnabled()
 #ifndef FUZZING
   {
@@ -458,6 +459,27 @@ public:
                                int32_t* aNode1Index = nullptr,
                                int32_t* aNode2Index = nullptr);
 
+
+  struct ComparePointsCache {
+    int32_t ComputeIndexOf(nsINode* aParent, nsINode* aChild) {
+      if (aParent == mParent &&
+          aChild == mChild) {
+        return mIndex;
+      }
+
+      mIndex = aParent->ComputeIndexOf(aChild);
+      mParent = aParent;
+      mChild = aChild;
+      return mIndex;
+    }
+
+
+  private:
+    nsINode* mParent = nullptr;
+    nsINode* mChild = nullptr;
+    int32_t mIndex = 0;
+  };
+
   /**
    *  Utility routine to compare two "points", where a point is a
    *  node/offset pair
@@ -466,6 +488,9 @@ public:
    *  NOTE! If the two nodes aren't in the same connected subtree,
    *  the result is 1, and the optional aDisconnected parameter
    *  is set to true.
+   *
+   *  Pass a cache object as aParent1Cache if you expect to repeatedly
+   *  call this function with the same value as aParent1.
    *
    *  XXX aOffset1 and aOffset2 should be uint32_t since valid offset value is
    *      between 0 - UINT32_MAX.  However, these methods work even with
@@ -476,7 +501,8 @@ public:
    */
   static int32_t ComparePoints(nsINode* aParent1, int32_t aOffset1,
                                nsINode* aParent2, int32_t aOffset2,
-                               bool* aDisconnected = nullptr);
+                               bool* aDisconnected = nullptr,
+                               ComparePointsCache* aParent1Cache = nullptr);
   static int32_t ComparePoints(const mozilla::RawRangeBoundary& aFirst,
                                const mozilla::RawRangeBoundary& aSecond,
                                bool* aDisconnected = nullptr);
@@ -1236,20 +1262,6 @@ public:
    * non-UTF-8 encodings.
    */
   static bool IsUtf8OnlyPlainTextType(const nsACString& aContentType);
-
-  /**
-   * Get the script file name to use when compiling the script
-   * referenced by aURI. In cases where there's no need for any extra
-   * security wrapper automation the script file name that's returned
-   * will be the spec in aURI, else it will be the spec in aDocument's
-   * URI followed by aURI's spec, separated by " -> ". Returns true
-   * if the script file name was modified, false if it's aURI's
-   * spec.
-   */
-  static bool GetWrapperSafeScriptFilename(nsIDocument *aDocument,
-                                             nsIURI *aURI,
-                                             nsACString& aScriptURI,
-                                             nsresult* aRv);
 
 
   /**
@@ -3230,13 +3242,6 @@ public:
    */
   static bool
   IsLocalRefURL(const nsString& aString);
-
-  /**
-   * Detect whether a string is a local-url.
-   * https://drafts.csswg.org/css-values/#local-urls
-   */
-  static bool
-  IsLocalRefURL(const nsACString& aString);
 
   static bool
   IsCustomElementsEnabled() { return sIsCustomElementsEnabled; }

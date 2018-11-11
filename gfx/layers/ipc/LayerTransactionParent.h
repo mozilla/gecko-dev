@@ -22,10 +22,6 @@ namespace ipc {
 class Shmem;
 } // namespace ipc
 
-namespace layout {
-class RenderFrameParent;
-} // namespace layout
-
 namespace layers {
 
 class Layer;
@@ -39,7 +35,6 @@ class LayerTransactionParent final : public PLayerTransactionParent,
                                      public CompositableParentManager,
                                      public ShmemAllocator
 {
-  typedef mozilla::layout::RenderFrameParent RenderFrameParent;
   typedef InfallibleTArray<Edit> EditArray;
   typedef InfallibleTArray<OpDestroy> OpDestroyArray;
   typedef InfallibleTArray<PluginWindowData> PluginsArray;
@@ -129,9 +124,9 @@ protected:
                                                 OMTAValue* aValue) override;
   mozilla::ipc::IPCResult RecvGetTransform(const LayerHandle& aHandle,
                                            MaybeTransform* aTransform) override;
-  mozilla::ipc::IPCResult RecvSetAsyncScrollOffset(const FrameMetrics::ViewID& aId,
+  mozilla::ipc::IPCResult RecvSetAsyncScrollOffset(const ScrollableLayerGuid::ViewID& aId,
                                                    const float& aX, const float& aY) override;
-  mozilla::ipc::IPCResult RecvSetAsyncZoom(const FrameMetrics::ViewID& aId,
+  mozilla::ipc::IPCResult RecvSetAsyncZoom(const ScrollableLayerGuid::ViewID& aId,
                                            const float& aValue) override;
   mozilla::ipc::IPCResult RecvFlushApzRepaints() override;
   mozilla::ipc::IPCResult RecvGetAPZTestData(APZTestData* aOutData) override;
@@ -168,7 +163,6 @@ protected:
   }
   friend class CompositorBridgeParent;
   friend class CrossProcessCompositorBridgeParent;
-  friend class layout::RenderFrameParent;
 
 private:
   // This is a function so we can log or breakpoint on why hit

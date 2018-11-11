@@ -18,6 +18,17 @@ pref("toolkit.telemetry.eventping.enabled", false);
 
 pref("geckoview.console.enabled", false);
 
+#ifdef RELEASE_OR_BETA
+pref("geckoview.logging", "Warn");
+#else
+pref("geckoview.logging", "Debug");
+#endif
+
 // Disable Web Push until we get it working
 pref("dom.push.enabled", false);
 
+// Unlike Fennec, GeckoView may have WebRender enabled, and with WebRender we're
+// going with containerless scrolling (because there are no layers at all with
+// WR, so why not go containerless). So we set this pref to pick up the value
+// in gfxPrefs.h from whether or not WR is enabled.
+pref("layout.scroll.root-frame-containers", 2);

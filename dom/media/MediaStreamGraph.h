@@ -370,10 +370,8 @@ public:
    * graph thread receives the next graph update.
    *
    * If the graph has been shut down or destroyed, then the runnable will be
-   * dispatched to the event queue immediately.  If the graph is non-realtime
-   * and has not started, then the runnable will be run
-   * synchronously/immediately.  (There are no pending updates in these
-   * situations.)
+   * dispatched to the event queue immediately.  (There are no pending updates
+   * in this situation.)
    *
    * Main thread only.
    */
@@ -434,11 +432,6 @@ public:
 #endif
   void SetAudioOutputVolumeImpl(void* aKey, float aVolume);
   void AddAudioOutputImpl(void* aKey);
-  // Returns true if this stream has an audio output.
-  bool HasAudioOutput() const
-  {
-    return !mAudioOutputs.IsEmpty();
-  }
   void RemoveAudioOutputImpl(void* aKey);
   void AddVideoOutputImpl(already_AddRefed<MediaStreamVideoSink> aSink,
                           TrackID aID);
@@ -470,10 +463,6 @@ public:
   void RemoveConsumer(MediaInputPort* aPort)
   {
     mConsumers.RemoveElement(aPort);
-  }
-  uint32_t ConsumerCount() const
-  {
-    return mConsumers.Length();
   }
   StreamTracks& GetStreamTracks() { return mTracks; }
   GraphTime GetStreamTracksStartTime() const { return mTracksStartTime; }
@@ -825,12 +814,10 @@ public:
   void RemoveAllDirectListenersImpl() override;
 
   /**
-   * End all tracks and Finish() this stream.  Used to voluntarily revoke access
-   * to a LocalMediaStream.
+   * End all tracks and Finish() this stream. Used to voluntarily revoke access
+   * to a MediaStream.
    */
   void EndAllTrackAndFinish();
-
-  void RegisterForAudioMixing();
 
   /**
    * Returns true if this SourceMediaStream contains at least one audio track
@@ -938,7 +925,6 @@ protected:
   nsTArray<TrackBound<DirectMediaStreamTrackListener>> mDirectTrackListeners;
   bool mPullEnabled;
   bool mFinishPending;
-  bool mNeedsMixing;
 };
 
 /**
@@ -1193,10 +1179,6 @@ public:
                     uint16_t aInputNumber = 0,
                     uint16_t aOutputNumber = 0,
                     nsTArray<TrackID>* aBlockedTracks = nullptr);
-  /**
-   * Queue a message to force this stream into the finished state.
-   */
-  void QueueFinish();
   /**
    * Queue a message to set the autofinish flag on this stream (defaults to
    * false). When this flag is set, and all input streams are in the finished

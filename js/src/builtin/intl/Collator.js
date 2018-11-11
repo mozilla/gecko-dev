@@ -225,7 +225,7 @@ var collatorInternalProperties = {
         addSpecialMissingLanguageTags(locales);
         return (this._availableLocales = locales);
     },
-    relevantExtensionKeys: ["co", "kn", "kf"]
+    relevantExtensionKeys: ["co", "kn", "kf"],
 };
 
 /**
@@ -286,7 +286,7 @@ function collatorSortLocaleData() {
                 return "false";
             },
             kf: collatorSortCaseFirstDefault,
-        }
+        },
     };
     /* eslint-enable object-shorthand */
 }
@@ -313,7 +313,7 @@ function collatorSearchLocaleData() {
             kf: function() {
                 return "false";
             },
-        }
+        },
     };
     /* eslint-enable object-shorthand */
 }
@@ -354,7 +354,7 @@ function Intl_Collator_compare_get() {
 
     // Steps 2-3.
     if (!IsObject(collator) || (collator = GuardToCollator(collator)) === null)
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "Collator", "compare", "Collator");
+        return callFunction(CallCollatorMethodIfWrapped, this, "Intl_Collator_compare_get");
 
     var internals = getCollatorInternals(collator);
 
@@ -383,7 +383,7 @@ function Intl_Collator_resolvedOptions() {
 
     // Steps 2-3.
     if (!IsObject(collator) || (collator = GuardToCollator(collator)) === null)
-        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, "Collator", "resolvedOptions", "Collator");
+        return callFunction(CallCollatorMethodIfWrapped, this, "Intl_Collator_resolvedOptions");
 
     var internals = getCollatorInternals(collator);
 

@@ -6,13 +6,15 @@
 
 "use strict";
 
+const asyncStorage = require("devtools/shared/async-storage");
+
 const {
   ADD_VIEWPORT,
   CHANGE_DEVICE,
   CHANGE_PIXEL_RATIO,
   REMOVE_DEVICE_ASSOCIATION,
   RESIZE_VIEWPORT,
-  ROTATE_VIEWPORT
+  ROTATE_VIEWPORT,
 } = require("./index");
 
 const { post } = require("../utils/message");
@@ -33,11 +35,20 @@ module.exports = {
    * Change the viewport device.
    */
   changeDevice(id, device, deviceType) {
-    return {
-      type: CHANGE_DEVICE,
-      id,
-      device,
-      deviceType,
+    return async function(dispatch) {
+      dispatch({
+        type: CHANGE_DEVICE,
+        id,
+        device,
+        deviceType,
+      });
+
+      try {
+        await asyncStorage.setItem("devtools.responsive.deviceState",
+          { id, device, deviceType });
+      } catch (e) {
+        console.error(e);
+      }
     };
   },
 
@@ -56,10 +67,15 @@ module.exports = {
    * Remove the viewport's device assocation.
    */
   removeDeviceAssociation(id) {
-    post(window, "remove-device-association");
-    return {
-      type: REMOVE_DEVICE_ASSOCIATION,
-      id,
+    return async function(dispatch) {
+      post(window, "remove-device-association");
+
+      dispatch({
+        type: REMOVE_DEVICE_ASSOCIATION,
+        id,
+      });
+
+      await asyncStorage.removeItem("devtools.responsive.deviceState");
     };
   },
 

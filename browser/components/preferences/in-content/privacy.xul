@@ -16,6 +16,232 @@
   <label class="header-name" flex="1" data-l10n-id="privacy-header"/>
 </hbox>
 
+<!-- Tracking / Content Blocking -->
+<groupbox id="trackingGroup" data-category="panePrivacy" hidden="true" aria-describedby="contentBlockingDescription">
+  <caption>
+    <label id="contentBlockingHeader" data-l10n-id="content-blocking-header"/>
+  </caption>
+  <vbox data-subcategory="trackingprotection">
+    <hbox align="start">
+      <vbox flex="1">
+        <description id="contentBlockingDescription" class="description-with-side-element" data-l10n-id="content-blocking-desc"></description>
+        <label id="contentBlockingLearnMore" data-l10n-id="content-blocking-learn-more" class="learnMore text-link"/>
+      </vbox>
+      <vbox>
+        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+        <hbox>
+          <button id="contentBlockingRestoreDefaults"
+                  class="accessory-button"
+                  flex="1"
+                  data-l10n-id="content-blocking-restore-defaults"/>
+        </hbox>
+        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+        <hbox>
+          <button id="trackingProtectionExceptions"
+                  class="accessory-button"
+                  flex="1"
+                  data-l10n-id="tracking-exceptions"
+                  preference="pref.privacy.disable_button.tracking_protection_exceptions"
+                  search-l10n-ids="
+                    permissions-remove.label,
+                    permissions-remove-all.label,
+                    permissions-button-cancel.label,
+                    permissions-button-ok.label,
+                    permissions-exceptions-content-blocking-window.title,
+                    permissions-exceptions-content-blocking-desc,
+                  "/>
+        </hbox>
+      </vbox>
+    </hbox>
+    <vbox id="contentBlockingCategories">
+      <label id="content-blocking-categories-label" data-l10n-id="content-blocking-category-label"/>
+      <vbox>
+        <hbox class="content-blocking-category tracking-protection-ui">
+          <vbox>
+            <checkbox id="contentBlockingTrackingProtectionCheckbox"
+                      class="content-blocking-checkbox" flex="1"
+                      src="chrome://browser/skin/controlcenter/trackers.svg"
+                      data-l10n-id="content-blocking-tracking-protection-trackers-label"/>
+            <vbox class="content-blocking-category-labels" flex="1">
+              <hbox id="contentBlockingTrackingProtectionExtensionContentLabel"
+                    align="center" hidden="true" class="extension-controlled">
+                <description control="contentBlockingDisableTrackingProtectionExtension" flex="1"/>
+                <button id="contentBlockingDisableTrackingProtectionExtension"
+                        class="extension-controlled-button accessory-button"
+                        data-l10n-id="disable-extension" hidden="true"/>
+              </hbox>
+              <description data-l10n-id="content-blocking-tracking-protection-new-description"
+                           class="content-blocking-category-description"
+                           id="trackingProtectionMenuDesc"/>
+              <radiogroup id="trackingProtectionMenu"
+                          aria-labelledby="trackingProtectionMenuDesc">
+                <radio value="private"
+                       data-l10n-id="content-blocking-tracking-protection-option-private"
+                       flex="1" />
+                <radio value="always"
+                       data-l10n-id="content-blocking-tracking-protection-option-always"
+                       flex="1" />
+              </radiogroup>
+              <label id="changeBlockListLink"
+                     data-l10n-id="content-blocking-tracking-protection-change-block-list"
+                     class="text-link"
+                     search-l10n-ids="blocklist-window.title, blocklist-desc, blocklist-button-cancel.label, blocklist-button-ok.label"/>
+            </vbox>
+          </vbox>
+        </hbox>
+      </vbox>
+      <hbox class="content-blocking-category reject-trackers-ui">
+        <hbox flex="1">
+          <vbox class="content-blocking-category-checkbox">
+            <checkbox id="contentBlockingBlockCookiesCheckbox"
+                      class="content-blocking-checkbox" flex="1"
+                      src="chrome://browser/skin/controlcenter/3rdpartycookies.svg"
+                      data-l10n-id="content-blocking-third-party-cookies-label"/>
+            <vbox class="content-blocking-category-labels" flex="1">
+              <hbox>
+                <vbox flex="1">
+                  <deck id="blockCookiesCBDeck">
+                    <description id="blockCookiesCBDesc"
+                                 data-l10n-id="content-blocking-reject-trackers-description"
+                                 class="content-blocking-category-description"/>
+                    <description data-l10n-id="content-blocking-reject-trackers-warning-your-settings-prevent-changes"
+                                 class="content-blocking-category-description description-with-side-element warning-description"/>
+                    <description data-l10n-id="content-blocking-reject-trackers-warning-your-settings-prevent-changes"
+                                 class="content-blocking-category-description description-with-side-element warning-description"/>
+                  </deck>
+                </vbox>
+                <hbox align="center" pack="end">
+                  <vbox align="center">
+                    <button id="contentBlockingChangeCookieSettings"
+                            class="accessory-button"
+                            flex="1"
+                            hidden="true"
+                            data-l10n-id="content-blocking-change-cookie-settings"/>
+                  </vbox>
+                </hbox>
+              </hbox>
+              <radiogroup id="blockCookiesCB"
+                          aria-labelledby="blockCookiesCBDesc"
+                          preference="network.cookie.cookieBehavior"
+                          onsyncfrompreference="return gPrivacyPane.readBlockCookiesCB();"
+                          onsynctopreference="return gPrivacyPane.writeBlockCookiesCB();">
+                <radio value="trackers"
+                       data-l10n-id="content-blocking-reject-trackers-block-trackers-option-recommended"
+                       flex="1" />
+                <radio value="all-third-parties"
+                       data-l10n-id="content-blocking-reject-trackers-all-third-parties-option"
+                       flex="1" />
+              </radiogroup>
+            </vbox>
+          </vbox>
+        </hbox>
+      </hbox>
+    </vbox>
+    <vbox id="doNotTrackLearnMoreBox">
+      <label><label class="tail-with-learn-more" data-l10n-id="do-not-track-description" id="doNotTrackDesc"></label><label
+      class="learnMore text-link" href="https://www.mozilla.org/dnt"
+      data-l10n-id="do-not-track-learn-more"></label></label>
+      <radiogroup id="doNotTrackRadioGroup" aria-labelledby="doNotTrackDesc" preference="privacy.donottrackheader.enabled">
+        <radio value="true" data-l10n-id="do-not-track-option-always"/>
+        <radio value="false" data-l10n-id="do-not-track-option-default-content-blocking"/>
+      </radiogroup>
+    </vbox>
+  </vbox>
+</groupbox>
+
+<!-- Site Data -->
+<groupbox id="siteDataGroup" data-category="panePrivacy" hidden="true" aria-describedby="totalSiteDataSize">
+  <caption><label data-l10n-id="sitedata-header"/></caption>
+
+  <hbox data-subcategory="sitedata" align="baseline">
+    <vbox flex="1">
+      <description class="description-with-side-element" flex="1">
+        <html:span id="totalSiteDataSize" class="tail-with-learn-more"></html:span>
+        <label id="siteDataLearnMoreLink"
+          class="learnMore text-link" data-l10n-id="sitedata-learn-more"/>
+      </description>
+      <radiogroup id="blockCookies"
+                  preference="network.cookie.cookieBehavior"
+                  onsyncfrompreference="return gPrivacyPane.readBlockCookies();"
+                  onsynctopreference="return gPrivacyPane.writeBlockCookies();">
+        <radio value="allow"
+               data-l10n-id="sitedata-allow-cookies-option"
+               flex="1" />
+        <radio value="disallow"
+               data-l10n-id="sitedata-disallow-cookies-option"
+               flex="1" />
+        <hbox id="blockThirdPartyRow"
+              class="indent"
+              align="center">
+          <label id="blockCookiesLabel" control="blockCookiesMenu"
+                 data-l10n-id="sitedata-block-desc"/>
+          <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+          <hbox>
+            <menulist id="blockCookiesMenu" preference="network.cookie.cookieBehavior"
+                      onsyncfrompreference="return gPrivacyPane.readBlockCookiesFrom();"
+                      onsynctopreference="return gPrivacyPane.writeBlockCookiesFrom();">
+              <menupopup>
+                <menuitem data-l10n-id="sitedata-block-trackers-option-recommended" value="trackers"/>
+                <menuitem data-l10n-id="sitedata-block-unvisited-option" value="unvisited"/>
+                <menuitem data-l10n-id="sitedata-block-all-third-party-option" value="all-third-parties"/>
+                <menuitem data-l10n-id="sitedata-block-all-option" value="always"/>
+              </menupopup>
+            </menulist>
+          </hbox>
+        </hbox>
+        <hbox id="keepRow"
+              align="center">
+          <checkbox id="deleteOnClose"
+                    data-l10n-id="sitedata-delete-on-close"
+                    preference="network.cookie.lifetimePolicy"
+                    onsyncfrompreference="return gPrivacyPane.readDeleteOnClose();"
+                    onsynctopreference="return gPrivacyPane.writeDeleteOnClose();"
+                    flex="1" />
+        </hbox>
+      </radiogroup>
+    </vbox>
+    <vbox>
+      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
+      <hbox>
+        <button id="clearSiteDataButton"
+            class="accessory-button"
+            icon="clear"
+            search-l10n-ids="clear-site-data-cookies-empty.label, clear-site-data-cache-empty.label"
+            data-l10n-id="sitedata-clear"/>
+      </hbox>
+      <hbox>
+        <button id="siteDataSettings"
+                class="accessory-button"
+                data-l10n-id="sitedata-settings"
+                search-l10n-ids="
+                  site-data-settings-window.title,
+                  site-data-column-host.label,
+                  site-data-column-cookies.label,
+                  site-data-column-storage.label,
+                  site-data-settings-description,
+                  site-data-remove-all.label,
+                "/>
+      </hbox>
+      <hbox>
+        <button id="cookieExceptions"
+                class="accessory-button"
+                data-l10n-id="sitedata-cookies-exceptions"
+                preference="pref.privacy.disable_button.cookie_exceptions"
+                search-l10n-ids="
+                  permissions-address,
+                  permissions-block.label,
+                  permissions-allow.label,
+                  permissions-remove.label,
+                  permissions-remove-all.label,
+                  permissions-button-cancel.label,
+                  permissions-button-ok.label,
+                  permissions-exceptions-cookie-desc,
+                " />
+      </hbox>
+    </vbox>
+  </hbox>
+</groupbox>
+
 <!-- Passwords -->
 <groupbox id="passwordsGroup" orient="vertical" data-category="panePrivacy" hidden="true">
   <caption><label data-l10n-id="logins-header"/></caption>
@@ -63,6 +289,12 @@
     </hbox>
   </hbox>
 </groupbox>
+
+<!-- The form autofill section is inserted in to this box
+     after the form autofill extension has initialized. -->
+<groupbox id="formAutofillGroupBox"
+          data-category="panePrivacy"
+          data-subcategory="form-autofill"></groupbox>
 
 <!-- History -->
 <groupbox id="historyGroup" data-category="panePrivacy" hidden="true">
@@ -161,110 +393,6 @@
   </hbox>
 </groupbox>
 
-<!-- Site Data -->
-<groupbox id="siteDataGroup" data-category="panePrivacy" hidden="true" aria-describedby="totalSiteDataSize">
-  <caption><label data-l10n-id="sitedata-header"/></caption>
-
-  <hbox data-subcategory="sitedata" align="baseline">
-    <vbox flex="1">
-      <description class="description-with-side-element" flex="1">
-        <html:span id="totalSiteDataSize" class="tail-with-learn-more"></html:span>
-        <label id="siteDataLearnMoreLink"
-          class="learnMore text-link" data-l10n-id="sitedata-learn-more"/>
-      </description>
-      <description class="description-with-side-element warning-description"
-                   flex="1" hidden="true" id="blockCookiesWarning"
-                   data-l10n-id="sitedata-warning-your-settings-prevent-changes"/>
-      <radiogroup id="blockCookies"
-                  preference="network.cookie.cookieBehavior"
-                  onsyncfrompreference="return gPrivacyPane.readBlockCookies();"
-                  onsynctopreference="return gPrivacyPane.writeBlockCookies();">
-        <radio value="allow"
-               data-l10n-id="sitedata-allow-cookies-option"
-               flex="1" />
-        <radio value="disallow"
-               data-l10n-id="sitedata-disallow-cookies-option"
-               flex="1" />
-        <hbox id="blockThirdPartyRow"
-              class="indent"
-              align="center">
-          <label id="blockCookiesLabel" control="blockCookiesMenu"
-                 data-l10n-id="sitedata-block-desc"/>
-          <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-          <hbox>
-            <menulist id="blockCookiesMenu" preference="network.cookie.cookieBehavior"
-                      onsyncfrompreference="return gPrivacyPane.readBlockCookiesFrom();"
-                      onsynctopreference="return gPrivacyPane.writeBlockCookiesFrom();">
-              <menupopup>
-                <menuitem id="blockCookiesFromTrackers" data-l10n-id="sitedata-block-trackers-option" value="trackers"/>
-                <menuitem data-l10n-id="sitedata-block-unvisited-option" value="unvisited"/>
-                <menuitem data-l10n-id="sitedata-block-all-third-party-option" value="all-third-parties"/>
-                <menuitem data-l10n-id="sitedata-block-all-option" value="always"/>
-              </menupopup>
-            </menulist>
-          </hbox>
-        </hbox>
-        <hbox id="keepRow"
-              align="center">
-          <label id="keepUntil"
-                 control="keepCookiesUntil"
-                 data-l10n-id="sitedata-keep-until"/>
-          <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-          <hbox>
-            <menulist id="keepCookiesUntil"
-                      onsyncfrompreference="return gPrivacyPane.readKeepCookiesUntil();"
-                      preference="network.cookie.lifetimePolicy">
-              <menupopup>
-                <menuitem data-l10n-id="sitedata-keep-until-expire" value="0"/>
-                <menuitem data-l10n-id="sitedata-keep-until-closed" value="2"/>
-              </menupopup>
-            </menulist>
-          </hbox>
-        </hbox>
-      </radiogroup>
-    </vbox>
-    <vbox>
-      <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-      <hbox>
-        <button id="clearSiteDataButton"
-            class="accessory-button"
-            icon="clear"
-            search-l10n-ids="clear-site-data-cookies-empty.label, clear-site-data-cache-empty.label"
-            data-l10n-id="sitedata-clear"/>
-      </hbox>
-      <hbox>
-        <button id="siteDataSettings"
-                class="accessory-button"
-                data-l10n-id="sitedata-settings"
-                search-l10n-ids="
-                  site-data-settings-window.title,
-                  site-data-column-host.label,
-                  site-data-column-cookies.label,
-                  site-data-column-storage.label,
-                  site-data-settings-description,
-                  site-data-remove-all.label,
-                "/>
-      </hbox>
-      <hbox>
-        <button id="cookieExceptions"
-                class="accessory-button"
-                data-l10n-id="sitedata-cookies-exceptions"
-                preference="pref.privacy.disable_button.cookie_exceptions"
-                search-l10n-ids="
-                  permissions-address,
-                  permissions-block.label,
-                  permissions-allow.label,
-                  permissions-remove.label,
-                  permissions-remove-all.label,
-                  permissions-button-cancel.label,
-                  permissions-button-ok.label,
-                  permissions-exceptions-cookie-desc,
-                " />
-      </hbox>
-    </vbox>
-  </hbox>
-</groupbox>
-
 <!-- Address Bar -->
 <groupbox id="locationBarGroup"
           data-category="panePrivacy"
@@ -279,206 +407,6 @@
             preference="browser.urlbar.suggest.openpage"/>
   <label class="text-link" id="openSearchEnginePreferences"
          data-l10n-id="addressbar-suggestions-settings"/>
-</groupbox>
-
-<!-- Tracking / Content Blocking -->
-<groupbox id="trackingGroup" data-category="panePrivacy" hidden="true" aria-describedby="contentBlockingDescription">
-  <caption>
-    <label id="trackingProtectionHeader" hidden="true" data-l10n-id="tracking-header"/>
-    <label id="contentBlockingHeader" data-l10n-id="content-blocking-header"/>
-  </caption>
-  <vbox data-subcategory="trackingprotection">
-    <hbox align="start">
-      <vbox flex="1">
-        <description id="trackingProtectionDescription" class="description-with-side-element" hidden="true" data-l10n-id="tracking-desc">
-          <html:a id="trackingProtectionLearnMore" data-l10n-name="learn-more" target="_blank" class="learnMore text-link"/>
-        </description>
-        <description id="contentBlockingDescription" class="description-with-side-element" data-l10n-id="content-blocking-desc"></description>
-        <label id="contentBlockingLearnMore" data-l10n-id="content-blocking-learn-more" class="learnMore text-link"/>
-      </vbox>
-      <vbox>
-        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-        <hbox>
-          <button id="contentBlockingRestoreDefaults"
-                  class="accessory-button"
-                  flex="1"
-                  data-l10n-id="content-blocking-restore-defaults"/>
-        </hbox>
-        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-        <hbox>
-          <button id="trackingProtectionExceptions"
-                  class="accessory-button"
-                  flex="1"
-                  data-l10n-id="tracking-exceptions"
-                  preference="pref.privacy.disable_button.tracking_protection_exceptions"
-                  search-l10n-ids="
-                    permissions-remove.label,
-                    permissions-remove-all.label,
-                    permissions-button-cancel.label,
-                    permissions-button-ok.label,
-                    permissions-exceptions-tracking-protection-window.title,
-                    permissions-exceptions-tracking-protection-desc,
-                  "/>
-        </hbox>
-      </vbox>
-    </hbox>
-    <hbox id="contentBlockingCheckboxContainer">
-      <checkbox id="contentBlockingCheckbox"
-                onsyncfrompreference="return gPrivacyPane.updateContentBlockingToggle()"
-                preference="browser.contentblocking.enabled"/>
-      <button id="contentBlockingToggle"
-              data-l10n-id="content-blocking-toggle-on"/>
-      <label id="contentBlockingToggleLabel"
-             data-l10n-id="content-blocking-toggle-label-on"
-             control="contentBlockingToggle"/>
-    </hbox>
-    <vbox id="contentBlockingCategories">
-      <label id="content-blocking-categories-label" data-l10n-id="content-blocking-category-label"/>
-      <hbox class="content-blocking-category fast-block-ui">
-        <vbox>
-          <checkbox id="contentBlockingFastBlockCheckbox"
-                    class="content-blocking-checkbox" flex="1"
-                    src="chrome://browser/skin/controlcenter/slowtrackers.svg"
-                    preference="browser.fastblock.enabled"
-                    data-l10n-id="content-blocking-fastblock-slow-loading-trackers-label"/>
-          <vbox class="content-blocking-category-labels" flex="1">
-            <description data-l10n-id="content-blocking-fastblock-new-description" class="content-blocking-category-description"/>
-          </vbox>
-        </vbox>
-      </hbox>
-      <vbox>
-        <hbox class="content-blocking-category tracking-protection-ui">
-          <vbox>
-            <checkbox id="contentBlockingTrackingProtectionCheckbox"
-                      class="content-blocking-checkbox" flex="1"
-                      src="chrome://browser/skin/controlcenter/trackers.svg"
-                      data-l10n-id="content-blocking-tracking-protection-all-detected-trackers-label"/>
-            <vbox class="content-blocking-category-labels" flex="1">
-              <hbox id="contentBlockingTrackingProtectionExtensionContentLabel"
-                    align="center" hidden="true" class="extension-controlled">
-                <description control="contentBlockingDisableTrackingProtectionExtension" flex="1"/>
-                <button id="contentBlockingDisableTrackingProtectionExtension"
-                        class="extension-controlled-button accessory-button"
-                        data-l10n-id="disable-extension" hidden="true"/>
-              </hbox>
-              <description data-l10n-id="content-blocking-tracking-protection-new-description"
-                           class="content-blocking-category-description"
-                           id="trackingProtectionMenuDesc"/>
-              <radiogroup id="trackingProtectionMenu"
-                          aria-labelledby="trackingProtectionMenuDesc">
-                <radio value="private"
-                       data-l10n-id="content-blocking-tracking-protection-option-private"
-                       flex="1" />
-                <radio value="always"
-                       data-l10n-id="content-blocking-tracking-protection-option-always"
-                       flex="1" />
-              </radiogroup>
-              <label id="changeBlockListLink"
-                     data-l10n-id="content-blocking-tracking-protection-change-block-list"
-                     class="text-link"
-                     search-l10n-ids="blocklist-window.title, blocklist-desc, blocklist-button-cancel.label, blocklist-button-ok.label"/>
-            </vbox>
-          </vbox>
-        </hbox>
-      </vbox>
-      <hbox class="content-blocking-category reject-trackers-ui">
-        <hbox flex="1">
-          <vbox class="content-blocking-category-checkbox">
-            <checkbox id="contentBlockingBlockCookiesCheckbox"
-                      class="content-blocking-checkbox" flex="1"
-                      src="chrome://browser/skin/controlcenter/3rdpartycookies.svg"
-                      data-l10n-id="content-blocking-third-party-cookies-label"/>
-            <vbox class="content-blocking-category-labels" flex="1">
-              <hbox>
-                <vbox flex="1">
-                  <deck id="blockCookiesCBDeck">
-                    <description id="blockCookiesCBDesc"
-                                 data-l10n-id="content-blocking-reject-trackers-description"
-                                 class="content-blocking-category-description"/>
-                    <description data-l10n-id="content-blocking-reject-trackers-warning-your-settings-prevent-changes"
-                                 class="content-blocking-category-description description-with-side-element warning-description"/>
-                    <description data-l10n-id="content-blocking-reject-trackers-warning-your-settings-prevent-changes"
-                                 class="content-blocking-category-description description-with-side-element warning-description"/>
-                  </deck>
-                </vbox>
-                <hbox align="center" pack="end">
-                  <vbox align="center">
-                    <button id="contentBlockingChangeCookieSettings"
-                            class="accessory-button"
-                            flex="1"
-                            hidden="true"
-                            data-l10n-id="content-blocking-change-cookie-settings"/>
-                  </vbox>
-                </hbox>
-              </hbox>
-              <radiogroup id="blockCookiesCB"
-                          aria-labelledby="blockCookiesCBDesc"
-                          preference="network.cookie.cookieBehavior"
-                          onsyncfrompreference="return gPrivacyPane.readBlockCookiesCB();"
-                          onsynctopreference="return gPrivacyPane.writeBlockCookiesCB();">
-                <radio value="trackers"
-                       id="blockCookiesFromTrackersCB"
-                       data-l10n-id="content-blocking-reject-trackers-block-trackers-option"
-                       flex="1" />
-                <radio value="all-third-parties"
-                       data-l10n-id="content-blocking-reject-trackers-all-third-parties-option"
-                       flex="1" />
-              </radiogroup>
-            </vbox>
-          </vbox>
-        </hbox>
-      </hbox>
-    </vbox>
-    <hbox id="trackingProtectionBox" hidden="true">
-      <vbox flex="1">
-        <vbox>
-          <hbox id="trackingProtectionExtensionContentLabel" align="center" hidden="true">
-            <description control="disableTrackingProtectionExtension" flex="1"/>
-          </hbox>
-          <vbox>
-            <description id="trackingProtectionDesc"
-                         control="trackingProtectionRadioGroup">
-              <label data-l10n-id="tracking-mode-label"/>
-            </description>
-            <radiogroup id="trackingProtectionRadioGroup" aria-labelledby="trackingProtectionDesc">
-              <radio value="always"
-                     data-l10n-id="tracking-mode-always"/>
-              <radio value="private"
-                     data-l10n-id="tracking-mode-private"/>
-              <radio value="never"
-                     data-l10n-id="tracking-mode-never"/>
-            </radiogroup>
-          </vbox>
-        </vbox>
-      </vbox>
-      <vbox id="trackingProtectionAdvancedSettings">
-        <hbox id="trackingProtectionExtensionContentButton" hidden="true">
-          <button id="disableTrackingProtectionExtension"
-                  class="extension-controlled-button accessory-button"
-                  flex="1"
-                  data-l10n-id="disable-extension"/>
-        </hbox>
-        <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
-        <hbox>
-          <button id="changeBlockList"
-                  class="accessory-button"
-                  flex="1"
-                  data-l10n-id="tracking-change-block-list"
-                  preference="pref.privacy.disable_button.change_blocklist"
-                  search-l10n-ids="blocklist-window.title, blocklist-desc, blocklist-button-cancel.label, blocklist-button-ok.label"/>
-        </hbox>
-      </vbox>
-    </hbox>
-    <vbox id="doNotTrackLearnMoreBox">
-      <label><label class="tail-with-learn-more" data-l10n-id="do-not-track-description" id="doNotTrackDesc"></label><label
-      class="learnMore text-link" href="https://www.mozilla.org/dnt"
-      data-l10n-id="do-not-track-learn-more"></label></label>
-      <radiogroup id="doNotTrackRadioGroup" aria-labelledby="doNotTrackDesc" preference="privacy.donottrackheader.enabled">
-        <radio value="true" data-l10n-id="do-not-track-option-always"/>
-        <radio value="false" data-l10n-id="do-not-track-option-default"/>
-      </radiogroup>
-    </vbox>
-  </vbox>
 </groupbox>
 
 <hbox id="permissionsCategory"

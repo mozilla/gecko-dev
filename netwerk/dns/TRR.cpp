@@ -177,7 +177,9 @@ TRR::SendHTTPRequest()
 
   if ((mType == TRRTYPE_A) || (mType == TRRTYPE_AAAA)) {
     // let NS resolves skip the blacklist check
-    if (gTRRService->IsTRRBlacklisted(mHost, mPB, true)) {
+    MOZ_ASSERT(mRec);
+
+    if (gTRRService->IsTRRBlacklisted(mHost, mOriginSuffix, mPB, true)) {
       if (mType == TRRTYPE_A) {
         // count only blacklist for A records to avoid double counts
         Telemetry::Accumulate(Telemetry::DNS_TRR_BLACKLISTED, true);
@@ -911,7 +913,8 @@ TRR::ReturnData()
     if (!mHostResolver) {
       return NS_ERROR_FAILURE;
     }
-    (void)mHostResolver->CompleteLookup(mRec, NS_OK, ai.forget(), mPB);
+    (void)mHostResolver->CompleteLookup(mRec, NS_OK, ai.forget(), mPB,
+                                        mOriginSuffix);
     mHostResolver = nullptr;
     mRec = nullptr;
   } else {
@@ -935,7 +938,7 @@ TRR::FailData(nsresult error)
     // this comes from TRR
     AddrInfo *ai = new AddrInfo(mHost, mType);
 
-    (void)mHostResolver->CompleteLookup(mRec, error, ai, mPB);
+    (void)mHostResolver->CompleteLookup(mRec, error, ai, mPB, mOriginSuffix);
   }
 
   mHostResolver = nullptr;
@@ -997,6 +1000,10 @@ TRR::OnStopRequest(nsIRequest *aRequest,
        this, mHost.get(), mType, mFailed, (unsigned int)aStatusCode));
   nsCOMPtr<nsIChannel> channel;
   channel.swap(mChannel);
+
+  // Bad content is still considered "okay" if the HTTP response is okay
+  gTRRService->TRRIsOkay(NS_SUCCEEDED(aStatusCode) ? TRRService::OKAY_NORMAL :
+                         TRRService::OKAY_BAD);
 
   // if status was "fine", parse the response and pass on the answer
   if (!mFailed && NS_SUCCEEDED(aStatusCode)) {
@@ -1134,6 +1141,7 @@ TRR::Cancel()
     LOG(("TRR: %p canceling Channel %p %s %d\n", this,
          mChannel.get(), mHost.get(), mType));
     mChannel->Cancel(NS_ERROR_ABORT);
+    gTRRService->TRRIsOkay(TRRService::OKAY_TIMEOUT);
   }
 }
 

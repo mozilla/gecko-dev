@@ -228,7 +228,7 @@ const browsingContextTargetPrototype = {
       findDebuggees: () => {
         return this.windows.concat(this.webextensionsContentScriptGlobals);
       },
-      shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee
+      shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee,
     });
 
     // Flag eventually overloaded by sub classes in order to watch new docshells
@@ -336,11 +336,7 @@ const browsingContextTargetPrototype = {
    * Getter for the browsing context's current DOM window.
    */
   get window() {
-    // On xpcshell, there is no document
-    if (this.docShell) {
-      return this.docShell.domWindow;
-    }
-    return null;
+    return this.docShell.domWindow;
   },
 
   get outerWindowID() {
@@ -355,11 +351,10 @@ const browsingContextTargetPrototype = {
    * browsing context's current DOM window.
    */
   get webextensionsContentScriptGlobals() {
-    // Ignore xpcshell runtime which spawns target actors without a window
-    // and only retrieve the content scripts globals if the ExtensionContent JSM module
+    // Only retrieve the content scripts globals if the ExtensionContent JSM module
     // has been already loaded (which is true if the WebExtensions internals have already
     // been loaded in the same content process).
-    if (this.window && Cu.isModuleLoaded(EXTENSION_CONTENT_JSM)) {
+    if (Cu.isModuleLoaded(EXTENSION_CONTENT_JSM)) {
       return ExtensionContent.getContentScriptGlobals(this.window);
     }
 
@@ -458,13 +453,17 @@ const browsingContextTargetPrototype = {
                "Actor should have an actorID.");
 
     const response = {
-      actor: this.actorID
+      actor: this.actorID,
+      traits: {
+        // FF64+ exposes a new trait to help identify BrowsingContextActor's inherited
+        // actorss from the client side.
+        isBrowsingContext: true,
+      },
     };
 
-    // We may try to access window while the document is closing, then
-    // accessing window throws. Also on xpcshell we are using this actor even if
-    // there is no valid document.
-    if (this.docShell && !this.docShell.isBeingDestroyed()) {
+    // We may try to access window while the document is closing, then accessing window
+    // throws.
+    if (!this.docShell.isBeingDestroyed()) {
       response.title = this.title;
       response.url = this.url;
       response.outerWindowID = this.outerWindowID;
@@ -515,7 +514,7 @@ const browsingContextTargetPrototype = {
 
     Object.defineProperty(this, "docShell", {
       value: null,
-      configurable: true
+      configurable: true,
     });
 
     this._extraActors = null;
@@ -569,17 +568,14 @@ const browsingContextTargetPrototype = {
     // Create a pool for context-lifetime actors.
     this._createThreadActor();
 
-    // on xpcshell, there is no document
-    if (this.window) {
-      this._progressListener = new DebuggerProgressListener(this);
+    this._progressListener = new DebuggerProgressListener(this);
 
-      // Save references to the original document we attached to
-      this._originalWindow = this.window;
+    // Save references to the original document we attached to
+    this._originalWindow = this.window;
 
-      // Ensure replying to attach() request first
-      // before notifying about new docshells.
-      DevToolsUtils.executeSoon(() => this._watchDocshells());
-    }
+    // Ensure replying to attach() request first
+    // before notifying about new docshells.
+    DevToolsUtils.executeSoon(() => this._watchDocshells());
 
     this._attached = true;
   },
@@ -639,7 +635,7 @@ const browsingContextTargetPrototype = {
     if (this._workerTargetActorList === null) {
       this._workerTargetActorList = new WorkerTargetActorList(this.conn, {
         type: Ci.nsIWorkerDebugger.TYPE_DEDICATED,
-        window: this.window
+        window: this.window,
       });
     }
 
@@ -660,7 +656,7 @@ const browsingContextTargetPrototype = {
 
       return {
         "from": this.actorID,
-        "workers": actors.map((actor) => actor.form())
+        "workers": actors.map((actor) => actor.form()),
       };
     });
   },
@@ -807,7 +803,7 @@ const browsingContextTargetPrototype = {
     }
 
     this.emit("frameUpdate", {
-      frames: windows
+      frames: windows,
     });
   },
 
@@ -821,14 +817,14 @@ const browsingContextTargetPrototype = {
     this.emit("frameUpdate", {
       frames: [{
         id,
-        destroy: true
-      }]
+        destroy: true,
+      }],
     });
   },
 
   _notifyDocShellDestroyAll() {
     this.emit("frameUpdate", {
-      destroyAll: true
+      destroyAll: true,
     });
   },
 
@@ -970,7 +966,7 @@ const browsingContextTargetPrototype = {
     // subsequent navigation event packet.
     Services.tm.dispatchToMainThread(DevToolsUtils.makeInfallible(() => {
       this.window.location = request.url;
-    }, "BrowsingContextTargetActor.prototype.navigateTo's delayed body"));
+    }, "BrowsingContextTargetActor.prototype.navigateTo's delayed body:" + request.url));
     return {};
   },
 
@@ -1187,7 +1183,14 @@ const browsingContextTargetPrototype = {
       return;
     }
     const windowUtils = this.window.windowUtils;
-    windowUtils.suppressEventHandling(true);
+
+    // Events are not suppressed when running in the middleman, as we are in a
+    // different process from the debuggee and may want to process events in
+    // the middleman for e.g. the overlay drawn when rewinding.
+    if (Debugger.recordReplayProcessKind() != "Middleman") {
+      windowUtils.suppressEventHandling(true);
+    }
+
     windowUtils.suspendTimeouts();
   },
 
@@ -1201,7 +1204,9 @@ const browsingContextTargetPrototype = {
     }
     const windowUtils = this.window.windowUtils;
     windowUtils.resumeTimeouts();
-    windowUtils.suppressEventHandling(false);
+    if (Debugger.recordReplayProcessKind() != "Middleman") {
+      windowUtils.suppressEventHandling(false);
+    }
   },
 
   _changeTopLevelDocument(window) {
@@ -1238,11 +1243,11 @@ const browsingContextTargetPrototype = {
     Object.defineProperty(this, "docShell", {
       value: docShell,
       enumerable: true,
-      configurable: true
+      configurable: true,
     });
     this.emit("changed-toplevel-document");
     this.emit("frameUpdate", {
-      selected: this.outerWindowID
+      selected: this.outerWindowID,
     });
   },
 
@@ -1263,7 +1268,7 @@ const browsingContextTargetPrototype = {
     this.emit("window-ready", {
       window: window,
       isTopLevel: isTopLevel,
-      id: getWindowID(window)
+      id: getWindowID(window),
     });
 
     // TODO bug 997119: move that code to ThreadActor by listening to
@@ -1291,7 +1296,7 @@ const browsingContextTargetPrototype = {
       window: window,
       isTopLevel: window == this.window,
       id: id || getWindowID(window),
-      isFrozen: isFrozen
+      isFrozen: isFrozen,
     });
   },
 
@@ -1327,7 +1332,7 @@ const browsingContextTargetPrototype = {
       window: window,
       isTopLevel: isTopLevel,
       newURI: newURI,
-      request: request
+      request: request,
     });
 
     // We don't do anything for inner frames here.
@@ -1351,7 +1356,7 @@ const browsingContextTargetPrototype = {
       url: newURI,
       nativeConsoleAPI: true,
       state: "start",
-      isFrameSwitching: isFrameSwitching
+      isFrameSwitching: isFrameSwitching,
     });
 
     if (reset) {
@@ -1372,7 +1377,7 @@ const browsingContextTargetPrototype = {
     // after the load event, it's document ready-state is 'complete'.
     this.emit("navigate", {
       window: window,
-      isTopLevel: isTopLevel
+      isTopLevel: isTopLevel,
     });
 
     // We don't do anything for inner frames here.
@@ -1392,7 +1397,7 @@ const browsingContextTargetPrototype = {
       title: this.title,
       nativeConsoleAPI: this.hasNativeConsoleAPI(this.window),
       state: "stop",
-      isFrameSwitching: isFrameSwitching
+      isFrameSwitching: isFrameSwitching,
     });
   },
 
@@ -1450,7 +1455,7 @@ const browsingContextTargetPrototype = {
       }
       delete this._extraActors[name];
     }
-  }
+  },
 };
 
 exports.browsingContextTargetPrototype = browsingContextTargetPrototype;
@@ -1676,5 +1681,5 @@ DebuggerProgressListener.prototype = {
         this._targetActor._navigate(window);
       }
     }
-  }, "DebuggerProgressListener.prototype.onStateChange")
+  }, "DebuggerProgressListener.prototype.onStateChange"),
 };

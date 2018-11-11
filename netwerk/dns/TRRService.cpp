@@ -45,9 +45,11 @@ TRRService::TRRService()
   , mCaptiveIsPassed(false)
   , mUseGET(false)
   , mDisableECS(true)
+  , mDisableAfterFails(5)
   , mClearTRRBLStorage(false)
   , mConfirmationState(CONFIRM_INIT)
   , mRetryConfirmInterval(1000)
+  , mTRRFailures(0)
 {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 }
@@ -265,6 +267,12 @@ TRRService::ReadPrefs(const char *name)
       mDisableECS = tmp;
     }
   }
+  if (!name || !strcmp(name, TRR_PREF("max-fails"))) {
+    uint32_t fails;
+    if (NS_SUCCEEDED(Preferences::GetUint(TRR_PREF("max-fails"), &fails))) {
+      mDisableAfterFails = fails;
+    }
+  }
 
   return NS_OK;
 }
@@ -385,7 +393,7 @@ TRRService::MaybeConfirm()
   } else {
     LOG(("TRRService starting confirmation test %s %s\n",
          mPrivateURI.get(), host.get()));
-    mConfirmer = new TRR(this, host, TRRTYPE_NS, false);
+    mConfirmer = new TRR(this, host, TRRTYPE_NS, EmptyCString(), false);
     NS_DispatchToMainThread(mConfirmer);
   }
 }
@@ -423,7 +431,8 @@ TRRService::MaybeBootstrap(const nsACString &aPossible, nsACString &aResult)
 // When running in TRR-only mode, the blacklist is not used and it will also
 // try resolving the localhost / .local names.
 bool
-TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
+TRRService::IsTRRBlacklisted(const nsACString &aHost, const nsACString &aOriginSuffix,
+                             bool aPrivateBrowsing,
                              bool aParentsToo) // false if domain
 {
   if (mMode == MODE_TRRONLY) {
@@ -464,7 +473,7 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
     nsAutoCString check(domain);
 
     // recursively check the domain part of this name
-    if (IsTRRBlacklisted(check, privateBrowsing, false)) {
+    if (IsTRRBlacklisted(check, aOriginSuffix, aPrivateBrowsing, false)) {
       // the domain name of this name is already TRR blacklisted
       return true;
     }
@@ -472,8 +481,8 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
 
   MutexAutoLock lock(mLock);
   // use a unified casing for the hashkey
-  nsAutoCString hashkey(aHost);
-  nsCString val(mTRRBLStorage->Get(hashkey, privateBrowsing ?
+  nsAutoCString hashkey(aHost + aOriginSuffix);
+  nsCString val(mTRRBLStorage->Get(hashkey, aPrivateBrowsing ?
                                    DataStorage_Private : DataStorage_Persistent));
 
   if (!val.IsEmpty()) {
@@ -488,8 +497,8 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
     RefPtr<DataStorage> storage = mTRRBLStorage;
     nsCOMPtr<nsIRunnable> runnable =
       NS_NewRunnableFunction("proxyStorageRemove",
-                              [storage, hashkey, privateBrowsing]() {
-                                storage->Remove(hashkey, privateBrowsing ?
+                              [storage, hashkey, aPrivateBrowsing]() {
+                                storage->Remove(hashkey, aPrivateBrowsing ?
                                                 DataStorage_Private :
                                                 DataStorage_Persistent);
                               });
@@ -505,14 +514,20 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
 class ProxyBlacklist : public Runnable
 {
 public:
-  ProxyBlacklist(TRRService *service, const nsACString &aHost, bool pb, bool aParentsToo)
+  ProxyBlacklist(TRRService *service, const nsACString &aHost,
+                 const nsACString &aOriginSuffix,
+                 bool pb, bool aParentsToo)
     : mozilla::Runnable("proxyBlackList")
-    , mService(service), mHost(aHost), mPB(pb), mParentsToo(aParentsToo)
+    , mService(service)
+    , mHost(aHost)
+    , mOriginSuffix(aOriginSuffix)
+    , mPB(pb)
+    , mParentsToo(aParentsToo)
   { }
 
   NS_IMETHOD Run() override
   {
-    mService->TRRBlacklist(mHost, mPB, mParentsToo);
+    mService->TRRBlacklist(mHost, mOriginSuffix, mPB, mParentsToo);
     mService = nullptr;
     return NS_OK;
   }
@@ -520,25 +535,27 @@ public:
 private:
   RefPtr<TRRService> mService;
   nsCString mHost;
+  nsCString mOriginSuffix;
   bool      mPB;
   bool      mParentsToo;
 };
 
 void
-TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aParentsToo)
+TRRService::TRRBlacklist(const nsACString &aHost, const nsACString &aOriginSuffix,
+                         bool privateBrowsing, bool aParentsToo)
 {
   if (!mTRRBLStorage) {
     return;
   }
 
   if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(new ProxyBlacklist(this, aHost,
+    NS_DispatchToMainThread(new ProxyBlacklist(this, aHost, aOriginSuffix,
                                                privateBrowsing, aParentsToo));
     return;
   }
 
   LOG(("TRR blacklist %s\n", nsCString(aHost).get()));
-  nsAutoCString hashkey(aHost);
+  nsAutoCString hashkey(aHost + aOriginSuffix);
   nsAutoCString val;
   val.AppendInt( NowInSeconds() ); // creation time
 
@@ -557,7 +574,7 @@ TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aPa
       dot++;
       nsDependentCSubstring domain = Substring(aHost, dot, aHost.Length() - dot);
       nsAutoCString check(domain);
-      if (IsTRRBlacklisted(check, privateBrowsing, false)) {
+      if (IsTRRBlacklisted(check, aOriginSuffix, privateBrowsing, false)) {
         // the domain part is already blacklisted, no need to add this entry
         return;
       }
@@ -565,7 +582,8 @@ TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aPa
       LOG(("TRR: verify if '%s' resolves as NS\n", check.get()));
 
       // check if there's an NS entry for this name
-      RefPtr<TRR> trr = new TRR(this, check, TRRTYPE_NS, privateBrowsing);
+      RefPtr<TRR> trr = new TRR(this, check, TRRTYPE_NS, aOriginSuffix,
+                                privateBrowsing);
       NS_DispatchToMainThread(trr);
     }
   }
@@ -589,8 +607,34 @@ TRRService::Notify(nsITimer *aTimer)
 }
 
 
+void
+TRRService::TRRIsOkay(enum TrrOkay aReason)
+{
+  Telemetry::AccumulateCategorical(aReason == OKAY_NORMAL ?
+                                   Telemetry::LABELS_DNS_TRR_SUCCESS::Fine :
+                                   (aReason == OKAY_TIMEOUT ?
+                                    Telemetry::LABELS_DNS_TRR_SUCCESS::Timeout :
+                                    Telemetry::LABELS_DNS_TRR_SUCCESS::Bad));
+  if (aReason == OKAY_NORMAL) {
+    mTRRFailures = 0;
+  } else if ((mMode == MODE_TRRFIRST) && (mConfirmationState == CONFIRM_OK)) {
+    // only count failures while in OK state
+    uint32_t fails = ++mTRRFailures;
+    if (fails >= mDisableAfterFails) {
+      LOG(("TRRService goes FAILED after %u failures in a row\n", fails));
+      mConfirmationState = CONFIRM_FAILED;
+      // Fire off a timer and start re-trying the NS domain again
+      NS_NewTimerWithCallback(getter_AddRefs(mRetryConfirmTimer),
+                              this, mRetryConfirmInterval,
+                              nsITimer::TYPE_ONE_SHOT);
+      mTRRFailures = 0; // clear it again
+    }
+  }
+}
+
 AHostResolver::LookupStatus
-TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRSet, bool pb)
+TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRSet, bool pb,
+                           const nsACString &aOriginSuffix)
 {
   // this is an NS check for the TRR blacklist or confirmationNS check
 
@@ -607,8 +651,8 @@ TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRS
     LOG(("TRRService finishing confirmation test %s %d %X\n",
          mPrivateURI.get(), (int)mConfirmationState, (unsigned int)status));
     mConfirmer = nullptr;
-    if ((mConfirmationState == CONFIRM_FAILED) && (mMode == MODE_TRRONLY)) {
-      // in TRR-only mode; retry failed confirmations
+    if (mConfirmationState == CONFIRM_FAILED) {
+      // retry failed NS confirmation
       NS_NewTimerWithCallback(getter_AddRefs(mRetryConfirmTimer),
                               this, mRetryConfirmInterval,
                               nsITimer::TYPE_ONE_SHOT);
@@ -634,7 +678,7 @@ TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRS
     LOG(("TRR verified %s to be fine!\n", newRRSet->mHostName.get()));
   } else {
     LOG(("TRR says %s doesn't resolve as NS!\n", newRRSet->mHostName.get()));
-    TRRBlacklist(newRRSet->mHostName, pb, false);
+    TRRBlacklist(newRRSet->mHostName, aOriginSuffix, pb, false);
   }
   return LOOKUP_OK;
 }

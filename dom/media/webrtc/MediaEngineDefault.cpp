@@ -424,8 +424,9 @@ MediaEngineDefaultAudioSource::Allocate(const dom::MediaTrackConstraints &aConst
   MOZ_ASSERT(mState == kReleased);
 
   // Mock failure for automated tests.
-  if (aConstraints.mDeviceId.IsString() &&
-      aConstraints.mDeviceId.GetAsString().EqualsASCII("bad device")) {
+  if (aConstraints.mDeviceId.WasPassed() &&
+      aConstraints.mDeviceId.Value().IsString() &&
+      aConstraints.mDeviceId.Value().GetAsString().EqualsASCII("bad device")) {
     return NS_ERROR_FAILURE;
   }
 
@@ -579,7 +580,8 @@ MediaEngineDefault::EnumerateDevices(uint64_t aWindowId,
       aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                                 newSource,
                                 newSource->GetName(),
-                                NS_ConvertUTF8toUTF16(newSource->GetUUID())));
+                                NS_ConvertUTF8toUTF16(newSource->GetUUID()),
+                                NS_LITERAL_STRING("")));
       return;
     }
     case dom::MediaSourceEnum::Microphone: {
@@ -590,7 +592,8 @@ MediaEngineDefault::EnumerateDevices(uint64_t aWindowId,
           aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                                     source,
                                     source->GetName(),
-                                    NS_ConvertUTF8toUTF16(source->GetUUID())));
+                                    NS_ConvertUTF8toUTF16(source->GetUUID()),
+                                    NS_LITERAL_STRING("")));
         }
       }
 
@@ -601,7 +604,8 @@ MediaEngineDefault::EnumerateDevices(uint64_t aWindowId,
         aDevices->AppendElement(MakeRefPtr<MediaDevice>(
                                   newSource,
                                   newSource->GetName(),
-                                  NS_ConvertUTF8toUTF16(newSource->GetUUID())));
+                                  NS_ConvertUTF8toUTF16(newSource->GetUUID()),
+                                  NS_LITERAL_STRING("")));
       }
       return;
     }

@@ -365,7 +365,11 @@ class Nursery
     /* Pointer to the first unallocated byte in the nursery. */
     uintptr_t position_;
 
-    /* Pointer to the logical start of the Nursery. */
+    /*
+     * These fields refer to the beginning of the nursery. They're normally 0
+     * and chunk(0).start() respectively. Except when a generational GC zeal
+     * mode is active, then they may be arbitrary (see Nursery::clear()).
+     */
     unsigned currentStartChunk_;
     uintptr_t currentStartPosition_;
 
@@ -395,9 +399,6 @@ class Nursery
     unsigned chunkCountLimit_;
 
     mozilla::TimeDuration timeInChunkAlloc_;
-
-    /* Promotion rate for the previous minor collection. */
-    float previousPromotionRate_;
 
     /* Report minor collections taking at least this long, if enabled. */
     mozilla::TimeDuration profileThreshold_;
@@ -512,7 +513,14 @@ class Nursery
         return *chunks_[index];
     }
 
-    void setCurrentChunk(unsigned chunkno);
+    /*
+     * Set the current chunk. This updates the currentChunk_, position_
+     * currentEnd_ and currentStringEnd_ values as approprite. It'll also
+     * poison the chunk, either a portion of the chunk if it is already the
+     * current chunk, or the whole chunk if fullPoison is true or it is not
+     * the current chunk.
+     */
+    void setCurrentChunk(unsigned chunkno, bool fullPoison = false);
     void setStartPosition();
 
     /*
@@ -527,6 +535,7 @@ class Nursery
     uintptr_t position() const { return position_; }
 
     JSRuntime* runtime() const { return runtime_; }
+    gcstats::Statistics& stats() const;
 
     /* Common internal allocator function. */
     void* allocate(size_t size);

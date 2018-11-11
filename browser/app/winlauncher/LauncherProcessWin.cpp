@@ -6,6 +6,7 @@
 
 #include "LauncherProcessWin.h"
 
+#include <io.h> // For printf_stderr
 #include <string.h>
 
 #include "mozilla/Attributes.h"
@@ -14,6 +15,7 @@
 #include "mozilla/DynamicallyLinkedFunctionPtr.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/SafeMode.h"
+#include "mozilla/Sprintf.h" // For printf_stderr
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
@@ -38,11 +40,12 @@ PostCreationSetup(HANDLE aChildProcess, HANDLE aChildMainThread,
 {
   // The launcher process's DLL blocking code is incompatible with ASAN because
   // it is able to execute before ASAN itself has even initialized.
-#if defined(MOZ_ASAN)
+  // Also, the AArch64 build doesn't yet have a working interceptor.
+#if defined(MOZ_ASAN) || defined(_M_ARM64)
   return true;
 #else
   return mozilla::InitializeDllBlocklistOOP(aChildProcess);
-#endif // defiend(MOZ_ASAN)
+#endif // defined(MOZ_ASAN) || defined(_M_ARM64)
 }
 
 #if !defined(PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON)
@@ -99,7 +102,11 @@ ProcessCmdLine(int& aArgc, wchar_t* aArgv[])
       mozilla::CheckArg(aArgc, aArgv, L"marionette",
                         static_cast<const wchar_t**>(nullptr),
                         mozilla::CheckArgFlag::None) == mozilla::ARG_FOUND ||
-      mozilla::EnvHasValue("MOZ_AUTOMATION")) {
+      mozilla::CheckArg(aArgc, aArgv, L"headless",
+                        static_cast<const wchar_t**>(nullptr),
+                        mozilla::CheckArgFlag::None) == mozilla::ARG_FOUND ||
+      mozilla::EnvHasValue("MOZ_AUTOMATION") ||
+      mozilla::EnvHasValue("MOZ_HEADLESS")) {
     result |= mozilla::LauncherFlags::eWaitForBrowser;
   }
 
@@ -113,37 +120,99 @@ ProcessCmdLine(int& aArgc, wchar_t* aArgv[])
   return result;
 }
 
+// Duplicated from xpcom glue. Ideally this should be shared.
+static void
+printf_stderr(const char *fmt, ...)
+{
+  if (IsDebuggerPresent()) {
+    char buf[2048];
+    va_list args;
+    va_start(args, fmt);
+    VsprintfLiteral(buf, fmt, args);
+    va_end(args);
+    OutputDebugStringA(buf);
+  }
+
+  FILE *fp = _fdopen(_dup(2), "a");
+  if (!fp)
+      return;
+
+  va_list args;
+  va_start(args, fmt);
+  vfprintf(fp, fmt, args);
+  va_end(args);
+
+  fclose(fp);
+}
+
+static void
+MaybeBreakForBrowserDebugging()
+{
+  if (mozilla::EnvHasValue("MOZ_DEBUG_BROWSER_PROCESS")) {
+    ::DebugBreak();
+    return;
+  }
+
+  const wchar_t* pauseLenS = _wgetenv(L"MOZ_DEBUG_BROWSER_PAUSE");
+  if (!pauseLenS || !(*pauseLenS)) {
+    return;
+  }
+
+  DWORD pauseLenMs = wcstoul(pauseLenS, nullptr, 10) * 1000;
+  printf_stderr("\n\nBROWSERBROWSERBROWSERBROWSER\n  debug me @ %lu\n\n",
+                ::GetCurrentProcessId());
+  ::Sleep(pauseLenMs);
+}
+
 #if defined(MOZ_LAUNCHER_PROCESS)
 
-static mozilla::Maybe<bool>
+static bool
 IsSameBinaryAsParentProcess()
 {
   mozilla::Maybe<DWORD> parentPid = mozilla::nt::GetParentProcessId();
   if (!parentPid) {
-    return mozilla::Nothing();
+    // If NtQueryInformationProcess failed (in GetParentProcessId()),
+    // we should not behave as the launcher process because it will also
+    // likely to fail in child processes.
+    MOZ_CRASH("NtQueryInformationProcess failed");
   }
 
   nsAutoHandle parentProcess(::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,
                                            FALSE, parentPid.value()));
   if (!parentProcess.get()) {
-    return mozilla::Nothing();
+    // If OpenProcess failed, the parent process may not be present,
+    // may be already terminated, etc. So we will have to behave as the
+    // launcher proces in this case.
+    return false;
   }
 
   WCHAR parentExe[MAX_PATH + 1] = {};
   DWORD parentExeLen = mozilla::ArrayLength(parentExe);
-  if (!::QueryFullProcessImageNameW(parentProcess.get(), 0, parentExe,
-                                    &parentExeLen)) {
-    return mozilla::Nothing();
+  if (!::QueryFullProcessImageNameW(parentProcess.get(), PROCESS_NAME_NATIVE,
+                                    parentExe, &parentExeLen)) {
+    // If QueryFullProcessImageNameW failed, we should not behave as the
+    // launcher process for the same reason as NtQueryInformationProcess.
+    MOZ_CRASH("QueryFullProcessImageNameW failed");
   }
 
   WCHAR ourExe[MAX_PATH + 1] = {};
   DWORD ourExeOk = ::GetModuleFileNameW(nullptr, ourExe,
                                         mozilla::ArrayLength(ourExe));
   if (!ourExeOk || ourExeOk == mozilla::ArrayLength(ourExe)) {
-    return mozilla::Nothing();
+    // If GetModuleFileNameW failed, we should not behave as the launcher
+    // process for the same reason as NtQueryInformationProcess.
+    MOZ_CRASH("GetModuleFileNameW failed");
   }
 
-  return mozilla::DoPathsPointToIdenticalFile(parentExe, ourExe);
+  mozilla::Maybe<bool> isSame =
+    mozilla::DoPathsPointToIdenticalFile(parentExe, ourExe,
+                                         mozilla::eNtPath);
+  if (!isSame) {
+    // If DoPathsPointToIdenticalFile failed, we should not behave as the
+    // launcher process for the same reason as NtQueryInformationProcess.
+    MOZ_CRASH("DoPathsPointToIdenticalFile failed");
+  }
+  return isSame.value();
 }
 
 #endif // defined(MOZ_LAUNCHER_PROCESS)
@@ -159,12 +228,7 @@ RunAsLauncherProcess(int& argc, wchar_t** argv)
   bool result = false;
 
 #if defined(MOZ_LAUNCHER_PROCESS)
-  Maybe<bool> isChildOfFirefox = IsSameBinaryAsParentProcess();
-  if (isChildOfFirefox) {
-    result |= !isChildOfFirefox.value();
-  } else {
-    result = true;
-  }
+  result = !IsSameBinaryAsParentProcess();
 #endif // defined(MOZ_LAUNCHER_PROCESS)
 
   if (mozilla::EnvHasValue("MOZ_LAUNCHER_PROCESS")) {
@@ -175,6 +239,12 @@ RunAsLauncherProcess(int& argc, wchar_t** argv)
   result |= CheckArg(argc, argv, L"launcher",
                      static_cast<const wchar_t**>(nullptr),
                      CheckArgFlag::RemoveArg) == ARG_FOUND;
+
+  if (!result) {
+    // In this case, we will be proceeding to run as the browser.
+    // We should check MOZ_DEBUG_BROWSER_* env vars.
+    MaybeBreakForBrowserDebugging();
+  }
 
   return result;
 }

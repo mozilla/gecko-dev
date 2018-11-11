@@ -18,6 +18,14 @@ let gWhitelist = [{
     type: "single-quote",
   }, {
     file: "netError.dtd",
+    key: "certerror.sts.introPara",
+    type: "single-quote",
+  }, {
+    file: "netError.dtd",
+    key: "certerror.expiredCert.introPara",
+    type: "single-quote",
+  }, {
+    file: "netError.dtd",
     key: "certerror.expiredCert.whatCanYouDoAboutIt2",
     type: "single-quote",
   }, {
@@ -147,10 +155,6 @@ let gWhitelist = [{
   }, {
     file: "aboutNetworking.dtd",
     key: "aboutNetworking.logTutorial",
-    type: "single-quote",
-  }, {
-    file: "aboutdevtools.dtd",
-    key: "aboutDevtools.newsletter.privacy.label",
     type: "single-quote",
   }, {
     file: "browser.dtd",

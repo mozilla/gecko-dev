@@ -11,6 +11,8 @@ XPCOMUtils.defineLazyPreferenceGetter(this, "proxyType", PROXY_PREF);
 
 const TEST_DIR = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
 const CHROME_URL_ROOT = TEST_DIR + "/";
+const PERMISSIONS_URL = "chrome://browser/content/preferences/sitePermissions.xul";
+let sitePermissionsDialog;
 
 function getSupportsFile(path) {
   let cr = Cc["@mozilla.org/chrome/chrome-registry;1"]
@@ -35,18 +37,6 @@ function installAddon(xpiName) {
       onInstallEnded: resolve,
     });
     install.install();
-  });
-}
-
-function waitForMutation(target, opts, cb) {
-  return new Promise((resolve) => {
-    let observer = new MutationObserver(() => {
-      if (!cb || cb(target)) {
-        observer.disconnect();
-        resolve();
-      }
-    });
-    observer.observe(target, opts);
   });
 }
 
@@ -78,6 +68,19 @@ function waitForMessageContent(messageId, l10nId, doc) {
     getElement(messageId, doc),
     target => doc.l10n.getAttributes(target).id === l10nId,
     { childList: true });
+}
+
+async function openNotificationsPermissionDialog() {
+  let dialogOpened = promiseLoadSubDialog(PERMISSIONS_URL);
+
+  await ContentTask.spawn(gBrowser.selectedBrowser, null, function() {
+    let doc = content.document;
+    let settingsButton = doc.getElementById("notificationSettingsButton");
+    settingsButton.click();
+  });
+
+  sitePermissionsDialog = await dialogOpened;
+  await sitePermissionsDialog.document.mozSubdialogReady;
 }
 
 add_task(async function testExtensionControlledHomepage() {
@@ -351,6 +354,75 @@ add_task(async function testExtensionControlledNewTab() {
   await addon.uninstall();
 });
 
+add_task(async function testExtensionControlledWebNotificationsPermission() {
+  let manifest = {
+    manifest_version: 2,
+    name: "TestExtension",
+    version: "1.0",
+    description: "Testing WebNotificationsDisable",
+    applications: {gecko: {id: "@web_notifications_disable"}},
+    permissions: [
+      "browserSettings",
+    ],
+    browser_action: {
+      default_title: "Testing",
+    },
+  };
+
+  await openPreferencesViaOpenPreferencesAPI("privacy", {leaveOpen: true});
+  await openNotificationsPermissionDialog();
+
+  let doc = sitePermissionsDialog.document;
+  let extensionControlledContent = doc.getElementById("browserNotificationsPermissionExtensionContent");
+
+  // Test that extension content is initially hidden.
+  ok(extensionControlledContent.hidden, "Extension content is initially hidden");
+
+  // Install an extension that will disable web notifications permission.
+  let messageShown = waitForMessageShown("browserNotificationsPermissionExtensionContent", doc);
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest,
+    useAddonManager: "permanent",
+    background() {
+      browser.browserSettings.webNotificationsDisabled.set({value: true});
+      browser.test.sendMessage("load-extension");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("load-extension");
+  await messageShown;
+
+  let controlledDesc = extensionControlledContent.querySelector("description");
+  Assert.deepEqual(doc.l10n.getAttributes(controlledDesc), {
+    id: "extension-controlled-web-notifications",
+    args: {
+      name: "TestExtension",
+    },
+  }, "The user is notified that an extension is controlling the web notifications permission");
+  is(extensionControlledContent.hidden, false, "The extension controlled row is not hidden");
+
+  // Disable the extension.
+  doc.getElementById("disableNotificationsPermissionExtension").click();
+
+  // Verify the user is notified how to enable the extension.
+  await waitForEnableMessage(extensionControlledContent.id, doc);
+  is(doc.l10n.getAttributes(controlledDesc.querySelector("label")).id,
+    "extension-controlled-enable",
+    "The user is notified of how to enable the extension again");
+
+  // Verify the enable message can be dismissed.
+  let hidden = waitForMessageHidden(extensionControlledContent.id, doc);
+  let dismissButton = controlledDesc.querySelector("image:last-of-type");
+  dismissButton.click();
+  await hidden;
+
+  // Verify that the extension controlled content in hidden again.
+  is(extensionControlledContent.hidden, true, "The extension controlled row is now hidden");
+
+  await extension.unload();
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
 add_task(async function testExtensionControlledDefaultSearch() {
   await openPreferencesViaOpenPreferencesAPI("paneSearch", {leaveOpen: true});
   let doc = gBrowser.contentDocument;
@@ -516,28 +588,17 @@ add_task(async function testExtensionControlledHomepageUninstalledAddon() {
 });
 
 add_task(async function testExtensionControlledTrackingProtection() {
-  const CB_UI_PREF = "browser.contentblocking.ui.enabled";
   const TP_PREF = "privacy.trackingprotection.enabled";
   const TP_DEFAULT = false;
   const EXTENSION_ID = "@set_tp";
-  const CONTROLLED_LABEL_ID = {
-    old: "trackingProtectionExtensionContentLabel",
-    new: "contentBlockingTrackingProtectionExtensionContentLabel",
-  };
-  const CONTROLLED_BUTTON_ID = {
-    old: "trackingProtectionExtensionContentButton",
-    new: "contentBlockingDisableTrackingProtectionExtension",
-  };
-  const DISABLE_BUTTON_ID = {
-    old: "disableTrackingProtectionExtension",
-    new: "contentBlockingDisableTrackingProtectionExtension",
-  };
+  const CONTROLLED_LABEL_ID = "contentBlockingTrackingProtectionExtensionContentLabel";
+  const CONTROLLED_BUTTON_ID = "contentBlockingDisableTrackingProtectionExtension";
+  const DISABLE_BUTTON_ID = "contentBlockingDisableTrackingProtectionExtension";
 
   let tpEnabledPref = () => Services.prefs.getBoolPref(TP_PREF);
-  let cbUIEnabledPref = () => Services.prefs.getBoolPref(CB_UI_PREF);
 
   await SpecialPowers.pushPrefEnv(
-    {"set": [[TP_PREF, TP_DEFAULT], [CB_UI_PREF, true]]});
+    {"set": [[TP_PREF, TP_DEFAULT]]});
 
   function background() {
     browser.privacy.websites.trackingProtectionMode.set({value: "always"});
@@ -546,39 +607,29 @@ add_task(async function testExtensionControlledTrackingProtection() {
   function verifyState(isControlled) {
     is(tpEnabledPref(), isControlled, "TP pref is set to the expected value.");
 
-    let controlledLabel = doc.getElementById(CONTROLLED_LABEL_ID[uiType]);
-    let controlledButton = doc.getElementById(CONTROLLED_BUTTON_ID[uiType]);
+    let controlledLabel = doc.getElementById(CONTROLLED_LABEL_ID);
+    let controlledButton = doc.getElementById(CONTROLLED_BUTTON_ID);
 
     is(controlledLabel.hidden, !isControlled, "The extension controlled row's visibility is as expected.");
     is(controlledButton.hidden, !isControlled, "The disable extension button's visibility is as expected.");
     if (isControlled) {
       let controlledDesc = controlledLabel.querySelector("description");
       Assert.deepEqual(doc.l10n.getAttributes(controlledDesc), {
-        id: cbUIEnabledPref() ? "extension-controlled-websites-content-blocking-all-trackers" :
-                                "extension-controlled-websites-tracking-protection-mode",
+        id: "extension-controlled-websites-content-blocking-all-trackers",
         args: {
           name: "set_tp",
         },
       }, "The user is notified that an extension is controlling TP.");
     }
 
-    if (uiType === "old") {
-      for (let element of doc.querySelectorAll("#trackingProtectionRadioGroup > radio")) {
-        is(element.disabled, isControlled, "TP controls are enabled.");
-      }
-      is(doc.querySelector("#trackingProtectionDesc > label").disabled,
-         isControlled,
-         "TP control label is enabled.");
-    } else {
-      is(doc.getElementById("trackingProtectionMenu").disabled,
-         isControlled,
-         "TP control is enabled.");
-    }
+    is(doc.getElementById("trackingProtectionMenu").disabled,
+       isControlled,
+       "TP control is enabled.");
   }
 
   async function disableViaClick() {
-    let labelId = CONTROLLED_LABEL_ID[uiType];
-    let disableId = DISABLE_BUTTON_ID[uiType];
+    let labelId = CONTROLLED_LABEL_ID;
+    let disableId = DISABLE_BUTTON_ID;
     let controlledLabel = doc.getElementById(labelId);
 
     let enableMessageShown = waitForEnableMessage(labelId);
@@ -598,12 +649,10 @@ add_task(async function testExtensionControlledTrackingProtection() {
   }
 
   async function reEnableExtension(addon) {
-    let controlledMessageShown = waitForMessageShown(CONTROLLED_LABEL_ID[uiType]);
+    let controlledMessageShown = waitForMessageShown(CONTROLLED_LABEL_ID);
     await addon.enable();
     await controlledMessageShown;
   }
-
-  let uiType = "new";
 
   await openPreferencesViaOpenPreferencesAPI("panePrivacy", {leaveOpen: true});
   let doc = gBrowser.contentDocument;
@@ -624,31 +673,10 @@ add_task(async function testExtensionControlledTrackingProtection() {
     background,
   });
 
-  let messageShown = waitForMessageShown(CONTROLLED_LABEL_ID[uiType]);
+  let messageShown = waitForMessageShown(CONTROLLED_LABEL_ID);
   await extension.startup();
   await messageShown;
   let addon = await AddonManager.getAddonByID(EXTENSION_ID);
-
-  verifyState(true);
-
-  await disableViaClick();
-
-  verifyState(false);
-
-  // Switch to the "old" Tracking Protection UI.
-  uiType = "old";
-  Services.prefs.setBoolPref(CB_UI_PREF, false);
-
-  let browserLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser, false, "about:preferences#privacy");
-  gBrowser.selectedBrowser.reload();
-  await browserLoaded;
-  is(gBrowser.currentURI.spec, "about:preferences#privacy",
-   "#privacy should be in the URI for about:preferences");
-  doc = gBrowser.contentDocument;
-
-  verifyState(false);
-
-  await reEnableExtension(addon);
 
   verifyState(true);
 

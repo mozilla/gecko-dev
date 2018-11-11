@@ -24,6 +24,7 @@ VRManagerParent::VRManagerParent(ProcessId aChildProcessId, bool aIsContentChild
   , mHaveEventListener(false)
   , mHaveControllerListener(false)
   , mIsContentChild(aIsContentChild)
+  , mVRActiveStatus(true)
 {
   MOZ_COUNT_CTOR(VRManagerParent);
   MOZ_ASSERT(NS_IsMainThread());
@@ -85,7 +86,7 @@ VRManagerParent::UnregisterFromManager()
 /* static */ bool
 VRManagerParent::CreateForContent(Endpoint<PVRManagerParent>&& aEndpoint)
 {
-  MessageLoop* loop = VRListenerThreadHolder::Loop();
+  MessageLoop* loop = CompositorThreadHolder::Loop();
 
   RefPtr<VRManagerParent> vmp = new VRManagerParent(aEndpoint.OtherPid(), true);
   loop->PostTask(NewRunnableMethod<Endpoint<PVRManagerParent>&&>(
@@ -109,7 +110,7 @@ VRManagerParent::Bind(Endpoint<PVRManagerParent>&& aEndpoint)
 }
 
 /*static*/ void
-VRManagerParent::RegisterVRManagerInVRListenerThread(VRManagerParent* aVRManager)
+VRManagerParent::RegisterVRManagerInCompositorThread(VRManagerParent* aVRManager)
 {
   aVRManager->RegisterWithManager();
 }
@@ -117,22 +118,22 @@ VRManagerParent::RegisterVRManagerInVRListenerThread(VRManagerParent* aVRManager
 /*static*/ VRManagerParent*
 VRManagerParent::CreateSameProcess()
 {
-  MessageLoop* loop = VRListenerThreadHolder::Loop();
+  MessageLoop* loop = CompositorThreadHolder::Loop();
   RefPtr<VRManagerParent> vmp = new VRManagerParent(base::GetCurrentProcId(), false);
-  vmp->mVRListenerThreadHolder = VRListenerThreadHolder::GetSingleton();
+  vmp->mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
   vmp->mSelfRef = vmp;
-  loop->PostTask(NewRunnableFunction("RegisterVRManagerInVRListenerThreadRunnable",
-                                     RegisterVRManagerInVRListenerThread, vmp.get()));
+  loop->PostTask(NewRunnableFunction("RegisterVRManagerIncompositorThreadRunnable",
+                                     RegisterVRManagerInCompositorThread, vmp.get()));
   return vmp.get();
 }
 
 bool
 VRManagerParent::CreateForGPUProcess(Endpoint<PVRManagerParent>&& aEndpoint)
 {
-  MessageLoop* loop = VRListenerThreadHolder::Loop();
+  MessageLoop* loop = CompositorThreadHolder::Loop();
 
   RefPtr<VRManagerParent> vmp = new VRManagerParent(aEndpoint.OtherPid(), false);
-  vmp->mVRListenerThreadHolder = VRListenerThreadHolder::GetSingleton();
+  vmp->mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
   vmp->mSelfRef = vmp;
   loop->PostTask(NewRunnableMethod<Endpoint<PVRManagerParent>&&>(
     "gfx::VRManagerParent::Bind",
@@ -145,7 +146,7 @@ VRManagerParent::CreateForGPUProcess(Endpoint<PVRManagerParent>&& aEndpoint)
 void
 VRManagerParent::DeferredDestroy()
 {
-  mVRListenerThreadHolder = nullptr;
+  mCompositorThreadHolder = nullptr;
   mSelfRef = nullptr;
 }
 
@@ -162,15 +163,12 @@ VRManagerParent::ActorDestroy(ActorDestroyReason why)
 void
 VRManagerParent::OnChannelConnected(int32_t aPid)
 {
-  mVRListenerThreadHolder = VRListenerThreadHolder::GetSingleton();
+  mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
 }
 
 mozilla::ipc::IPCResult
 VRManagerParent::RecvRefreshDisplays()
 {
-  // TODO: Bug 1406327, Launch VR listener thread here.
-  MOZ_ASSERT(VRListenerThreadHolder::IsInVRListenerThread());
-
   // This is called to refresh the VR Displays for Navigator.GetVRDevices().
   // We must pass "true" to VRManager::RefreshVRDisplays()
   // to ensure that the promise returned by Navigator.GetVRDevices
@@ -214,6 +212,12 @@ bool
 VRManagerParent::HaveControllerListener()
 {
   return mHaveControllerListener;
+}
+
+bool
+VRManagerParent::GetVRActiveStatus()
+{
+  return mVRActiveStatus;
 }
 
 mozilla::ipc::IPCResult
@@ -276,7 +280,7 @@ VRManagerParent::RecvCreateVRServiceTestController(const nsCString& aID, const u
   VRManager* vm = VRManager::Get();
 
   /**
-   * The controller is created asynchronously in the VRListener thread.
+   * The controller is created asynchronously.
    * We will wait up to kMaxControllerCreationTime milliseconds before
    * assuming that the controller will never be created.
    */
@@ -469,6 +473,20 @@ VRManagerParent::RecvStopVRNavigation(const uint32_t& aDeviceID, const TimeDurat
 {
   VRManager* vm = VRManager::Get();
   vm->StopVRNavigation(aDeviceID, aTimeout);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+VRManagerParent::RecvStartActivity()
+{
+  mVRActiveStatus = true;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+VRManagerParent::RecvStopActivity()
+{
+  mVRActiveStatus = false;
   return IPC_OK();
 }
 

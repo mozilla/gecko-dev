@@ -10,7 +10,7 @@ const Services = require("Services");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {
   VIEW_NODE_VALUE_TYPE,
-  VIEW_NODE_SHAPE_POINT_TYPE
+  VIEW_NODE_SHAPE_POINT_TYPE,
 } = require("devtools/client/inspector/shared/node-types");
 
 const DEFAULT_GRID_COLOR = "#4B0082";
@@ -28,6 +28,8 @@ class HighlightersOverlay {
     this.highlighterUtils = this.inspector.toolbox.highlighterUtils;
     this.store = this.inspector.store;
     this.telemetry = inspector.telemetry;
+    this.maxGridHighlighters =
+      Services.prefs.getIntPref("devtools.gridinspector.maxHighlighters");
 
     // Collection of instantiated highlighter actors like FlexboxHighlighter,
     // ShapesHighlighter and GeometryEditorHighlighter.
@@ -432,19 +434,16 @@ class HighlightersOverlay {
    *         "rule" represents the rule view.
    */
   async showGridHighlighter(node, options, trigger) {
-    const maxHighlighters =
-      Services.prefs.getIntPref("devtools.gridinspector.maxHighlighters");
-
     // When the grid highlighter has the given node, it is probably called with new
     // highlighting options, so skip any extra grid highlighter handling.
     if (!this.gridHighlighters.has(node)) {
-      if (maxHighlighters === 1) {
+      if (this.maxGridHighlighters === 1) {
         // Only one grid highlighter can be shown at a time. Hides any instantiated
         // grid highlighters.
         for (const nodeFront of this.gridHighlighters.keys()) {
           await this.hideGridHighlighter(nodeFront);
         }
-      } else if (this.gridHighlighters.size === maxHighlighters) {
+      } else if (this.gridHighlighters.size === this.maxGridHighlighters) {
         // The maximum number of grid highlighters shown have been reached. Don't show
         // any additional grid highlighters.
         return;
@@ -496,8 +495,6 @@ class HighlightersOverlay {
       return;
     }
 
-    this._toggleRuleViewIcon(node, false, ".ruleview-grid");
-
     // Hide the highlighter and put it in the pool of extra grid highlighters
     // so that it can be reused.
     const highlighter = this.gridHighlighters.get(node);
@@ -506,6 +503,8 @@ class HighlightersOverlay {
 
     this.state.grids.delete(node);
     this.gridHighlighters.delete(node);
+
+    this._toggleRuleViewIcon(node, false, ".ruleview-grid");
 
     // Emit the NodeFront of the grid container element that the grid highlighter was
     // hidden for.
@@ -790,11 +789,21 @@ class HighlightersOverlay {
    *         The selector of the rule view icon to toggle.
    */
   _toggleRuleViewIcon(node, active, selector) {
-    if (this.inspector.selection.nodeFront != node) {
+    const ruleViewEl = this.inspector.getPanel("ruleview").view.element;
+
+    if (this.inspector.selection.nodeFront !== node) {
+      if (selector === ".ruleview-grid") {
+        for (const icon of ruleViewEl.querySelectorAll(selector)) {
+          if (this.canGridHighlighterToggle(this.inspector.selection.nodeFront)) {
+            icon.removeAttribute("disabled");
+          } else {
+            icon.setAttribute("disabled", true);
+          }
+        }
+      }
+
       return;
     }
-
-    const ruleViewEl = this.inspector.getPanel("ruleview").view.element;
 
     for (const icon of ruleViewEl.querySelectorAll(selector)) {
       icon.classList.toggle("active", active);
@@ -970,7 +979,7 @@ class HighlightersOverlay {
 
       this.toggleShapesHighlighter(this.inspector.selection.nodeFront, {
         mode: event.target.dataset.mode,
-        transformMode: event.metaKey || event.ctrlKey
+        transformMode: event.metaKey || event.ctrlKey,
       }, nodeInfo.value.textProperty);
     }
   }

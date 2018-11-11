@@ -40,7 +40,7 @@ ParentProcessId()
   MOZ_CRASH();
 }
 
-void MaybeCreateInitialCheckpoint()
+void CreateCheckpoint()
 {
   MOZ_CRASH();
 }
@@ -51,8 +51,8 @@ SetVsyncObserver(VsyncObserver* aObserver)
   MOZ_CRASH();
 }
 
-void
-NotifyVsyncObserver()
+bool
+OnVsync()
 {
   MOZ_CRASH();
 }
@@ -65,12 +65,6 @@ NotifyPaintStart()
 
 void
 NotifyPaintComplete()
-{
-  MOZ_CRASH();
-}
-
-void
-WaitForPaintToComplete()
 {
   MOZ_CRASH();
 }

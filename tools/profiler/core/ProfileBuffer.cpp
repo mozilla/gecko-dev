@@ -15,20 +15,20 @@
 
 using namespace mozilla;
 
-ProfileBuffer::ProfileBuffer(uint32_t aEntrySize)
+ProfileBuffer::ProfileBuffer(uint32_t aCapacity)
   : mEntryIndexMask(0)
   , mRangeStart(0)
   , mRangeEnd(0)
-  , mEntrySize(0)
+  , mCapacity(0)
 {
-  // Round aEntrySize up to the nearest power of two, so that we can index
+  // Round aCapacity up to the nearest power of two, so that we can index
   // mEntries with a simple mask and don't need to do a slow modulo operation.
   const uint32_t UINT32_MAX_POWER_OF_TWO = 1 << 31;
-  MOZ_RELEASE_ASSERT(aEntrySize <= UINT32_MAX_POWER_OF_TWO,
-                     "aEntrySize is larger than what we support");
-  mEntrySize = RoundUpPow2(aEntrySize);
-  mEntryIndexMask = mEntrySize - 1;
-  mEntries = MakeUnique<ProfileBufferEntry[]>(mEntrySize);
+  MOZ_RELEASE_ASSERT(aCapacity <= UINT32_MAX_POWER_OF_TWO,
+                     "aCapacity is larger than what we support");
+  mCapacity = RoundUpPow2(aCapacity);
+  mEntryIndexMask = mCapacity - 1;
+  mEntries = MakeUnique<ProfileBufferEntry[]>(mCapacity);
 }
 
 ProfileBuffer::~ProfileBuffer()
@@ -45,8 +45,8 @@ ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry)
   GetEntry(mRangeEnd++) = aEntry;
 
   // The distance between mRangeStart and mRangeEnd must never exceed
-  // mEntrySize, so advance mRangeStart if necessary.
-  if (mRangeEnd - mRangeStart > mEntrySize) {
+  // mCapacity, so advance mRangeStart if necessary.
+  if (mRangeEnd - mRangeStart > mCapacity) {
     mRangeStart++;
   }
 }
@@ -68,11 +68,12 @@ ProfileBuffer::AddStoredMarker(ProfilerMarker *aStoredMarker)
 
 void
 ProfileBuffer::CollectCodeLocation(
-  const char* aLabel, const char* aStr,
+  const char* aLabel, const char* aStr, uint32_t aFrameFlags,
   const Maybe<uint32_t>& aLineNumber, const Maybe<uint32_t>& aColumnNumber,
   const Maybe<js::ProfilingStackFrame::Category>& aCategory)
 {
   AddEntry(ProfileBufferEntry::Label(aLabel));
+  AddEntry(ProfileBufferEntry::FrameFlags(uint64_t(aFrameFlags)));
 
   if (aStr) {
     // Store the string using one or more DynamicStringFragment entries.
@@ -154,7 +155,8 @@ ProfileBufferCollector::CollectJitReturnAddr(void* aAddr)
 void
 ProfileBufferCollector::CollectWasmFrame(const char* aLabel)
 {
-  mBuf.CollectCodeLocation("", aLabel, Nothing(), Nothing(), Nothing());
+  mBuf.CollectCodeLocation("", aLabel, 0,
+                           Nothing(), Nothing(), Nothing());
 }
 
 void
@@ -162,8 +164,8 @@ ProfileBufferCollector::CollectProfilingStackFrame(const js::ProfilingStackFrame
 {
   // WARNING: this function runs within the profiler's "critical section".
 
-  MOZ_ASSERT(aFrame.kind() == js::ProfilingStackFrame::Kind::LABEL ||
-             aFrame.kind() == js::ProfilingStackFrame::Kind::JS_NORMAL);
+  MOZ_ASSERT(aFrame.isLabelFrame() ||
+             (aFrame.isJsFrame() && !aFrame.isOSRFrame()));
 
   const char* label = aFrame.label();
   const char* dynamicString = aFrame.dynamicString();
@@ -198,7 +200,6 @@ ProfileBufferCollector::CollectProfilingStackFrame(const js::ProfilingStackFrame
     }
   } else {
     MOZ_ASSERT(aFrame.isLabelFrame());
-    line = Some(aFrame.line());
   }
 
   if (dynamicString) {
@@ -210,6 +211,6 @@ ProfileBufferCollector::CollectProfilingStackFrame(const js::ProfilingStackFrame
     }
   }
 
-  mBuf.CollectCodeLocation(label, dynamicString, line, column,
-                           Some(aFrame.category()));
+  mBuf.CollectCodeLocation(label, dynamicString, aFrame.flags(),
+                           line, column, Some(aFrame.category()));
 }

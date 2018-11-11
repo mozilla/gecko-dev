@@ -8,6 +8,8 @@ package org.mozilla.geckoview;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Collections;
+import java.util.Map;
 
 import android.app.Service;
 import android.graphics.Rect;
@@ -17,6 +19,7 @@ import android.os.Parcelable;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.util.ArrayMap;
 
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
@@ -119,7 +122,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
          * @return This Builder instance.
          */
         public @NonNull Builder webFontsEnabled(final boolean flag) {
-            mSettings.mWebFonts.set(flag);
+            mSettings.mWebFonts.set(flag ? 1 : 0);
             return this;
         }
 
@@ -204,7 +207,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
         /** Set whether or not known malware sites should be blocked.
          *
          * Note: For each blocked site, {@link GeckoSession.NavigationDelegate#onLoadError}
-         * with error category {@link GeckoSession.NavigationDelegate#ERROR_CATEGORY_SAFEBROWSING}
+         * with error category {@link WebRequestError#ERROR_CATEGORY_SAFEBROWSING}
          * is called.
          *
          * @param enabled A flag determining whether or not to block malware
@@ -220,7 +223,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
          * Set whether or not known phishing sites should be blocked.
          *
          * Note: For each blocked site, {@link GeckoSession.NavigationDelegate#onLoadError}
-         * with error category {@link GeckoSession.NavigationDelegate#ERROR_CATEGORY_SAFEBROWSING}
+         * with error category {@link WebRequestError#ERROR_CATEGORY_SAFEBROWSING}
          * is called.
          *
          * @param enabled A flag determining whether or not to block phishing
@@ -329,16 +332,34 @@ public final class GeckoRuntimeSettings implements Parcelable {
         public void set(T newValue) {
             mValue = newValue;
             mIsSet = true;
-            flush();
+
+            // There is a flush() in GeckoRuntimeSettings, so be explicit.
+            this.flush();
         }
 
         public T get() {
             return mValue;
         }
 
-        public void flush() {
-            if (GeckoRuntimeSettings.this.runtime != null) {
-                GeckoRuntimeSettings.this.runtime.setPref(name, mValue, mIsSet);
+        private void flush() {
+            final GeckoRuntime runtime = GeckoRuntimeSettings.this.runtime;
+            if (runtime != null) {
+                final GeckoBundle prefs = new GeckoBundle(1);
+                intoBundle(prefs);
+                runtime.setDefaultPrefs(prefs);
+            }
+        }
+
+        public void intoBundle(final GeckoBundle bundle) {
+            final T value = mIsSet ? mValue : defaultValue;
+            if (value instanceof String) {
+                bundle.putString(name, (String)value);
+            } else if (value instanceof Integer) {
+                bundle.putInt(name, (Integer)value);
+            } else if (value instanceof Boolean) {
+                bundle.putBoolean(name, (Boolean)value);
+            } else {
+                throw new UnsupportedOperationException("Unhandled pref type for " + name);
             }
         }
     }
@@ -347,8 +368,8 @@ public final class GeckoRuntimeSettings implements Parcelable {
         "javascript.enabled", true);
     /* package */ Pref<Boolean> mRemoteDebugging = new Pref<Boolean>(
         "devtools.debugger.remote-enabled", false);
-    /* package */ Pref<Boolean> mWebFonts = new Pref<Boolean>(
-        "browser.display.use_document_fonts", true);
+    /* package */ Pref<Integer> mWebFonts = new Pref<Integer>(
+        "browser.display.use_document_fonts", 1);
     /* package */ Pref<Integer> mCookieBehavior = new Pref<Integer>(
         "network.cookie.cookieBehavior", COOKIE_ACCEPT_ALL);
     /* package */ Pref<Integer> mCookieLifetime = new Pref<Integer>(
@@ -419,11 +440,32 @@ public final class GeckoRuntimeSettings implements Parcelable {
         mLocale = settings.mLocale;
     }
 
+    /* package */ Map<String, Object> getPrefsMap() {
+        final ArrayMap<String, Object> prefs = new ArrayMap<>(mPrefs.length);
+        for (final Pref<?> pref : mPrefs) {
+            prefs.put(pref.name, pref.get());
+        }
+
+        return Collections.unmodifiableMap(prefs);
+    }
+
     /* package */ void flush() {
         flushLocale();
-        for (final Pref<?> pref: mPrefs) {
-            pref.flush();
+
+        // Prefs are flushed individually when they are set, and
+        // initial values are handled by GeckoRuntime itself.
+        // We may have user prefs due to previous versions of
+        // this class operating differently, though, so we'll
+        // send a message to clear any user prefs that may have
+        // been set on the prefs we manage.
+        final String[] names = new String[mPrefs.length];
+        for (int i = 0; i < mPrefs.length; i++) {
+            names[i] = mPrefs[i].name;
         }
+
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putStringArray("names", names);
+        EventDispatcher.getInstance().dispatch("GeckoView:ResetUserPrefs", data);
     }
 
     /**
@@ -499,7 +541,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
      * @return Whether web fonts support is enabled.
      */
     public boolean getWebFontsEnabled() {
-        return mWebFonts.get();
+        return mWebFonts.get() != 0 ? true : false;
     }
 
     /**
@@ -509,7 +551,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
      * @return This GeckoRuntimeSettings instance.
      */
     public @NonNull GeckoRuntimeSettings setWebFontsEnabled(final boolean flag) {
-        mWebFonts.set(flag);
+        mWebFonts.set(flag ? 1 : 0);
         return this;
     }
 
@@ -562,7 +604,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
     }
 
     /**
-     * Gets the locale code in Gecko format ("en" or "en-US").
+     * @return The locale code in Gecko format ("en" or "en-US").
      */
     public String getLocale() {
         return mLocale;
@@ -587,7 +629,8 @@ public final class GeckoRuntimeSettings implements Parcelable {
     // Sync values with nsICookieService.idl.
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({ COOKIE_ACCEPT_ALL, COOKIE_ACCEPT_FIRST_PARTY,
-              COOKIE_ACCEPT_NONE, COOKIE_ACCEPT_VISITED })
+              COOKIE_ACCEPT_NONE, COOKIE_ACCEPT_VISITED,
+              COOKIE_ACCEPT_NON_TRACKERS })
     /* package */ @interface CookieBehavior {}
 
     /**
@@ -608,6 +651,12 @@ public final class GeckoRuntimeSettings implements Parcelable {
      * sites previously visited in a first-party context.
      */
     public static final int COOKIE_ACCEPT_VISITED = 3;
+    /**
+     * Accept only first-party and non-tracking third-party cookies and site data
+     * to block cookies which are not associated with the domain of the visited
+     * site set by known trackers.
+     */
+    public static final int COOKIE_ACCEPT_NON_TRACKERS = 4;
 
     /**
      * Get the assigned cookie storage behavior.
@@ -727,7 +776,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
      * Set whether or not known malware sites should be blocked.
      *
      * Note: For each blocked site, {@link GeckoSession.NavigationDelegate#onLoadError}
-     * with error category {@link GeckoSession.NavigationDelegate#ERROR_CATEGORY_SAFEBROWSING}
+     * with error category {@link WebRequestError#ERROR_CATEGORY_SAFEBROWSING}
      * is called.
      *
      * @param enabled A flag determining whether or not to block malware sites.
@@ -751,7 +800,7 @@ public final class GeckoRuntimeSettings implements Parcelable {
      * Set whether or not known phishing sites should be blocked.
      *
      * Note: For each blocked site, {@link GeckoSession.NavigationDelegate#onLoadError}
-     * with error category {@link GeckoSession.NavigationDelegate#ERROR_CATEGORY_SAFEBROWSING}
+     * with error category {@link WebRequestError#ERROR_CATEGORY_SAFEBROWSING}
      * is called.
      *
      * @param enabled A flag determining whether or not to block phishing sites.

@@ -16,7 +16,6 @@
 #include "mozilla/SchedulerGroup.h"
 #include "nsCycleCollector.h"
 #include "nsIThread.h"
-#include "nsPrintfCString.h"
 #include "nsThread.h"
 #include "nsThreadManager.h"
 #include "PrioritizedEventQueue.h"
@@ -294,6 +293,7 @@ SchedulerEventQueue::GetEvent(bool aMayWait,
       CooperativeThreadPool::Yield(mScheduler->GetQueueResource(), lock);
     } else {
       AUTO_PROFILER_LABEL("SchedulerEventQueue::GetEvent::Wait", IDLE);
+      AUTO_PROFILER_THREAD_SLEEP;
       mNonCooperativeCondVar.Wait();
     }
   }

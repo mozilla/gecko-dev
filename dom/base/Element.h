@@ -16,7 +16,7 @@
 #include "mozilla/dom/FragmentOrElement.h" // for base class
 #include "nsChangeHint.h"                  // for enum
 #include "mozilla/EventStates.h"           // for member
-#include "mozilla/ServoTypes.h"
+#include "mozilla/RustCell.h"
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsILinkHandler.h"
 #include "nsINodeList.h"
@@ -60,6 +60,7 @@ class nsDOMCSSAttributeDeclaration;
 class nsISMILAttr;
 class nsDocument;
 class nsDOMStringMap;
+struct ServoNodeData;
 
 namespace mozilla {
 class DeclarationBlock;
@@ -834,7 +835,7 @@ public:
    * @return ATTR_MISSING, ATTR_VALUE_NO_MATCH or the non-negative index
    * indicating the first value of aValues that matched
    */
-  typedef nsStaticAtom* const* const AttrValuesArray;
+  typedef nsStaticAtom* const AttrValuesArray;
   int32_t FindAttrValueIn(int32_t aNameSpaceID,
                                   nsAtom* aName,
                                   AttrValuesArray* aValues,
@@ -984,7 +985,7 @@ public:
    * Attribute Mapping Helpers
    */
   struct MappedAttributeEntry {
-    nsStaticAtom** attribute;
+    const nsStaticAtom* const attribute;
   };
 
   /**
@@ -1001,7 +1002,7 @@ public:
     return FindAttributeDependence(aAttribute, aMaps, N);
   }
 
-  static nsStaticAtom*** HTMLSVGPropertiesToTraverseAndUnlink();
+  static nsStaticAtom* const* HTMLSVGPropertiesToTraverseAndUnlink();
 
 private:
   void DescribeAttribute(uint32_t index, nsAString& aOutDescription) const;
@@ -1266,6 +1267,7 @@ public:
   // Shadow DOM v1
   already_AddRefed<ShadowRoot> AttachShadow(const ShadowRootInit& aInit,
                                             ErrorResult& aError);
+  bool CanAttachShadowDOM() const;
 
   already_AddRefed<ShadowRoot> AttachShadowWithoutNameChecks(ShadowRootMode aMode);
   void UnattachShadow();
@@ -1984,7 +1986,7 @@ private:
   //
   // There should not be data on nodes that are in the flattened tree, or
   // descendants of display: none elements.
-  mozilla::ServoCell<ServoNodeData*> mServoData;
+  mozilla::RustCell<ServoNodeData*> mServoData;
 };
 
 class RemoveFromBindingManagerRunnable : public mozilla::Runnable

@@ -10,6 +10,7 @@
 #include <dbt.h>
 #include <hidclass.h>
 #include <ntddmou.h>
+#include <setupapi.h>
 
 namespace mozilla {
 namespace widget {
@@ -21,8 +22,9 @@ InputDeviceUtils::RegisterNotification(HWND aHwnd)
 
   filter.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
   filter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
-  // We only need notifications for mouse type devices.
-  filter.dbcc_classguid = GUID_DEVINTERFACE_MOUSE;
+  // Some touchsreen devices are not GUID_DEVINTERFACE_MOUSE, so here we use
+  // GUID_DEVINTERFACE_HID instead.
+  filter.dbcc_classguid = GUID_DEVINTERFACE_HID;
   return RegisterDeviceNotification(aHwnd,
                                     &filter,
                                     DEVICE_NOTIFY_WINDOW_HANDLE);
@@ -35,6 +37,33 @@ InputDeviceUtils::UnregisterNotification(HDEVNOTIFY aHandle)
     return;
   }
   UnregisterDeviceNotification(aHandle);
+}
+
+DWORD
+InputDeviceUtils::CountMouseDevices()
+{
+  HDEVINFO hdev = SetupDiGetClassDevs(&GUID_DEVINTERFACE_MOUSE,
+                                      nullptr,
+                                      nullptr,
+                                      DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+  if (hdev == INVALID_HANDLE_VALUE) {
+    return 0;
+  }
+
+  DWORD count = 0;
+  SP_INTERFACE_DEVICE_DATA info = {};
+  info.cbSize = sizeof(SP_INTERFACE_DEVICE_DATA);
+  while (SetupDiEnumDeviceInterfaces(hdev,
+                                     nullptr,
+                                     &GUID_DEVINTERFACE_MOUSE,
+                                     count,
+                                     &info)) {
+    if (info.Flags & SPINT_ACTIVE) {
+      count++;
+    }
+  }
+  SetupDiDestroyDeviceInfoList(hdev);
+  return count;
 }
 
 } // namespace widget

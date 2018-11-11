@@ -2394,6 +2394,7 @@ nsPrefBranch::GetFloatPref(const char* aPrefName, float* aRetVal)
   nsAutoCString stringVal;
   nsresult rv = GetCharPref(aPrefName, stringVal);
   if (NS_SUCCEEDED(rv)) {
+    // ToFloat() does a locale-independent conversion.
     *aRetVal = stringVal.ToFloat(&rv);
   }
 
@@ -3230,6 +3231,9 @@ Preferences::HandleDirty()
 static nsresult
 openPrefFile(nsIFile* aFile, PrefValueKind aKind);
 
+static nsresult
+parsePrefData(const nsCString& aData, PrefValueKind aKind);
+
 // clang-format off
 static const char kPrefFileHeader[] =
   "// Mozilla User Preferences"
@@ -3887,6 +3891,11 @@ Preferences::GetInstanceForService()
       gCacheDataDesc = "AddObserver(\"profile-before-change\") failed";
       return nullptr;
     }
+  }
+
+  const char* defaultPrefs = getenv("MOZ_DEFAULT_PREFS");
+  if (defaultPrefs) {
+    parsePrefData(nsCString(defaultPrefs), PrefValueKind::Default);
   }
 
   gCacheDataDesc = "set by GetInstanceForService() (2)";
@@ -4618,6 +4627,20 @@ openPrefFile(nsIFile* aFile, PrefValueKind aKind)
   return NS_OK;
 }
 
+static nsresult
+parsePrefData(const nsCString& aData, PrefValueKind aKind)
+{
+  TimeStamp startTime = TimeStamp::Now();
+  const nsCString path = NS_LITERAL_CSTRING("$MOZ_DEFAULT_PREFS");
+
+  Parser parser;
+  if (!parser.Parse(path, aKind, path.get(), startTime, aData)) {
+    return NS_ERROR_FILE_CORRUPTED;
+  }
+
+  return NS_OK;
+}
+
 static int
 pref_CompareFileNames(nsIFile* aFile1, nsIFile* aFile2, void* /* unused */)
 {
@@ -5035,6 +5058,7 @@ Preferences::GetFloat(const char* aPrefName,
   nsAutoCString result;
   nsresult rv = Preferences::GetCString(aPrefName, result, aKind);
   if (NS_SUCCEEDED(rv)) {
+    // ToFloat() does a locale-independent conversion.
     *aResult = result.ToFloat(&rv);
   }
   return rv;
@@ -5845,7 +5869,9 @@ static void
 SetPref_float(const char* aName, float aDefaultValue)
 {
   PrefValue value;
-  nsPrintfCString defaultValue("%f", aDefaultValue);
+  // Convert the value in a locale-independent way.
+  nsAutoCString defaultValue;
+  defaultValue.AppendFloat(aDefaultValue);
   value.mStringVal = defaultValue.get();
   pref_SetPref(aName,
                PrefType::String,
@@ -5973,8 +5999,7 @@ InitVarCachePref(const nsACString& aName,
   }
 }
 
-// XXX: this will eventually become used
-MOZ_MAYBE_UNUSED static void
+static void
 InitVarCachePref(const nsACString& aName,
                  float* aCache,
                  float aDefaultValue,

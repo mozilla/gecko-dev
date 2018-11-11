@@ -37,6 +37,18 @@ be specified by name regardless of ``run_on_projects``.
 If ``run_on_projects`` is set to an empty list, then the task will not run
 anywhere, unless its build platform is specified explicitly in try syntax.
 
+run_on_hg_branches
+==================
+
+On a given project, the mercurial branch where this task should be in the target
+task set.  This is how requirements like "only run this RELBRANCH" get implemented.
+These are either the regular expression of a branch (e.g.: "GECKOVIEW_\d+_RELBRANCH")
+or the following alias:
+
+ * `all` -- everywhere (the default)
+
+Like ``run_on_projects``, the same behavior applies if it is set to an empty list.
+
 task_duplicates
 ===============
 
@@ -117,6 +129,12 @@ test_chunk
 
 This is the chunk number of a chunked test suite (talos or unittest).  Note
 that this is a string!
+
+serviceworker_e10s
+==================
+
+For test suites which distinguish whether or not they run with the serviceworker
+e10s redesign enabled.
 
 e10s
 ====
@@ -232,3 +250,8 @@ In automation, full crashsymbol package generation is normally disabled.  For
 build kinds where the full crashsymbols should be enabled, set this attribute
 to True. The full symbol packages will then be generated and uploaded on
 release branches and on try.
+
+cron
+====
+Indicates that a task is meant to be run via cron tasks, and should not be run
+on push.

@@ -5,7 +5,7 @@
 /* exported CustomizableUI makeWidgetId focusWindow forceGC
  *          getBrowserActionWidget
  *          clickBrowserAction clickPageAction
- *          getBrowserActionPopup getPageActionPopup
+ *          getBrowserActionPopup getPageActionPopup getPageActionButton
  *          closeBrowserAction closePageAction
  *          promisePopupShown promisePopupHidden
  *          openContextMenu closeContextMenu
@@ -42,6 +42,11 @@ XPCOMUtils.defineLazyGetter(this, "Management", () => {
   const {Management} = ChromeUtils.import("resource://gre/modules/Extension.jsm", {});
   return Management;
 });
+
+// The extension tests can run a lot slower under ASAN.
+if (AppConstants.ASAN) {
+  SimpleTest.requestLongerTimeout(10);
+}
 
 // We run tests under two different configurations, from browser.ini and
 // browser-remote.ini. When running from browser-remote.ini, the tests are
@@ -417,7 +422,7 @@ function closeChromeContextMenu(menuId, itemToSelect, win = window) {
 }
 
 async function openActionContextMenu(extension, kind, win = window) {
-  // See comment from clickPageAction below.
+  // See comment from getPageActionButton below.
   SetPageProxyState("valid");
   await promiseAnimationFrame(win);
   let buttonID;
@@ -450,7 +455,7 @@ function getPageActionPopup(extension, win = window) {
   return win.document.getElementById(panelId);
 }
 
-async function clickPageAction(extension, win = window) {
+async function getPageActionButton(extension, win = window) {
   // This would normally be set automatically on navigation, and cleared
   // when the user types a value into the URL bar, to show and hide page
   // identity info and icons such as page action buttons.
@@ -463,8 +468,11 @@ async function clickPageAction(extension, win = window) {
 
   let pageActionId = BrowserPageActions.urlbarButtonNodeIDForActionID(makeWidgetId(extension.id));
 
-  let elem = win.document.getElementById(pageActionId);
+  return win.document.getElementById(pageActionId);
+}
 
+async function clickPageAction(extension, win = window) {
+  let elem = await getPageActionButton(extension, win);
   EventUtils.synthesizeMouseAtCenter(elem, {}, win);
   return new Promise(SimpleTest.executeSoon);
 }

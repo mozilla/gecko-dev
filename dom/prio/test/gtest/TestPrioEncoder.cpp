@@ -28,10 +28,6 @@ TEST(PrioEncoder, BadPublicKeys)
   nsCString batchID = NS_LITERAL_CSTRING("abc123");
 
   mozilla::dom::PrioParams prioParams;
-  prioParams.mBrowserIsUserDefault = true;
-  prioParams.mNewTabPageEnabled = true;
-  prioParams.mPdfViewerUsed = false;
-
   mozilla::dom::RootedDictionary<mozilla::dom::PrioEncodedData> prioEncodedData(cx);
   mozilla::ErrorResult rv;
 
@@ -39,6 +35,40 @@ TEST(PrioEncoder, BadPublicKeys)
   ASSERT_TRUE(rv.Failed());
 
   // Call again to ensure that the singleton state is consistent.
+  mozilla::dom::PrioEncoder::Encode(global, batchID, prioParams, prioEncodedData, rv);
+  ASSERT_TRUE(rv.Failed());
+
+  // Reset error result so test runner does not fail.
+  rv = mozilla::ErrorResult();
+}
+
+TEST(PrioEncoder, BooleanLimitExceeded)
+{
+  mozilla::dom::AutoJSAPI jsAPI;
+  ASSERT_TRUE(jsAPI.Init(xpc::PrivilegedJunkScope()));
+  JSContext* cx = jsAPI.cx();
+
+  mozilla::dom::GlobalObject global(cx, xpc::PrivilegedJunkScope());
+
+  nsCString batchID = NS_LITERAL_CSTRING("abc123");
+
+  mozilla::dom::PrioParams prioParams;
+  FallibleTArray<bool> sequence;
+
+  const int ndata = mozilla::dom::PrioEncoder::gNumBooleans + 1;
+  const int seed = time(nullptr);
+  srand(seed);
+
+  for (int i = 0; i < ndata; i++) {
+    // Arbitrary data)
+    *(sequence.AppendElement(mozilla::fallible)) = rand() % 2;
+  }
+
+  prioParams.mBooleans.Assign(sequence);
+
+  mozilla::dom::RootedDictionary<mozilla::dom::PrioEncodedData> prioEncodedData(cx);
+  mozilla::ErrorResult rv;
+
   mozilla::dom::PrioEncoder::Encode(global, batchID, prioParams, prioEncodedData, rv);
   ASSERT_TRUE(rv.Failed());
 
@@ -172,9 +202,11 @@ TEST(PrioEncoder, VerifyFull)
   batchID = (char*)(batchIDStr);
 
   mozilla::dom::PrioParams prioParams;
-  prioParams.mBrowserIsUserDefault = dataItems[0];
-  prioParams.mNewTabPageEnabled = dataItems[1];
-  prioParams.mPdfViewerUsed = dataItems[2];
+  FallibleTArray<bool> sequence;
+  *(sequence.AppendElement(mozilla::fallible)) = dataItems[0];
+  *(sequence.AppendElement(mozilla::fallible)) = dataItems[1];
+  *(sequence.AppendElement(mozilla::fallible)) = dataItems[2];
+  prioParams.mBooleans.Assign(sequence);
 
   mozilla::dom::RootedDictionary<mozilla::dom::PrioEncodedData> prioEncodedData(cx);
   mozilla::ErrorResult rv;

@@ -612,6 +612,8 @@ pub enum FilterOp {
     Sepia(f32),
     DropShadow(LayoutVector2D, f32, ColorF),
     ColorMatrix([f32; 20]),
+    SrgbToLinear,
+    LinearToSrgb,
 }
 
 impl FilterOp {
@@ -743,53 +745,13 @@ pub struct ImageMask {
     pub repeat: bool,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum LocalClip {
-    Rect(LayoutRect),
-    RoundedRect(LayoutRect, ComplexClipRegion),
-}
-
-impl From<LayoutRect> for LocalClip {
-    fn from(rect: LayoutRect) -> Self {
-        LocalClip::Rect(rect)
-    }
-}
-
-impl LocalClip {
-    pub fn clip_rect(&self) -> &LayoutRect {
-        match *self {
-            LocalClip::Rect(ref rect) => rect,
-            LocalClip::RoundedRect(ref rect, _) => rect,
-        }
-    }
-
-    pub fn create_with_offset(&self, offset: &LayoutVector2D) -> LocalClip {
-        match *self {
-            LocalClip::Rect(rect) => LocalClip::from(rect.translate(offset)),
-            LocalClip::RoundedRect(rect, complex) => LocalClip::RoundedRect(
-                rect.translate(offset),
-                ComplexClipRegion {
-                    rect: complex.rect.translate(offset),
-                    radii: complex.radii,
-                    mode: complex.mode,
-                },
-            ),
-        }
-    }
-
-    pub fn clip_by(&self, rect: &LayoutRect) -> LocalClip {
-        match *self {
-            LocalClip::Rect(clip_rect) => {
-                LocalClip::Rect(
-                    clip_rect.intersection(rect).unwrap_or_else(LayoutRect::zero)
-                )
-            }
-            LocalClip::RoundedRect(clip_rect, complex) => {
-                LocalClip::RoundedRect(
-                    clip_rect.intersection(rect).unwrap_or_else(LayoutRect::zero),
-                    complex,
-                )
-            }
+impl ImageMask {
+    /// Get a local clipping rect contributed by this mask.
+    pub fn get_local_clip_rect(&self) -> Option<LayoutRect> {
+        if self.repeat {
+            None
+        } else {
+            Some(self.rect)
         }
     }
 }
@@ -890,6 +852,19 @@ impl ComplexClipRegion {
     }
 }
 
+impl ComplexClipRegion {
+    /// Get a local clipping rect contributed by this clip region.
+    pub fn get_local_clip_rect(&self) -> Option<LayoutRect> {
+        match self.mode {
+            ClipMode::Clip => {
+                Some(self.rect)
+            }
+            ClipMode::ClipOut => {
+                None
+            }
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ClipChainId(pub u64, pub PipelineId);

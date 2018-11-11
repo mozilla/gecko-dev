@@ -23,7 +23,6 @@ const {SplitView} = require("resource://devtools/client/shared/SplitView.jsm");
 const {StyleSheetEditor} = require("resource://devtools/client/styleeditor/StyleSheetEditor.jsm");
 const {PluralForm} = require("devtools/shared/plural-form");
 const {PrefObserver} = require("devtools/client/shared/prefs");
-const csscoverage = require("devtools/shared/fronts/csscoverage");
 const {KeyCodes} = require("devtools/client/shared/keycodes");
 const {OriginalSource} = require("devtools/client/styleeditor/original-source");
 
@@ -261,7 +260,7 @@ StyleEditorUI.prototype = {
       this._styleSheetToSelect = {
         stylesheet: href,
         line: line,
-        col: ch
+        col: ch,
       };
     }
 
@@ -403,7 +402,7 @@ StyleEditorUI.prototype = {
         uri: NetUtil.newURI(selectedFile),
         loadingNode: this._window.document,
         securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
-        contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER
+        contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
       }, (stream, status) => {
         if (!Components.isSuccessCode(status)) {
           this.emit("error", { key: LOAD_ERROR, level: "warning" });
@@ -538,7 +537,7 @@ StyleEditorUI.prototype = {
     // add new sidebar item and editor to the UI
     this._view.appendTemplatedItem(STYLE_EDITOR_TEMPLATE, {
       data: {
-        editor: editor
+        editor: editor,
       },
       disableAnimations: this._alwaysDisableAnimations,
       ordinal: ordinal,
@@ -560,8 +559,8 @@ StyleEditorUI.prototype = {
               if (event.keyCode == KeyCodes.DOM_VK_RETURN) {
                 this._view.activeSummary = summary;
               }
-            }
-          }
+            },
+          },
         });
 
         wire(summary, ".stylesheet-saveButton", function onSaveButton(event) {
@@ -636,7 +635,7 @@ StyleEditorUI.prototype = {
           this.emit("editor-selected", showEditor);
 
           // Is there any CSS coverage markup to include?
-          const usage = await csscoverage.getUsage(this._target);
+          const usage = this._target.getFront("cssUsage");
           if (usage == null) {
             return;
           }
@@ -659,7 +658,7 @@ StyleEditorUI.prototype = {
             }
           }
         }.bind(this))().catch(console.error);
-      }
+      },
     });
   },
 
@@ -901,7 +900,7 @@ StyleEditorUI.prototype = {
           line: line,
           column: column,
           source: editor.styleSheet.href,
-          styleSheet: parentStyleSheet
+          styleSheet: parentStyleSheet,
         };
         if (editor.styleSheet.isOriginalSource) {
           const styleSheet = editor.cssSheet;
@@ -1049,5 +1048,5 @@ StyleEditorUI.prototype = {
     this._prefObserver.destroy();
 
     this._debuggee.off("stylesheet-added", this._addStyleSheet);
-  }
+  },
 };

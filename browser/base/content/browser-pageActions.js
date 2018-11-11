@@ -58,20 +58,9 @@ var BrowserPageActions = {
   _onPanelShowing() {
     this.placeLazyActionsInPanel();
     for (let action of PageActions.actionsInPanel(window)) {
-      if (action.id == "sendToDevice") {
-        this.panelNode.removeAttribute(action.getTitle());
-        action.setTitle(this.getSendToDeviceString(), window);
-      }
       let buttonNode = this.panelButtonNodeForActionID(action.id);
       action.onShowingInPanel(buttonNode);
     }
-  },
-
-  getSendToDeviceString() {
-    let tabCount = gBrowser.multiSelectedTabsCount || 1;
-    return PluralForm.get(tabCount,
-                          gNavigatorBundle.getString("pageAction.sendTabsToDevice.label"))
-                     .replace("#1", tabCount.toLocaleString());
   },
 
   placeLazyActionsInPanel() {
@@ -1005,8 +994,21 @@ BrowserPageActions.emailLink = {
 // send to device
 BrowserPageActions.sendToDevice = {
   onBeforePlacedInWindow(browserWindow) {
+    this._updateTitle();
+    gBrowser.addEventListener("TabMultiSelect", event => {
+      this._updateTitle();
+    });
+  },
+
+  // The action's title in this window depends on the number of tabs that are
+  // selected.
+  _updateTitle() {
     let action = PageActions.actionForID("sendToDevice");
-    BrowserPageActions.takeActionTitleFromPanel(action);
+    let string =
+      gBrowserBundle.GetStringFromName("pageAction.sendTabsToDevice.label");
+    let tabCount = gBrowser.selectedTabs.length;
+    let title = PluralForm.get(tabCount, string).replace("#1", tabCount);
+    action.setTitle(title, window);
   },
 
   onSubviewPlaced(panelViewNode) {
@@ -1173,7 +1175,7 @@ BrowserPageActions.addSearchEngine = {
   },
 
   _installEngine(uri, image) {
-    Services.search.addEngine(uri, null, image, false, {
+    Services.search.addEngine(uri, image, false, {
       onSuccess: engine => {
         showBrowserPageActionFeedback(this.action);
       },
@@ -1201,6 +1203,12 @@ BrowserPageActions.addSearchEngine = {
 
 // share URL
 BrowserPageActions.shareURL = {
+  onCommand(event, buttonNode) {
+    let browser = gBrowser.selectedBrowser;
+    let currentURI = gURLBar.makeURIReadable(browser.currentURI).displaySpec;
+    this._windowsUIUtils.shareUrl(currentURI, browser.contentTitle);
+  },
+
   onShowingInPanel(buttonNode) {
     this._cached = false;
   },
@@ -1262,7 +1270,7 @@ BrowserPageActions.shareURL = {
 };
 
 // Attach sharingService here so tests can override the implementation
-XPCOMUtils.defineLazyServiceGetter(BrowserPageActions.shareURL,
-                                   "_sharingService",
-                                   "@mozilla.org/widget/macsharingservice;1",
-                                   "nsIMacSharingService");
+XPCOMUtils.defineLazyServiceGetters(BrowserPageActions.shareURL, {
+  _sharingService: ["@mozilla.org/widget/macsharingservice;1", "nsIMacSharingService"],
+  _windowsUIUtils: ["@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils"],
+});

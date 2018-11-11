@@ -30,8 +30,6 @@ WebGL2Context::DeleteSampler(WebGLSampler* sampler)
     for (uint32_t n = 0; n < mGLMaxTextureUnits; n++) {
         if (mBoundSamplers[n] == sampler) {
             mBoundSamplers[n] = nullptr;
-
-            InvalidateResolveCacheForTextureWithTexUnit(n);
         }
     }
 
@@ -45,7 +43,10 @@ WebGL2Context::IsSampler(const WebGLSampler* const obj)
     if (!ValidateIsObject(obj))
         return false;
 
-    return gl->fIsSampler(obj->mGLName);
+    if (obj->IsDeleteRequested())
+        return false;
+
+    return true;
 }
 
 void
@@ -65,7 +66,6 @@ WebGL2Context::BindSampler(GLuint unit, WebGLSampler* sampler)
 
     gl->fBindSampler(unit, sampler ? sampler->mGLName : 0);
 
-    InvalidateResolveCacheForTextureWithTexUnit(unit);
     mBoundSamplers[unit] = sampler;
 }
 

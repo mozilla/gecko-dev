@@ -78,8 +78,8 @@ async function initLayoutFrontForUrl(url) {
 
 async function initAccessibilityFrontForUrl(url) {
   const target = await addTabTarget(url);
-  const inspector = target.getFront("inspector");
-  const walker = await inspector.getWalker();
+  const inspector = await target.getInspector();
+  const walker = inspector.walker;
   const accessibility = target.getFront("accessibility");
 
   await accessibility.bootstrap();
@@ -110,8 +110,8 @@ async function initPerfFront() {
 async function initInspectorFront(url) {
   const target = await addTabTarget(url);
 
-  const inspector = target.getFront("inspector");
-  const walker = await inspector.getWalker();
+  const inspector = await target.getInspector();
+  const walker = inspector.walker;
 
   return {inspector, walker, target};
 }
@@ -166,7 +166,7 @@ function once(target, eventName, useCapture = false) {
     for (const [add, remove] of [
       ["addEventListener", "removeEventListener"],
       ["addListener", "removeListener"],
-      ["on", "off"]
+      ["on", "off"],
     ]) {
       if ((add in target) && (remove in target)) {
         target[add](eventName, function onEvent(...aArgs) {

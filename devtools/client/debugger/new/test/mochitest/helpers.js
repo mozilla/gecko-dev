@@ -8,8 +8,8 @@
 
 // Import helpers for the new debugger
 Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/debugger/new/test/mochitest/helpers/context.js",
-  this);
+"chrome://mochitests/content/browser/devtools/client/debugger/new/test/mochitest/helpers/context.js",
+this);
 
 var { Toolbox } = require("devtools/client/framework/toolbox");
 var { Task } = require("devtools/shared/task");
@@ -593,8 +593,7 @@ async function selectSource(dbg, url, line) {
 
 
 async function closeTab(dbg, url) {
-  const source = findSource(dbg, url);
-  await dbg.actions.closeTab(source.url);
+  await dbg.actions.closeTab(findSource(dbg, url));
 }
 
 /**
@@ -1340,4 +1339,22 @@ async function waitForSourceCount(dbg, i) {
 async function assertSourceCount(dbg, count) {
   await waitForSourceCount(dbg, count);
   is(findAllElements(dbg, "sourceNodes").length, count, `${count} sources`);
+}
+
+async function waitForNodeToGainFocus(dbg, index) {
+  await waitUntil(() => {
+    const element = findElement(dbg, "sourceNode", index);
+
+    if (element) {
+      return element.classList.contains("focused");
+    }
+
+    return false;
+  }, `waiting for source node ${index} to be focused`);
+}
+
+async function assertNodeIsFocused(dbg, index) {
+  await waitForNodeToGainFocus(dbg, index);
+  const node = findElement(dbg, "sourceNode", index);
+  ok(node.classList.contains("focused"), `node ${index} is focused`);
 }

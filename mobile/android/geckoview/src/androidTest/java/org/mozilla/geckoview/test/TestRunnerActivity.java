@@ -5,6 +5,7 @@
 
 package org.mozilla.geckoview.test;
 
+import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
@@ -12,6 +13,7 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
+import org.mozilla.geckoview.WebRequestError;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -50,10 +52,10 @@ public class TestRunnerActivity extends Activity {
         }
 
         @Override
-        public GeckoResult<Boolean> onLoadRequest(GeckoSession session, String uri, int target,
-                                                  int flags) {
+        public GeckoResult<AllowOrDeny> onLoadRequest(GeckoSession session,
+                                                  LoadRequest request) {
             // Allow Gecko to load all URIs
-            return GeckoResult.fromValue(false);
+            return GeckoResult.fromValue(AllowOrDeny.ALLOW);
         }
 
         @Override
@@ -62,7 +64,7 @@ public class TestRunnerActivity extends Activity {
         }
 
         @Override
-        public GeckoResult<String> onLoadError(GeckoSession session, String uri, int category, int error) {
+        public GeckoResult<String> onLoadError(GeckoSession session, String uri, WebRequestError error) {
             return null;
         }
     };

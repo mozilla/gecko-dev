@@ -1334,6 +1334,8 @@ CheckOverflow(const nsStyleDisplay* aDisplay, ScrollStyles* aStyles)
 {
   if (aDisplay->mOverflowX == NS_STYLE_OVERFLOW_VISIBLE &&
       aDisplay->mScrollBehavior == NS_STYLE_SCROLL_BEHAVIOR_AUTO &&
+      aDisplay->mOverscrollBehaviorX == StyleOverscrollBehavior::Auto &&
+      aDisplay->mOverscrollBehaviorY == StyleOverscrollBehavior::Auto &&
       aDisplay->mScrollSnapTypeX == NS_STYLE_SCROLL_SNAP_TYPE_NONE &&
       aDisplay->mScrollSnapTypeY == NS_STYLE_SCROLL_SNAP_TYPE_NONE &&
       aDisplay->mScrollSnapPointsX == nsStyleCoord(eStyleUnit_None) &&
@@ -2262,7 +2264,7 @@ nsPresContext::FireDOMPaintEvent(nsTArray<nsRect>* aList,
     // something happened in a subdocument. Tell only the chrome event handler.
     // (Events sent to the window get propagated to the chrome event handler
     // automatically.)
-    dispatchTarget = do_QueryInterface(ourWindow->GetParentTarget());
+    dispatchTarget = ourWindow->GetParentTarget();
     if (!dispatchTarget) {
       return;
     }

@@ -48,7 +48,7 @@ var navigateTo = async function(inspector, url) {
 
   info("Navigating to: " + url);
   const activeTab = inspector.toolbox.target.activeTab;
-  await activeTab.navigateTo(url);
+  await activeTab.navigateTo({ url });
 
   info("Waiting for markup view to load after navigation.");
   await markuploaded;
@@ -203,7 +203,7 @@ var clickOnInspectMenuItem = async function(testActor, selector) {
   await testActor.synthesizeMouse({
     selector: selector,
     center: true,
-    options: {type: "contextmenu", button: 2}
+    options: {type: "contextmenu", button: 2},
   });
 
   await contextOpened;
@@ -474,7 +474,7 @@ const getHighlighterHelperFor = (type) => async function({inspector, testActor})
         getComputedStyle: async function(options = {}) {
           return inspector.pageStyle.getComputed(
             highlightedNode, options);
-        }
+        },
       };
     },
 
@@ -551,7 +551,7 @@ const getHighlighterHelperFor = (type) => async function({inspector, testActor})
           prevY = y;
           await testActor.synthesizeMouse({
             selector, x, y, options: {type: "mouse" + name}});
-        }
+        },
     }),
 
     reflow: async function() {
@@ -561,7 +561,7 @@ const getHighlighterHelperFor = (type) => async function({inspector, testActor})
     finalize: async function() {
       highlightedNode = null;
       await highlighter.finalize();
-    }
+    },
   };
 };
 
@@ -777,7 +777,7 @@ async function assertTooltipHiddenOnMouseOut(tooltip, target) {
   // The tooltip actually relies on mousemove events to check if it sould be hidden.
   const mouseEvent = new target.ownerDocument.defaultView.MouseEvent("mousemove", {
     bubbles: true,
-    relatedTarget: target
+    relatedTarget: target,
   });
   target.parentNode.dispatchEvent(mouseEvent);
 
@@ -885,4 +885,22 @@ async function expandContainerByClick(inspector, container) {
     inspector.markup.doc.defaultView);
   await onChildren;
   await onUpdated;
+}
+
+/**
+ * Simulate a color change in a given color picker tooltip.
+ *
+ * @param  {Spectrum} colorPicker
+ *         The color picker widget.
+ * @param  {Array} newRgba
+ *         Array of the new rgba values to be set in the color widget.
+ */
+async function simulateColorPickerChange(colorPicker, newRgba) {
+  info("Getting the spectrum colorpicker object");
+  const spectrum = await colorPicker.spectrum;
+  info("Setting the new color");
+  spectrum.rgb = newRgba;
+  info("Applying the change");
+  spectrum.updateUI();
+  spectrum.onChange();
 }

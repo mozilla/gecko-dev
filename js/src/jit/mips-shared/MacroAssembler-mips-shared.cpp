@@ -1439,6 +1439,7 @@ MacroAssemblerMIPSShared::asMasm() const
     return *static_cast<const MacroAssembler*>(this);
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.
@@ -2186,12 +2187,15 @@ CompareExchange(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
 
     masm.computeEffectiveAddress(mem, SecondScratchReg);
 
-    // FIXME: emit signal handling information if access != nullptr.
 
     if (nbytes == 4) {
 
         masm.memoryBarrierBefore(sync);
         masm.bind(&again);
+
+        if (access) {
+            masm.append(*access, masm.size());
+        }
 
         masm.as_ll(output, SecondScratchReg, 0);
         masm.ma_b(output, oldval, &end, Assembler::NotEqual, ShortJump);
@@ -2218,6 +2222,10 @@ CompareExchange(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
     masm.memoryBarrierBefore(sync);
 
     masm.bind(&again);
+
+    if (access) {
+        masm.append(*access, masm.size());
+    }
 
     masm.as_ll(ScratchRegister, SecondScratchReg, 0);
 
@@ -2325,12 +2333,14 @@ AtomicExchange(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
 
     masm.computeEffectiveAddress(mem, SecondScratchReg);
 
-    // FIXME: emit signal handling information if access != nullptr.
-
     if (nbytes == 4) {
 
         masm.memoryBarrierBefore(sync);
         masm.bind(&again);
+
+        if (access) {
+            masm.append(*access, masm.size());
+        }
 
         masm.as_ll(output, SecondScratchReg, 0);
         masm.ma_move(ScratchRegister, value);
@@ -2364,6 +2374,10 @@ AtomicExchange(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
     masm.memoryBarrierBefore(sync);
 
     masm.bind(&again);
+
+    if (access) {
+        masm.append(*access, masm.size());
+    }
 
     masm.as_ll(output, SecondScratchReg, 0);
     masm.as_and(ScratchRegister, output, maskTemp);
@@ -2457,12 +2471,14 @@ AtomicFetchOp(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
 
     masm.computeEffectiveAddress(mem, SecondScratchReg);
 
-    // FIXME: emit signal handling information if access != nullptr.
-
     if (nbytes == 4) {
 
         masm.memoryBarrierBefore(sync);
         masm.bind(&again);
+
+        if (access) {
+            masm.append(*access, masm.size());
+        }
 
         masm.as_ll(output, SecondScratchReg, 0);
 
@@ -2508,6 +2524,10 @@ AtomicFetchOp(MacroAssembler& masm, const wasm::MemoryAccessDesc* access,
     masm.memoryBarrierBefore(sync);
 
     masm.bind(&again);
+
+    if (access) {
+        masm.append(*access, masm.size());
+    }
 
     masm.as_ll(ScratchRegister, SecondScratchReg, 0);
     masm.as_srlv(output, ScratchRegister, offsetTemp);
@@ -2629,12 +2649,14 @@ AtomicEffectOp(MacroAssembler& masm, const wasm::MemoryAccessDesc* access, Scala
 
     masm.computeEffectiveAddress(mem, SecondScratchReg);
 
-    // FIXME: emit signal handling information if access != nullptr.
-
     if (nbytes == 4) {
 
         masm.memoryBarrierBefore(sync);
         masm.bind(&again);
+
+        if (access) {
+            masm.append(*access, masm.size());
+        }
 
         masm.as_ll(ScratchRegister, SecondScratchReg, 0);
 
@@ -2679,6 +2701,10 @@ AtomicEffectOp(MacroAssembler& masm, const wasm::MemoryAccessDesc* access, Scala
     masm.memoryBarrierBefore(sync);
 
     masm.bind(&again);
+
+    if (access) {
+        masm.append(*access, masm.size());
+    }
 
     masm.as_ll(ScratchRegister, SecondScratchReg, 0);
     masm.as_srlv(valueTemp, ScratchRegister, offsetTemp);
@@ -2902,3 +2928,5 @@ MacroAssembler::speculationBarrier()
 {
     MOZ_CRASH();
 }
+//}}} check_macroassembler_style
+// clang-format on

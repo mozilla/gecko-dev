@@ -16,7 +16,7 @@ loader.lazyRequireGetter(this, "gDevTools", "devtools/client/framework/devtools"
  * Allow: let foo = l10n.lookup("csscoverageFoo");
  */
 const l10n = exports.l10n = {
-  lookup: (msg) => L10N.getStr(msg)
+  lookup: (msg) => L10N.getStr(msg),
 };
 
 /**
@@ -44,7 +44,7 @@ const CSSUsageFront = protocol.FrontClassWithSpec(cssUsageSpec, {
     ev.target = target;
 
     if (isRunning) {
-      const gnb = chromeWindow.document.getElementById("global-notificationbox");
+      const gnb = chromeWindow.gNotificationBox;
       notification = gnb.getNotificationWithValue("csscoverage-running");
 
       if (notification == null) {
@@ -81,7 +81,7 @@ const CSSUsageFront = protocol.FrontClassWithSpec(cssUsageSpec, {
 
     return this._start(noreload);
   }, {
-    impl: "_start"
+    impl: "_start",
   }),
 
   /**
@@ -93,7 +93,7 @@ const CSSUsageFront = protocol.FrontClassWithSpec(cssUsageSpec, {
 
     return this._toggle();
   }, {
-    impl: "_toggle"
+    impl: "_toggle",
   }),
 
   /**
@@ -101,25 +101,7 @@ const CSSUsageFront = protocol.FrontClassWithSpec(cssUsageSpec, {
    */
   isRunning: function() {
     return isRunning;
-  }
+  },
 });
 
 exports.CSSUsageFront = CSSUsageFront;
-
-const knownFronts = new WeakMap();
-
-/**
- * Create a CSSUsageFront only when needed (returns a promise)
- * For notes on target.attach(), see
- * https://bugzilla.mozilla.org/show_bug.cgi?id=1016330#c7
- */
-exports.getUsage = function(trgt) {
-  return trgt.attach().then(() => {
-    let front = knownFronts.get(trgt.client);
-    if (front == null && trgt.form.cssUsageActor != null) {
-      front = new CSSUsageFront(trgt.client, trgt.form);
-      knownFronts.set(trgt.client, front);
-    }
-    return front;
-  });
-};
