@@ -86,6 +86,9 @@ const RECOMMENDED_PREFS = new Map([
   // as it is picked up at runtime.
   ["browser.EULA.override", true],
 
+  // Always display a blank page
+  ["browser.newtabpage.enabled", false],
+
   // Never start the browser in offline mode
   //
   // This should also be set in the profile prior to starting Firefox,
@@ -125,9 +128,6 @@ const RECOMMENDED_PREFS = new Map([
 
   // Do not redirect user when a milstone upgrade of Firefox is detected
   ["browser.startup.homepage_override.mstone", "ignore"],
-
-  // Disable browser animations
-  ["toolkit.cosmeticAnimations.enabled", false],
 
   // Do not allow background tabs to be zombified, otherwise for tests
   // that open additional tabs, the test harness tab itself might get
@@ -265,6 +265,9 @@ const RECOMMENDED_PREFS = new Map([
   // Disable first-run welcome page
   ["startup.homepage_welcome_url", "about:blank"],
   ["startup.homepage_welcome_url.additional", ""],
+
+  // Disable browser animations (tabs, fullscreen, sliding alerts)
+  ["toolkit.cosmeticAnimations.enabled", false],
 
   // Prevent starting into safe mode after application crashes
   ["toolkit.startup.max_resumed_crashes", -1],
