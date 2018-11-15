@@ -700,7 +700,6 @@ LazyStubTier::createMany(const Uint32Vector& funcExportIndices, const CodeTier& 
 
     masm.finish();
 
-    MOZ_ASSERT(!masm.numCodeLabels());
     MOZ_ASSERT(masm.callSites().empty());
     MOZ_ASSERT(masm.callSiteTargets().empty());
     MOZ_ASSERT(masm.callFarJumps().empty());
@@ -737,6 +736,10 @@ LazyStubTier::createMany(const Uint32Vector& funcExportIndices, const CodeTier& 
 
     masm.executableCopy(codePtr, /* flushICache = */ false);
     memset(codePtr + masm.bytesNeeded(), 0, codeLength - masm.bytesNeeded());
+
+    for (const CodeLabel& label : masm.codeLabels()) {
+        Assembler::Bind(codePtr, label);
+    }
 
     ExecutableAllocator::cacheFlush(codePtr, codeLength);
     if (!ExecutableAllocator::makeExecutable(codePtr, codeLength))
