@@ -1,0 +1,16 @@
+diff --git a/browser/components/enterprisepolicies/content/aboutPolicies.js b/browser/components/enterprisepolicies/content/aboutPolicies.js
+--- a/browser/components/enterprisepolicies/content/aboutPolicies.js
++++ b/browser/components/enterprisepolicies/content/aboutPolicies.js
+@@ -309,6 +309,12 @@ function init() {
+       sectionButton.click();
+     }
+   }
++  window.addEventListener("hashchange", function() { 
++   if (location.hash) {
++      let sectionButton = document.getElementById("category-" + location.hash.substring(1));
++      sectionButton.click();
++    }
++  })
+ }
+ 
+ function show(button) {
