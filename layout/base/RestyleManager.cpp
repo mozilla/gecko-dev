@@ -731,7 +731,9 @@ RecomputePosition(nsIFrame* aFrame)
   // needs to be repositioned properly as well.
   if (aFrame->HasView() ||
       (aFrame->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)) {
-    StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+    StyleChangeReflow(aFrame,
+                      nsChangeHint_NeedReflow |
+                      nsChangeHint_ReflowChangesSizeOrPosition);
     return false;
   }
 
@@ -740,7 +742,9 @@ RecomputePosition(nsIFrame* aFrame)
   if (aFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
     nsIFrame* ph = aFrame->GetPlaceholderFrame();
     if (ph && ph->HasAnyStateBits(PLACEHOLDER_STATICPOS_NEEDS_CSSALIGN)) {
-      StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+      StyleChangeReflow(aFrame,
+                        nsChangeHint_NeedReflow |
+                        nsChangeHint_ReflowChangesSizeOrPosition);
       return false;
     }
   }
@@ -905,7 +909,9 @@ RecomputePosition(nsIFrame* aFrame)
   }
 
   // Fall back to a reflow
-  StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+  StyleChangeReflow(aFrame,
+                    nsChangeHint_NeedReflow |
+                    nsChangeHint_ReflowChangesSizeOrPosition);
   return false;
 }
 
@@ -1795,13 +1801,12 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
   uint64_t frameGeneration =
     RestyleManager::GetAnimationGenerationForFrame(aFrame);
 
+  Maybe<nsCSSPropertyIDSet> effectiveAnimationProperties;
+
   nsChangeHint hint = nsChangeHint(0);
-  for (const LayerAnimationInfo::Record& layerInfo :
-         LayerAnimationInfo::sRecords) {
-    Maybe<uint64_t> generation =
-      layers::AnimationInfo::GetGenerationFromFrame(aFrame,
-                                                    layerInfo.mDisplayItemType);
-    if (generation && frameGeneration != *generation) {
+  auto maybeApplyChangeHint = [&](const Maybe<uint64_t>& aGeneration,
+                                  DisplayItemType aDisplayItemType) -> bool {
+    if (aGeneration && frameGeneration != *aGeneration) {
       // If we have a transform layer bug don't have any transform style, we
       // probably just removed the transform but haven't destroyed the layer
       // yet. In this case we will typically add the appropriate change hint
@@ -1821,7 +1826,7 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
       // Note that we *don't* add nsChangeHint_UpdateTransformLayer since if we
       // did, ApplyRenderingChangeToTree would complain that we're updating a
       // transform layer without a transform.
-      if (layerInfo.mDisplayItemType == DisplayItemType::TYPE_TRANSFORM &&
+      if (aDisplayItemType == DisplayItemType::TYPE_TRANSFORM &&
           !aFrame->StyleDisplay()->HasTransformStyle()) {
         // Add all the hints for a removing a transform if they are not already
         // set for this frame.
@@ -1830,9 +1835,9 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
                 aHintForThisFrame))) {
           hint |= nsChangeHint_ComprehensiveAddOrRemoveTransform;
         }
-        continue;
+        return true;
       }
-      hint |= layerInfo.mChangeHint;
+      hint |= LayerAnimationInfo::GetChangeHintFor(aDisplayItemType);
     }
 
     // We consider it's the first paint for the frame if we have an animation
@@ -1848,11 +1853,26 @@ RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
     // not have those properies just before. e.g, setting transform by
     // setKeyframes or changing target element from other target which prevents
     // running on the compositor, etc.
-    if (!generation &&
-        nsLayoutUtils::HasEffectiveAnimation(aFrame, layerInfo.mProperty)) {
-      hint |= layerInfo.mChangeHint;
+    if (!aGeneration) {
+      if (!effectiveAnimationProperties) {
+        effectiveAnimationProperties.emplace(
+          nsLayoutUtils::GetAnimationPropertiesForCompositor(aFrame));
+      }
+      const nsCSSPropertyIDSet& propertiesForDisplayItem =
+        LayerAnimationInfo::GetCSSPropertiesFor(aDisplayItemType);
+      if (effectiveAnimationProperties->Intersects(propertiesForDisplayItem)) {
+        hint |=
+          LayerAnimationInfo::GetChangeHintFor(aDisplayItemType);
+      }
     }
-  }
+    return true;
+  };
+
+  AnimationInfo::EnumerateGenerationOnFrame(
+    aFrame,
+    aContent,
+    LayerAnimationInfo::sDisplayItemTypes,
+    maybeApplyChangeHint);
 
   if (hint) {
     aChangeListToProcess.AppendChange(aFrame, aContent, hint);

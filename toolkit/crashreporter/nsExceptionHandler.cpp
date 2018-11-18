@@ -120,9 +120,7 @@ using mozilla::ipc::CrashReporterClient;
 
 // From toolkit/library/rust/shared/lib.rs
 extern "C" {
-  void install_rust_panic_hook();
   void install_rust_oom_hook();
-  bool get_rust_panic_reason(char** reason, size_t* length);
 }
 
 
@@ -908,12 +906,8 @@ WriteEscapedMozCrashReason(PlatformWriter& aWriter)
 {
   const char *reason;
   size_t len;
-  char *rust_panic_reason;
-  bool rust_panic = get_rust_panic_reason(&rust_panic_reason, &len);
 
-  if (rust_panic) {
-    reason = rust_panic_reason;
-  } else if (gMozCrashReason != nullptr) {
+  if (gMozCrashReason != nullptr) {
     reason = gMozCrashReason;
     len = strlen(reason);
   } else {
@@ -1742,7 +1736,6 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
 
-  install_rust_panic_hook();
   install_rust_oom_hook();
 
   InitThreadAnnotation();
@@ -3607,8 +3600,6 @@ SetRemoteExceptionHandler(const nsACString& crashPipe,
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
 
-  install_rust_panic_hook();
-
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();
 }
@@ -3655,8 +3646,6 @@ SetRemoteExceptionHandler()
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
 
-  install_rust_panic_hook();
-
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();
 }
@@ -3684,8 +3673,6 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
   mozalloc_set_oom_abort_handler(AnnotateOOMAllocationSize);
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
-
-  install_rust_panic_hook();
 
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();

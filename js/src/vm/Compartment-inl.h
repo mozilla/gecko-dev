@@ -13,8 +13,10 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "jsnum.h"
 #include "gc/Barrier.h"
 #include "gc/Marking.h"
+#include "js/CallArgs.h"
 #include "js/Wrapper.h"
 #include "vm/Iteration.h"
 #include "vm/JSObject.h"
@@ -108,18 +110,27 @@ JS::Compartment::wrap(JSContext* cx, JS::MutableHandleValue vp)
 namespace js {
 namespace detail {
 
-template<class T>
-bool
-UnwrapThisSlowPath(JSContext* cx,
-                   HandleValue val,
-                   const char* className,
-                   const char* methodName,
-                   MutableHandle<T*> unwrappedResult)
+/**
+ * Return the name of class T as a static null-terminated ASCII string constant
+ * (for error messages).
+ */
+template <class T>
+const char *
+ClassName()
+{
+    return T::class_.name;
+}
+
+template <class T>
+MOZ_MUST_USE T*
+UnwrapAndTypeCheckThisSlowPath(JSContext* cx,
+                               HandleValue val,
+                               const char* methodName)
 {
     if (!val.isObject()) {
         JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                                   className, methodName, InformalValueTypeName(val));
-        return false;
+                                   ClassName<T>(), methodName, InformalValueTypeName(val));
+        return nullptr;
     }
 
     JSObject* obj = &val.toObject();
@@ -127,18 +138,53 @@ UnwrapThisSlowPath(JSContext* cx,
         obj = CheckedUnwrap(obj);
         if (!obj) {
             ReportAccessDenied(cx);
-            return false;
+            return nullptr;
         }
     }
 
     if (!obj->is<T>()) {
         JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                                   className, methodName, InformalValueTypeName(val));
-        return false;
+                                   ClassName<T>(), methodName, InformalValueTypeName(val));
+        return nullptr;
     }
 
-    unwrappedResult.set(&obj->as<T>());
-    return true;
+    return &obj->as<T>();
+}
+
+template <class T>
+MOZ_MUST_USE T*
+UnwrapAndTypeCheckArgumentSlowPath(JSContext* cx,
+                                   CallArgs& args,
+                                   const char* methodName,
+                                   int argIndex)
+{
+    Value val = args.get(argIndex);
+    JSObject* obj = nullptr;
+    if (val.isObject()) {
+        obj = &val.toObject();
+        if (IsWrapper(obj)) {
+            obj = CheckedUnwrap(obj);
+            if (!obj) {
+                ReportAccessDenied(cx);
+                return nullptr;
+            }
+        }
+    }
+
+    if (!obj || !obj->is<T>()) {
+        ToCStringBuf cbuf;
+        if (char* numStr = NumberToCString(cx, &cbuf, argIndex + 1, 10)) {
+            JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr,
+                                       JSMSG_WRONG_TYPE_ARG,
+                                       numStr,
+                                       methodName,
+                                       ClassName<T>(),
+                                       InformalValueTypeName(val));
+        }
+        return nullptr;
+    }
+
+    return &obj->as<T>();
 }
 
 } // namespace detail
@@ -146,49 +192,89 @@ UnwrapThisSlowPath(JSContext* cx,
 /**
  * Remove all wrappers from `val` and try to downcast the result to `T`.
  *
- * DANGER: The value stored in `unwrappedResult` may not be same-compartment
- * with `cx`.
+ * DANGER: The result may not be same-compartment with `cx`.
  *
  * This throws a TypeError if the value isn't an object, cannot be unwrapped,
  * or isn't an instance of the expected type.
- *
- * Terminology note: The term "non-generic method" comes from ECMA-262. A
- * non-generic method is one that checks the type of `this`, typically because
- * it needs access to internal slots. Generic methods do not type-check. For
- * example, `Array.prototype.join` is generic; it can be applied to anything
- * with a `.length` property and elements.
  */
-template<class T>
-inline bool
-UnwrapThisForNonGenericMethod(JSContext* cx,
-                              HandleValue val,
-                              const char* className,
-                              const char* methodName,
-                              MutableHandle<T*> unwrappedResult)
+template <class T>
+inline MOZ_MUST_USE T*
+UnwrapAndTypeCheckThis(JSContext* cx,
+                       CallArgs& args,
+                       const char* methodName)
 {
     static_assert(!std::is_convertible<T*, Wrapper*>::value,
                   "T can't be a Wrapper type; this function discards wrappers");
 
-    cx->check(val);
-    if (val.isObject() && val.toObject().is<T>()) {
-        unwrappedResult.set(&val.toObject().as<T>());
-        return true;
+    HandleValue thisv = args.thisv();
+    cx->check(thisv);
+    if (thisv.isObject() && thisv.toObject().is<T>()) {
+        return &thisv.toObject().as<T>();
     }
-    return detail::UnwrapThisSlowPath(cx, val, className, methodName, unwrappedResult);
+    return detail::UnwrapAndTypeCheckThisSlowPath<T>(cx, thisv, methodName);
 }
 
 /**
- * Extra signature so callers don't have to specify T explicitly.
+ * Remove all wrappers from `args[argIndex]` and try to downcast the result to
+ * class `T`.
+ *
+ * DANGER: The result may not be same-compartment with `cx`.
+ *
+ * This throws a TypeError if the specified argument is missing, isn't an
+ * object, cannot be unwrapped, or isn't an instance of the expected type.
  */
-template<class T>
-inline bool
-UnwrapThisForNonGenericMethod(JSContext* cx,
-                              HandleValue val,
-                              const char* className,
-                              const char* methodName,
-                              Rooted<T*>* out)
+template <class T>
+inline MOZ_MUST_USE T*
+UnwrapAndTypeCheckArgument(JSContext* cx,
+                           CallArgs& args,
+                           const char* methodName,
+                           int argIndex)
 {
-    return UnwrapThisForNonGenericMethod(cx, val, className, methodName, MutableHandle<T*>(out));
+    static_assert(!std::is_convertible<T*, Wrapper*>::value,
+                  "T can't be a Wrapper type; this function discards wrappers");
+
+    Value val = args.get(argIndex);
+    if (val.isObject() && val.toObject().is<T>()) {
+        return &val.toObject().as<T>();
+    }
+    return detail::UnwrapAndTypeCheckArgumentSlowPath<T>(cx, args, methodName, argIndex);
+}
+
+/**
+ * Unwrap a value of a known type.
+ *
+ * If `value` is an object of class T, this returns a pointer to that object.
+ * If `value` is a wrapper for such an object, this tries to unwrap the object
+ * and return a pointer to it. If access is denied, or `value` was a wrapper
+ * but has been nuked, this reports an error and returns null.
+ *
+ * In all other cases, the behavior is undefined, so call this only if `value`
+ * is known to have been initialized with an object of class T.
+ */
+template <class T>
+MOZ_MUST_USE T*
+UnwrapAndDowncastValue(JSContext* cx, const Value& value)
+{
+    static_assert(!std::is_convertible<T*, Wrapper*>::value,
+                  "T can't be a Wrapper type; this function discards wrappers");
+
+    JSObject* result = &value.toObject();
+    if (IsProxy(result)) {
+        if (JS_IsDeadWrapper(result)) {
+            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+            return nullptr;
+        }
+
+        // It would probably be OK to do an unchecked unwrap here, but we allow
+        // arbitrary security policies, so check anyway.
+        result = CheckedUnwrap(result);
+        if (!result) {
+            ReportAccessDenied(cx);
+            return nullptr;
+        }
+    }
+
+    return &result->as<T>();
 }
 
 /**
@@ -205,52 +291,35 @@ UnwrapThisForNonGenericMethod(JSContext* cx,
  * the expected type of object. Call this only if the slot is certain to
  * contain either an instance of T, a wrapper for a T, or a dead object.
  *
- * cx and unwrappedObj are not required to be same-compartment.
+ * `cx` and `unwrappedObj` are not required to be same-compartment.
  *
- * DANGER: The result stored in `unwrappedResult` will not necessarily be
- * same-compartment with either cx or obj.
+ * DANGER: The result may not be same-compartment with either `cx` or `obj`.
  */
 template <class T>
-MOZ_MUST_USE bool
-UnwrapInternalSlot(JSContext* cx,
-                   Handle<NativeObject*> unwrappedObj,
-                   uint32_t slot,
-                   MutableHandle<T*> unwrappedResult)
+inline MOZ_MUST_USE T*
+UnwrapInternalSlot(JSContext* cx, Handle<NativeObject*> unwrappedObj, uint32_t slot)
 {
     static_assert(!std::is_convertible<T*, Wrapper*>::value,
                   "T can't be a Wrapper type; this function discards wrappers");
 
-    JSObject* result = &unwrappedObj->getFixedSlot(slot).toObject();
-    if (IsProxy(result)) {
-        if (JS_IsDeadWrapper(result)) {
-            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
-            return false;
-        }
-
-        // It would probably be OK to do an unchecked unwrap here, but we allow
-        // arbitrary security policies, so check anyway.
-        result = CheckedUnwrap(result);
-        if (!result) {
-            ReportAccessDenied(cx);
-            return false;
-        }
-    }
-
-    unwrappedResult.set(&result->as<T>());
-    return true;
+    return UnwrapAndDowncastValue<T>(cx, unwrappedObj->getFixedSlot(slot));
 }
 
 /**
- * Extra signature so callers don't have to specify T explicitly.
+ * Read a function slot that is known to point to a particular type of object.
+ *
+ * This is like UnwrapInternalSlot, but for extended function slots. Call this
+ * only if the specified slot is known to have been initialized with an object
+ * of class T or a wrapper for such an object.
+ *
+ * DANGER: The result may not be same-compartment with `cx`.
  */
 template <class T>
-inline MOZ_MUST_USE bool
-UnwrapInternalSlot(JSContext* cx,
-                   Handle<NativeObject*> obj,
-                   uint32_t slot,
-                   Rooted<T*>* unwrappedResult)
+MOZ_MUST_USE T*
+UnwrapCalleeSlot(JSContext* cx, CallArgs& args, size_t extendedSlot)
 {
-    return UnwrapInternalSlot(cx, obj, slot, MutableHandle<T*>(unwrappedResult));
+    JSFunction& func = args.callee().as<JSFunction>();
+    return UnwrapAndDowncastValue<T>(cx, func.getExtendedSlot(extendedSlot));
 }
 
 } // namespace js

@@ -1627,17 +1627,8 @@
      */ \
     macro(JSOP_POW, 150, "pow", "**", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
-     * Pops the top of stack value as 'v', sets pending exception as 'v', to
-     * trigger rethrow.
-     *
-     * This opcode is used in conditional catch clauses.
-     *
-     *   Category: Statements
-     *   Type: Exception Handling
-     *   Operands:
-     *   Stack: v =>
      */ \
-    macro(JSOP_THROWING, 151, "throwing", NULL, 1, 1, 0, JOF_BYTE) \
+    macro(JSOP_UNUSED151, 151, "unused151", NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * Pops the top of stack value as 'rval', sets the return value in stack
      * frame as 'rval'.
@@ -2507,14 +2498,22 @@
      *   Operands:
      *   Stack: arg => rval
      */ \
-    macro(JSOP_DYNAMIC_IMPORT, 233, "call-import", NULL, 1, 1, 1, JOF_BYTE)
+    macro(JSOP_DYNAMIC_IMPORT, 233, "call-import", NULL, 1, 1, 1, JOF_BYTE) \
+    /*
+     * Pushes a BigInt constant onto the stack.
+     *   Category: Literals
+     *   Type: Constants
+     *   Operands: uint32_t constIndex
+     *   Stack: => val
+     */ \
+    IF_BIGINT(macro(JSOP_BIGINT, 234, "bigint", NULL, 5, 0, 1, JOF_BIGINT),)
 
 /*
  * In certain circumstances it may be useful to "pad out" the opcode space to
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(macro) \
-    macro(234) \
+    IF_BIGINT(,macro(234)) \
     macro(235) \
     macro(236) \
     macro(237) \

@@ -5,16 +5,16 @@
 //! Generic types for CSS values that are related to transformations.
 
 use app_units::Au;
+use crate::values::computed::length::Length as ComputedLength;
+use crate::values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
+use crate::values::specified::angle::Angle as SpecifiedAngle;
+use crate::values::specified::length::Length as SpecifiedLength;
+use crate::values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
+use crate::values::{computed, CSSFloat};
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::computed::length::Length as ComputedLength;
-use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
-use values::specified::angle::Angle as SpecifiedAngle;
-use values::specified::length::Length as SpecifiedLength;
-use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
-use values::{computed, CSSFloat};
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -514,8 +514,8 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     z: CSSFloat,
     angle: T,
 ) -> (CSSFloat, CSSFloat, CSSFloat, T) {
+    use crate::values::computed::transform::DirectionVector;
     use euclid::approxeq::ApproxEq;
-    use values::computed::transform::DirectionVector;
     let vector = DirectionVector::new(x, y, z);
     if vector.square_length().approx_eq(&f32::zero()) {
         // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
@@ -530,7 +530,6 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
 
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
@@ -538,7 +537,6 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     SpecifiedValueInfo,
     ToAnimatedZero,
     ToComputedValue,
-    ToCss,
 )]
 /// A value of the `Rotate` property
 ///
@@ -552,9 +550,55 @@ pub enum Rotate<Number, Angle> {
     Rotate3D(Number, Number, Number, Angle),
 }
 
+/// A trait to check if the current 3D vector is parallel to the DirectionVector.
+/// This is especially for serialization on Rotate.
+pub trait IsParallelTo {
+    /// Returns true if this is parallel to the vector.
+    fn is_parallel_to(&self, vector: &computed::transform::DirectionVector) -> bool;
+}
+
+impl<Number, Angle> ToCss for Rotate<Number, Angle>
+where
+    Number: Copy + ToCss,
+    Angle: ToCss,
+    (Number, Number, Number): IsParallelTo,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        use crate::values::computed::transform::DirectionVector;
+        match *self {
+            Rotate::None => dest.write_str("none"),
+            Rotate::Rotate(ref angle) => angle.to_css(dest),
+            Rotate::Rotate3D(x, y, z, ref angle) => {
+                // If a 3d rotation is specified, the property must serialize with an axis
+                // specified. If the axis is parallel with the x, y, or z axises, it must
+                // serialize as the appropriate keyword.
+                // https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
+                let v = (x, y, z);
+                if v.is_parallel_to(&DirectionVector::new(1., 0., 0.)) {
+                    dest.write_char('x')?;
+                } else if v.is_parallel_to(&DirectionVector::new(0., 1., 0.)) {
+                    dest.write_char('y')?;
+                } else if v.is_parallel_to(&DirectionVector::new(0., 0., 1.)) {
+                    dest.write_char('z')?;
+                } else {
+                    x.to_css(dest)?;
+                    dest.write_char(' ')?;
+                    y.to_css(dest)?;
+                    dest.write_char(' ')?;
+                    z.to_css(dest)?;
+                }
+                dest.write_char(' ')?;
+                angle.to_css(dest)
+            },
+        }
+    }
+}
+
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
@@ -603,7 +647,6 @@ impl<Number: ToCss + PartialEq> ToCss for Scale<Number> {
 
 #[derive(
     Clone,
-    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,

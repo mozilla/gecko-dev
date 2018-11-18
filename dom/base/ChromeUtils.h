@@ -126,7 +126,7 @@ public:
                 ErrorResult& aRv);
 
   static MozQueryInterface*
-  GenerateQI(const GlobalObject& global, const Sequence<OwningStringOrIID>& interfaces,
+  GenerateQI(const GlobalObject& global, const Sequence<JS::Value>& interfaces,
              ErrorResult& aRv);
 
   static void WaiveXrays(GlobalObject& aGlobal,
@@ -188,6 +188,9 @@ public:
 
   static already_AddRefed<Promise>
   RequestIOActivity(GlobalObject& aGlobal, ErrorResult& aRv);
+
+  static already_AddRefed<BrowsingContext>
+  GetBrowsingContext(GlobalObject& aGlobal, uint64_t id);
 
   static void
   GetRootBrowsingContexts(GlobalObject& aGlobal,

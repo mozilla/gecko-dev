@@ -4038,7 +4038,7 @@ nsFlexContainerFrame::GenerateFlexLines(
 
     // Honor "page-break-before", if we're multi-line and this line isn't empty:
     if (!isSingleLine && !curLine->IsEmpty() &&
-        childFrame->StyleDisplay()->mBreakBefore) {
+        childFrame->StyleDisplay()->BreakBefore()) {
       curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront, aMainGapSize);
     }
 
@@ -4096,7 +4096,7 @@ nsFlexContainerFrame::GenerateFlexLines(
 
     // Honor "page-break-after", if we're multi-line and have more children:
     if (!isSingleLine && childFrame->GetNextSibling() &&
-        childFrame->StyleDisplay()->mBreakAfter) {
+        childFrame->StyleDisplay()->BreakAfter()) {
       curLine = AddNewFlexLineToList(aLines, shouldInsertAtFront, aMainGapSize);
     }
     itemIdxInContainer++;
@@ -4849,14 +4849,9 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
         itemInfo->mNode = content;
 
-        // mMainBaseSize and itemInfo->mMainDeltaSize will
-        // be filled out in ResolveFlexibleLengths().
-
-        // Other FlexItem properties can be captured now.
-        itemInfo->mMainMinSize = item->GetMainMinSize();
-        itemInfo->mMainMaxSize = item->GetMainMaxSize();
-        itemInfo->mCrossMinSize = item->GetCrossMinSize();
-        itemInfo->mCrossMaxSize = item->GetCrossMaxSize();
+        // itemInfo->mMainBaseSize and mMainDeltaSize will be filled out
+        // in ResolveFlexibleLengths(). Other measurements will be captured
+        // at the end of this function.
       }
     }
   }
@@ -5261,7 +5256,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aDesiredSize)
 
-  // Finally update our line sizing values in our containerInfo.
+  // Finally update our line and item measurements in our containerInfo.
   if (MOZ_UNLIKELY(containerInfo)) {
     lineIndex = 0;
     for (const FlexLine* line = lines.getFirst(); line;
@@ -5271,6 +5266,17 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       lineInfo.mCrossSize = line->GetLineCrossSize();
       lineInfo.mFirstBaselineOffset = line->GetFirstBaselineOffset();
       lineInfo.mLastBaselineOffset = line->GetLastBaselineOffset();
+
+      uint32_t itemIndex = 0;
+      for (const FlexItem* item = line->GetFirstItem(); item;
+           item = item->getNext(), ++itemIndex) {
+        ComputedFlexItemInfo& itemInfo = lineInfo.mItems[itemIndex];
+        itemInfo.mFrameRect = item->Frame()->GetRect();
+        itemInfo.mMainMinSize = item->GetMainMinSize();
+        itemInfo.mMainMaxSize = item->GetMainMaxSize();
+        itemInfo.mCrossMinSize = item->GetCrossMinSize();
+        itemInfo.mCrossMaxSize = item->GetCrossMaxSize();
+      }
     }
   }
 }

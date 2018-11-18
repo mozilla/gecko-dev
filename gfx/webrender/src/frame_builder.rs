@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ColorF, DeviceIntPoint, DevicePixelScale, LayoutPixel, PicturePixel, RasterPixel};
-use api::{DeviceUintPoint, DeviceUintRect, DeviceUintSize, DocumentLayer, FontRenderMode};
+use api::{DeviceIntRect, DeviceIntSize, DocumentLayer, FontRenderMode};
 use api::{LayoutPoint, LayoutRect, LayoutSize, PipelineId, RasterSpace, WorldPoint, WorldRect, WorldPixel};
 use clip::{ClipDataStore, ClipStore};
 use clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
@@ -12,7 +12,7 @@ use gpu_cache::GpuCache;
 use gpu_types::{PrimitiveHeaders, TransformPalette, UvRectKind, ZBufferIdGenerator};
 use hit_test::{HitTester, HitTestingRun};
 use internal_types::{FastHashMap, PlaneSplitter};
-use picture::{PictureSurface, PictureUpdateContext, SurfaceInfo, ROOT_SURFACE_INDEX, SurfaceIndex};
+use picture::{PictureSurface, PictureUpdateState, SurfaceInfo, ROOT_SURFACE_INDEX, SurfaceIndex};
 use prim_store::{PrimitiveStore, SpaceMapper, PictureIndex, PrimitiveDebugId};
 use profiler::{FrameProfileCounters, GpuCacheProfileCounters, TextureCacheProfileCounters};
 use render_backend::{FrameResources, FrameId};
@@ -54,9 +54,9 @@ pub struct FrameBuilderConfig {
 
 /// A builder structure for `tiling::Frame`
 pub struct FrameBuilder {
-    screen_rect: DeviceUintRect,
+    screen_rect: DeviceIntRect,
     background_color: Option<ColorF>,
-    window_size: DeviceUintSize,
+    window_size: DeviceIntSize,
     root_pic_index: PictureIndex,
     pub prim_store: PrimitiveStore,
     pub clip_store: ClipStore,
@@ -106,7 +106,6 @@ pub struct PictureContext {
 /// the children are processed.
 pub struct PictureState {
     pub is_cacheable: bool,
-    pub local_rect_changed: bool,
     pub map_local_to_pic: SpaceMapper<LayoutPixel, PicturePixel>,
     pub map_pic_to_world: SpaceMapper<PicturePixel, WorldPixel>,
     pub map_pic_to_raster: SpaceMapper<PicturePixel, RasterPixel>,
@@ -140,8 +139,8 @@ impl FrameBuilder {
             hit_testing_runs: Vec::new(),
             prim_store: PrimitiveStore::new(),
             clip_store: ClipStore::new(),
-            screen_rect: DeviceUintRect::zero(),
-            window_size: DeviceUintSize::zero(),
+            screen_rect: DeviceIntRect::zero(),
+            window_size: DeviceIntSize::zero(),
             background_color: None,
             root_pic_index: PictureIndex(0),
             config: FrameBuilderConfig {
@@ -154,9 +153,9 @@ impl FrameBuilder {
     }
 
     pub fn with_display_list_flattener(
-        screen_rect: DeviceUintRect,
+        screen_rect: DeviceIntRect,
         background_color: Option<ColorF>,
-        window_size: DeviceUintSize,
+        window_size: DeviceIntSize,
         flattener: DisplayListFlattener,
     ) -> Self {
         FrameBuilder {
@@ -194,6 +193,8 @@ impl FrameBuilder {
             return None
         }
 
+        self.prim_store.reset_clip_instances();
+
         let root_spatial_node_index = clip_scroll_tree.root_reference_frame_index();
 
         const MAX_CLIP_COORD: f32 = 1.0e9;
@@ -222,10 +223,7 @@ impl FrameBuilder {
         );
         surfaces.push(root_surface);
 
-        let pic_update_context = PictureUpdateContext::new(
-            ROOT_SURFACE_INDEX,
-            ROOT_SPATIAL_NODE_INDEX,
-        );
+        let mut pic_update_state = PictureUpdateState::new(surfaces);
 
         // The first major pass of building a frame is to walk the picture
         // tree. This pass must be quick (it should never touch individual
@@ -236,9 +234,8 @@ impl FrameBuilder {
         // be rendered this frame.
         self.prim_store.update_picture(
             self.root_pic_index,
-            &pic_update_context,
+            &mut pic_update_state,
             &frame_context,
-            surfaces,
         );
 
         let mut frame_state = FrameBuildingState {
@@ -251,7 +248,7 @@ impl FrameBuilder {
             transforms: transform_palette,
             resources,
             segment_builder: SegmentBuilder::new(),
-            surfaces,
+            surfaces: pic_update_state.surfaces,
         };
 
         let (pic_context, mut pic_state, mut prim_list) = self
@@ -324,7 +321,7 @@ impl FrameBuilder {
     ) -> Frame {
         profile_scope!("build");
         debug_assert!(
-            DeviceUintRect::new(DeviceUintPoint::zero(), self.window_size)
+            DeviceIntRect::new(DeviceIntPoint::zero(), self.window_size)
                 .contains_rect(&self.screen_rect)
         );
 

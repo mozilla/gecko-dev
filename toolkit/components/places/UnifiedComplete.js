@@ -528,6 +528,38 @@ function looksLikeOrigin(str) {
 }
 
 /**
+ * Returns the portion of a string starting at the index where another string
+ * begins.
+ *
+ * @param   {string} sourceStr
+ *          The string to search within.
+ * @param   {string} targetStr
+ *          The string to search for.
+ * @returns {string} The substring within sourceStr starting at targetStr, or
+ *          the empty string if targetStr does not occur in sourceStr.
+ */
+function substringAt(sourceStr, targetStr) {
+  let index = sourceStr.indexOf(targetStr);
+  return index < 0 ? "" : sourceStr.substr(index);
+}
+
+/**
+ * Returns the portion of a string starting at the index where another string
+ * ends.
+ *
+ * @param   {string} sourceStr
+ *          The string to search within.
+ * @param   {string} targetStr
+ *          The string to search for.
+ * @returns {string} The substring within sourceStr where targetStr ends, or the
+ *          empty string if targetStr does not occur in sourceStr.
+ */
+function substringAfter(sourceStr, targetStr) {
+  let index = sourceStr.indexOf(targetStr);
+  return index < 0 ? "" : sourceStr.substr(index + targetStr.length);
+}
+
+/**
  * Manages a single instance of an autocomplete search.
  *
  * The first three parameters all originate from the similarly named parameters
@@ -583,6 +615,20 @@ function Search(searchString, searchParam, autocompleteListener,
 
   this._searchTokens =
     this.filterTokens(getUnfilteredSearchTokens(this._searchString));
+
+  // The heuristic token is the first filtered search token, but only when it's
+  // actually the first thing in the search string.  If a prefix or restriction
+  // character occurs first, then the heurstic token is null.  We use the
+  // heuristic token to help determine the heuristic result.  It may be a Places
+  // keyword, a search engine alias, an extension keyword, or simply a URL or
+  // part of the search string the user has typed.  We won't know until we
+  // create the heuristic result.
+  this._heuristicToken =
+    this._searchTokens[0] &&
+      this._trimmedOriginalSearchString.startsWith(this._searchTokens[0]) ?
+    this._searchTokens[0] :
+    null;
+
   this._keywordSubstitute = null;
 
   this._prohibitSearchSuggestions = prohibitSearchSuggestions;
@@ -695,11 +741,12 @@ Search.prototype = {
 
   /**
    * Given an array of tokens, this function determines which query should be
-   * ran.  It also removes any special search tokens.
+   * ran.  It also removes any special search tokens.  The given array of tokens
+   * is modified in place and returned.
    *
    * @param tokens
-   *        An array of search tokens.
-   * @return the filtered list of tokens to search with.
+   *        An array of search tokens.  This array is modified in place.
+   * @return The given array of tokens, modified to remove special search tokens.
    */
   filterTokens(tokens) {
     let foundToken = false;
@@ -848,10 +895,12 @@ Search.prototype = {
       if (!this.pending)
         return;
 
-      // If the heuristic result is a search engine result with an alias and an
-      // empty query, then we're done.  We want to show only that single result
-      // as a clear hint that the user can continue typing to search.
-      if (this._searchEngineAliasMatch && !this._searchEngineAliasMatch.query) {
+      // If the heuristic result is a search engine result with a token alias
+      // and an empty query, then we're done.  We want to show only that single
+      // result as a clear hint that the user can continue typing to search.
+      if (this._searchEngineAliasMatch &&
+          this._searchEngineAliasMatch.isTokenAlias &&
+          !this._searchEngineAliasMatch.query) {
         this._cleanUpNonCurrentMatches(null, false);
         this._autocompleteSearch.finishSearch(true);
         return;
@@ -861,9 +910,9 @@ Search.prototype = {
     // Only add extension suggestions if the first token is a registered keyword
     // and the search string has characters after the first token.
     let extensionsCompletePromise = Promise.resolve();
-    if (this._searchTokens.length > 0 &&
-        ExtensionSearchHandler.isKeywordRegistered(this._searchTokens[0]) &&
-        this._originalSearchString.length > this._searchTokens[0].length &&
+    if (this._heuristicToken &&
+        ExtensionSearchHandler.isKeywordRegistered(this._heuristicToken) &&
+        substringAfter(this._originalSearchString, this._heuristicToken) &&
         !this._searchEngineAliasMatch) {
       // Do not await on this, since extensions cannot notify when they are done
       // adding results, it may take too long.
@@ -878,13 +927,9 @@ Search.prototype = {
     if (this._enableActions &&
         this.hasBehavior("search") &&
         !this._inPrivateWindow) {
-      // Get the query string stripped of any engine alias or restriction token.
-      // In the former case, _searchTokens[0] will be the alias, so use
-      // this._searchEngineHeuristicMatch.query.  In the latter case, the token
-      // has been removed from _searchTokens, so use _searchTokens.join().
       let query =
         this._searchEngineAliasMatch ? this._searchEngineAliasMatch.query :
-        this._searchTokens.join(" ");
+        substringAt(this._originalSearchString, this._searchTokens[0]);
       if (query) {
         // Limit the string sent for search suggestions to a maximum length.
         query = query.substr(0, UrlbarPrefs.get("maxCharsForSearchSuggestions"));
@@ -905,10 +950,12 @@ Search.prototype = {
             "";
           searchSuggestionsCompletePromise =
             this._matchSearchSuggestions(engine, query, alias);
-          // If the user has used a search engine alias, then the only results
-          // we want to show are suggestions from that engine, so we're done.
-          // We're also done if we're restricting results to suggestions.
-          if (alias || this.hasBehavior("restrict")) {
+          // If the user has used a search engine token alias, then the only
+          // results we want to show are suggestions from that engine, so we're
+          // done.  We're also done if we're restricting results to suggestions.
+          if ((this._searchEngineAliasMatch &&
+               this._searchEngineAliasMatch.isTokenAlias) ||
+              this.hasBehavior("restrict")) {
             // Wait for the suggestions to be added.
             await searchSuggestionsCompletePromise;
             this._cleanUpNonCurrentMatches(null);
@@ -1114,17 +1161,14 @@ Search.prototype = {
     return true;
   },
 
-  async _matchSearchEngineTokenAlias() {
-    // We need a single "@engine" search token.
-    if (this._searchTokens.length != 1) {
-      return false;
-    }
-    let token = this._searchTokens[0];
-    if (token[0] != "@" || token.length == 1) {
+  async _matchSearchEngineTokenAliasForAutofill() {
+    // We need an "@engine" heuristic token.
+    let token = this._heuristicToken;
+    if (!token || token.length == 1 || !token.startsWith("@")) {
       return false;
     }
 
-    // See if any engine token alias starts with the search token.
+    // See if any engine has a token alias that starts with the heuristic token.
     let engines = await PlacesSearchAutocompleteProvider.tokenAliasEngines();
     for (let { engine, tokenAliases } of engines) {
       for (let alias of tokenAliases) {
@@ -1152,6 +1196,17 @@ Search.prototype = {
             icon: engine.iconURI ? engine.iconURI.spec : null,
           });
           this._result.setDefaultIndex(0);
+
+          // Set _searchEngineAliasMatch with an empty query so that we don't
+          // attempt to add any more matches.  When a token alias is autofilled,
+          // the only match should be the one we just added.
+          this._searchEngineAliasMatch = {
+            engine,
+            alias: aliasPreservingUserCase,
+            query: "",
+            isTokenAlias: true,
+          };
+
           return true;
         }
       }
@@ -1224,7 +1279,7 @@ Search.prototype = {
     }
 
     if (this.pending && shouldAutofill) {
-      let matched = await this._matchSearchEngineTokenAlias();
+      let matched = await this._matchSearchEngineTokenAliasForAutofill();
       if (matched) {
         return true;
       }
@@ -1311,9 +1366,10 @@ Search.prototype = {
     if (this._prohibitSearchSuggestions)
       return true;
 
-    // Never prohibit suggestions when the user has used a search engine alias.
-    // We want "@engine query" to return suggestions from the engine.
-    if (this._searchEngineAliasMatch) {
+    // Never prohibit suggestions when the user has used a search engine token
+    // alias.  We want "@engine query" to return suggestions from the engine.
+    if (this._searchEngineAliasMatch &&
+        this._searchEngineAliasMatch.isTokenAlias) {
       return false;
     }
 
@@ -1364,9 +1420,11 @@ Search.prototype = {
   },
 
   _matchExtensionHeuristicResult() {
-    if (ExtensionSearchHandler.isKeywordRegistered(this._searchTokens[0]) &&
-        this._originalSearchString.length > this._searchTokens[0].length) {
-      let description = ExtensionSearchHandler.getDescription(this._searchTokens[0]);
+    if (this._heuristicToken &&
+        ExtensionSearchHandler.isKeywordRegistered(this._heuristicToken) &&
+        substringAfter(this._originalSearchString, this._heuristicToken)) {
+      let description =
+        ExtensionSearchHandler.getDescription(this._heuristicToken);
       this._addExtensionMatch(this._originalSearchString, description);
       return true;
     }
@@ -1374,13 +1432,17 @@ Search.prototype = {
   },
 
   async _matchPlacesKeyword() {
-    // The first word could be a keyword, so that's what we'll search.
-    let keyword = this._strippedPrefix + this._searchTokens[0];
-    let entry = await PlacesUtils.keywords.fetch(keyword);
-    if (!entry)
+    if (!this._heuristicToken) {
       return false;
+    }
+    let keyword = this._heuristicToken;
+    let entry = await PlacesUtils.keywords.fetch(keyword);
+    if (!entry) {
+      return false;
+    }
 
-    let searchString = this._trimmedOriginalSearchString.substr(keyword.length + 1);
+    let searchString =
+      substringAfter(this._originalSearchString, keyword).trim();
 
     let url = null, postData = null;
     try {
@@ -1484,11 +1546,11 @@ Search.prototype = {
   },
 
   async _matchSearchEngineAlias() {
-    if (this._searchTokens.length < 1) {
+    if (!this._heuristicToken) {
       return false;
     }
 
-    let alias = this._searchTokens[0];
+    let alias = this._heuristicToken;
     let engine = await PlacesSearchAutocompleteProvider.engineForAlias(alias);
     if (!engine) {
       return false;
@@ -1497,7 +1559,8 @@ Search.prototype = {
     this._searchEngineAliasMatch = {
       engine,
       alias,
-      query: this._trimmedOriginalSearchString.substr(alias.length + 1),
+      query: substringAfter(this._originalSearchString, alias).trim(),
+      isTokenAlias: alias.startsWith("@"),
     };
     this._addSearchEngineMatch(this._searchEngineAliasMatch);
     if (!this._keywordSubstitute) {
@@ -1528,7 +1591,7 @@ Search.prototype = {
     this._addMatch({
       value: PlacesUtils.mozActionURI("extension", {
         content,
-        keyword: this._searchTokens[0],
+        keyword: this._heuristicToken,
       }),
       comment,
       icon: "chrome://browser/content/extension.svg",
@@ -1598,10 +1661,10 @@ Search.prototype = {
   },
 
   _matchExtensionSuggestions() {
-    let promise = ExtensionSearchHandler.handleSearch(this._searchTokens[0], this._originalSearchString,
+    let promise = ExtensionSearchHandler.handleSearch(this._heuristicToken, this._originalSearchString,
       suggestions => {
         for (let suggestion of suggestions) {
-          let content = `${this._searchTokens[0]} ${suggestion.content}`;
+          let content = `${this._heuristicToken} ${suggestion.content}`;
           this._addExtensionMatch(content, suggestion.description);
         }
       }

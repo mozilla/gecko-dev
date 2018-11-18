@@ -71,8 +71,6 @@ public:
 private:
   ~SessionStorage();
 
-  bool ProcessUsageDelta(int64_t aDelta);
-
   void
   BroadcastChangeNotification(const nsAString& aKey,
                               const nsAString& aOldValue,

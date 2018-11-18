@@ -152,12 +152,6 @@ if CONFIG["OS_TARGET"] == "Linux":
         "rt"
     ]
 
-    UNIFIED_SOURCES += [
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
-    ]
-
 if CONFIG["OS_TARGET"] == "NetBSD":
 
     DEFINES["USE_X11"] = "1"
@@ -212,12 +206,6 @@ if CONFIG["CPU_ARCH"] == "aarch64":
     DEFINES["WEBRTC_ARCH_ARM64"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
 
-    UNIFIED_SOURCES += [
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
-        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
-    ]
-
 if CONFIG["CPU_ARCH"] == "arm":
 
     CFLAGS += [
@@ -227,6 +215,14 @@ if CONFIG["CPU_ARCH"] == "arm":
     DEFINES["WEBRTC_ARCH_ARM"] = True
     DEFINES["WEBRTC_ARCH_ARM_V7"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
+
+if CONFIG["CPU_ARCH"] == "ppc64":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
 
 if not CONFIG["MOZ_DEBUG"] and CONFIG["OS_TARGET"] == "Android":
 
@@ -252,6 +248,14 @@ if not CONFIG["MOZ_DEBUG"] and CONFIG["OS_TARGET"] == "OpenBSD":
 
     DEFINES["_FORTIFY_SOURCE"] = "2"
 
+if CONFIG["CPU_ARCH"] == "aarch64" and CONFIG["OS_TARGET"] == "Android":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
 
     CFLAGS += [
@@ -265,6 +269,14 @@ if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Android":
     ]
 
 if CONFIG["CPU_ARCH"] == "x86_64" and CONFIG["OS_TARGET"] == "Android":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
+if CONFIG["CPU_ARCH"] == "aarch64" and CONFIG["OS_TARGET"] == "FreeBSD":
 
     UNIFIED_SOURCES += [
         "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
@@ -292,6 +304,45 @@ if CONFIG["CPU_ARCH"] == "x86_64" and CONFIG["OS_TARGET"] == "FreeBSD":
         "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
     ]
 
+if CONFIG["CPU_ARCH"] == "aarch64" and CONFIG["OS_TARGET"] == "Linux":
+
+    DEFINES["DISABLE_NACL"] = True
+    DEFINES["NO_TCMALLOC"] = True
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
+if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "Linux":
+
+    CFLAGS += [
+        "-msse2"
+    ]
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
+if CONFIG["CPU_ARCH"] == "x86_64" and CONFIG["OS_TARGET"] == "Linux":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
+if CONFIG["CPU_ARCH"] == "aarch64" and CONFIG["OS_TARGET"] == "NetBSD":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
 if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "NetBSD":
 
     CFLAGS += [
@@ -305,6 +356,14 @@ if CONFIG["CPU_ARCH"] == "x86" and CONFIG["OS_TARGET"] == "NetBSD":
     ]
 
 if CONFIG["CPU_ARCH"] == "x86_64" and CONFIG["OS_TARGET"] == "NetBSD":
+
+    UNIFIED_SOURCES += [
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/filter_ar_fast_q12.c",
+        "/media/webrtc/trunk/webrtc/common_audio/signal_processing/spl_sqrt_floor.c"
+    ]
+
+if CONFIG["CPU_ARCH"] == "aarch64" and CONFIG["OS_TARGET"] == "OpenBSD":
 
     UNIFIED_SOURCES += [
         "/media/webrtc/trunk/webrtc/common_audio/signal_processing/complex_bit_reverse.c",

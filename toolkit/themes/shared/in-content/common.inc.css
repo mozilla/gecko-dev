@@ -217,7 +217,7 @@ xul|menulist[disabled="true"] {
 *|button.primary {
   background-color: var(--in-content-primary-button-background);
   border-color: transparent;
-  color: var(--in-content-selected-text);
+  color: var(--in-content-selected-text) !important;
 }
 
 html|button.primary:enabled:hover,
@@ -744,7 +744,7 @@ xul|treecolpicker {
   border-image: linear-gradient(transparent 0%, transparent 20%, #c1c1c1 20%, #c1c1c1 80%, transparent 80%, transparent 100%) 1 1;
 }
 
-xul|treecol:not([hideheader="true"]) > xul|*.treecol-sortdirection[sortDirection] {
+xul|treecol[sortDirection]:not([hideheader="true"]) > xul|*.treecol-sortdirection {
   list-style-image: url("chrome://global/skin/in-content/dropdown.svg");
   -moz-context-properties: fill;
   fill: -moz-DialogText;
@@ -752,7 +752,7 @@ xul|treecol:not([hideheader="true"]) > xul|*.treecol-sortdirection[sortDirection
   height: 18px;
 }
 
-xul|treecol:not([hideheader="true"]) > xul|*.treecol-sortdirection[sortDirection="ascending"] {
+xul|treecol[sortDirection="ascending"]:not([hideheader="true"]) > xul|*.treecol-sortdirection {
   transform: scaleY(-1);
 }
 
@@ -785,16 +785,13 @@ xul|treechildren::-moz-tree-image(selected) {
 }
 
 .message-bar-description {
-  line-height: 1.25;
-}
-
-.message-bar > description {
   margin: 0;
+  line-height: 1.25;
 }
 
 /* The message-bar-button styles have extra specificity to override
  * the defaults for buttons. */
-.message-bar > hbox > .message-bar-button {
+.message-bar-content > .message-bar-button {
   background-color: var(--grey-90-a10);
   border: none;
   border-radius: 2px;
@@ -803,11 +800,11 @@ xul|treechildren::-moz-tree-image(selected) {
   padding: 0 8px;
 }
 
-.message-bar > hbox > .message-bar-button:hover {
+.message-bar-content > .message-bar-button:hover {
   background-color: var(--grey-90-a20);
 }
 
-.message-bar > hbox > .message-bar-button:active {
+.message-bar-content > .message-bar-button:hover:active {
   background-color: var(--grey-90-a30);
 }
 

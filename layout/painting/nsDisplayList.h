@@ -1127,6 +1127,15 @@ public:
     const DisplayItemClipChain* aClipChain);
 
   /**
+   * Returns a new clip chain containing an intersection of all clips of
+   * |aClipChain| up to and including |aASR|.
+   * If there is no clip, returns nullptr.
+   */
+  const DisplayItemClipChain* FuseClipChainUpTo(
+    const DisplayItemClipChain* aClipChain,
+    const ActiveScrolledRoot* aASR);
+
+  /**
    * Only used for containerful root scrolling. This is a workaround.
    */
   void SetActiveScrolledRootForRootScrollframe(const ActiveScrolledRoot* aASR)
@@ -2402,7 +2411,9 @@ public:
    */
   virtual uint32_t GetPerFrameKey() const { return uint32_t(GetType()); }
 
-  uint8_t GetFlags() { return GetDisplayItemFlagsForType(GetType()); }
+  uint8_t GetFlags() const { return GetDisplayItemFlagsForType(GetType()); }
+
+  virtual bool IsContentful() const { return GetFlags() & TYPE_IS_CONTENTFUL; }
 
   /**
    * This is called after we've constructed a display list for event handling.

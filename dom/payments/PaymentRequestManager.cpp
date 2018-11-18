@@ -74,7 +74,9 @@ ConvertModifier(JSContext* aCx,
   }
 
   IPCPaymentItem total;
-  ConvertItem(aModifier.mTotal, total);
+  if (aModifier.mTotal.WasPassed()) {
+    ConvertItem(aModifier.mTotal.Value(), total);
+  }
 
   nsTArray<IPCPaymentItem> additionalDisplayItems;
   if (aModifier.mAdditionalDisplayItems.WasPassed()) {
@@ -195,7 +197,9 @@ ConvertDetailsUpdate(JSContext* aCx,
 
   // Convert required |total|
   IPCPaymentItem total;
-  ConvertItem(aDetails.mTotal, total);
+  if (aDetails.mTotal.WasPassed()) {
+    ConvertItem(aDetails.mTotal.Value(), total);
+  }
 
   // Convert |error|
   nsAutoString error;
@@ -204,13 +208,17 @@ ConvertDetailsUpdate(JSContext* aCx,
   }
 
   nsAutoString shippingAddressErrors;
-  if (!aDetails.mShippingAddressErrors.ToJSON(shippingAddressErrors)) {
-    return NS_ERROR_FAILURE;
+  if (aDetails.mShippingAddressErrors.WasPassed()) {
+    if (!aDetails.mShippingAddressErrors.Value().ToJSON(shippingAddressErrors)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   nsAutoString payerErrors;
-  if (!aDetails.mPayerErrors.ToJSON(payerErrors)) {
-    return NS_ERROR_FAILURE;
+  if (aDetails.mPayerErrors.WasPassed()) {
+    if (!aDetails.mPayerErrors.Value().ToJSON(payerErrors)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   nsAutoString paymentMethodErrors;
@@ -296,6 +304,43 @@ ConvertResponseData(const IPCPaymentResponseData& aIPCData,
 /* PaymentRequestManager */
 
 StaticRefPtr<PaymentRequestManager> gPaymentManager;
+const char kSupportedRegionsPref[] = "dom.payments.request.supportedRegions";
+
+void
+SupportedRegionsPrefChangedCallback(const char* aPrefName, nsTArray<nsString>* aRetval)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!strcmp(aPrefName, kSupportedRegionsPref));
+
+  nsAutoString supportedRegions;
+  Preferences::GetString(aPrefName, supportedRegions);
+  aRetval->Clear();
+  for (const nsAString& each : supportedRegions.Split(',')) {
+    aRetval->AppendElement(each);
+  }
+}
+
+PaymentRequestManager::PaymentRequestManager()
+{
+  Preferences::RegisterCallbackAndCall(SupportedRegionsPrefChangedCallback,
+                                       kSupportedRegionsPref,
+                                       &this->mSupportedRegions);
+}
+
+PaymentRequestManager::~PaymentRequestManager()
+{
+  MOZ_ASSERT(mActivePayments.Count() == 0);
+  Preferences::UnregisterCallback(SupportedRegionsPrefChangedCallback,
+                                  kSupportedRegionsPref,
+                                  &this->mSupportedRegions);
+  mSupportedRegions.Clear();
+}
+
+bool
+PaymentRequestManager::IsRegionSupported(const nsAString& region) const
+{
+  return mSupportedRegions.Contains(region);
+}
 
 PaymentRequestChild*
 PaymentRequestManager::GetPaymentChild(PaymentRequest* aRequest)
@@ -604,10 +649,18 @@ PaymentRequestManager::RetryPayment(JSContext* aCx,
   }
 
   nsAutoString shippingAddressErrors;
-  aErrors.mShippingAddress.ToJSON(shippingAddressErrors);
+  if (aErrors.mShippingAddress.WasPassed()) {
+    if (!aErrors.mShippingAddress.Value().ToJSON(shippingAddressErrors)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
 
   nsAutoString payerErrors;
-  aErrors.mPayer.ToJSON(payerErrors);
+  if (aErrors.mPayer.WasPassed()) {
+    if (!aErrors.mPayer.Value().ToJSON(payerErrors)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
 
   nsAutoString paymentMethodErrors;
   if (aErrors.mPaymentMethod.WasPassed()) {

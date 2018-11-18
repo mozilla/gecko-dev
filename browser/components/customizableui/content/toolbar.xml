@@ -7,61 +7,6 @@
           xmlns="http://www.mozilla.org/xbl"
           xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
           xmlns:xbl="http://www.mozilla.org/xbl">
-
-  <binding id="toolbar">
-    <implementation>
-      <constructor><![CDATA[
-          let scope = {};
-          ChromeUtils.import("resource:///modules/CustomizableUI.jsm", scope);
-          let CustomizableUI = scope.CustomizableUI;
-
-          // Searching for the toolbox palette in the toolbar binding because
-          // toolbars are constructed first.
-          let toolbox = this.closest("toolbox");
-          if (toolbox && !toolbox.palette) {
-            for (let node of toolbox.children) {
-              if (node.localName == "toolbarpalette") {
-                // Hold on to the palette but remove it from the document.
-                toolbox.palette = node;
-                toolbox.removeChild(node);
-                break;
-              }
-            }
-          }
-
-          // pass the current set of children for comparison with placements:
-          let children = Array.from(this.children)
-                              .filter(node => node.getAttribute("skipintoolbarset") != "true" && node.id)
-                              .map(node => node.id);
-          CustomizableUI.registerToolbarNode(this, children);
-      ]]></constructor>
-    </implementation>
-  </binding>
-
-  <!-- The toolbar-drag binding is almost a verbatim copy of its toolkit counterpart,
-       but it inherits from the customizableui's toolbar binding instead of toolkit's.
-       This functionality will move into CustomizableUI proper as part of our move
-       away from XBL. -->
-  <binding id="toolbar-drag"
-           extends="chrome://browser/content/customizableui/toolbar.xml#toolbar">
-    <implementation>
-      <field name="_dragBindingAlive">true</field>
-      <constructor><![CDATA[
-        if (!this._draggableStarted) {
-          this._draggableStarted = true;
-          try {
-            let tmp = {};
-            ChromeUtils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
-            let draggableThis = new tmp.WindowDraggingElement(this);
-            draggableThis.mouseDownCheck = function(e) {
-              return this._dragBindingAlive;
-            };
-          } catch (e) {}
-        }
-      ]]></constructor>
-    </implementation>
-  </binding>
-
   <binding id="toolbarpaletteitem">
     <content>
       <xul:hbox class="toolbarpaletteitem-box">

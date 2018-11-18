@@ -15,6 +15,7 @@
 #include "mozilla/layers/WebRenderDrawEventRecorder.h"
 #include "WebRenderTypes.h"
 #include "webrender_ffi.h"
+#include "GeckoProfiler.h"
 
 #include <unordered_map>
 
@@ -322,9 +323,10 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
                                 gfx::SurfaceFormat aFormat,
                                 const uint16_t *aTileSize,
                                 const mozilla::wr::TileOffset *aTileOffset,
-                                const mozilla::wr::DeviceUintRect *aDirtyRect,
+                                const mozilla::wr::DeviceIntRect *aDirtyRect,
                                 Range<uint8_t> aOutput)
 {
+  AUTO_PROFILER_TRACING("WebRender", "RasterizeSingleBlob");
   MOZ_ASSERT(aSize.width > 0 && aSize.height > 0);
   if (aSize.width <= 0 || aSize.height <= 0) {
     return false;
@@ -445,7 +447,10 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
 
     Range<const uint8_t> blob(aBlob.begin() + offset, aBlob.begin() + end);
     ret = translator.TranslateRecording((char*)blob.begin().get(), blob.length());
-    MOZ_RELEASE_ASSERT(ret);
+    if (!ret) {
+      gfxCriticalNote << "Replay failure: " << translator.GetError();
+      MOZ_RELEASE_ASSERT(false);
+    }
     offset = extra_end;
   }
 
@@ -477,11 +482,11 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
 extern "C" {
 
 bool wr_moz2d_render_cb(const mozilla::wr::ByteSlice blob,
-                        uint32_t width, uint32_t height,
+                        int32_t width, int32_t height,
                         mozilla::wr::ImageFormat aFormat,
                         const uint16_t *aTileSize,
                         const mozilla::wr::TileOffset *aTileOffset,
-                        const mozilla::wr::DeviceUintRect *aDirtyRect,
+                        const mozilla::wr::DeviceIntRect *aDirtyRect,
                         mozilla::wr::MutByteSlice output)
 {
   return mozilla::wr::Moz2DRenderCallback(mozilla::wr::ByteSliceToRange(blob),

@@ -10,23 +10,22 @@ use api::{FilterOp, FontInstanceKey, GlyphInstance, GlyphOptions, RasterSpace, G
 use api::{IframeDisplayItem, ImageKey, ImageRendering, ItemRange, LayoutPoint, ColorDepth};
 use api::{LayoutPrimitiveInfo, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
 use api::{LineOrientation, LineStyle, NinePatchBorderSource, PipelineId};
-use api::{PropertyBinding, ReferenceFrame, RepeatMode, ScrollFrameDisplayItem, ScrollSensitivity};
+use api::{PropertyBinding, ReferenceFrame, ScrollFrameDisplayItem, ScrollSensitivity};
 use api::{Shadow, SpecificDisplayItem, StackingContext, StickyFrameDisplayItem, TexelRect};
 use api::{ClipMode, TransformStyle, YuvColorSpace, YuvData};
+use border::create_nine_patch_segments;
 use clip::{ClipChainId, ClipRegion, ClipItemKey, ClipStore, ClipItemSceneData};
 use clip_scroll_tree::{ROOT_SPATIAL_NODE_INDEX, ClipScrollTree, SpatialNodeIndex};
-use euclid::vec2;
 use frame_builder::{ChasePrimitive, FrameBuilder, FrameBuilderConfig};
 use glyph_rasterizer::FontInstance;
 use gpu_cache::GpuCacheHandle;
-use gpu_types::BrushFlags;
 use hit_test::{HitTestingItem, HitTestingRun};
 use image::simplify_repeated_primitive;
 use internal_types::{FastHashMap, FastHashSet};
-use picture::{Picture3DContext, PictureCompositeMode, PictureIdGenerator, PicturePrimitive, PrimitiveList};
-use prim_store::{BrushKind, BrushPrimitive, BrushSegmentDescriptor, PrimitiveInstance, PrimitiveDataInterner, PrimitiveKeyKind};
-use prim_store::{EdgeAaSegmentMask, ImageSource, PrimitiveOpacity, PrimitiveKey, PrimitiveSceneData, PrimitiveInstanceKind};
-use prim_store::{BorderSource, BrushSegment, BrushSegmentVec, PrimitiveContainer, PrimitiveDataHandle, PrimitiveStore};
+use picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive, PrimitiveList};
+use prim_store::{BrushKind, BrushPrimitive, PrimitiveInstance, PrimitiveDataInterner, PrimitiveKeyKind};
+use prim_store::{ImageSource, PrimitiveOpacity, PrimitiveKey, PrimitiveSceneData, PrimitiveInstanceKind};
+use prim_store::{BorderSource, PrimitiveContainer, PrimitiveDataHandle, PrimitiveStore};
 use prim_store::{OpacityBinding, ScrollNodeAndClipChain, PictureIndex, register_prim_chase_id};
 use render_backend::{DocumentView};
 use resource_cache::{FontInstanceMap, ImageRequest};
@@ -36,7 +35,7 @@ use spatial_node::{StickyFrameInfo};
 use std::{f32, mem};
 use std::collections::vec_deque::VecDeque;
 use tiling::{CompositeOps};
-use util::{MaxRect, RectHelpers};
+use util::{MaxRect};
 
 #[derive(Debug, Copy, Clone)]
 struct ClipNode {
@@ -116,9 +115,6 @@ pub struct DisplayListFlattener<'a> {
     /// The ClipScrollTree that we are currently building during flattening.
     clip_scroll_tree: &'a mut ClipScrollTree,
 
-    /// A counter for generating unique picture ids.
-    picture_id_generator: &'a mut PictureIdGenerator,
-
     /// The map of all font instances.
     font_instances: FontInstanceMap,
 
@@ -173,7 +169,6 @@ impl<'a> DisplayListFlattener<'a> {
         output_pipelines: &FastHashSet<PipelineId>,
         frame_builder_config: &FrameBuilderConfig,
         new_scene: &mut Scene,
-        picture_id_generator: &mut PictureIdGenerator,
         resources: &mut DocumentResources,
     ) -> FrameBuilder {
         // We checked that the root pipeline is available on the render backend.
@@ -197,7 +192,6 @@ impl<'a> DisplayListFlattener<'a> {
             pipeline_clip_chain_stack: vec![ClipChainId::NONE],
             prim_store: PrimitiveStore::new(),
             clip_store: ClipStore::new(),
-            picture_id_generator,
             resources,
             prim_count_estimate: 0,
             root_pic_index: PictureIndex(0),
@@ -375,7 +369,7 @@ impl<'a> DisplayListFlattener<'a> {
 
         debug_assert!(info.clip_id != info.scroll_frame_id);
 
-        self.add_clip_node(info.clip_id, clip_and_scroll_ids.scroll_node_id, clip_region);
+        self.add_clip_node(info.clip_id, clip_and_scroll_ids, clip_region);
 
         self.add_scroll_frame(
             info.scroll_frame_id,
@@ -394,12 +388,13 @@ impl<'a> DisplayListFlattener<'a> {
         pipeline_id: PipelineId,
         item: &DisplayItemRef,
         reference_frame: &ReferenceFrame,
-        scroll_node_id: ClipId,
+        clip_and_scroll_ids: &ClipAndScrollInfo,
         reference_frame_relative_offset: LayoutVector2D,
     ) {
         self.push_reference_frame(
             reference_frame.id,
-            Some(scroll_node_id),
+            Some(clip_and_scroll_ids.scroll_node_id),
+            clip_and_scroll_ids.clip_node_id,
             pipeline_id,
             reference_frame.transform,
             reference_frame.perspective,
@@ -470,10 +465,9 @@ impl<'a> DisplayListFlattener<'a> {
             },
         };
 
-        //TODO: use or assert on `clip_and_scroll_ids.clip_node_id` ?
         let clip_chain_index = self.add_clip_node(
             info.clip_id,
-            clip_and_scroll_ids.scroll_node_id,
+            clip_and_scroll_ids,
             ClipRegion::create_for_clip_node_with_local_clip(
                 item.clip_rect(),
                 reference_frame_relative_offset
@@ -486,6 +480,7 @@ impl<'a> DisplayListFlattener<'a> {
         self.push_reference_frame(
             ClipId::root_reference_frame(iframe_pipeline_id),
             Some(info.clip_id),
+            None,
             iframe_pipeline_id,
             None,
             None,
@@ -653,7 +648,7 @@ impl<'a> DisplayListFlattener<'a> {
                     pipeline_id,
                     &item,
                     &info.reference_frame,
-                    clip_and_scroll_ids.scroll_node_id,
+                    &clip_and_scroll_ids,
                     reference_frame_relative_offset,
                 );
                 return Some(subtraversal);
@@ -675,7 +670,7 @@ impl<'a> DisplayListFlattener<'a> {
                     info.image_mask,
                     &reference_frame_relative_offset,
                 );
-                self.add_clip_node(info.id, clip_and_scroll_ids.scroll_node_id, clip_region);
+                self.add_clip_node(info.id, &clip_and_scroll_ids, clip_region);
             }
             SpecificDisplayItem::ClipChain(ref info) => {
                 // For a user defined clip-chain the parent (if specified) must
@@ -1002,7 +997,6 @@ impl<'a> DisplayListFlattener<'a> {
                 // Cut the sequence of flat children before starting a child stacking context,
                 // so that the relative order between them and our current SC is preserved.
                 let extra_instance = sc.cut_flat_item_sequence(
-                    &mut self.picture_id_generator,
                     &mut self.prim_store,
                     &self.resources.prim_interner,
                     &self.clip_store,
@@ -1130,7 +1124,6 @@ impl<'a> DisplayListFlattener<'a> {
             &self.resources.prim_interner,
         );
         let leaf_picture = PicturePrimitive::new_image(
-            self.picture_id_generator.next(),
             leaf_composite_mode,
             leaf_context_3d,
             stacking_context.pipeline_id,
@@ -1172,7 +1165,6 @@ impl<'a> DisplayListFlattener<'a> {
 
             // This is the acttual picture representing our 3D hierarchy root.
             let container_picture = PicturePrimitive::new_image(
-                self.picture_id_generator.next(),
                 None,
                 Picture3DContext::In {
                     root_data: Some(Vec::new()),
@@ -1202,7 +1194,6 @@ impl<'a> DisplayListFlattener<'a> {
             );
 
             let filter_picture = PicturePrimitive::new_image(
-                self.picture_id_generator.next(),
                 Some(PictureCompositeMode::Filter(filter)),
                 Picture3DContext::Out,
                 stacking_context.pipeline_id,
@@ -1236,7 +1227,6 @@ impl<'a> DisplayListFlattener<'a> {
             );
 
             let blend_picture = PicturePrimitive::new_image(
-                self.picture_id_generator.next(),
                 Some(PictureCompositeMode::MixBlend(mix_blend_mode)),
                 Picture3DContext::Out,
                 stacking_context.pipeline_id,
@@ -1304,13 +1294,14 @@ impl<'a> DisplayListFlattener<'a> {
     pub fn push_reference_frame(
         &mut self,
         reference_frame_id: ClipId,
-        parent_id: Option<ClipId>,
+        parent_scroll_id: Option<ClipId>,
+        parent_clip_id: Option<ClipId>,
         pipeline_id: PipelineId,
         source_transform: Option<PropertyBinding<LayoutTransform>>,
         source_perspective: Option<LayoutTransform>,
         origin_in_parent_reference_frame: LayoutVector2D,
     ) -> SpatialNodeIndex {
-        let parent_index = parent_id.map(|id| self.id_to_index_mapper.get_spatial_node_index(id));
+        let parent_index = parent_scroll_id.map(|id| self.id_to_index_mapper.get_spatial_node_index(id));
         let index = self.clip_scroll_tree.add_reference_frame(
             parent_index,
             source_transform,
@@ -1320,7 +1311,7 @@ impl<'a> DisplayListFlattener<'a> {
         );
         self.id_to_index_mapper.map_spatial_node(reference_frame_id, index);
 
-        match parent_id {
+        match parent_clip_id.or(parent_scroll_id) {
             Some(ref parent_id) =>
                 self.id_to_index_mapper.map_to_parent_clip_chain(reference_frame_id, parent_id),
             _ => self.id_to_index_mapper.add_clip_chain(reference_frame_id, ClipChainId::NONE, 0),
@@ -1342,6 +1333,7 @@ impl<'a> DisplayListFlattener<'a> {
         self.push_reference_frame(
             ClipId::root_reference_frame(pipeline_id),
             None,
+            None,
             pipeline_id,
             None,
             None,
@@ -1362,7 +1354,7 @@ impl<'a> DisplayListFlattener<'a> {
     pub fn add_clip_node<I>(
         &mut self,
         new_node_id: ClipId,
-        parent_id: ClipId,
+        parent: &ClipAndScrollInfo,
         clip_region: ClipRegion<I>,
     ) -> ClipChainId
     where
@@ -1374,9 +1366,9 @@ impl<'a> DisplayListFlattener<'a> {
         // Map from parent ClipId to existing clip-chain.
         let mut parent_clip_chain_index = self
             .id_to_index_mapper
-            .get_clip_chain_id(&parent_id);
+            .get_clip_chain_id(&parent.clip_node_id());
         // Map the ClipId for the positioning node to a spatial node index.
-        let spatial_node = self.id_to_index_mapper.get_spatial_node_index(parent_id);
+        let spatial_node = self.id_to_index_mapper.get_spatial_node_index(parent.scroll_node_id);
 
         // Add a mapping for this ClipId in case it's referenced as a positioning node.
         self.id_to_index_mapper
@@ -1578,7 +1570,6 @@ impl<'a> DisplayListFlattener<'a> {
                         // parent picture, which avoids an intermediate surface and blur.
                         let blur_filter = FilterOp::Blur(std_deviation).sanitize();
                         let mut shadow_pic = PicturePrimitive::new_image(
-                            self.picture_id_generator.next(),
                             Some(PictureCompositeMode::Filter(blur_filter)),
                             Picture3DContext::Out,
                             pipeline_id,
@@ -1739,171 +1730,13 @@ impl<'a> DisplayListFlattener<'a> {
         gradient_stops: ItemRange<GradientStop>,
         pipeline_id: PipelineId,
     ) {
-        let rect = info.rect;
         match border_item.details {
             BorderDetails::NinePatch(ref border) => {
-                // Calculate the modified rect as specific by border-image-outset
-                let origin = LayoutPoint::new(
-                    rect.origin.x - border.outset.left,
-                    rect.origin.y - border.outset.top,
+                let descriptor = create_nine_patch_segments(
+                    &info.rect,
+                    &border_item.widths,
+                    border,
                 );
-                let size = LayoutSize::new(
-                    rect.size.width + border.outset.left + border.outset.right,
-                    rect.size.height + border.outset.top + border.outset.bottom,
-                );
-                let rect = LayoutRect::new(origin, size);
-
-                // Calculate the local texel coords of the slices.
-                let px0 = 0.0;
-                let px1 = border.slice.left as f32;
-                let px2 = border.width as f32 - border.slice.right as f32;
-                let px3 = border.width as f32;
-
-                let py0 = 0.0;
-                let py1 = border.slice.top as f32;
-                let py2 = border.height as f32 - border.slice.bottom as f32;
-                let py3 = border.height as f32;
-
-                let tl_outer = LayoutPoint::new(rect.origin.x, rect.origin.y);
-                let tl_inner = tl_outer + vec2(border_item.widths.left, border_item.widths.top);
-
-                let tr_outer = LayoutPoint::new(rect.origin.x + rect.size.width, rect.origin.y);
-                let tr_inner = tr_outer + vec2(-border_item.widths.right, border_item.widths.top);
-
-                let bl_outer = LayoutPoint::new(rect.origin.x, rect.origin.y + rect.size.height);
-                let bl_inner = bl_outer + vec2(border_item.widths.left, -border_item.widths.bottom);
-
-                let br_outer = LayoutPoint::new(
-                    rect.origin.x + rect.size.width,
-                    rect.origin.y + rect.size.height,
-                );
-                let br_inner = br_outer - vec2(border_item.widths.right, border_item.widths.bottom);
-
-                fn add_segment(
-                    segments: &mut BrushSegmentVec,
-                    rect: LayoutRect,
-                    uv_rect: TexelRect,
-                    repeat_horizontal: RepeatMode,
-                    repeat_vertical: RepeatMode
-                ) {
-                    if uv_rect.uv1.x > uv_rect.uv0.x &&
-                       uv_rect.uv1.y > uv_rect.uv0.y {
-
-                        // Use segment relative interpolation for all
-                        // instances in this primitive.
-                        let mut brush_flags =
-                            BrushFlags::SEGMENT_RELATIVE |
-                            BrushFlags::SEGMENT_TEXEL_RECT;
-
-                        // Enable repeat modes on the segment.
-                        if repeat_horizontal == RepeatMode::Repeat {
-                            brush_flags |= BrushFlags::SEGMENT_REPEAT_X;
-                        }
-                        if repeat_vertical == RepeatMode::Repeat {
-                            brush_flags |= BrushFlags::SEGMENT_REPEAT_Y;
-                        }
-
-                        let segment = BrushSegment::new(
-                            rect,
-                            true,
-                            EdgeAaSegmentMask::empty(),
-                            [
-                                uv_rect.uv0.x,
-                                uv_rect.uv0.y,
-                                uv_rect.uv1.x,
-                                uv_rect.uv1.y,
-                            ],
-                            brush_flags,
-                        );
-
-                        segments.push(segment);
-                    }
-                }
-
-                // Build the list of image segments
-                let mut segments = BrushSegmentVec::new();
-
-                // Top left
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(tl_outer.x, tl_outer.y, tl_inner.x, tl_inner.y),
-                    TexelRect::new(px0, py0, px1, py1),
-                    RepeatMode::Stretch,
-                    RepeatMode::Stretch
-                );
-                // Top right
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(tr_inner.x, tr_outer.y, tr_outer.x, tr_inner.y),
-                    TexelRect::new(px2, py0, px3, py1),
-                    RepeatMode::Stretch,
-                    RepeatMode::Stretch
-                );
-                // Bottom right
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(br_inner.x, br_inner.y, br_outer.x, br_outer.y),
-                    TexelRect::new(px2, py2, px3, py3),
-                    RepeatMode::Stretch,
-                    RepeatMode::Stretch
-                );
-                // Bottom left
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(bl_outer.x, bl_inner.y, bl_inner.x, bl_outer.y),
-                    TexelRect::new(px0, py2, px1, py3),
-                    RepeatMode::Stretch,
-                    RepeatMode::Stretch
-                );
-
-                // Center
-                if border.fill {
-                    add_segment(
-                        &mut segments,
-                        LayoutRect::from_floats(tl_inner.x, tl_inner.y, tr_inner.x, bl_inner.y),
-                        TexelRect::new(px1, py1, px2, py2),
-                        border.repeat_horizontal,
-                        border.repeat_vertical
-                    );
-                }
-
-                // Add edge segments.
-
-                // Top
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(tl_inner.x, tl_outer.y, tr_inner.x, tl_inner.y),
-                    TexelRect::new(px1, py0, px2, py1),
-                    border.repeat_horizontal,
-                    RepeatMode::Stretch,
-                );
-                // Bottom
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(bl_inner.x, bl_inner.y, br_inner.x, bl_outer.y),
-                    TexelRect::new(px1, py2, px2, py3),
-                    border.repeat_horizontal,
-                    RepeatMode::Stretch,
-                );
-                // Left
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(tl_outer.x, tl_inner.y, tl_inner.x, bl_inner.y),
-                    TexelRect::new(px0, py1, px1, py2),
-                    RepeatMode::Stretch,
-                    border.repeat_vertical,
-                );
-                // Right
-                add_segment(
-                    &mut segments,
-                    LayoutRect::from_floats(tr_inner.x, tr_inner.y, br_outer.x, br_inner.y),
-                    TexelRect::new(px2, py1, px3, py2),
-                    RepeatMode::Stretch,
-                    border.repeat_vertical,
-                );
-                let descriptor = BrushSegmentDescriptor {
-                    segments,
-                };
 
                 let brush_kind = match border.source {
                     NinePatchBorderSource::Image(image_key) => {
@@ -2308,7 +2141,6 @@ impl FlattenedStackingContext {
     /// recorded so far and generate a picture from them.
     pub fn cut_flat_item_sequence(
         &mut self,
-        picture_id_generator: &mut PictureIdGenerator,
         prim_store: &mut PrimitiveStore,
         prim_interner: &PrimitiveDataInterner,
         clip_store: &ClipStore,
@@ -2330,7 +2162,6 @@ impl FlattenedStackingContext {
         );
 
         let container_picture = PicturePrimitive::new_image(
-            picture_id_generator.next(),
             Some(PictureCompositeMode::Blit),
             flat_items_context_3d,
             self.pipeline_id,

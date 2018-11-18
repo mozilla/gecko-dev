@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{AlphaType, ClipMode, DeviceIntRect, DeviceIntSize};
-use api::{DeviceUintRect, DeviceUintPoint, ExternalImageType, FilterOp, ImageRendering};
-use api::{YuvColorSpace, YuvFormat, WorldRect, ColorDepth};
+use api::{AlphaType, ClipMode, DeviceIntRect, DeviceIntPoint, DeviceIntSize};
+use api::{ExternalImageType, FilterOp, ImageRendering};
+use api::{YuvColorSpace, YuvFormat, PictureRect, ColorDepth};
 use clip::{ClipDataStore, ClipNodeFlags, ClipNodeRange, ClipItem, ClipStore};
 use clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
 use glyph_rasterizer::GlyphFormat;
@@ -15,10 +15,10 @@ use gpu_types::{PrimitiveInstanceData, RasterizationSpace, GlyphInstance};
 use gpu_types::{PrimitiveHeader, PrimitiveHeaderIndex, TransformPaletteId, TransformPalette};
 use internal_types::{FastHashMap, SavedTargetIndex, TextureSource};
 use picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive, PictureSurface};
-use prim_store::{BrushKind, BrushPrimitive, BrushSegmentTaskId, DeferredResolve};
+use prim_store::{BrushKind, BrushPrimitive, DeferredResolve};
 use prim_store::{EdgeAaSegmentMask, ImageSource, PrimitiveInstanceKind};
 use prim_store::{VisibleGradientTile, PrimitiveInstance, PrimitiveOpacity};
-use prim_store::{BrushSegment, BorderSource, PrimitiveDetails};
+use prim_store::{BrushSegment, BorderSource, ClipMaskKind, ClipTaskIndex, PrimitiveDetails};
 use render_task::{RenderTaskAddress, RenderTaskId, RenderTaskTree};
 use renderer::{BlendMode, ImageBufferKind, ShaderColorMode};
 use renderer::BLOCKS_PER_UV_RECT;
@@ -125,7 +125,7 @@ fn textures_compatible(t1: TextureSource, t2: TextureSource) -> bool {
 
 pub struct AlphaBatchList {
     pub batches: Vec<PrimitiveBatch>,
-    pub item_rects: Vec<Vec<WorldRect>>,
+    pub item_rects: Vec<Vec<PictureRect>>,
     current_batch_index: usize,
     current_z_id: ZBufferId,
 }
@@ -143,7 +143,7 @@ impl AlphaBatchList {
     pub fn set_params_and_get_batch(
         &mut self,
         key: BatchKey,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         z_id: ZBufferId,
     ) -> &mut Vec<PrimitiveInstanceData> {
         if z_id != self.current_z_id ||
@@ -224,7 +224,7 @@ impl OpaqueBatchList {
     pub fn set_params_and_get_batch(
         &mut self,
         key: BatchKey,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
     ) -> &mut Vec<PrimitiveInstanceData> {
         if self.current_batch_index == usize::MAX ||
            !self.batches[self.current_batch_index].key.is_compatible_with(&key) {
@@ -296,7 +296,7 @@ impl BatchList {
     pub fn push_single_instance(
         &mut self,
         key: BatchKey,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         z_id: ZBufferId,
         instance: PrimitiveInstanceData,
     ) {
@@ -322,7 +322,7 @@ impl BatchList {
     pub fn set_params_and_get_batch(
         &mut self,
         key: BatchKey,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         z_id: ZBufferId,
     ) -> &mut Vec<PrimitiveInstanceData> {
         match key.blend_mode {
@@ -514,7 +514,7 @@ impl AlphaBatchBuilder {
         root_spatial_node_index: SpatialNodeIndex,
         z_generator: &mut ZBufferIdGenerator,
     ) {
-        if prim_instance.clipped_world_rect.is_none() {
+        if prim_instance.bounding_rect.is_none() {
             return;
         }
 
@@ -532,14 +532,18 @@ impl AlphaBatchBuilder {
         //           wasteful. We should probably cache this in
         //           the scroll node...
         let transform_kind = transform_id.transform_kind();
-        let bounding_rect = prim_instance.clipped_world_rect
+        let bounding_rect = prim_instance.bounding_rect
                                          .as_ref()
                                          .expect("bug");
         let z_id = z_generator.next();
 
-        let clip_task_address = prim_instance
-            .clip_task_id
-            .map_or(OPAQUE_TASK_ADDRESS, |id| render_tasks.get_task_address(id));
+        // Get the clip task address for the global primitive, if one was set.
+        let clip_task_address = get_clip_task_address(
+            &ctx.prim_store.clip_mask_instances,
+            prim_instance.clip_task_index,
+            0,
+            render_tasks,
+        ).unwrap_or(OPAQUE_TASK_ADDRESS);
 
         match prim_instance.kind {
             PrimitiveInstanceKind::Clear => {
@@ -745,7 +749,7 @@ impl AlphaBatchBuilder {
                 //           helper methods, as we port more primitives to make
                 //           use of interning.
                 let blend_mode = if !prim_data.opacity.is_opaque ||
-                    prim_instance.clip_task_id.is_some() ||
+                    prim_instance.clip_task_index != ClipTaskIndex::INVALID ||
                     transform_kind == TransformedRectKind::Complex
                 {
                     BlendMode::PremultipliedAlpha
@@ -793,7 +797,7 @@ impl AlphaBatchBuilder {
             PrimitiveInstanceKind::Picture { pic_index } => {
                 let picture = &ctx.prim_store.pictures[pic_index.0];
                 let non_segmented_blend_mode = BlendMode::PremultipliedAlpha;
-                let prim_cache_address = gpu_cache.get_address(&prim_instance.gpu_location);
+                let prim_cache_address = gpu_cache.get_address(&picture.gpu_location);
 
                 let prim_header = PrimitiveHeader {
                     local_rect: picture.local_rect,
@@ -820,9 +824,13 @@ impl AlphaBatchBuilder {
                             };
                             let pic = &ctx.prim_store.pictures[pic_index.0];
 
-                            let clip_task_address = prim_instance
-                                .clip_task_id
-                                .map_or(OPAQUE_TASK_ADDRESS, |id| render_tasks.get_task_address(id));
+                            // Get clip task, if set, for the picture primitive.
+                            let clip_task_address = get_clip_task_address(
+                                &ctx.prim_store.clip_mask_instances,
+                                prim_instance.clip_task_index,
+                                0,
+                                render_tasks,
+                            ).unwrap_or(OPAQUE_TASK_ADDRESS);
 
                             let prim_header = PrimitiveHeader {
                                 local_rect: pic.local_rect,
@@ -869,7 +877,7 @@ impl AlphaBatchBuilder {
 
                             self.batch_list.push_single_instance(
                                 key,
-                                &prim_instance.clipped_world_rect.as_ref().expect("bug"),
+                                &prim_instance.bounding_rect.as_ref().expect("bug"),
                                 z_id,
                                 PrimitiveInstanceData::from(instance),
                             );
@@ -1217,38 +1225,38 @@ impl AlphaBatchBuilder {
                     }
                 };
 
-                let prim_cache_address = if is_multiple_primitives {
-                    GpuCacheAddress::invalid()
-                } else {
-                    gpu_cache.get_address(&prim_instance.gpu_location)
-                };
-
                 let specified_blend_mode = prim_instance.get_blend_mode(&prim.details);
-
-                let prim_header = PrimitiveHeader {
-                    local_rect: prim.local_rect,
-                    local_clip_rect: prim_instance.combined_local_clip_rect,
-                    task_address,
-                    specific_prim_address: prim_cache_address,
-                    clip_task_address,
-                    transform_id,
-                };
-
-                if prim_instance.is_chased() {
-                    println!("\ttask target {:?}", self.target_rect);
-                    println!("\t{:?}", prim_header);
-                }
 
                 match prim.details {
                     PrimitiveDetails::Brush(ref brush) => {
                         let non_segmented_blend_mode = if !brush.opacity.is_opaque ||
-                            prim_instance.clip_task_id.is_some() ||
+                            prim_instance.clip_task_index != ClipTaskIndex::INVALID ||
                             transform_kind == TransformedRectKind::Complex
                         {
                             specified_blend_mode
                         } else {
                             BlendMode::None
                         };
+
+                        let prim_cache_address = if is_multiple_primitives {
+                            GpuCacheAddress::invalid()
+                        } else {
+                            gpu_cache.get_address(&brush.gpu_location)
+                        };
+
+                        let prim_header = PrimitiveHeader {
+                            local_rect: prim.local_rect,
+                            local_clip_rect: prim_instance.combined_local_clip_rect,
+                            task_address,
+                            specific_prim_address: prim_cache_address,
+                            clip_task_address,
+                            transform_id,
+                        };
+
+                        if prim_instance.is_chased() {
+                            println!("\ttask target {:?}", self.target_rect);
+                            println!("\t{:?}", prim_header);
+                        }
 
                         match brush.kind {
                             BrushKind::Image { alpha_type, request, ref opacity_binding, ref visible_tiles, .. } if !visible_tiles.is_empty() => {
@@ -1338,6 +1346,8 @@ impl AlphaBatchBuilder {
                                         transform_kind,
                                         render_tasks,
                                         z_id,
+                                        prim_instance.clip_task_index,
+                                        ctx,
                                     );
                                 }
                             }
@@ -1355,7 +1365,7 @@ impl AlphaBatchBuilder {
         textures: BatchTextures,
         prim_header_index: PrimitiveHeaderIndex,
         clip_task_address: RenderTaskAddress,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         edge_flags: EdgeAaSegmentMask,
         uv_rect_address: GpuCacheAddress,
         z_id: ZBufferId,
@@ -1391,22 +1401,32 @@ impl AlphaBatchBuilder {
         batch_kind: BrushBatchKind,
         prim_header_index: PrimitiveHeaderIndex,
         alpha_blend_mode: BlendMode,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         transform_kind: TransformedRectKind,
         render_tasks: &RenderTaskTree,
         z_id: ZBufferId,
         prim_opacity: PrimitiveOpacity,
+        clip_task_index: ClipTaskIndex,
+        ctx: &RenderTargetContext,
     ) {
-        let clip_task_address = match segment.clip_task_id {
-            BrushSegmentTaskId::RenderTaskId(id) =>
-                render_tasks.get_task_address(id),
-            BrushSegmentTaskId::Opaque => OPAQUE_TASK_ADDRESS,
-            BrushSegmentTaskId::Empty => return,
+        debug_assert!(clip_task_index != ClipTaskIndex::INVALID);
+
+        // Get GPU address of clip task for this segment, or None if
+        // the entire segment is clipped out.
+        let clip_task_address = match get_clip_task_address(
+            &ctx.prim_store.clip_mask_instances,
+            clip_task_index,
+            segment_index,
+            render_tasks,
+        ) {
+            Some(clip_task_address) => clip_task_address,
+            None => return,
         };
 
+        // If a got a valid (or OPAQUE) clip task address, add the segment.
         let is_inner = segment.edge_flags.is_empty();
         let needs_blending = !prim_opacity.is_opaque ||
-                             segment.clip_task_id.needs_blending() ||
+                             clip_task_address != OPAQUE_TASK_ADDRESS ||
                              (!is_inner && transform_kind == TransformedRectKind::Complex);
 
         let instance = PrimitiveInstanceData::from(BrushInstance {
@@ -1441,10 +1461,12 @@ impl AlphaBatchBuilder {
         non_segmented_blend_mode: BlendMode,
         prim_header_index: PrimitiveHeaderIndex,
         clip_task_address: RenderTaskAddress,
-        bounding_rect: &WorldRect,
+        bounding_rect: &PictureRect,
         transform_kind: TransformedRectKind,
         render_tasks: &RenderTaskTree,
         z_id: ZBufferId,
+        clip_task_index: ClipTaskIndex,
+        ctx: &RenderTargetContext,
     ) {
         match (&brush.segment_desc, &params.segment_data) {
             (Some(ref segment_desc), SegmentDataKind::Instanced(ref segment_data)) => {
@@ -1468,6 +1490,8 @@ impl AlphaBatchBuilder {
                         render_tasks,
                         z_id,
                         brush.opacity,
+                        clip_task_index,
+                        ctx,
                     );
                 }
             }
@@ -1490,6 +1514,8 @@ impl AlphaBatchBuilder {
                         render_tasks,
                         z_id,
                         brush.opacity,
+                        clip_task_index,
+                        ctx,
                     );
                 }
             }
@@ -1530,7 +1556,7 @@ fn add_gradient_tiles(
     stops_handle: &GpuCacheHandle,
     kind: BrushBatchKind,
     blend_mode: BlendMode,
-    bounding_rect: &WorldRect,
+    bounding_rect: &PictureRect,
     clip_task_address: RenderTaskAddress,
     gpu_cache: &GpuCache,
     batch_list: &mut BatchList,
@@ -1969,8 +1995,8 @@ pub fn resolve_image(
                     let cache_item = CacheItem {
                         texture_id: TextureSource::External(external_image),
                         uv_rect_handle: cache_handle,
-                        uv_rect: DeviceUintRect::new(
-                            DeviceUintPoint::zero(),
+                        uv_rect: DeviceIntRect::new(
+                            DeviceIntPoint::zero(),
                             image_properties.descriptor.size,
                         ),
                         texture_layer: 0,
@@ -2184,4 +2210,29 @@ fn get_buffer_kind(texture: TextureSource) -> ImageBufferKind {
 
 fn get_shader_opacity(opacity: f32) -> i32 {
     (opacity * 65535.0).round() as i32
+}
+
+/// Retrieve the GPU task address for a given clip task instance.
+/// Returns None if the segment was completely clipped out.
+/// Returns Some(OPAQUE_TASK_ADDRESS) if no clip mask is needed.
+/// Returns Some(task_address) if there was a valid clip mask.
+fn get_clip_task_address(
+    clip_mask_instances: &[ClipMaskKind],
+    clip_task_index: ClipTaskIndex,
+    offset: i32,
+    render_tasks: &RenderTaskTree,
+) -> Option<RenderTaskAddress> {
+    let address = match clip_mask_instances[clip_task_index.0 as usize + offset as usize] {
+        ClipMaskKind::Mask(task_id) => {
+            render_tasks.get_task_address(task_id)
+        }
+        ClipMaskKind::None => {
+            OPAQUE_TASK_ADDRESS
+        }
+        ClipMaskKind::Clipped => {
+            return None;
+        }
+    };
+
+    Some(address)
 }

@@ -36,7 +36,7 @@
 #include "gc/Policy.h"
 #include "js/MemoryMetrics.h"
 #include "js/Printf.h"
-#include "js/SourceBufferHolder.h"
+#include "js/SourceText.h"
 #include "js/StableStringChars.h"
 #include "js/Wrapper.h"
 #include "util/StringBuffer.h"
@@ -76,7 +76,8 @@ using mozilla::Unused;
 using JS::AsmJSOption;
 using JS::AutoStableStringChars;
 using JS::GenericNaN;
-using JS::SourceBufferHolder;
+using JS::SourceOwnership;
+using JS::SourceText;
 
 /*****************************************************************************/
 
@@ -6654,9 +6655,8 @@ TryInstantiate(JSContext* cx, CallArgs args, const Module& module, const AsmJSMe
     }
 
     Rooted<WasmGlobalObjectVector> globalObjs(cx);
-
-    RootedWasmTableObject table(cx);
-    if (!module.instantiate(cx, funcs, table, memory, valImports, globalObjs.get(), nullptr,
+    Rooted<WasmTableObjectVector> tables(cx);
+    if (!module.instantiate(cx, funcs, tables.get(), memory, valImports, globalObjs.get(), nullptr,
                             instanceObj))
         return false;
 
@@ -6717,11 +6717,16 @@ HandleInstantiationFailure(JSContext* cx, CallArgs args, const AsmJSMetadata& me
         return false;
     }
 
+    SourceText<char16_t> srcBuf;
+
     const char16_t* chars = stableChars.twoByteRange().begin().get();
-    SourceBufferHolder::Ownership ownership = stableChars.maybeGiveOwnershipToCaller()
-                                              ? SourceBufferHolder::GiveOwnership
-                                              : SourceBufferHolder::NoOwnership;
-    SourceBufferHolder srcBuf(chars, end - begin, ownership);
+    SourceOwnership ownership = stableChars.maybeGiveOwnershipToCaller()
+                                ? SourceOwnership::TakeOwnership
+                                : SourceOwnership::Borrowed;
+    if (!srcBuf.init(cx, chars, end - begin, ownership)) {
+        return false;
+    }
+
     if (!frontend::CompileStandaloneFunction(cx, &fun, options, srcBuf, Nothing())) {
         return false;
     }
@@ -7469,7 +7474,7 @@ js::CompileAsmJS(JSContext* cx, AsmJSParser& parser, ParseNode* stmtList, bool* 
     // generating bytecode for asm.js functions, allowing this asm.js module
     // function to be the finished result.
     MOZ_ASSERT(funbox->function()->isInterpreted());
-    funbox->object = moduleFun;
+    funbox->clobberFunction(moduleFun);
 
     // Success! Write to the console with a "warning" message.
     *validated = true;

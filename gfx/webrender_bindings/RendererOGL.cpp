@@ -8,6 +8,7 @@
 #include "GLContext.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/gfx/Types.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/LayersTypes.h"
@@ -106,7 +107,10 @@ DoNotifyWebRenderContextPurge(layers::CompositorBridgeParent* aBridge)
 }
 
 bool
-RendererOGL::UpdateAndRender(const Maybe<gfx::IntSize>& aReadbackSize, const Maybe<Range<uint8_t>>& aReadbackBuffer, bool aHadSlowFrame)
+RendererOGL::UpdateAndRender(const Maybe<gfx::IntSize>& aReadbackSize,
+                             const Maybe<Range<uint8_t>>& aReadbackBuffer,
+                             bool aHadSlowFrame,
+                             RendererStats* aOutStats)
 {
   uint32_t flags = gfx::gfxVars::WebRenderDebugFlags();
   // Disable debug flags during readback
@@ -143,7 +147,7 @@ RendererOGL::UpdateAndRender(const Maybe<gfx::IntSize>& aReadbackSize, const May
 
   auto size = mCompositor->GetBufferSize();
 
-  if (!wr_renderer_render(mRenderer, size.width, size.height, aHadSlowFrame)) {
+  if (!wr_renderer_render(mRenderer, size.width, size.height, aHadSlowFrame, aOutStats)) {
     NotifyWebRenderError(WebRenderError::RENDER);
   }
 
@@ -195,6 +199,12 @@ RendererOGL::CheckGraphicsResetStatus()
 }
 
 void
+RendererOGL::WaitForGPU()
+{
+  mCompositor->WaitForGPU();
+}
+
+void
 RendererOGL::Pause()
 {
   mCompositor->Pause();
@@ -229,16 +239,33 @@ RendererOGL::SetFrameStartTime(const TimeStamp& aTime)
   mFrameStartTime = aTime;
 }
 
-wr::WrPipelineInfo
+RefPtr<WebRenderPipelineInfo>
 RendererOGL::FlushPipelineInfo()
 {
-  return wr_renderer_flush_pipeline_info(mRenderer);
+  auto info = wr_renderer_flush_pipeline_info(mRenderer);
+  return new WebRenderPipelineInfo(info);
 }
 
 RenderTextureHost*
 RendererOGL::GetRenderTexture(wr::WrExternalImageId aExternalImageId)
 {
   return mThread->GetRenderTexture(aExternalImageId);
+}
+
+void
+RendererOGL::AccumulateMemoryReport(MemoryReport* aReport)
+{
+  wr_renderer_accumulate_memory_report(GetRenderer(), aReport);
+
+  LayoutDeviceIntSize size = mCompositor->GetBufferSize();
+
+  // Assume BGRA8 for the format since it's not exposed anywhere,
+  // and all compositor backends should be using that.
+  uintptr_t swapChainSize = size.width * size.height * 
+                            BytesPerPixel(SurfaceFormat::B8G8R8A8) *
+                            (mCompositor->UseTripleBuffering() ? 3 : 2);
+  aReport->swap_chain += swapChainSize;
+  aReport->total_gpu_bytes_allocated += swapChainSize;
 }
 
 static void

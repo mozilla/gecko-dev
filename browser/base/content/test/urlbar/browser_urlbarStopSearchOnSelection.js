@@ -21,11 +21,11 @@ add_task(async function init() {
   // Add a test search engine that returns suggestions on a delay.
   let engine = await SearchTestUtils.promiseNewSearchEngine(
     getRootDirectory(gTestPath) + TEST_ENGINE_BASENAME);
-  let oldCurrentEngine = Services.search.currentEngine;
+  let oldCurrentEngine = Services.search.defaultEngine;
   Services.search.moveEngine(engine, 0);
-  Services.search.currentEngine = engine;
+  Services.search.defaultEngine = engine;
   registerCleanupFunction(async () => {
-    Services.search.currentEngine = oldCurrentEngine;
+    Services.search.defaultEngine = oldCurrentEngine;
     await PlacesUtils.history.clear();
     // Make sure the popup is closed for the next test.
     gURLBar.blur();
@@ -66,7 +66,7 @@ add_task(async function mainTest() {
 
   // + 1 for the heuristic result
   let numExpectedResults = TEST_ENGINE_NUM_EXPECTED_RESULTS + 1;
-  let results = gURLBar.popup.richlistbox.children;
+  let results = gURLBar.popup.richlistbox.itemChildren;
   let numActualResults = Array.reduce(results, (memo, result) => {
     if (!result.collapsed) {
       memo++;
@@ -78,7 +78,7 @@ add_task(async function mainTest() {
   let expectedSuggestions = ["testfoo", "testbar"];
   for (let i = 0; i < TEST_ENGINE_NUM_EXPECTED_RESULTS; i++) {
     // + 1 to skip the heuristic result
-    let item = gURLBar.popup.richlistbox.children[i + 1];
+    let item = gURLBar.popup.richlistbox.itemChildren[i + 1];
     let action = item._parseActionUrl(item.getAttribute("url"));
     Assert.ok(action);
     Assert.equal(action.type, "searchengine");

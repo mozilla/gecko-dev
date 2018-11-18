@@ -37,6 +37,7 @@
 #include "nsIMutableArray.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIObserverService.h"
+#include "nsIProtocolProxyService.h"
 #include "nsProxyRelease.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
@@ -345,7 +346,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
                       nsIURI *aProxyURI,
                       uint64_t aChannelId)
 {
-  LOG(("HttpBaseChannel::Init [this=%p]\n", this));
+  LOG1(("HttpBaseChannel::Init [this=%p]\n", this));
 
   MOZ_ASSERT(aURI, "null uri");
 
@@ -375,11 +376,11 @@ HttpBaseChannel::Init(nsIURI *aURI,
   rv = mURI->GetPort(&port);
   if (NS_FAILED(rv)) return rv;
 
-  LOG(("host=%s port=%d\n", host.get(), port));
+  LOG1(("host=%s port=%d\n", host.get(), port));
 
   rv = mURI->GetAsciiSpec(mSpec);
   if (NS_FAILED(rv)) return rv;
-  LOG(("uri=%s\n", mSpec.get()));
+  LOG1(("uri=%s\n", mSpec.get()));
 
   // Assert default request method
   MOZ_ASSERT(mRequestHead.EqualsMethod(nsHttpRequestHead::kMethod_Get));
@@ -2747,6 +2748,33 @@ HttpBaseChannel::HTTPUpgrade(const nsACString &aProtocolName,
     mUpgradeProtocol = aProtocolName;
     mUpgradeProtocolCallback = aListener;
     return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetOnlyConnect(bool* aOnlyConnect)
+{
+  NS_ENSURE_ARG_POINTER(aOnlyConnect);
+
+  *aOnlyConnect = mCaps & NS_HTTP_CONNECT_ONLY;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetConnectOnly()
+{
+  ENSURE_CALLED_BEFORE_CONNECT();
+
+  if (!mUpgradeProtocolCallback) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mCaps |= NS_HTTP_CONNECT_ONLY;
+  mProxyResolveFlags = nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY |
+                       nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL;
+  return SetLoadFlags(nsIRequest::INHIBIT_CACHING |
+                      nsIChannel::LOAD_ANONYMOUS |
+                      nsIRequest::LOAD_BYPASS_CACHE |
+                      nsIChannel::LOAD_BYPASS_SERVICE_WORKER);
 }
 
 NS_IMETHODIMP

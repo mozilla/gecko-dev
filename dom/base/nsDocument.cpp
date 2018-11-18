@@ -1415,7 +1415,6 @@ nsIDocument::nsIDocument()
     mDidCallBeginLoad(false),
     mAllowPaymentRequest(false),
     mEncodingMenuDisabled(false),
-    mIsShadowDOMEnabled(false),
     mIsSVGGlyphsDocument(false),
     mInDestructor(false),
     mIsGoingAway(false),
@@ -2137,11 +2136,6 @@ nsDocument::Init()
 
   NS_ASSERTION(OwnerDoc() == this, "Our nodeinfo is busted!");
 
-  // Set this when document is initialized and value stays the same for the
-  // lifetime of the document.
-  mIsShadowDOMEnabled = nsContentUtils::IsShadowDOMEnabled() ||
-    (XRE_IsParentProcess() && AllowXULXBL());
-
   // If after creation the owner js global is not set for a document
   // we use the default compartment for this document, instead of creating
   // wrapper in some random compartment when the document is exposed to js
@@ -2656,39 +2650,14 @@ nsIDocument::IsSynthesized() {
   return loadInfo && loadInfo->GetServiceWorkerTaintingSynthesized();
 }
 
-bool
-nsDocument::IsShadowDOMEnabled(JSContext* aCx, JSObject* aGlobal)
-{
-  MOZ_DIAGNOSTIC_ASSERT(JS_IsGlobalObject(aGlobal));
-  nsCOMPtr<nsPIDOMWindowInner> window = xpc::WindowOrNull(aGlobal);
-
-  nsIDocument* doc = window ? window->GetExtantDoc() : nullptr;
-  if (!doc) {
-    return false;
-  }
-
-  return doc->IsShadowDOMEnabled();
-}
-
 // static
 bool
-nsDocument::IsShadowDOMEnabledAndCallerIsChromeOrAddon(JSContext* aCx,
-                                                       JSObject* aObject)
+nsDocument::IsCallerChromeOrAddon(JSContext* aCx, JSObject* aObject)
 {
-  if (IsShadowDOMEnabled(aCx, aObject)) {
-    nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
-    return principal &&
-      (nsContentUtils::IsSystemPrincipal(principal) ||
-       principal->GetIsAddonOrExpandedAddonPrincipal());
-  }
-
-  return false;
-}
-
-bool
-nsDocument::IsShadowDOMEnabled(const nsINode* aNode)
-{
-  return aNode->OwnerDoc()->IsShadowDOMEnabled();
+  nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
+  return principal &&
+    (nsContentUtils::IsSystemPrincipal(principal) ||
+     principal->GetIsAddonOrExpandedAddonPrincipal());
 }
 
 nsresult
@@ -3073,6 +3042,11 @@ nsIDocument::InitFeaturePolicy(nsIChannel* aChannel)
   if (parentPolicy) {
     // Let's inherit the policy from the parent HTMLIFrameElement if it exists.
     mFeaturePolicy->InheritPolicy(parentPolicy);
+  }
+
+  // We don't want to parse the http Feature-Policy header if this pref is off.
+  if (!StaticPrefs::dom_security_featurePolicy_header_enabled()) {
+    return NS_OK;
   }
 
   nsCOMPtr<nsIHttpChannel> httpChannel;
@@ -5774,8 +5748,7 @@ nsIDocument::CreateElement(const nsAString& aTagName,
     const ElementCreationOptions& options =
       aOptions.GetAsElementCreationOptions();
 
-    if (CustomElementRegistry::IsCustomElementEnabled(this) &&
-        options.mIs.WasPassed()) {
+    if (options.mIs.WasPassed()) {
       is = &options.mIs.Value();
     }
 
@@ -5819,8 +5792,7 @@ nsIDocument::CreateElementNS(const nsAString& aNamespaceURI,
   }
 
   const nsString* is = nullptr;
-  if (CustomElementRegistry::IsCustomElementEnabled(this) &&
-      aOptions.IsElementCreationOptions()) {
+  if (aOptions.IsElementCreationOptions()) {
     const ElementCreationOptions& options = aOptions.GetAsElementCreationOptions();
     if (options.mIs.WasPassed()) {
       is = &options.mIs.Value();
@@ -5848,8 +5820,7 @@ nsIDocument::CreateXULElement(const nsAString& aTagName,
   }
 
   const nsString* is = nullptr;
-  if (CustomElementRegistry::IsCustomElementEnabled(this) &&
-      aOptions.IsElementCreationOptions()) {
+  if (aOptions.IsElementCreationOptions()) {
     const ElementCreationOptions& options = aOptions.GetAsElementCreationOptions();
     if (options.mIs.WasPassed()) {
       is = &options.mIs.Value();

@@ -162,13 +162,6 @@ static uint32_t sRCWNMaxWaitMs = 500;
 
 static NS_DEFINE_CID(kStreamListenerTeeCID, NS_STREAMLISTENERTEE_CID);
 
-enum CacheDisposition {
-    kCacheHit = 1,
-    kCacheHitViaReval = 2,
-    kCacheMissedViaReval = 3,
-    kCacheMissed = 4
-};
-
 using mozilla::Telemetry::LABELS_DOCUMENT_ANALYTICS_TRACKER_FASTBLOCKED;
 
 static const struct {
@@ -331,6 +324,7 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
 
 nsHttpChannel::nsHttpChannel()
     : HttpAsyncAborter<nsHttpChannel>(this)
+    , mCacheDisposition(kCacheUnresolved)
     , mLogicalOffset(0)
     , mPostID(0)
     , mRequestTime(0)
@@ -428,7 +422,7 @@ nsHttpChannel::Init(nsIURI *uri,
     if (NS_FAILED(rv))
         return rv;
 
-    LOG(("nsHttpChannel::Init [this=%p]\n", this));
+    LOG1(("nsHttpChannel::Init [this=%p]\n", this));
 
     return rv;
 }
@@ -942,6 +936,7 @@ nsHttpChannel::ContinueConnect()
             }
 
             AccumulateCacheHitTelemetry(kCacheHit);
+            mCacheDisposition = kCacheHit;
 
             return rv;
         }
@@ -1376,7 +1371,7 @@ nsHttpChannel::SetupTransaction()
 
     // create the transaction object
     mTransaction = new nsHttpTransaction();
-    LOG(("nsHttpChannel %p created nsHttpTransaction %p\n", this, mTransaction.get()));
+    LOG1(("nsHttpChannel %p created nsHttpTransaction %p\n", this, mTransaction.get()));
     mTransaction->SetTransactionObserver(mTransactionObserver);
     mTransactionObserver = nullptr;
 
@@ -2749,6 +2744,7 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
             cacheDisposition = kCacheMissedViaReval;
         }
         AccumulateCacheHitTelemetry(cacheDisposition);
+        mCacheDisposition = cacheDisposition;
 
         Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_VERSION,
                               static_cast<uint32_t>(mResponseHead->Version()));
@@ -5893,7 +5889,7 @@ nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv)
         GetPriority(&priority);
         profiler_add_network_marker(mURI, priority, mChannelId, NetworkLoadType::LOAD_REDIRECT,
                                     mLastStatusReported, TimeStamp::Now(),
-                                    mLogicalOffset, nullptr,
+                                    mLogicalOffset, mCacheDisposition, nullptr,
                                     mRedirectURI);
     }
 #endif
@@ -6348,7 +6344,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (profiler_is_active()) {
         profiler_add_network_marker(mURI, mPriority, mChannelId, NetworkLoadType::LOAD_START,
                                     mChannelCreationTimestamp, mLastStatusReported,
-                                    0);
+                                    0, mCacheDisposition);
     }
 #endif
 
@@ -6563,6 +6559,18 @@ nsHttpChannel::BeginConnect()
     nsCOMPtr<nsProxyInfo> proxyInfo;
     if (mProxyInfo)
         proxyInfo = do_QueryInterface(mProxyInfo);
+
+    if (mCaps & NS_HTTP_CONNECT_ONLY) {
+        if (!proxyInfo) {
+            LOG(("return failure: no proxy for connect-only channel\n"));
+            return NS_ERROR_FAILURE;
+        }
+
+        if (!proxyInfo->IsHTTP() && !proxyInfo->IsHTTPS()) {
+            LOG(("return failure: non-http proxy for connect-only channel\n"));
+            return NS_ERROR_FAILURE;
+        }
+    }
 
     mRequestHead.SetHTTPS(isHttps);
     mRequestHead.SetOrigin(scheme, host, port);
@@ -7738,7 +7746,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             profiler_add_network_marker(uri, priority, mChannelId, NetworkLoadType::LOAD_STOP,
                                         mLastStatusReported, TimeStamp::Now(),
                                         mLogicalOffset,
-                                        &mTransactionTimings);
+                                        mCacheDisposition, &mTransactionTimings, nullptr);
         }
 #endif
 
@@ -7776,10 +7784,16 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             return NS_OK;
         }
 
-        if (mUpgradeProtocolCallback && stickyConn &&
+        bool upgradeWebsocket = mUpgradeProtocolCallback && stickyConn &&
             mResponseHead &&
             ((mResponseHead->Status() == 101 && mResponseHead->Version() == HttpVersion::v1_1) ||
-             (mResponseHead->Status() == 200 && mResponseHead->Version() == HttpVersion::v2_0))) {
+             (mResponseHead->Status() == 200 && mResponseHead->Version() == HttpVersion::v2_0));
+
+        bool upgradeConnect = mUpgradeProtocolCallback && stickyConn &&
+            (mCaps & NS_HTTP_CONNECT_ONLY) && mResponseHead &&
+            mResponseHead->Status() == 200;
+
+        if (upgradeWebsocket || upgradeConnect) {
             nsresult rv =
                 gHttpHandler->ConnMgr()->CompleteUpgrade(stickyConn,
                                                          mUpgradeProtocolCallback);
@@ -9434,13 +9448,26 @@ nsHttpChannel::SetOriginHeader()
         nsContentUtils::GetASCIIOrigin(referrer, origin);
     }
 
-    // Restrict Origin to same-origin loads if requested by user
+    // Restrict Origin to same-origin loads if requested by user or leaving from
+    // .onion
     if (sSendOriginHeader == 1) {
         nsAutoCString currentOrigin;
         nsContentUtils::GetASCIIOrigin(mURI, currentOrigin);
         if (!origin.EqualsIgnoreCase(currentOrigin.get())) {
             // Origin header suppressed by user setting
             return;
+        }
+    } else if (gHttpHandler->HideOnionReferrerSource()) {
+        nsAutoCString host;
+        if (referrer &&
+            NS_SUCCEEDED(referrer->GetAsciiHost(host)) &&
+            StringEndsWith(host, NS_LITERAL_CSTRING(".onion"))) {
+            nsAutoCString currentOrigin;
+            nsContentUtils::GetASCIIOrigin(mURI, currentOrigin);
+            if (!origin.EqualsIgnoreCase(currentOrigin.get())) {
+                // Origin header is suppressed by .onion
+                return;
+            }
         }
     }
 

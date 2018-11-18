@@ -4,27 +4,28 @@
 
 //! Gecko-specific bits for selector-parsing.
 
+use crate::element_state::{DocumentState, ElementState};
+use crate::gecko_bindings::structs::RawServoSelectorList;
+use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::invalidation::element::document_state::InvalidationMatchingData;
+use crate::selector_parser::{Direction, SelectorParser};
+use crate::str::starts_with_ignore_ascii_case;
+use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use crate::values::serialize_atom_identifier;
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use element_state::{DocumentState, ElementState};
-use gecko_bindings::structs;
-use gecko_bindings::structs::RawServoSelectorList;
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use invalidation::element::document_state::InvalidationMatchingData;
-use selector_parser::{Direction, SelectorParser};
 use selectors::parser::{self as selector_parser, Selector};
 use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::visitor::SelectorVisitor;
 use selectors::SelectorList;
 use std::fmt;
-use str::starts_with_ignore_ascii_case;
-use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_slice::ThinBoxedSlice;
-use values::serialize_atom_identifier;
 
-pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
-pub use gecko::snapshot::SnapshotMap;
+pub use crate::gecko::pseudo_element::{
+    PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT,
+};
+pub use crate::gecko::snapshot::SnapshotMap;
 
 bitflags! {
     // See NonTSPseudoClass::is_enabled_in()
@@ -169,15 +170,12 @@ impl NonTSPseudoClass {
 
     /// Returns whether the pseudo-class is enabled in content sheets.
     fn is_enabled_in_content(&self) -> bool {
-        use gecko_bindings::structs::mozilla;
+        use crate::gecko_bindings::structs::mozilla;
         match *self {
             // For pseudo-classes with pref, the availability in content
             // depends on the pref.
             NonTSPseudoClass::Fullscreen => unsafe {
                 mozilla::StaticPrefs_sVarCache_full_screen_api_unprefix_enabled
-            },
-            NonTSPseudoClass::Defined => unsafe {
-                structs::nsContentUtils_sIsCustomElementsEnabled
             },
             // Otherwise, a pseudo-class is enabled in content when it
             // doesn't have any enabled flag.
@@ -345,10 +343,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_slotted(&self) -> bool {
-        // NOTE(emilio): Slot assignment and such works per-document, but
-        // getting a document around here is not trivial, and it's not worth
-        // anyway to handle this in a per-doc basis.
-        unsafe { structs::nsContentUtils_sIsShadowDOMEnabled }
+        true
     }
 
     #[inline]

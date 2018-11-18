@@ -21,13 +21,13 @@ add_task(async function switchToTab() {
 add_task(async function searchSuggestions() {
   let engine = await SearchTestUtils.promiseNewSearchEngine(
     getRootDirectory(gTestPath) + TEST_ENGINE_BASENAME);
-  let oldCurrentEngine = Services.search.currentEngine;
-  Services.search.currentEngine = engine;
+  let oldCurrentEngine = Services.search.defaultEngine;
+  Services.search.defaultEngine = engine;
   Services.prefs.setBoolPref(SUGGEST_ALL_PREF, true);
   let suggestionsEnabled = Services.prefs.getBoolPref(SUGGEST_URLBAR_PREF);
   Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, true);
   registerCleanupFunction(function() {
-    Services.search.currentEngine = oldCurrentEngine;
+    Services.search.defaultEngine = oldCurrentEngine;
     Services.prefs.clearUserPref(SUGGEST_ALL_PREF);
     Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, suggestionsEnabled);
   });
@@ -36,7 +36,7 @@ add_task(async function searchSuggestions() {
   await waitForAutocompleteResultAt(2);
   // Don't assume that the search doesn't match history or bookmarks left around
   // by earlier tests.
-  Assert.ok(gURLBar.popup.richlistbox.children.length >= 3,
+  Assert.ok(gURLBar.popup.richlistbox.itemChildren.length >= 3,
             "Should get at least heuristic result + two search suggestions");
   // The first expected search is the search term itself since the heuristic
   // result will come before the search suggestions.
@@ -45,7 +45,7 @@ add_task(async function searchSuggestions() {
     "foofoo",
     "foobar",
   ];
-  for (let child of gURLBar.popup.richlistbox.children) {
+  for (let child of gURLBar.popup.richlistbox.itemChildren) {
     if (child.getAttribute("type").split(/\s+/).includes("searchengine")) {
       Assert.ok(expectedSearches.length > 0);
       let suggestion = expectedSearches.shift();

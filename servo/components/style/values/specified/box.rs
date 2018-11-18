@@ -4,37 +4,38 @@
 
 //! Specified types for box properties.
 
+use crate::custom_properties::Name as CustomPropertyName;
+use crate::parser::{Parse, ParserContext};
+use crate::properties::{LonghandId, PropertyDeclarationId, PropertyFlags};
+use crate::properties::{PropertyId, ShorthandId};
+use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use crate::values::generics::box_::Perspective as GenericPerspective;
+use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use crate::values::specified::length::{LengthOrPercentage, NonNegativeLength};
+use crate::values::specified::{AllowQuirks, Number};
+use crate::values::{CustomIdent, KeyframesName};
+use crate::Atom;
 use cssparser::Parser;
-use custom_properties::Name as CustomPropertyName;
-use parser::{Parse, ParserContext};
-use properties::{LonghandId, PropertyDeclarationId, PropertyFlags, PropertyId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
-use values::generics::box_::Perspective as GenericPerspective;
-use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::length::{LengthOrPercentage, NonNegativeLength};
-use values::specified::{AllowQuirks, Number};
-use values::{CustomIdent, KeyframesName};
-use Atom;
 
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
-    use stylesheets::Origin;
+    use crate::stylesheets::Origin;
     context.stylesheet_origin == Origin::UserAgent || context.chrome_rules_enabled()
 }
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
         unsafe { structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled }
 }
 
 #[cfg(feature = "gecko")]
 fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
         unsafe {
             structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
@@ -51,9 +52,6 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// If you change it, make sure to take a look at the
 /// FrameConstructionDataByDisplay stuff (both the XUL and non-XUL version), and
 /// ensure it's still correct!
-///
-/// Also, when you change this from Gecko you may need to regenerate the
-/// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
 #[derive(
     Clone,
@@ -668,7 +666,7 @@ impl_bitflags_conversions!(TouchAction);
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_touch_action_matches() {
-    use gecko_bindings::structs;
+    use crate::gecko_bindings::structs;
 
     macro_rules! check_touch_action {
         ( $( $a:ident => $b:path),*, ) => {
@@ -821,7 +819,7 @@ impl ToCss for TransitionProperty {
     where
         W: Write,
     {
-        use values::serialize_atom_name;
+        use crate::values::serialize_atom_name;
         match *self {
             TransitionProperty::Shorthand(ref s) => s.to_css(dest),
             TransitionProperty::Longhand(ref l) => l.to_css(dest),
@@ -881,10 +879,12 @@ impl TransitionProperty {
 
     /// Convert TransitionProperty to nsCSSPropertyID.
     #[cfg(feature = "gecko")]
-    pub fn to_nscsspropertyid(&self) -> Result<::gecko_bindings::structs::nsCSSPropertyID, ()> {
+    pub fn to_nscsspropertyid(
+        &self,
+    ) -> Result<crate::gecko_bindings::structs::nsCSSPropertyID, ()> {
         Ok(match *self {
             TransitionProperty::Shorthand(ShorthandId::All) => {
-                ::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
+                crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
             },
             TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
@@ -943,9 +943,6 @@ pub enum Resize {
 /// The value for the `appearance` property.
 ///
 /// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance
-///
-/// NOTE(emilio): When changing this you may want to regenerate the C++ bindings
-/// (see components/style/cbindgen.toml)
 #[allow(missing_docs)]
 #[derive(
     Clone,
@@ -1291,4 +1288,53 @@ pub enum Appearance {
     /// A dummy variant that should be last to let the GTK widget do hackery.
     #[css(skip)]
     Count,
+}
+
+/// A kind of break between two boxes.
+///
+/// https://drafts.csswg.org/css-break/#break-between
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakBetween {
+    Auto,
+    Always,
+    Avoid,
+    Left,
+    Right,
+}
+
+/// A kind of break within a box.
+///
+/// https://drafts.csswg.org/css-break/#break-within
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
+#[repr(u8)]
+pub enum BreakWithin {
+    Auto,
+    Avoid,
 }

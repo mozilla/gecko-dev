@@ -178,6 +178,8 @@ public abstract class GeckoApp extends GeckoActivity
     /** Tells if we're aborting app launch, e.g. if this is an unsupported device configuration. */
     protected boolean mIsAbortingAppLaunch;
 
+    protected boolean mDumpProfileOnShutdown;
+
     private PromptService mPromptService;
     protected TextSelection mTextSelection;
 
@@ -318,8 +320,8 @@ public abstract class GeckoApp extends GeckoActivity
 
     protected boolean mInitialized;
     protected boolean mWindowFocusInitialized;
-    private Telemetry.Timer mJavaUiStartupTimer;
-    private Telemetry.Timer mGeckoReadyStartupTimer;
+    private TelemetryUtils.Timer mJavaUiStartupTimer;
+    private TelemetryUtils.Timer mGeckoReadyStartupTimer;
 
     private String mPrivateBrowsingSession;
     private boolean mPrivateBrowsingSessionOutdated;
@@ -923,8 +925,9 @@ public abstract class GeckoApp extends GeckoActivity
 
     /**
      * Check and start the Java profiler if MOZ_PROFILER_STARTUP env var is specified.
+     * Also check whether we want to dump the captured profile on shutdown.
      **/
-    protected static void earlyStartJavaSampler(SafeIntent intent) {
+    protected void handleGeckoProfilerOptions(SafeIntent intent) {
         String env = intent.getStringExtra("env0");
         for (int i = 1; env != null; i++) {
             if (env.startsWith("MOZ_PROFILER_STARTUP=")) {
@@ -932,7 +935,10 @@ public abstract class GeckoApp extends GeckoActivity
                     GeckoJavaSampler.start(10, 1000);
                     Log.d(LOGTAG, "Profiling Java on startup");
                 }
-                break;
+            } else if (env.startsWith("MOZ_PROFILER_SHUTDOWN=")) {
+                if (!env.endsWith("=")) {
+                    mDumpProfileOnShutdown = true;
+                }
             }
             env = intent.getStringExtra("env" + i);
         }
@@ -972,12 +978,12 @@ public abstract class GeckoApp extends GeckoActivity
         }
 
         // The clock starts...now. Better hurry!
-        mJavaUiStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_JAVAUI");
-        mGeckoReadyStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_GECKOREADY");
+        mJavaUiStartupTimer = new TelemetryUtils.UptimeTimer("FENNEC_STARTUP_TIME_JAVAUI");
+        mGeckoReadyStartupTimer = new TelemetryUtils.UptimeTimer("FENNEC_STARTUP_TIME_GECKOREADY");
 
         final SafeIntent intent = new SafeIntent(getIntent());
 
-        earlyStartJavaSampler(intent);
+        handleGeckoProfilerOptions(intent);
 
         // Workaround for <http://code.google.com/p/android/issues/detail?id=20915>.
         try {

@@ -433,8 +433,8 @@ impl GlyphFormat {
 pub struct RasterizedGlyph {
     pub top: f32,
     pub left: f32,
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
     pub scale: f32,
     pub format: GlyphFormat,
     pub bytes: Vec<u8>,
@@ -734,7 +734,7 @@ mod test_glyph_rasterizer {
         let mut gpu_cache = GpuCache::new();
         let mut texture_cache = TextureCache::new(2048, 1024);
         let mut render_task_cache = RenderTaskCache::new();
-        let mut render_task_tree = RenderTaskTree::new(FrameId::invalid());
+        let mut render_task_tree = RenderTaskTree::new(FrameId::INVALID);
         let mut special_render_passes = SpecialRenderPasses::new(&DeviceIntSize::new(1366, 768));
 
         let mut font_file =

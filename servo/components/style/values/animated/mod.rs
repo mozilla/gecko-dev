@@ -9,17 +9,19 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use crate::properties::PropertyId;
+use crate::values::computed::length::CalcLengthOrPercentage;
+use crate::values::computed::url::ComputedUrl;
+use crate::values::computed::Angle as ComputedAngle;
+use crate::values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use crate::values::CSSFloat;
 use euclid::{Point2D, Size2D};
-use properties::PropertyId;
 use smallvec::SmallVec;
 use std::cmp;
-use values::computed::length::CalcLengthOrPercentage;
-use values::computed::url::ComputedUrl;
-use values::computed::Angle as ComputedAngle;
-use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 
 pub mod color;
 pub mod effects;
+pub mod transform;
 mod font;
 mod length;
 mod svg;
@@ -84,6 +86,15 @@ pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Orderin
     subprop_count_a
         .cmp(&subprop_count_b)
         .then_with(|| a.idl_name_sort_order().cmp(&b.idl_name_sort_order()))
+}
+
+/// A helper function to animate two multiplicative factor.
+pub fn animate_multiplicative_factor(
+    this: CSSFloat,
+    other: CSSFloat,
+    procedure: Procedure,
+) -> Result<CSSFloat, ()> {
+    Ok((this - 1.).animate(&(other - 1.), procedure)? + 1.)
 }
 
 /// Animate from one value to another.

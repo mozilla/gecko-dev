@@ -19,6 +19,7 @@
 #include "gfxContext.h"
 #include "gfxUtils.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/KeyframeEffect.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/gfx/2D.h"
@@ -598,10 +599,11 @@ AddAnimationsForProperty(nsIFrame* aFrame,
   // layer, we still need to mark it as up-to-date with regards to animations.
   // Otherwise, in RestyleManager we'll notice the discrepancy between the
   // animation generation numbers and update the layer indefinitely.
+  // Note that EffectSet::GetEffectSet expects to work with the style frame
+  // instead of the primary frame.
+  EffectSet* effects = EffectSet::GetEffectSet(styleFrame);
   uint64_t animationGeneration =
-    // Note that GetAnimationGenerationForFrame() calles EffectSet::GetEffectSet
-    // that expects to work with the style frame instead of the primary frame.
-    RestyleManager::GetAnimationGenerationForFrame(styleFrame);
+    effects ? effects->GetAnimationGeneration() : 0;
   aAnimationInfo.SetAnimationGeneration(animationGeneration);
 
   EffectCompositor::ClearIsRunningOnCompositor(styleFrame, aProperty);
@@ -686,7 +688,7 @@ AddAnimationsForProperty(nsIFrame* aFrame,
     MOZ_ASSERT(keyframeEffect,
                "A playing animation should have a keyframe effect");
     const AnimationProperty* property =
-      keyframeEffect->GetEffectiveAnimationOfProperty(aProperty);
+      keyframeEffect->GetEffectiveAnimationOfProperty(aProperty, *effects);
     if (!property) {
       continue;
     }
@@ -1446,6 +1448,40 @@ DisplayListIsNonBlank(nsDisplayList* aList)
   return false;
 }
 
+// A contentful paint is a paint that does contains DOM content (text,
+// images, non-blank canvases, SVG): "First Contentful Paint entry
+// contains a DOMHighResTimeStamp reporting the time when the browser
+// first rendered any text, image (including background images),
+// non-white canvas or SVG. This excludes any content of iframes, but
+// includes text with pending webfonts. This is the first time users
+// could start consuming page content."
+static bool
+DisplayListIsContentful(nsDisplayList* aList)
+{
+  for (nsDisplayItem* i = aList->GetBottom(); i != nullptr; i = i->GetAbove()) {
+    DisplayItemType type = i->GetType();
+    nsDisplayList* children = i->GetChildren();
+
+    switch (type) {
+      case DisplayItemType::TYPE_SUBDOCUMENT: // iframes are ignored
+        break;
+      // CANVASes check if they may have been modified (as a stand-in
+      // actually tracking all modifications)
+      default:
+        if (i->IsContentful()) {
+          return true;
+        }
+        if (children) {
+          if (DisplayListIsContentful(children)) {
+            return true;
+          }
+        }
+        break;
+    }
+  }
+  return false;
+}
+
 void
 nsDisplayListBuilder::LeavePresShell(nsIFrame* aReferenceFrame,
                                      nsDisplayList* aPaintedContents)
@@ -1454,12 +1490,18 @@ nsDisplayListBuilder::LeavePresShell(nsIFrame* aReferenceFrame,
                  aReferenceFrame->PresShell(),
                "Presshell mismatch");
 
-  if (mIsPaintingToWindow) {
+  if (mIsPaintingToWindow && aPaintedContents) {
     nsPresContext* pc = aReferenceFrame->PresContext();
     if (!pc->HadNonBlankPaint()) {
       if (!CurrentPresShellState()->mIsBackgroundOnly &&
           DisplayListIsNonBlank(aPaintedContents)) {
         pc->NotifyNonBlankPaint();
+      }
+    }
+    if (!pc->HadContentfulPaint()) {
+      if (!CurrentPresShellState()->mIsBackgroundOnly &&
+          DisplayListIsContentful(aPaintedContents)) {
+        pc->NotifyContentfulPaint();
       }
     }
   }
@@ -1751,6 +1793,28 @@ const DisplayItemClipChain*
 nsDisplayListBuilder::CopyWholeChain(const DisplayItemClipChain* aClipChain)
 {
   return CreateClipChainIntersection(nullptr, aClipChain, nullptr);
+}
+
+const DisplayItemClipChain*
+nsDisplayListBuilder::FuseClipChainUpTo(const DisplayItemClipChain* aClipChain,
+                                        const ActiveScrolledRoot* aASR)
+{
+  if (!aClipChain) {
+    return nullptr;
+  }
+
+  const DisplayItemClipChain* sc = aClipChain;
+  DisplayItemClip mergedClip;
+  while (sc && ActiveScrolledRoot::PickDescendant(aASR, sc->mASR) == sc->mASR) {
+    mergedClip.IntersectWith(sc->mClip);
+    sc = sc->mParent;
+  }
+
+  if (!mergedClip.HasClip()) {
+    return nullptr;
+  }
+
+  return AllocateDisplayItemClipChain(mergedClip, aASR, sc);
 }
 
 const nsIFrame*
@@ -3321,17 +3385,11 @@ void
 nsDisplayItem::FuseClipChainUpTo(nsDisplayListBuilder* aBuilder,
                                  const ActiveScrolledRoot* aASR)
 {
-  const DisplayItemClipChain* sc = mClipChain;
-  DisplayItemClip mergedClip;
-  while (sc && ActiveScrolledRoot::PickDescendant(aASR, sc->mASR) == sc->mASR) {
-    mergedClip.IntersectWith(sc->mClip);
-    sc = sc->mParent;
-  }
-  if (mergedClip.HasClip()) {
-    mClipChain = aBuilder->AllocateDisplayItemClipChain(mergedClip, aASR, sc);
+  mClipChain = aBuilder->FuseClipChainUpTo(mClipChain, aASR);
+
+  if (mClipChain) {
     mClip = &mClipChain->mClip;
   } else {
-    mClipChain = nullptr;
     mClip = nullptr;
   }
 }
@@ -7822,7 +7880,7 @@ nsDisplayStickyPosition::CreateWebRenderCommands(
                                  applied);
 
     aBuilder.PushClip(id);
-    aManager->CommandBuilder().PushOverrideForASR(mContainerASR, Some(id));
+    aManager->CommandBuilder().PushOverrideForASR(mContainerASR, id);
   }
 
   {
@@ -9456,7 +9514,7 @@ nsDisplayPerspective::CreateWebRenderCommands(
   Point3D roundedOrigin(NS_round(newOrigin.x), NS_round(newOrigin.y), 0);
 
   gfx::Matrix4x4 transformForSC = gfx::Matrix4x4::Translation(roundedOrigin);
-  
+
   nsIFrame* perspectiveFrame = mFrame->GetContainingBlock(nsIFrame::SKIP_SCROLLED_FRAME);
 
   nsTArray<mozilla::wr::WrFilterOp> filters;
@@ -10167,18 +10225,10 @@ nsDisplayMasksAndClipPaths::CreateWebRenderCommands(
                   /*aTransformForScrollData: */ Nothing(),
                   /*aClipNodeId: */ &clipId);
     sc = layer.ptr();
-    // The whole stacking context will be clipped by us, so no need to have any
-    // parent for the children context's clip.
-    aManager->CommandBuilder().PushOverrideForASR(GetActiveScrolledRoot(),
-                                                  Nothing());
   }
 
   nsDisplayEffectsBase::CreateWebRenderCommands(
     aBuilder, aResources, *sc, aManager, aDisplayListBuilder);
-
-  if (clip) {
-    aManager->CommandBuilder().PopOverrideForASR(GetActiveScrolledRoot());
-  }
 
   return true;
 }
@@ -10499,15 +10549,9 @@ nsDisplayFilters::CreateWebRenderCommands(
                            Nothing(),
                            &clipId);
 
-  // The whole stacking context will be clipped by us, so no need to have any
-  // parent for the children context's clip.
-  aManager->CommandBuilder().PushOverrideForASR(GetActiveScrolledRoot(),
-                                                Nothing());
-
   nsDisplayEffectsBase::CreateWebRenderCommands(
     aBuilder, aResources, sc, aManager, aDisplayListBuilder);
 
-  aManager->CommandBuilder().PopOverrideForASR(GetActiveScrolledRoot());
   return true;
 }
 

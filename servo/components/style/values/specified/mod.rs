@@ -6,22 +6,24 @@
 //!
 //! TODO(emilio): Enhance docs.
 
+use super::computed::transform::DirectionVector;
 use super::computed::{Context, ToComputedValue};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
+use super::generics::transform::IsParallelTo;
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::{Auto, CSSFloat, CSSInteger, Either};
-use context::QuirksMode;
+use crate::context::QuirksMode;
+use crate::parser::{Parse, ParserContext};
+use crate::values::serialize_atom_identifier;
+use crate::values::specified::calc::CalcNode;
+use crate::{Atom, Namespace, Prefix};
 use cssparser::{Parser, Token};
 use num_traits::One;
-use parser::{Parse, ParserContext};
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-use values::serialize_atom_identifier;
-use values::specified::calc::CalcNode;
-use {Atom, Namespace, Prefix};
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
@@ -34,7 +36,7 @@ pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
-pub use self::box_::{Appearance, Clear, Float};
+pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
@@ -75,14 +77,14 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize, TextAlign};
+pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
-pub use self::text::{TextEmphasisPosition, TextEmphasisStyle, OverflowWrap};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
@@ -289,6 +291,19 @@ impl ToCss for Number {
             dest.write_str(")")?;
         }
         Ok(())
+    }
+}
+
+impl IsParallelTo for (Number, Number, Number) {
+    fn is_parallel_to(&self, vector: &DirectionVector) -> bool {
+        use euclid::approxeq::ApproxEq;
+        // If a and b is parallel, the angle between them is 0deg, so
+        // a x b = |a|*|b|*sin(0)*n = 0 * n, |a x b| == 0.
+        let self_vector = DirectionVector::new(self.0.get(), self.1.get(), self.2.get());
+        self_vector
+            .cross(*vector)
+            .square_length()
+            .approx_eq(&0.0f32)
     }
 }
 
@@ -695,7 +710,7 @@ impl ClipRect {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        use values::specified::Length;
+        use crate::values::specified::Length;
 
         fn parse_argument<'i, 't>(
             context: &ParserContext,

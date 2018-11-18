@@ -31,7 +31,7 @@
 #include "xpcpublic.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/JSON.h"
-#include "js/SourceBufferHolder.h"
+#include "js/SourceText.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Preferences.h"
@@ -1110,7 +1110,7 @@ MessageManagerReporter::CountReferents(nsFrameMessageManager* aMessageManager,
 
     // Keep track of messages that have a suspiciously large
     // number of referents (symptom of leak).
-    if (currentCount == MessageManagerReporter::kSuspectReferentCount) {
+    if (currentCount >= MessageManagerReporter::kSuspectReferentCount) {
       aReferentCount->mSuspectMessages.AppendElement(key);
     }
 
@@ -1391,10 +1391,14 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
                                    dataStringBuf, dataStringLength);
     }
 
-    JS::SourceBufferHolder srcBuf(dataStringBuf, dataStringLength,
-                                  JS::SourceBufferHolder::GiveOwnership);
-
     if (!dataStringBuf || dataStringLength == 0) {
+      return;
+    }
+
+    JS::UniqueTwoByteChars srcChars(dataStringBuf);
+
+    JS::SourceText<char16_t> srcBuf;
+    if (!srcBuf.init(cx, std::move(srcChars), dataStringLength)) {
       return;
     }
 

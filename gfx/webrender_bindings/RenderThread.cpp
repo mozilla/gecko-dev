@@ -147,13 +147,14 @@ void
 RenderThread::DoAccumulateMemoryReport(MemoryReport aReport, const RefPtr<MemoryReportPromise::Private>& aPromise)
 {
   MOZ_ASSERT(IsInRenderThread());
+  MOZ_ASSERT(aReport.total_gpu_bytes_allocated == 0);
+
   for (auto& r: mRenderers) {
-    wr_renderer_accumulate_memory_report(r.second->GetRenderer(), &aReport);
+    r.second->AccumulateMemoryReport(&aReport);
   }
 
   // Note total gpu bytes allocated across all WR instances.
-  MOZ_ASSERT(aReport.total_gpu_bytes_allocated == 0);
-  aReport.total_gpu_bytes_allocated = wr_total_gpu_bytes_allocated();
+  aReport.total_gpu_bytes_allocated += wr_total_gpu_bytes_allocated();
 
   aPromise->Resolve(aReport, __func__);
 }
@@ -340,10 +341,11 @@ RenderThread::RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent)
 
 static void
 NotifyDidRender(layers::CompositorBridgeParent* aBridge,
-                wr::WrPipelineInfo aInfo,
+                RefPtr<WebRenderPipelineInfo> aInfo,
                 TimeStamp aStart,
                 TimeStamp aEnd,
-                bool aRender)
+                bool aRender,
+                RendererStats aStats)
 {
   if (aRender && aBridge->GetWrBridge()) {
     // We call this here to mimic the behavior in LayerManagerComposite, as to
@@ -352,15 +354,16 @@ NotifyDidRender(layers::CompositorBridgeParent* aBridge,
     aBridge->GetWrBridge()->RecordFrame();
   }
 
-  for (uintptr_t i = 0; i < aInfo.epochs.length; i++) {
-    aBridge->NotifyPipelineRendered(
-        aInfo.epochs.data[i].pipeline_id,
-        aInfo.epochs.data[i].epoch,
-        aStart,
-        aEnd);
-  }
+  auto info = aInfo->Raw();
 
-  wr_pipeline_info_delete(aInfo);
+  for (uintptr_t i = 0; i < info.epochs.length; i++) {
+    aBridge->NotifyPipelineRendered(
+        info.epochs.data[i].pipeline_id,
+        info.epochs.data[i].epoch,
+        aStart,
+        aEnd,
+        &aStats);
+  }
 }
 
 void
@@ -382,9 +385,10 @@ RenderThread::UpdateAndRender(wr::WindowId aWindowId,
   }
 
   auto& renderer = it->second;
-
+  bool rendered = false;
+  RendererStats stats = { 0 };
   if (aRender) {
-    renderer->UpdateAndRender(aReadbackSize, aReadbackBuffer, aHadSlowFrame);
+    rendered = renderer->UpdateAndRender(aReadbackSize, aReadbackBuffer, aHadSlowFrame, &stats);
   } else {
     renderer->Update();
   }
@@ -392,8 +396,27 @@ RenderThread::UpdateAndRender(wr::WindowId aWindowId,
   renderer->CheckGraphicsResetStatus();
 
   TimeStamp end = TimeStamp::Now();
-
   auto info = renderer->FlushPipelineInfo();
+
+  layers::CompositorThreadHolder::Loop()->PostTask(NewRunnableFunction(
+    "NotifyDidRenderRunnable",
+    &NotifyDidRender,
+    renderer->GetCompositorBridge(),
+    info,
+    aStartTime, end,
+    aRender,
+    stats
+  ));
+
+  if (rendered) {
+    // Wait for GPU after posting NotifyDidRender, since the wait is not
+    // necessary for the NotifyDidRender.
+    // The wait is necessary for Textures recycling of AsyncImagePipelineManager
+    // and for avoiding GPU queue is filled with too much tasks.
+    // WaitForGPU's implementation is different for each platform.
+    renderer->WaitForGPU();
+  }
+
   RefPtr<layers::AsyncImagePipelineManager> pipelineMgr =
       renderer->GetCompositorBridge()->GetAsyncImagePipelineManager();
   // pipelineMgr should always be non-null here because it is only nulled out
@@ -403,15 +426,6 @@ RenderThread::UpdateAndRender(wr::WindowId aWindowId,
   // this code at all; it would bail out at the mRenderers.find check above.
   MOZ_ASSERT(pipelineMgr);
   pipelineMgr->NotifyPipelinesUpdated(info, aRender);
-
-  layers::CompositorThreadHolder::Loop()->PostTask(NewRunnableFunction(
-    "NotifyDidRenderRunnable",
-    &NotifyDidRender,
-    renderer->GetCompositorBridge(),
-    info,
-    aStartTime, end,
-    aRender
-  ));
 }
 
 void
@@ -793,6 +807,16 @@ WebRenderShaders::WebRenderShaders(gl::GLContext* gl,
 
 WebRenderShaders::~WebRenderShaders() {
   wr_shaders_delete(mShaders, mGL.get());
+}
+
+WebRenderPipelineInfo::WebRenderPipelineInfo(wr::WrPipelineInfo aPipelineInfo)
+  : mPipelineInfo(aPipelineInfo)
+{
+}
+
+WebRenderPipelineInfo::~WebRenderPipelineInfo()
+{
+  wr_pipeline_info_delete(mPipelineInfo);
 }
 
 WebRenderThreadPool::WebRenderThreadPool()

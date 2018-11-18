@@ -1734,7 +1734,7 @@ StreamMetaJSCustomObject(PSLockRef aLock, SpliceableJSONWriter& aWriter,
 {
   MOZ_RELEASE_ASSERT(CorePS::Exists() && ActivePS::Exists(aLock));
 
-  aWriter.IntProperty("version", 13);
+  aWriter.IntProperty("version", 14);
 
   // The "startTime" field holds the number of milliseconds since midnight
   // January 1, 1970 GMT. This grotty code computes (Now - (Now -
@@ -3765,6 +3765,7 @@ profiler_add_network_marker(nsIURI* aURI,
                             mozilla::TimeStamp aStart,
                             mozilla::TimeStamp aEnd,
                             int64_t aCount,
+                            mozilla::net::CacheDisposition aCacheDisposition,
                             const mozilla::net::TimingStruct* aTimings,
                             nsIURI* aRedirectURI)
 {
@@ -3792,6 +3793,7 @@ profiler_add_network_marker(nsIURI* aURI,
                                                        aEnd,
                                                        aPriority,
                                                        aCount,
+                                                       aCacheDisposition,
                                                        aTimings,
                                                        PromiseFlatCString(redirect_spec).get()));
 }

@@ -65,24 +65,17 @@ bool
 PaymentRequest::PrefEnabled(JSContext* aCx, JSObject* aObj)
 {
 #if defined(NIGHTLY_BUILD)
-  const char* supportedRegions[] = { "US", "CA" };
-
   if (!XRE_IsContentProcess()) {
     return false;
   }
   if (!StaticPrefs::dom_payments_request_enabled()) {
     return false;
   }
+  RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
+  MOZ_ASSERT(manager);
   nsAutoString region;
   Preferences::GetString("browser.search.region", region);
-  bool regionIsSupported = false;
-  for (const char* each : supportedRegions) {
-    if (region.EqualsASCII(each)) {
-      regionIsSupported = true;
-      break;
-    }
-  }
-  if (!regionIsSupported) {
+  if (!manager->IsRegionSupported(region)) {
     return false;
   }
   nsAutoCString locale;
@@ -471,12 +464,14 @@ PaymentRequest::IsValidDetailsUpdate(const PaymentDetailsUpdate& aDetails,
 {
   nsAutoString message;
   // Check the amount.value and amount.currency of detail.total
-  nsresult rv = IsValidCurrencyAmount(NS_LITERAL_STRING("details.total"),
-                                      aDetails.mTotal.mAmount,
-                                      true, // isTotalItem
-                                      message);
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (aDetails.mTotal.WasPassed()) {
+    nsresult rv = IsValidCurrencyAmount(NS_LITERAL_STRING("details.total"),
+                                        aDetails.mTotal.Value().mAmount,
+                                        true, // isTotalItem
+                                        message);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
   return IsValidDetailsBase(aDetails, aRequestShipping, message);
 }
@@ -531,12 +526,14 @@ PaymentRequest::IsValidDetailsBase(const PaymentDetailsBase& aDetails,
       if (NS_FAILED(rv)) {
         return rv;
       }
-      rv = IsValidCurrencyAmount(NS_LITERAL_STRING("details.modifiers.total"),
-                                 modifier.mTotal.mAmount,
-                                 true, // isTotalItem
-                                 aErrorMsg);
-      if (NS_FAILED(rv)) {
-        return rv;
+      if (modifier.mTotal.WasPassed()) {
+        rv = IsValidCurrencyAmount(NS_LITERAL_STRING("details.modifiers.total"),
+                                   modifier.mTotal.Value().mAmount,
+                                   true, // isTotalItem
+                                   aErrorMsg);
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       }
       if (modifier.mAdditionalDisplayItems.WasPassed()) {
         const Sequence<PaymentItem>& displayItems = modifier.mAdditionalDisplayItems.Value();

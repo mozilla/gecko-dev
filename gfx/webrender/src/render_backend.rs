@@ -11,7 +11,7 @@
 use api::{ApiMsg, BuiltDisplayList, ClearCache, DebugCommand};
 #[cfg(feature = "debugger")]
 use api::{BuiltDisplayListIter, SpecificDisplayItem};
-use api::{DeviceIntPoint, DevicePixelScale, DeviceUintPoint, DeviceUintRect, DeviceUintSize};
+use api::{DevicePixelScale, DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use api::{DocumentId, DocumentLayer, ExternalScrollId, FrameMsg, HitTestFlags, HitTestResult};
 use api::{IdNamespace, LayoutPoint, PipelineId, RenderNotifier, SceneMsg, ScrollClamping};
 use api::{MemoryReport, VoidPtrToSizeFn};
@@ -61,8 +61,8 @@ use util::drain_filter;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 #[derive(Clone)]
 pub struct DocumentView {
-    pub window_size: DeviceUintSize,
-    pub inner_rect: DeviceUintRect,
+    pub window_size: DeviceIntSize,
+    pub inner_rect: DeviceIntRect,
     pub layer: DocumentLayer,
     pub pan: DeviceIntPoint,
     pub device_pixel_ratio: f32,
@@ -86,12 +86,6 @@ impl DocumentView {
 pub struct FrameId(usize);
 
 impl FrameId {
-    /// Returns an invalid sentinel FrameId, which will always compare less than
-    /// any valid FrameId.
-    pub fn invalid() -> Self {
-        FrameId(0)
-    }
-
     /// Returns a FrameId corresponding to the first frame.
     ///
     /// Note that we use 0 as the internal id here because the current code
@@ -112,6 +106,10 @@ impl FrameId {
     fn advance(&mut self) {
         self.0 += 1;
     }
+
+    /// An invalid sentinel FrameId, which will always compare less than
+    /// any valid FrameId.
+    pub const INVALID: FrameId = FrameId(0);
 }
 
 impl ::std::ops::Add<usize> for FrameId {
@@ -199,7 +197,7 @@ struct Document {
 
 impl Document {
     pub fn new(
-        window_size: DeviceUintSize,
+        window_size: DeviceIntSize,
         layer: DocumentLayer,
         default_device_pixel_ratio: f32,
     ) -> Self {
@@ -208,7 +206,7 @@ impl Document {
             removed_pipelines: Vec::new(),
             view: DocumentView {
                 window_size,
-                inner_rect: DeviceUintRect::new(DeviceUintPoint::zero(), window_size),
+                inner_rect: DeviceIntRect::new(DeviceIntPoint::zero(), window_size),
                 layer,
                 pan: DeviceIntPoint::zero(),
                 page_zoom_factor: 1.0,
@@ -345,7 +343,7 @@ impl Document {
         let accumulated_scale_factor = self.view.accumulated_scale_factor();
         let pan = self.view.pan.to_f32() / accumulated_scale_factor;
 
-        assert!(self.frame_id != FrameId::invalid(),
+        assert!(self.frame_id != FrameId::INVALID,
                 "First frame increment must happen before build_frame()");
 
         let frame = {

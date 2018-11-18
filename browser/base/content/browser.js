@@ -143,6 +143,7 @@ if (AppConstants.NIGHTLY_BUILD) {
 // lazy service getters
 
 XPCOMUtils.defineLazyServiceGetters(this, {
+  classifierService: ["@mozilla.org/url-classifier/dbservice;1", "nsIURIClassifier"],
   Favicons: ["@mozilla.org/browser/favicon-service;1", "nsIFaviconService"],
   gAboutNewTabService: ["@mozilla.org/browser/aboutnewtab-service;1", "nsIAboutNewTabService"],
   gDNSService: ["@mozilla.org/network/dns-service;1", "nsIDNSService"],
@@ -242,6 +243,11 @@ XPCOMUtils.defineLazyGetter(this, "Win7Features", function() {
   return null;
 });
 
+customElements.setElementCreationCallback("translation-notification", () => {
+  Services.scriptloader.loadSubScript(
+    "chrome://browser/content/translation-notification.js", window);
+});
+
 var gBrowser;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
@@ -304,7 +310,7 @@ Object.defineProperty(this, "gHighPriorityNotificationBox", {
     let notificationbox = new MozElements.NotificationBox(element => {
       element.classList.add("global-notificationbox");
       element.setAttribute("notificationside", "top");
-      document.getElementById("appcontent").append(element);
+      document.getElementById("appcontent").prepend(element);
     });
 
     return this.gHighPriorityNotificationBox = notificationbox;
@@ -555,7 +561,7 @@ const gSessionHistoryObserver = {
 const gStoragePressureObserver = {
   _lastNotificationTime: -1,
 
-  observe(subject, topic, data) {
+  async observe(subject, topic, data) {
     if (topic != "QuotaManager::StoragePressure") {
       return;
     }
@@ -579,17 +585,17 @@ const gStoragePressureObserver = {
     }
     this._lastNotificationTime = Date.now();
 
+    MozXULElement.insertFTLIfNeeded("branding/brand.ftl");
+    MozXULElement.insertFTLIfNeeded("browser/preferences/preferences.ftl");
+
     const BYTES_IN_GIGABYTE = 1073741824;
     const USAGE_THRESHOLD_BYTES = BYTES_IN_GIGABYTE *
       Services.prefs.getIntPref("browser.storageManager.pressureNotification.usageThresholdGB");
     let msg = "";
     let buttons = [];
     let usage = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
-    let prefStrBundle = document.getElementById("bundle_preferences");
-    let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
     buttons.push({
-      label: prefStrBundle.getString("spaceAlert.learnMoreButton.label"),
-      accessKey: prefStrBundle.getString("spaceAlert.learnMoreButton.accesskey"),
+      "l10n-id": "space-alert-learn-more-button",
       callback(notificationBar, button) {
         let learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL") + "storage-permissions";
         // This is a content URL, loaded from trusted UX.
@@ -601,27 +607,17 @@ const gStoragePressureObserver = {
       // This is because this usage is small and not the main cause for space issue.
       // In order to avoid the bad and wrong impression among users that
       // firefox eats disk space a lot, indicate users to clean up other disk space.
-      msg = prefStrBundle.getFormattedString("spaceAlert.under5GB.message", [brandShortName]);
+      [msg] = await document.l10n.formatValues([{id: "space-alert-under-5gb-message"}]);
       buttons.push({
-        label: prefStrBundle.getString("spaceAlert.under5GB.okButton.label"),
-        accessKey: prefStrBundle.getString("spaceAlert.under5GB.okButton.accesskey"),
+        "l10n-id": "space-alert-under-5gb-ok-button",
         callback() {},
       });
     } else {
       // The firefox-used space >= 5GB, then guide users to about:preferences
       // to clear some data stored on firefox by websites.
-      let descriptionStringID = "spaceAlert.over5GB.message1";
-      let prefButtonLabelStringID = "spaceAlert.over5GB.prefButton.label";
-      let prefButtonAccesskeyStringID = "spaceAlert.over5GB.prefButton.accesskey";
-      if (AppConstants.platform == "win") {
-        descriptionStringID = "spaceAlert.over5GB.messageWin1";
-        prefButtonLabelStringID = "spaceAlert.over5GB.prefButtonWin.label";
-        prefButtonAccesskeyStringID = "spaceAlert.over5GB.prefButtonWin.accesskey";
-      }
-      msg = prefStrBundle.getFormattedString(descriptionStringID, [brandShortName]);
+      [msg] = await document.l10n.formatValues([{id: "space-alert-over-5gb-message"}]);
       buttons.push({
-        label: prefStrBundle.getString(prefButtonLabelStringID),
-        accessKey: prefStrBundle.getString(prefButtonAccesskeyStringID),
+        "l10n-id": "space-alert-over-5gb-pref-button",
         callback(notificationBar, button) {
           // The advanced subpanes are only supported in the old organization, which will
           // be removed by bug 1349689.
@@ -633,6 +629,10 @@ const gStoragePressureObserver = {
     gHighPriorityNotificationBox.appendNotification(
       msg, NOTIFICATION_VALUE, null,
       gHighPriorityNotificationBox.PRIORITY_WARNING_HIGH, buttons, null);
+
+    // This seems to be necessary to get the buttons to display correctly
+    // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1504216
+    document.l10n.translateFragment(gHighPriorityNotificationBox.currentNotification);
   },
 };
 
@@ -1363,6 +1363,14 @@ var gBrowserInit = {
       remoteType, sameProcessAsFrameLoader,
     });
 
+    gNavToolbox.palette = document.getElementById("BrowserToolbarPalette");
+    gNavToolbox.palette.remove();
+    let areas = CustomizableUI.areas;
+    areas.splice(areas.indexOf(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL), 1);
+    for (let area of areas) {
+      let node = document.getElementById(area);
+      CustomizableUI.registerToolbarNode(node);
+    }
     BrowserSearch.initPlaceHolder();
 
     // Hack to ensure that the about:home favicon is loaded
@@ -5331,24 +5339,24 @@ var TabsProgressListener = {
   onStateChange(aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     // Collect telemetry data about tab load times.
     if (aWebProgress.isTopLevel && (!aRequest.originalURI || aRequest.originalURI.spec.scheme != "about")) {
-      let stopwatchRunning = TelemetryStopwatch.running("FX_PAGE_LOAD_MS", aBrowser);
+      let stopwatchRunning = TelemetryStopwatch.running("FX_PAGE_LOAD_MS_2", aBrowser);
 
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
         if (aStateFlags & Ci.nsIWebProgressListener.STATE_START) {
           if (stopwatchRunning) {
             // Oops, we're seeing another start without having noticed the previous stop.
-            TelemetryStopwatch.cancel("FX_PAGE_LOAD_MS", aBrowser);
+            TelemetryStopwatch.cancel("FX_PAGE_LOAD_MS_2", aBrowser);
           }
-          TelemetryStopwatch.start("FX_PAGE_LOAD_MS", aBrowser);
+          TelemetryStopwatch.start("FX_PAGE_LOAD_MS_2", aBrowser);
           Services.telemetry.getHistogramById("FX_TOTAL_TOP_VISITS").add(true);
         } else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
                    stopwatchRunning /* we won't see STATE_START events for pre-rendered tabs */) {
-          TelemetryStopwatch.finish("FX_PAGE_LOAD_MS", aBrowser);
+          TelemetryStopwatch.finish("FX_PAGE_LOAD_MS_2", aBrowser);
         }
       } else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
                  aStatus == Cr.NS_BINDING_ABORTED &&
                  stopwatchRunning /* we won't see STATE_START events for pre-rendered tabs */) {
-        TelemetryStopwatch.cancel("FX_PAGE_LOAD_MS", aBrowser);
+        TelemetryStopwatch.cancel("FX_PAGE_LOAD_MS_2", aBrowser);
       }
     }
   },

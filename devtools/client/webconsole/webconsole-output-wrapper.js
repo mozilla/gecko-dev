@@ -175,7 +175,8 @@ WebConsoleOutputWrapper.prototype = {
 
       if (this.toolbox) {
         this.toolbox.threadClient.addListener("paused", this.dispatchPaused.bind(this));
-        this.toolbox.threadClient.addListener("resumed", this.dispatchResumed.bind(this));
+        this.toolbox.threadClient.addListener(
+          "progress", this.dispatchProgress.bind(this));
 
         Object.assign(serviceContainer, {
           onViewSourceInDebugger: frame => {
@@ -365,8 +366,10 @@ WebConsoleOutputWrapper.prototype = {
     }
   },
 
-  dispatchResumed: function(_, packet) {
-    store.dispatch(actions.setPauseExecutionPoint(null));
+  dispatchProgress: function(_, packet) {
+    const {executionPoint, recording} = packet;
+    const point = recording ? null : executionPoint;
+    store.dispatch(actions.setPauseExecutionPoint(point));
   },
 
   dispatchMessageUpdate: function(message, res) {
@@ -448,6 +451,13 @@ WebConsoleOutputWrapper.prototype = {
     this.throttledDispatchPromise = new Promise(done => {
       setTimeout(() => {
         this.throttledDispatchPromise = null;
+
+        if (!store) {
+          // The store is not initialized yet, we can call setTimeoutIfNeeded so the
+          // messages will be handled in the next timeout when the store is ready.
+          this.setTimeoutIfNeeded();
+          return;
+        }
 
         store.dispatch(actions.messagesAdd(this.queuedMessageAdds));
 

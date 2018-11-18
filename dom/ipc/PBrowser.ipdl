@@ -890,6 +890,14 @@ child:
      */
     async GetContentBlockingLog() returns(nsString log, bool success);
 
+parent:
+    /** Records a history visit. */
+    async VisitURI(URIParams aURI, OptionalURIParams aLastVisitedURI,
+                   uint32_t aFlags);
+
+    /** Fetches the visited status for an array of URIs (Android-only). */
+    async QueryVisitedState(URIParams[] aURIs);
+
 /*
  * FIXME: write protocol!
 

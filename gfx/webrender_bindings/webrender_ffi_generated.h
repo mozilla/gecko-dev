@@ -542,6 +542,7 @@ struct MemoryReport {
   uintptr_t render_target_textures;
   uintptr_t texture_cache_textures;
   uintptr_t depth_target_textures;
+  uintptr_t swap_chain;
   uintptr_t total_gpu_bytes_allocated;
 
   bool operator==(const MemoryReport& aOther) const {
@@ -559,6 +560,7 @@ struct MemoryReport {
            render_target_textures == aOther.render_target_textures &&
            texture_cache_textures == aOther.texture_cache_textures &&
            depth_target_textures == aOther.depth_target_textures &&
+           swap_chain == aOther.swap_chain &&
            total_gpu_bytes_allocated == aOther.total_gpu_bytes_allocated;
   }
 };
@@ -574,7 +576,7 @@ struct TypedSize2D {
   }
 };
 
-using DeviceUintSize = TypedSize2D<uint32_t, DevicePixel>;
+using DeviceIntSize = TypedSize2D<int32_t, DevicePixel>;
 
 using LayoutSize = TypedSize2D<float, LayoutPixel>;
 
@@ -977,9 +979,9 @@ struct ByteSlice {
   }
 };
 
-using TileOffset = TypedPoint2D<uint32_t, Tiles>;
+using TileOffset = TypedPoint2D<int32_t, Tiles>;
 
-using DeviceUintRect = TypedRect<uint32_t, DevicePixel>;
+using DeviceIntRect = TypedRect<int32_t, DevicePixel>;
 
 struct MutByteSlice {
   uint8_t *buffer;
@@ -996,6 +998,24 @@ struct WrDebugFlags {
 
   bool operator==(const WrDebugFlags& aOther) const {
     return mBits == aOther.mBits;
+  }
+};
+
+struct RendererStats {
+  uintptr_t total_draw_calls;
+  uintptr_t alpha_target_count;
+  uintptr_t color_target_count;
+  uintptr_t texture_upload_kb;
+  uint64_t resource_upload_time;
+  uint64_t gpu_cache_upload_time;
+
+  bool operator==(const RendererStats& aOther) const {
+    return total_draw_calls == aOther.total_draw_calls &&
+           alpha_target_count == aOther.alpha_target_count &&
+           color_target_count == aOther.color_target_count &&
+           texture_upload_kb == aOther.texture_upload_kb &&
+           resource_upload_time == aOther.resource_upload_time &&
+           gpu_cache_upload_time == aOther.gpu_cache_upload_time;
   }
 };
 
@@ -1047,9 +1067,9 @@ struct WrExternalImageHandler {
 
 struct WrImageDescriptor {
   ImageFormat format;
-  uint32_t width;
-  uint32_t height;
-  uint32_t stride;
+  int32_t width;
+  int32_t height;
+  int32_t stride;
   OpacityType opacity;
 
   bool operator==(const WrImageDescriptor& aOther) const {
@@ -1132,7 +1152,11 @@ extern void apz_run_updater(WrWindowId aWindowId);
 extern void apz_sample_transforms(WrWindowId aWindowId,
                                   Transaction *aTransaction);
 
+extern void gecko_profiler_end_marker(const char *aName);
+
 extern void gecko_profiler_register_thread(const char *aName);
+
+extern void gecko_profiler_start_marker(const char *aName);
 
 extern void gecko_profiler_unregister_thread();
 
@@ -1188,7 +1212,7 @@ WR_FUNC;
 WR_INLINE
 void wr_api_create_document(DocumentHandle *aRootDh,
                             DocumentHandle **aOutHandle,
-                            DeviceUintSize aDocSize,
+                            DeviceIntSize aDocSize,
                             int8_t aLayer)
 WR_FUNC;
 
@@ -1339,9 +1363,9 @@ void wr_dp_push_border_gradient(WrState *aState,
                                 LayoutRect aClip,
                                 bool aIsBackfaceVisible,
                                 LayoutSideOffsets aWidths,
-                                uint32_t aWidth,
-                                uint32_t aHeight,
-                                SideOffsets2D<uint32_t> aSlice,
+                                int32_t aWidth,
+                                int32_t aHeight,
+                                SideOffsets2D<int32_t> aSlice,
                                 LayoutPoint aStartPoint,
                                 LayoutPoint aEndPoint,
                                 const GradientStop *aStops,
@@ -1357,9 +1381,9 @@ void wr_dp_push_border_image(WrState *aState,
                              bool aIsBackfaceVisible,
                              LayoutSideOffsets aWidths,
                              WrImageKey aImage,
-                             uint32_t aWidth,
-                             uint32_t aHeight,
-                             SideOffsets2D<uint32_t> aSlice,
+                             int32_t aWidth,
+                             int32_t aHeight,
+                             SideOffsets2D<int32_t> aSlice,
                              SideOffsets2D<float> aOutset,
                              RepeatMode aRepeatHorizontal,
                              RepeatMode aRepeatVertical)
@@ -1577,12 +1601,12 @@ uintptr_t wr_dump_display_list(WrState *aState,
 WR_FUNC;
 
 extern bool wr_moz2d_render_cb(ByteSlice aBlob,
-                               uint32_t aWidth,
-                               uint32_t aHeight,
+                               int32_t aWidth,
+                               int32_t aHeight,
                                ImageFormat aFormat,
                                const uint16_t *aTileSize,
                                const TileOffset *aTileOffset,
-                               const DeviceUintRect *aDirtyRect,
+                               const DeviceIntRect *aDirtyRect,
                                MutByteSlice aOutput);
 
 extern void wr_notifier_external_event(WrWindowId aWindowId,
@@ -1632,17 +1656,18 @@ WR_FUNC;
 
 WR_INLINE
 void wr_renderer_readback(Renderer *aRenderer,
-                          uint32_t aWidth,
-                          uint32_t aHeight,
+                          int32_t aWidth,
+                          int32_t aHeight,
                           uint8_t *aDstBuffer,
                           uintptr_t aBufferSize)
 WR_FUNC;
 
 WR_INLINE
 bool wr_renderer_render(Renderer *aRenderer,
-                        uint32_t aWidth,
-                        uint32_t aHeight,
-                        bool aHadSlowFrame)
+                        int32_t aWidth,
+                        int32_t aHeight,
+                        bool aHadSlowFrame,
+                        RendererStats *aOutStats)
 WR_FUNC;
 
 WR_INLINE
@@ -1733,7 +1758,7 @@ WR_FUNC;
 WR_INLINE
 void wr_resource_updates_set_image_visible_area(Transaction *aTxn,
                                                 WrImageKey aKey,
-                                                const DeviceUintRect *aArea)
+                                                const DeviceIntRect *aArea)
 WR_FUNC;
 
 WR_INLINE
@@ -1741,7 +1766,7 @@ void wr_resource_updates_update_blob_image(Transaction *aTxn,
                                            WrImageKey aImageKey,
                                            const WrImageDescriptor *aDescriptor,
                                            WrVecU8 *aBytes,
-                                           DeviceUintRect aDirtyRect)
+                                           DeviceIntRect aDirtyRect)
 WR_FUNC;
 
 WR_INLINE
@@ -1760,7 +1785,7 @@ void wr_resource_updates_update_external_image_with_dirty_rect(Transaction *aTxn
                                                                WrExternalImageId aExternalImageId,
                                                                WrExternalImageBufferType aImageType,
                                                                uint8_t aChannelIndex,
-                                                               DeviceUintRect aDirtyRect)
+                                                               DeviceIntRect aDirtyRect)
 WR_FUNC;
 
 WR_INLINE
@@ -1896,8 +1921,8 @@ WR_FUNC;
 
 WR_INLINE
 void wr_transaction_set_window_parameters(Transaction *aTxn,
-                                          const DeviceUintSize *aWindowSize,
-                                          const DeviceUintRect *aDocRect)
+                                          const DeviceIntSize *aWindowSize,
+                                          const DeviceIntRect *aDocRect)
 WR_FUNC;
 
 WR_INLINE
@@ -1929,8 +1954,8 @@ WR_FUNC;
 
 WR_INLINE
 bool wr_window_new(WrWindowId aWindowId,
-                   uint32_t aWindowWidth,
-                   uint32_t aWindowHeight,
+                   int32_t aWindowWidth,
+                   int32_t aWindowHeight,
                    bool aSupportLowPriorityTransactions,
                    void *aGlContext,
                    WrProgramCache *aProgramCache,
@@ -1939,7 +1964,7 @@ bool wr_window_new(WrWindowId aWindowId,
                    VoidPtrToSizeFn aSizeOfOp,
                    DocumentHandle **aOutHandle,
                    Renderer **aOutRenderer,
-                   uint32_t *aOutMaxTextureSize)
+                   int32_t *aOutMaxTextureSize)
 WR_FUNC;
 
 } // extern "C"

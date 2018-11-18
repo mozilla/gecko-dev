@@ -4,30 +4,32 @@
 
 //! Computed values.
 
+use self::transform::DirectionVector;
 use super::animated::ToAnimatedValue;
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
+use super::generics::transform::IsParallelTo;
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
-use context::QuirksMode;
-use euclid::Size2D;
-use font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
-use media_queries::Device;
+use crate::context::QuirksMode;
+use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
+use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
-use properties;
-use properties::{ComputedValues, LonghandId, StyleBuilder};
-use rule_cache::RuleCacheConditions;
+use crate::properties;
+use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
+use crate::rule_cache::RuleCacheConditions;
+use crate::Atom;
+#[cfg(feature = "servo")]
+use crate::Prefix;
+use euclid::Size2D;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
 use std::fmt::{self, Write};
 use style_traits::cursor::CursorKind;
 use style_traits::{CssWriter, ToCss};
-use Atom;
-#[cfg(feature = "servo")]
-use Prefix;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
@@ -40,7 +42,7 @@ pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain};
-pub use self::box_::{Appearance, Clear, Float};
+pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{Display, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
@@ -77,14 +79,14 @@ pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, MozTabSize};
+pub use self::text::{OverflowWrap, TextOverflow, WordSpacing};
 pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
-pub use self::text::{TextOverflow, WordSpacing, OverflowWrap};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;
@@ -458,6 +460,19 @@ trivial_to_computed_value!(Box<str>);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
+
+impl IsParallelTo for (Number, Number, Number) {
+    fn is_parallel_to(&self, vector: &DirectionVector) -> bool {
+        use euclid::approxeq::ApproxEq;
+        // If a and b is parallel, the angle between them is 0deg, so
+        // a x b = |a|*|b|*sin(0)*n = 0 * n, |a x b| == 0.
+        let self_vector = DirectionVector::new(self.0, self.1, self.2);
+        self_vector
+            .cross(*vector)
+            .square_length()
+            .approx_eq(&0.0f32)
+    }
+}
 
 /// A wrapper of Number, but the value >= 0.
 pub type NonNegativeNumber = NonNegative<CSSFloat>;

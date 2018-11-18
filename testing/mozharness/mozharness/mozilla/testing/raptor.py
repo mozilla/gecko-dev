@@ -133,6 +133,12 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "dest": "host",
             "help": "Hostname from which to serve urls (default: 127.0.0.1).",
         }],
+        [["--debug-mode"], {
+            "dest": "debug_mode",
+            "action": "store_true",
+            "default": False,
+            "help": "Run Raptor in debug mode (open browser console, limited page-cycles, etc.)",
+        }],
 
     ] + testing_config_options + copy.deepcopy(code_coverage_config_options)
 
@@ -197,6 +203,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         self.test_packages_url = self.config.get('test_packages_url')
         self.host = self.config.get('host')
         self.is_release_build = self.config.get('is_release_build')
+        self.debug_mode = self.config.get('debug_mode', False)
 
     # We accept some configuration options from the try commit message in the
     # format mozharness: <options>. Example try commit message: mozharness:
@@ -333,8 +340,6 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         # options overwritten from **kw
         if 'test' in self.config:
             kw_options['test'] = self.config['test']
-        if self.config.get('is_release_build', False):
-            kw_options['is_release_build'] = self.config['is_release_build']
         if self.symbols_path:
             kw_options['symbolsPath'] = self.symbols_path
         if self.config.get('obj_path', None) is not None:
@@ -351,6 +356,8 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             options += self.config['raptor_cmd_line_args']
         if self.config.get('code_coverage', False):
             options.extend(['--code-coverage'])
+        if self.config.get('is_release_build', False):
+            options.extend(['--is-release-build'])
         for key, value in kw_options.items():
             options.extend(['--%s' % key, value])
 

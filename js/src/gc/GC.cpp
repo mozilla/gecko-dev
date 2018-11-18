@@ -993,7 +993,6 @@ GCRuntime::GCRuntime(JSRuntime* rt) :
     fullGCForAtomsRequested_(false),
     minorGCNumber(0),
     majorGCNumber(0),
-    jitReleaseNumber(0),
     number(0),
     isFull(false),
     incrementalState(gc::State::NotActive),
@@ -1341,12 +1340,6 @@ js::gc::DumpArenaInfo()
 
 #endif // JS_GC_ZEAL
 
-/*
- * Lifetime in number of major GCs for type sets attached to scripts containing
- * observed types.
- */
-static const unsigned JIT_SCRIPT_RELEASE_TYPES_PERIOD = 20;
-
 bool
 GCRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
 {
@@ -1363,8 +1356,6 @@ GCRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
         if (size) {
             setMarkStackLimit(atoi(size), lock);
         }
-
-        jitReleaseNumber = majorGCNumber + JIT_SCRIPT_RELEASE_TYPES_PERIOD;
 
         if (!nursery().init(maxNurseryBytes, lock)) {
             return false;
@@ -2473,13 +2464,21 @@ RelocateArena(Arena* arena, SliceBudget& sliceBudget)
 }
 
 static inline bool
+CanProtectArenas()
+{
+    // On some systems the page size is larger than the size of an arena so we
+    // can't change the mapping permissions per arena.
+    return SystemPageSize() <= ArenaSize;
+}
+
+static inline bool
 ShouldProtectRelocatedArenas(JS::gcreason::Reason reason)
 {
     // For zeal mode collections we don't release the relocated arenas
     // immediately. Instead we protect them and keep them around until the next
     // collection so we can catch any stray accesses to them.
 #ifdef DEBUG
-    return reason == JS::gcreason::DEBUG_GC;
+    return reason == JS::gcreason::DEBUG_GC && CanProtectArenas();
 #else
     return false;
 #endif
@@ -2649,7 +2648,7 @@ Zone::prepareForCompacting()
 void
 GCRuntime::sweepTypesAfterCompacting(Zone* zone)
 {
-    zone->beginSweepTypes(releaseObservedTypes && !zone->isPreservingCode());
+    zone->beginSweepTypes();
 
     AutoClearTypeInferenceStateOnOOM oom(zone);
 
@@ -2987,11 +2986,10 @@ GCRuntime::updateCellPointers(Zone* zone, AllocKinds kinds, size_t bgTaskCount)
 //  2) typed object type descriptor objects
 //  3) all other objects
 //
-// Also, JSScripts and LazyScripts can have pointers to each other. Each can be
-// updated safely without requiring the referent to be up-to-date, but TSAN can
-// warn about data races when calling IsForwarded() on the new location of a
-// cell that is being updated in parallel. To avoid this, we update these in
-// separate phases.
+// Also, there can be data races calling IsForwarded() on the new location of a
+// cell that is being updated in parallel on another thread. This can be avoided
+// by updating some kinds of cells in different phases. This is done for JSScripts
+// and LazyScripts, and JSScripts and Scopes.
 //
 // Since we want to minimize the number of phases, arrange kinds into three
 // arbitrary phases.
@@ -3003,14 +3001,14 @@ static const AllocKinds UpdatePhaseOne {
     AllocKind::ACCESSOR_SHAPE,
     AllocKind::OBJECT_GROUP,
     AllocKind::STRING,
-    AllocKind::JITCODE,
-    AllocKind::SCOPE
+    AllocKind::JITCODE
 };
 
 // UpdatePhaseTwo is typed object descriptor objects.
 
 static const AllocKinds UpdatePhaseThree {
     AllocKind::LAZY_SCRIPT,
+    AllocKind::SCOPE,
     AllocKind::FUNCTION,
     AllocKind::FUNCTION_EXTENDED,
     AllocKind::OBJECT0,
@@ -3961,29 +3959,6 @@ GCRuntime::waitBackgroundSweepEnd()
     }
 }
 
-bool
-GCRuntime::shouldReleaseObservedTypes()
-{
-    bool releaseTypes = false;
-
-#ifdef JS_GC_ZEAL
-    if (zealModeBits != 0) {
-        releaseTypes = true;
-    }
-#endif
-
-    /* We may miss the exact target GC due to resets. */
-    if (majorGCNumber >= jitReleaseNumber) {
-        releaseTypes = true;
-    }
-
-    if (releaseTypes) {
-        jitReleaseNumber = majorGCNumber + JIT_SCRIPT_RELEASE_TYPES_PERIOD;
-    }
-
-    return releaseTypes;
-}
-
 struct IsAboutToBeFinalizedFunctor {
     template <typename T> bool operator()(Cell** t) {
         mozilla::DebugOnly<const Cell*> prior = *t;
@@ -4560,7 +4535,9 @@ DiscardJITCodeForGC(JSRuntime* rt)
     js::CancelOffThreadIonCompile(rt, JS::Zone::Mark);
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
         gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PhaseKind::MARK_DISCARD_CODE);
-        zone->discardJitCode(rt->defaultFreeOp());
+        zone->discardJitCode(rt->defaultFreeOp(),
+                             /* discardBaselineCode = */ true,
+                             /* releaseTypes = */ true);
     }
 }
 
@@ -5890,16 +5867,6 @@ GCRuntime::sweepJitDataOnMainThread(FreeOp* fop)
             js::CancelOffThreadIonCompile(rt, JS::Zone::Sweep);
         }
 
-        for (SweepGroupRealmsIter r(rt); !r.done(); r.next()) {
-            r->sweepJitRealm();
-        }
-
-        for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
-            if (jit::JitZone* jitZone = zone->jitZone()) {
-                jitZone->sweep();
-            }
-        }
-
         // Bug 1071218: the following method has not yet been refactored to
         // work on a single zone-group at once.
 
@@ -5915,11 +5882,27 @@ GCRuntime::sweepJitDataOnMainThread(FreeOp* fop)
         }
     }
 
+    // JitZone/JitRealm must be swept *after* discarding JIT code, because
+    // Zone::discardJitCode might access CacheIRStubInfos deleted here.
+    {
+        gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_JIT_DATA);
+
+        for (SweepGroupRealmsIter r(rt); !r.done(); r.next()) {
+            r->sweepJitRealm();
+        }
+
+        for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
+            if (jit::JitZone* jitZone = zone->jitZone()) {
+                jitZone->sweep();
+            }
+        }
+    }
+
     {
         gcstats::AutoPhase ap1(stats(), gcstats::PhaseKind::SWEEP_TYPES);
         gcstats::AutoPhase ap2(stats(), gcstats::PhaseKind::SWEEP_TYPES_BEGIN);
         for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
-            zone->beginSweepTypes(releaseObservedTypes && !zone->isPreservingCode());
+            zone->beginSweepTypes();
         }
     }
 }
@@ -6200,8 +6183,6 @@ GCRuntime::beginSweepPhase(JS::gcreason::Reason reason, AutoGCSession& session)
         reason != JS::gcreason::DESTROY_RUNTIME &&
         !gcTracer.traceEnabled() &&
         CanUseExtraThreads();
-
-    releaseObservedTypes = shouldReleaseObservedTypes();
 
     AssertNoWrappersInGrayList(rt);
     DropStringWrappers(rt);
@@ -7584,6 +7565,9 @@ GCRuntime::incrementalSlice(SliceBudget& budget, JS::gcreason::Reason reason,
 
       case State::Sweep:
         MOZ_ASSERT(nursery().isEmpty());
+
+        AutoGCRooter::traceAllWrappers(rt->mainContextFromOwnThread(), &marker);
+
         if (performSweepActions(budget) == NotFinished) {
             break;
         }

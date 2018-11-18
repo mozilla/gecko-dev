@@ -13,7 +13,6 @@ use clip::{ClipDataInterner, ClipDataUpdateList};
 use clip_scroll_tree::ClipScrollTree;
 use display_list_flattener::DisplayListFlattener;
 use internal_types::{FastHashMap, FastHashSet};
-use picture::PictureIdGenerator;
 use prim_store::{PrimitiveDataInterner, PrimitiveDataUpdateList};
 use resource_cache::FontInstanceMap;
 use render_backend::DocumentView;
@@ -199,7 +198,6 @@ pub struct SceneBuilder {
     api_tx: MsgSender<ApiMsg>,
     config: FrameBuilderConfig,
     hooks: Option<Box<SceneBuilderHooks + Send>>,
-    picture_id_generator: PictureIdGenerator,
     simulate_slow_ms: u32,
 }
 
@@ -219,7 +217,6 @@ impl SceneBuilder {
                 api_tx,
                 config,
                 hooks,
-                picture_id_generator: PictureIdGenerator::new(),
                 simulate_slow_ms: 0,
             },
             in_tx,
@@ -328,7 +325,6 @@ impl SceneBuilder {
                     &item.output_pipelines,
                     &self.config,
                     &mut new_scene,
-                    &mut self.picture_id_generator,
                     &mut item.doc_resources,
                 );
 
@@ -386,6 +382,9 @@ impl SceneBuilder {
 
     /// Do the bulk of the work of the scene builder thread.
     fn process_transaction(&mut self, txn: &mut Transaction) -> Box<BuiltTransaction> {
+        if let &Some(ref hooks) = &self.hooks {
+            hooks.pre_scene_build();
+        }
 
         let scene_build_start_time = precise_time_ns();
 
@@ -432,7 +431,6 @@ impl SceneBuilder {
                     &request.output_pipelines,
                     &self.config,
                     &mut new_scene,
-                    &mut self.picture_id_generator,
                     &mut doc.resources,
                 );
 
@@ -541,6 +539,10 @@ impl SceneBuilder {
         } else if has_resources_updates {
             if let &Some(ref hooks) = &self.hooks {
                 hooks.post_resource_update();
+            }
+        } else {
+            if let &Some(ref hooks) = &self.hooks {
+                hooks.post_empty_scene_build();
             }
         }
     }

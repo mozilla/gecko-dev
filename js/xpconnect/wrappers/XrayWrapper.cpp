@@ -486,8 +486,19 @@ TryResolvePropertyFromSpecs(JSContext* cx, HandleId id, HandleObject holder,
 }
 
 static bool
+ShouldResolvePrototypeProperty(JSProtoKey key) {
+    // Proxy constructors have no "prototype" property.
+    return key != JSProto_Proxy;
+}
+
+static bool
 ShouldResolveStaticProperties(JSProtoKey key)
 {
+    if (!IsJSXraySupported(key)) {
+        // If we can't Xray this ES class, then we can't resolve statics on it.
+        return false;
+    }
+
     // Don't try to resolve static properties on RegExp, because they
     // have issues.  In particular, some of them grab state off the
     // global of the RegExp constructor that describes the last regexp
@@ -588,7 +599,8 @@ JSXrayTraits::resolveOwnProperty(JSContext* cx, HandleObject wrapper,
                 if (standardConstructor != JSProto_Null) {
                     // Handle the 'prototype' property to make
                     // xrayedGlobal.StandardClass.prototype work.
-                    if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE)) {
+                    if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE) &&
+                        ShouldResolvePrototypeProperty(standardConstructor)) {
                         RootedObject standardProto(cx);
                         {
                             JSAutoRealm ar(cx, target);
@@ -924,8 +936,10 @@ JSXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper, unsigned flags
             // constructors.
             JSProtoKey standardConstructor = constructorFor(holder);
             if (standardConstructor != JSProto_Null) {
-                if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE))) {
-                    return false;
+                if (ShouldResolvePrototypeProperty(standardConstructor)) {
+                    if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE))) {
+                        return false;
+                    }
                 }
 
                 if (ShouldResolveStaticProperties(standardConstructor)) {

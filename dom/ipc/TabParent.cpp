@@ -99,6 +99,7 @@
 #include "mozilla/WebBrowserPersistDocumentParent.h"
 #include "ProcessPriorityManager.h"
 #include "nsString.h"
+#include "IHistory.h"
 
 #ifdef XP_WIN
 #include "mozilla/plugins/PluginWidgetParent.h"
@@ -108,6 +109,10 @@
 #include "mozilla/a11y/AccessibleWrap.h"
 #include "mozilla/a11y/Compatibility.h"
 #include "mozilla/a11y/nsWinUtils.h"
+#endif
+
+#ifdef MOZ_ANDROID_HISTORY
+#include "GeckoViewHistory.h"
 #endif
 
 using namespace mozilla::dom;
@@ -3621,6 +3626,58 @@ TabParent::RecvShowCanvasPermissionPrompt(const nsCString& aFirstPartyURI)
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+TabParent::RecvVisitURI(const URIParams& aURI,
+                        const OptionalURIParams& aLastVisitedURI,
+                        const uint32_t& aFlags)
+{
+  nsCOMPtr<nsIURI> ourURI = DeserializeURI(aURI);
+  if (!ourURI) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  nsCOMPtr<nsIURI> ourLastVisitedURI = DeserializeURI(aLastVisitedURI);
+  RefPtr<nsIWidget> widget = GetWidget();
+  if (NS_WARN_IF(!widget)) {
+    return IPC_OK();
+  }
+  nsCOMPtr<IHistory> history = services::GetHistoryService();
+  if (history) {
+    Unused << history->VisitURI(widget, ourURI, ourLastVisitedURI, aFlags);
+  }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+TabParent::RecvQueryVisitedState(InfallibleTArray<URIParams>&& aURIs)
+{
+#ifdef MOZ_ANDROID_HISTORY
+  nsCOMPtr<IHistory> history = services::GetHistoryService();
+  if (NS_WARN_IF(!history)) {
+    return IPC_OK();
+  }
+  RefPtr<nsIWidget> widget = GetWidget();
+  if (NS_WARN_IF(!widget)) {
+    return IPC_OK();
+  }
+
+  nsTArray<nsCOMPtr<nsIURI>> uris(aURIs.Length());
+  for (size_t i = 0; i < aURIs.Length(); ++i) {
+    nsCOMPtr<nsIURI> uri = DeserializeURI(aURIs[i]);
+    if (NS_WARN_IF(!uri)) {
+      continue;
+    }
+    uris.AppendElement(uri);
+  }
+
+  GeckoViewHistory* gvHistory = static_cast<GeckoViewHistory*>(history.get());
+  gvHistory->QueryVisitedState(widget, uris);
+
+  return IPC_OK();
+#else
+  return IPC_FAIL(this, "QueryVisitedState is Android-only");
+#endif
 }
 
 void

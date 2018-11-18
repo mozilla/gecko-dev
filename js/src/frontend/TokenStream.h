@@ -1911,6 +1911,13 @@ class GeneralTokenStreamChars
         token->setNumber(dval, decimalPoint);
     }
 
+#ifdef ENABLE_BIGINT
+    void newBigIntToken(TokenStart start, TokenStreamShared::Modifier modifier, TokenKind* out)
+    {
+        newToken(TokenKind::BigInt, start, modifier, out);
+    }
+#endif
+
     void newAtomToken(TokenKind kind, JSAtom* atom, TokenStart start,
                       TokenStreamShared::Modifier modifier, TokenKind* out)
     {
@@ -2194,7 +2201,7 @@ class TokenStreamChars<mozilla::Utf8Unit, AnyCharsAccess>
      * trailing unit was the last of |unitsObserved| units examined from the
      * current offset.
      */
-    MOZ_COLD void badTrailingUnit(mozilla::Utf8Unit badUnit, uint8_t unitsObserved);
+    MOZ_COLD void badTrailingUnit(uint8_t unitsObserved);
 
     // Helper used for both |badCodePoint| and |notShortestForm| for code units
     // that have all the requisite high bits set/unset in a manner that *could*
@@ -2349,6 +2356,9 @@ class MOZ_STACK_CLASS TokenStreamSpecific
     using GeneralCharsBase::newNameToken;
     using GeneralCharsBase::newPrivateNameToken;
     using GeneralCharsBase::newNumberToken;
+#ifdef ENABLE_BIGINT
+    using GeneralCharsBase::newBigIntToken;
+#endif
     using GeneralCharsBase::newRegExpToken;
     using GeneralCharsBase::newSimpleToken;
     using CharsBase::peekCodeUnit;
@@ -2515,6 +2525,12 @@ class MOZ_STACK_CLASS TokenStreamSpecific
 
     /** Tokenize a regular expression literal beginning at |start|. */
     MOZ_MUST_USE bool regexpLiteral(TokenStart start, TokenKind* out);
+
+    /**
+     * Slurp characters between |start| and sourceUnits.current() into
+     * charBuffer, to later parse into a bigint.
+     */
+    MOZ_MUST_USE bool bigIntLiteral(TokenStart start, Modifier modifier, TokenKind* out);
 
   public:
     // Advance to the next token.  If the token stream encountered an error,

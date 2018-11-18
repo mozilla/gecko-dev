@@ -445,7 +445,7 @@ struct DIGroup
       combined = clip.ApplyNonRoundedIntersection(geometry->ComputeInvalidationRegion());
       aData->mGeometry = std::move(geometry);
 
-      GP("matrix: %f %f\n", aMatrix._31, aMatrix._32); 
+      GP("matrix: %f %f\n", aMatrix._31, aMatrix._32);
       GP("frame invalid invalidate: %s\n", aItem->Name());
       GP("old rect: %d %d %d %d\n",
              aData->mRect.x,
@@ -549,18 +549,45 @@ struct DIGroup
             aData->mRect = transformedRect.Intersect(mImageBounds);
             InvalidateRect(aData->mRect);
             GP("UpdateContainerLayerPropertiesAndDetectChange change\n");
+          } else if (!aData->mImageRect.IsEqualEdges(mImageBounds)) {
+            // Make sure we update mRect for mImageBounds changes
+            combined = clip.ApplyNonRoundedIntersection(geometry->ComputeInvalidationRegion());
+            IntRect transformedRect = ToDeviceSpace(combined.GetBounds(), aMatrix, appUnitsPerDevPixel, mLayerBounds.TopLeft());
+            // The invalid rect should contain the old rect and the new rect
+            // but may not because the parent may have been removed.
+            InvalidateRect(aData->mRect);
+            aData->mRect = transformedRect.Intersect(mImageBounds);
+            InvalidateRect(aData->mRect);
+            GP("ContainerLayer image rect bounds change\n");
           } else {
             // XXX: this code can eventually be deleted/made debug only
             combined = clip.ApplyNonRoundedIntersection(geometry->ComputeInvalidationRegion());
+            IntRect transformedRect = ToDeviceSpace(combined.GetBounds(), aMatrix, appUnitsPerDevPixel, mLayerBounds.TopLeft());
+            auto rect = transformedRect.Intersect(mImageBounds);
             GP("Layer NoChange: %s %d %d %d %d\n", aItem->Name(),
                    aData->mRect.x, aData->mRect.y, aData->mRect.XMost(), aData->mRect.YMost());
+            MOZ_RELEASE_ASSERT(rect.IsEqualEdges(aData->mRect));
           }
+        } else if (!aData->mImageRect.IsEqualEdges(mImageBounds)) {
+          // Make sure we update mRect for mImageBounds changes
+          UniquePtr<nsDisplayItemGeometry> geometry(aItem->AllocateGeometry(aBuilder));
+          combined = clip.ApplyNonRoundedIntersection(geometry->ComputeInvalidationRegion());
+          IntRect transformedRect = ToDeviceSpace(combined.GetBounds(), aMatrix, appUnitsPerDevPixel, mLayerBounds.TopLeft());
+          // The invalid rect should contain the old rect and the new rect
+          // but may not because the parent may have been removed.
+          InvalidateRect(aData->mRect);
+          aData->mRect = transformedRect.Intersect(mImageBounds);
+          InvalidateRect(aData->mRect);
+          GP("image rect bounds change\n");
         } else {
           // XXX: this code can eventually be deleted/made debug only
           UniquePtr<nsDisplayItemGeometry> geometry(aItem->AllocateGeometry(aBuilder));
           combined = clip.ApplyNonRoundedIntersection(geometry->ComputeInvalidationRegion());
+          IntRect transformedRect = ToDeviceSpace(combined.GetBounds(), aMatrix, appUnitsPerDevPixel, mLayerBounds.TopLeft());
+          auto rect = transformedRect.Intersect(mImageBounds);
           GP("NoChange: %s %d %d %d %d\n", aItem->Name(),
                  aData->mRect.x, aData->mRect.y, aData->mRect.XMost(), aData->mRect.YMost());
+          MOZ_RELEASE_ASSERT(rect.IsEqualEdges(aData->mRect));
         }
       }
     }
@@ -1562,7 +1589,7 @@ WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(nsDisplayList* a
 
 void
 WebRenderCommandBuilder::PushOverrideForASR(const ActiveScrolledRoot* aASR,
-                                            const Maybe<wr::WrClipId>& aClipId)
+                                            const wr::WrClipId& aClipId)
 {
   mClipManager.PushOverrideForASR(aASR, aClipId);
 }

@@ -6,11 +6,12 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
+use crate::hash::map::Entry;
+use crate::properties::{CSSWideKeyword, CustomDeclarationValue};
+use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
+use crate::Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
-use properties::{CSSWideKeyword, CustomDeclarationValue};
-use selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -19,7 +20,6 @@ use std::cmp;
 use std::fmt::{self, Write};
 use std::hash::Hash;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use Atom;
 
 /// The environment from which to get `env` function values.
 ///
@@ -109,7 +109,7 @@ pub struct VariableValue {
     references_environment: bool,
 
     /// Custom property names in var() functions.
-    references: PrecomputedHashSet<Name>,
+    references: Box<[Name]>,
 }
 
 impl ToCss for SpecifiedValue {
@@ -278,7 +278,7 @@ impl VariableValue {
             css: String::new(),
             last_token_type: TokenSerializationType::nothing(),
             first_token_type: TokenSerializationType::nothing(),
-            references: PrecomputedHashSet::default(),
+            references: Default::default(),
             references_environment: false,
         }
     }
@@ -335,11 +335,17 @@ impl VariableValue {
         let (first_token_type, css, last_token_type) =
             parse_self_contained_declaration_value(input, Some(&mut references))?;
 
+        let custom_property_references = references
+            .custom_property_references
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+
         Ok(Arc::new(VariableValue {
             css: css.into_owned(),
             first_token_type,
             last_token_type,
-            references: references.custom_property_references,
+            references: custom_property_references,
             references_environment: references.references_environment,
         }))
     }

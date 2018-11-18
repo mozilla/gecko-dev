@@ -284,7 +284,8 @@ public:
   void NotifyPipelineRendered(const wr::PipelineId& aPipelineId,
                               const wr::Epoch& aEpoch,
                               TimeStamp& aCompositeStart,
-                              TimeStamp& aCompositeEnd);
+                              TimeStamp& aCompositeEnd,
+                              wr::RendererStats* aStats = nullptr);
   RefPtr<AsyncImagePipelineManager> GetAsyncImagePipelineManager() const;
 
   PCompositorWidgetParent* AllocPCompositorWidgetParent(const CompositorWidgetInitData& aInitData) override;
@@ -316,7 +317,7 @@ public:
    * otherwise.
    */
   bool ScheduleResumeOnCompositorThread();
-  bool ScheduleResumeOnCompositorThread(int width, int height);
+  bool ScheduleResumeOnCompositorThread(int x, int y, int width, int height);
 
   void ScheduleComposition();
   void NotifyShadowTreeTransaction(LayersId aId, bool aIsFirstPaint,
@@ -538,14 +539,14 @@ protected:
   bool DeallocPLayerTransactionParent(PLayerTransactionParent* aLayers) override;
   virtual void ScheduleTask(already_AddRefed<CancelableRunnable>, int);
 
-  void SetEGLSurfaceSize(int width, int height);
+  void SetEGLSurfaceRect(int x, int y, int width, int height);
 
   void InitializeLayerManager(const nsTArray<LayersBackend>& aBackendHints);
 
 public:
   void PauseComposition();
   void ResumeComposition();
-  void ResumeCompositionAndResize(int width, int height);
+  void ResumeCompositionAndResize(int x, int y, int width, int height);
   void Invalidate();
 
 protected:

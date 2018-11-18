@@ -19,7 +19,6 @@
  * https://wicg.github.io/visual-viewport/#the-visualviewport-interface
  */
 
-interface IID;
 interface nsIBrowserDOMWindow;
 interface XULControllers;
 interface nsIDOMWindowUtils;
@@ -39,7 +38,6 @@ typedef OfflineResourceList ApplicationCache;
   [PutForwards=href, Unforgeable, BinaryName="getLocation",
    CrossOriginReadable, CrossOriginWritable] readonly attribute Location location;
   [Throws] readonly attribute History history;
-  [Func="CustomElementRegistry::IsCustomElementEnabled"]
   readonly attribute CustomElementRegistry customElements;
   [Replaceable, Throws] readonly attribute BarProp locationbar;
   [Replaceable, Throws] readonly attribute BarProp menubar;
@@ -341,7 +339,7 @@ partial interface Window {
    NonEnumerable, Replaceable, Throws, NeedsCallerType]
   readonly attribute object? content;
 
-  [Throws, ChromeOnly] any getInterface(IID iid);
+  [Throws, ChromeOnly] any getInterface(any iid);
 
   /**
    * Same as nsIDOMWindow.windowRoot, useful for event listener targeting.

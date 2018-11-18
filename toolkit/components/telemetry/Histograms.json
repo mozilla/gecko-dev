@@ -6171,11 +6171,24 @@
   },
   "FX_PAGE_LOAD_MS": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "default",
+    "expires_in_version": "65",
     "kind": "exponential",
     "high": 10000,
     "n_buckets": 20,
-    "description": "Firefox: Time taken to load a page (ms). This includes all static contents, no dynamic content. Loading of about: pages is not counted."
+    "description": "Firefox: Time taken to load a page (ms). This includes all static contents, no dynamic content. Loading of about: pages is not counted.",
+    "bug_numbers": [790213, 1504247],
+    "alert_emails": ["tdsmith@mozilla.com"]
+  },
+  "FX_PAGE_LOAD_MS_2": {
+    "record_in_processes": ["main", "content"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "high": 10000,
+    "n_buckets": 200,
+    "description": "Firefox: Time taken to load a page (ms). This includes all static contents, no dynamic content. Loading of about: pages is not counted.",
+    "bug_numbers": [1504247],
+    "alert_emails": ["tdsmith@mozilla.com", "perfteam@mozilla.com", "product-metrics-telemetry-alerts@mozilla.com"],
+    "releaseChannelCollection": "opt-out"
   },
   "FX_SCHEDULE_PRESSURE_IDLE_SAMPLE_MS": {
     "record_in_processes": ["main"],
@@ -6782,6 +6795,15 @@
     "expires_in_version": "never",
     "kind": "boolean",
     "description": "Deleted or to-be-reused innerwindow which has had mutation event listeners."
+  },
+  "INNERWINDOWS_WITH_TEXT_EVENT_LISTENERS": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["mnakano@mozilla.com"],
+    "bug_numbers": [1506434,1288640],
+    "expires_in_version": "67",
+    "kind": "boolean",
+    "releaseChannelCollection": "opt-out",
+    "description": "Deleted or to-be-reused innerwindow which has had text event listeners in the default group."
   },
   "CHARSET_OVERRIDE_SITUATION": {
     "record_in_processes": ["main", "content"],
@@ -8010,7 +8032,7 @@
     "releaseChannelCollection": "opt-out",
     "alert_emails": ["adw@mozilla.com"],
     "bug_numbers": [1089670, 1482158, 1499193],
-    "description": "Records search counts for search access points and in content searches. For search access points in general and for the urlbar when an internal @engine shorcut is not used, the format is: <engine-name>.<search-access-point> For the urlbar when an internal @engine shortcut is used, the format is: <engine-name>.<@engine>.urlbar For in content searches, the format is <provider>.in-content:[sap|sap-follow-on|organic]:[code|none]"
+    "description": "Records search counts for search access points and in content searches. For search access points in general and for the urlbar when an internal @engine shorcut is not used, the format is: <engine-name>.<search-access-point> For the urlbar when an internal @engine shortcut is used, the format is: <engine-name>.alias For in content searches, the format is <provider>.in-content:[sap|sap-follow-on|organic]:[code|none]"
   },
   "SEARCH_RESET_RESULT": {
     "record_in_processes": ["main", "content"],
@@ -8780,7 +8802,16 @@
     "expires_in_version": "67",
     "kind": "categorical",
     "labels": ["Unknown", "Aes128CmHmacSha1_80", "Aes128CmHmacSha1_32", "AeadAes128Gcm", "AeadAes256Gcm"],
-    "description": "The SRTP cipher (as integer) negotiated for a RTCPeerConnection. See TransportLayerDtls::RecordCipherTelemetry for the meaning of the values"
+    "description": "The SRTP cipher (as label) negotiated for a RTCPeerConnection."
+  },
+  "WEBRTC_DTLS_PROTOCOL_VERSION": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["webrtc-dtls-telemetry-alerts@mozilla.com", "nohlmeier@mozilla.com"],
+    "bug_numbers": [1491511],
+    "expires_in_version": "68",
+    "kind": "categorical",
+    "labels": ["Unknown", "Dtls_version_1_0", "Dtls_version_1_2", "Dtls_version_1_3"],
+    "description": "The DTLS protocol version (as label) negotiated for a RTCPeerConnection."
   },
   "WEBRTC_ICE_FINAL_CONNECTION_STATE": {
     "record_in_processes": ["main", "content"],
@@ -11467,7 +11498,9 @@
       "gmplugin-crash",
       "gmplugin-hang",
       "gpu-crash",
-      "gpu-hang"
+      "gpu-hang",
+      "rdd-crash",
+      "rdd-hang"
     ],
     "releaseChannelCollection": "opt-out",
     "description": "An attempt to submit a crash. Keyed on the CrashManager Crash.type."
@@ -13021,6 +13054,17 @@
     "n_buckets": 50,
     "description": "Time spent in the paint pipeline for content in milliseconds."
   },
+  "CONTENT_FULL_PAINT_TIME": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "jmuizelaar@mozilla.com", "dbolter@mozilla.com"],
+    "bug_numbers": [1505858],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 1000,
+    "n_buckets": 50,
+    "description": "Time spent in the paint pipeline until it's ready for composition in milliseconds."
+  },
   "CONTENT_FRAME_TIME": {
     "record_in_processes": ["main", "gpu"],
     "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "rhunt@mozilla.com"],
@@ -13040,6 +13084,26 @@
     "high": 5000,
     "n_buckets": 50,
     "description": "The time, in percentage of a vsync interval, spent from beginning a paint in the content process until that frame is presented in the compositor, for frames that contained an SVG to be drawn by WebRender"
+  },
+  "CONTENT_FRAME_TIME_WITHOUT_RESOURCE_UPLOAD": {
+    "record_in_processes": ["main", "gpu"],
+    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "mwoodrow@mozilla.com"],
+    "bug_numbers": [1503405],
+    "expires_in_version": "70",
+    "kind": "exponential",
+    "high": 5000,
+    "n_buckets": 50,
+    "description": "The time, in percentage of a vsync interval, spent from beginning a paint in the content process until that frame is presented in the compositor by WebRender, excluding time spent uploading resources"
+  },
+  "CONTENT_FRAME_TIME_WITHOUT_UPLOAD": {
+    "record_in_processes": ["main", "gpu"],
+    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "mwoodrow@mozilla.com"],
+    "bug_numbers": [1503405],
+    "expires_in_version": "70",
+    "kind": "exponential",
+    "high": 5000,
+    "n_buckets": 50,
+    "description": "The time, in percentage of a vsync interval, spent from beginning a paint in the content process until that frame is presented in the compositor by WebRender, excluding time spent uploading any content"
   },
   "CONTENT_LARGE_PAINT_PHASE_WEIGHT": {
     "record_in_processes": ["main", "content"],
@@ -14256,5 +14320,57 @@
     "releaseChannelCollection": "opt-out",
     "alert_emails": ["ttung@mozilla.com"],
     "description": "Time (ms) for the QuotaManager to initialize repositories."
+  },
+  "GV_PAGE_LOAD_PROGRESS_MS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": [
+      "geckoview-team@mozilla.com",
+      "esawin@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 100000,
+    "n_buckets": 100,
+    "bug_numbers": [1499418],
+    "description": "GeckoView: The time between page load progress start (0) and completion (100) in ms."
+  },
+  "GV_PAGE_LOAD_MS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": [
+      "geckoview-team@mozilla.com",
+      "esawin@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 100000,
+    "n_buckets": 100,
+    "bug_numbers": [1499418],
+    "description": "GeckoView: Time taken to load a page in ms. This includes all static contents, no dynamic content. Loading of about: pages is not counted."
+  },
+  "GV_STARTUP_RUNTIME_MS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": [
+      "geckoview-team@mozilla.com",
+      "esawin@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 50,
+    "bug_numbers": [1499418],
+    "description": "GeckoView: Time taken to initialize GeckoRuntime in ms."
+  },
+  "GV_STARTUP_MODULES_MS": {
+    "record_in_processes": ["main"],
+    "alert_emails": [
+      "geckoview-team@mozilla.com",
+      "esawin@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 5000,
+    "n_buckets": 50,
+    "bug_numbers": [1499418],
+    "description": "GeckoView: Time taken to initialize all GeckoView modules in ms."
   }
 }
