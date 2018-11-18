@@ -10,7 +10,6 @@
 #include "jspubtd.h"
 #include "jstypes.h"
 
-#include "builtin/ModuleObject.h"
 #include "ds/InlineTable.h"
 #include "frontend/ParseNode.h"
 #include "frontend/TokenStream.h"
@@ -293,7 +292,7 @@ SharedContext::asEvalContext()
 
 class FunctionBox : public ObjectBox, public SharedContext
 {
-    // The parser handles tracing the fields below via the ObjectBox linked
+    // The parser handles tracing the fields below via the TraceListNode linked
     // list.
 
     // This field is used for two purposes:
@@ -404,7 +403,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     // Whether this function has nested functions.
     bool hasInnerFunctions_:1;
 
-    FunctionBox(JSContext* cx, ObjectBox* traceListHead, JSFunction* fun,
+    FunctionBox(JSContext* cx, TraceListNode* traceListHead, JSFunction* fun,
                 uint32_t toStringStart, Directives directives, bool extraWarnings,
                 GeneratorKind generatorKind, FunctionAsyncKind asyncKind);
 
@@ -438,7 +437,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     void setEnclosingScopeForInnerLazyFunction(Scope* enclosingScope);
     void finish();
 
-    JSFunction* function() const { return &object->as<JSFunction>(); }
+    JSFunction* function() const { return &object()->as<JSFunction>(); }
+    void clobberFunction(JSFunction* function) { gcThing = function; }
 
     Scope* compilationEnclosingScope() const override {
         // This method is used to distinguish the outermost SharedContext. If
@@ -582,29 +582,6 @@ SharedContext::asFunctionBox()
 {
     MOZ_ASSERT(isFunctionBox());
     return static_cast<FunctionBox*>(this);
-}
-
-class MOZ_STACK_CLASS ModuleSharedContext : public SharedContext
-{
-    RootedModuleObject module_;
-    RootedScope enclosingScope_;
-
-  public:
-    Rooted<ModuleScope::Data*> bindings;
-    ModuleBuilder& builder;
-
-    ModuleSharedContext(JSContext* cx, ModuleObject* module, Scope* enclosingScope,
-                        ModuleBuilder& builder);
-
-    HandleModuleObject module() const { return module_; }
-    Scope* compilationEnclosingScope() const override { return enclosingScope_; }
-};
-
-inline ModuleSharedContext*
-SharedContext::asModuleContext()
-{
-    MOZ_ASSERT(isModuleContext());
-    return static_cast<ModuleSharedContext*>(this);
 }
 
 // In generators, we treat all bindings as closed so that they get stored on

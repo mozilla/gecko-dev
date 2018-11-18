@@ -7,7 +7,7 @@
 //! registering fonts found in the blob (see `prepare_request`).
 
 use webrender::api::*;
-use bindings::{ByteSlice, MutByteSlice, wr_moz2d_render_cb, ArcVecU8};
+use bindings::{ByteSlice, MutByteSlice, wr_moz2d_render_cb, ArcVecU8, gecko_profiler_start_marker, gecko_profiler_end_marker};
 use rayon::ThreadPool;
 use rayon::prelude::*;
 
@@ -16,7 +16,7 @@ use std::collections::hash_map;
 use std::collections::btree_map::BTreeMap;
 use std::collections::Bound::Included;
 use std::mem;
-use std::os::raw::c_void;
+use std::os::raw::{c_void, c_char};
 use std::ptr;
 use std::sync::Arc;
 use std;
@@ -252,13 +252,13 @@ impl BlobWriter {
 /// A two-points representation of a rectangle.
 struct Box2d {
     /// Top-left x
-    x1: u32,
+    x1: i32,
     /// Top-left y
-    y1: u32,
+    y1: i32,
     /// Bottom-right x
-    x2: u32,
+    x2: i32,
     /// Bottom-right y
-    y2: u32
+    y2: i32
 }
 
 impl Box2d {
@@ -271,8 +271,8 @@ impl Box2d {
     }
 }
 
-impl From<DeviceUintRect> for Box2d {
-    fn from(rect: DeviceUintRect) -> Self {
+impl From<DeviceIntRect> for Box2d {
+    fn from(rect: DeviceIntRect) -> Self {
         Box2d{ x1: rect.min_x(), y1: rect.min_y(), x2: rect.max_x(), y2: rect.max_y() }
     }
 }
@@ -441,7 +441,7 @@ struct BlobCommand {
     request: BlobImageRequest,
     descriptor: BlobImageDescriptor,
     commands: Arc<BlobImageData>,
-    dirty_rect: Option<DeviceUintRect>,
+    dirty_rect: Option<DeviceIntRect>,
     tile_size: Option<TileSize>,
 }
 
@@ -453,10 +453,28 @@ struct Moz2dBlobRasterizer {
     blob_commands: HashMap<ImageKey, BlobCommand>,
 }
 
+struct GeckoProfilerMarker {
+    name: &'static [u8],
+}
+
+impl GeckoProfilerMarker {
+    pub fn new(name: &'static [u8]) -> GeckoProfilerMarker {
+        unsafe { gecko_profiler_start_marker(name.as_ptr() as *const c_char); }
+        GeckoProfilerMarker { name }
+    }
+}
+
+impl Drop for GeckoProfilerMarker {
+    fn drop(&mut self) {
+        unsafe { gecko_profiler_end_marker(self.name.as_ptr() as *const c_char); }
+    }
+}
+
 impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
    
     fn rasterize(&mut self, requests: &[BlobImageParams], low_priority: bool) -> Vec<(BlobImageRequest, BlobImageResult)> {
         // All we do here is spin up our workers to callback into gecko to replay the drawing commands.
+        let _marker = GeckoProfilerMarker::new(b"BlobRasterization\0");
 
         let requests: Vec<Job> = requests.into_iter().map(|params| {
             let command = &self.blob_commands[&params.request.key];
@@ -515,8 +533,8 @@ fn rasterize_blob(job: Job) -> (BlobImageRequest, BlobImageResult) {
         ) {
             Ok(RasterizedBlobImage {
                 rasterized_rect: job.dirty_rect.unwrap_or(
-                    DeviceUintRect {
-                        origin: DeviceUintPoint::origin(),
+                    DeviceIntRect {
+                        origin: DeviceIntPoint::origin(),
                         size: descriptor.size,
                     }
                 ),
@@ -539,7 +557,7 @@ impl BlobImageHandler for Moz2dBlobImageHandler {
         self.blob_commands.insert(key, BlobCommand { data: Arc::clone(&data), tile_size });
     }
 
-    fn update(&mut self, key: ImageKey, data: Arc<BlobImageData>, dirty_rect: Option<DeviceUintRect>) {
+    fn update(&mut self, key: ImageKey, data: Arc<BlobImageData>, dirty_rect: Option<DeviceIntRect>) {
         match self.blob_commands.entry(key) {
             hash_map::Entry::Occupied(mut e) => {
                 let command = e.get_mut();
@@ -604,6 +622,7 @@ extern "C" {
     );
     fn DeleteBlobFont(key: WrFontInstanceKey);
     fn ClearBlobImageResources(namespace: WrIdNamespace);
+
 }
 
 impl Moz2dBlobImageHandler {

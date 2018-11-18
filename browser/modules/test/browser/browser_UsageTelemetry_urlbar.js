@@ -14,6 +14,9 @@ ChromeUtils.defineModuleGetter(this, "URLBAR_SELECTED_RESULT_TYPES",
 ChromeUtils.defineModuleGetter(this, "URLBAR_SELECTED_RESULT_METHODS",
                                "resource:///modules/BrowserUsageTelemetry.jsm");
 
+ChromeUtils.defineModuleGetter(this, "SearchTelemetry",
+                              "resource:///modules/SearchTelemetry.jsm");
+
 function checkHistogramResults(resultIndexes, expected, histogram) {
   for (let [i, val] of Object.entries(resultIndexes.values)) {
     if (i == expected) {
@@ -88,13 +91,13 @@ async function withNewSearchEngine(taskFn) {
     });
   });
 
-  let previousEngine = Services.search.currentEngine;
-  Services.search.currentEngine = suggestionEngine;
+  let previousEngine = Services.search.defaultEngine;
+  Services.search.defaultEngine = suggestionEngine;
 
   try {
     await taskFn(suggestionEngine);
   } finally {
-    Services.search.currentEngine = previousEngine;
+    Services.search.defaultEngine = previousEngine;
     Services.search.removeEngine(suggestionEngine);
   }
 }
@@ -106,8 +109,8 @@ add_task(async function setup() {
 
   // Make it the default search engine.
   let engine = Services.search.getEngineByName("MozSearch");
-  let originalEngine = Services.search.currentEngine;
-  Services.search.currentEngine = engine;
+  let originalEngine = Services.search.defaultEngine;
+  Services.search.defaultEngine = engine;
 
   // Give it some mock internal aliases.
   engine.wrappedJSObject.__internalAliases = ["@mozaliasfoo", "@mozaliasbar"];
@@ -143,7 +146,7 @@ add_task(async function setup() {
   // Make sure to restore the engine once we're done.
   registerCleanupFunction(async function() {
     Services.telemetry.canRecordExtended = oldCanRecord;
-    Services.search.currentEngine = originalEngine;
+    Services.search.defaultEngine = originalEngine;
     Services.search.removeEngine(engine);
     Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, suggestionsEnabled);
     Services.prefs.clearUserPref(ONEOFF_URLBAR_PREF);
@@ -178,9 +181,7 @@ add_task(async function test_simpleQuery() {
 
   // Make sure SEARCH_COUNTS contains identical values.
   checkKeyedHistogram(search_hist, "other-MozSearch.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.mozalias.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasfoo.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasbar.urlbar", undefined);
+  checkKeyedHistogram(search_hist, "other-MozSearch.alias", undefined);
 
   // Also check events.
   let events = Services.telemetry.snapshotEvents(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, false);
@@ -235,9 +236,7 @@ add_task(async function test_searchAlias() {
 
   // Make sure SEARCH_COUNTS contains identical values.
   checkKeyedHistogram(search_hist, "other-MozSearch.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.mozalias.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasfoo.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasbar.urlbar", undefined);
+  checkKeyedHistogram(search_hist, "other-MozSearch.alias", undefined);
 
   // Also check events.
   let events = Services.telemetry.snapshotEvents(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, false);
@@ -278,9 +277,7 @@ add_task(async function test_internalSearchAlias() {
   await p;
 
   checkKeyedHistogram(search_hist, "other-MozSearch.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.mozalias.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasfoo.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasbar.urlbar", undefined);
+  checkKeyedHistogram(search_hist, "other-MozSearch.alias", 1);
 
   info("Search using the other internal search alias.");
   p = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
@@ -289,9 +286,7 @@ add_task(async function test_internalSearchAlias() {
   await p;
 
   checkKeyedHistogram(search_hist, "other-MozSearch.urlbar", 2);
-  checkKeyedHistogram(search_hist, "other-MozSearch.mozalias.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasfoo.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasbar.urlbar", 1);
+  checkKeyedHistogram(search_hist, "other-MozSearch.alias", 2);
 
   BrowserTestUtils.removeTab(tab);
 });
@@ -327,9 +322,7 @@ add_task(async function test_oneOff_enter() {
 
   // Make sure SEARCH_COUNTS contains identical values.
   checkKeyedHistogram(search_hist, "other-MozSearch.urlbar", 1);
-  checkKeyedHistogram(search_hist, "other-MozSearch.mozalias.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasfoo.urlbar", undefined);
-  checkKeyedHistogram(search_hist, "other-MozSearch.@mozaliasbar.urlbar", undefined);
+  checkKeyedHistogram(search_hist, "other-MozSearch.alias", undefined);
 
   // Also check events.
   let events = Services.telemetry.snapshotEvents(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, false);
@@ -576,19 +569,15 @@ add_task(async function test_suggestion_rightclick() {
 });
 
 add_task(async function test_privateWindow() {
-  // Mock the search service's search provider info so that its
+  // Mock the search telemetry search provider info so that its
   // recordSearchURLTelemetry() function adds the in-content SEARCH_COUNTS
   // telemetry for our test engine.
-  Services.search.QueryInterface(Ci.nsIObserver).observe(
-    null,
-    "test:setSearchProviderInfo",
-    JSON.stringify({
-      "example": {
-        "regexp": "^http://example\\.com/",
-        "queryParam": "q",
-      },
-    })
-  );
+  SearchTelemetry.overrideSearchTelemetryForTests({
+    "example": {
+      "regexp": "^http://example\\.com/",
+      "queryParam": "q",
+    },
+  });
 
   let search_hist = getAndClearKeyedHistogram("SEARCH_COUNTS");
 
@@ -690,6 +679,5 @@ add_task(async function test_privateWindow() {
   await BrowserTestUtils.closeWindow(win);
 
   // Reset the search provider info.
-  Services.search.QueryInterface(Ci.nsIObserver)
-    .observe(null, "test:setSearchProviderInfo", "");
+  SearchTelemetry.overrideSearchTelemetryForTests();
 });

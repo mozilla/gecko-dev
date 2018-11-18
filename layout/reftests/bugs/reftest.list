@@ -1551,6 +1551,12 @@ fuzzy-if(Android,0-1,0-1) needs-focus == 568441.html 568441-ref.html
 == 571281-1a.html 571281-1-ref.html
 == 571281-1b.html 571281-1-ref.html
 == 571281-1c.html 571281-1-ref.html
+# Bug 1423383: The three tests for bug 571281 are duplicated for testing
+# while layout.css.column-span.enabled is disabled. Remove them once the
+# pref is default on.
+pref(layout.css.column-span.enabled,true) == 571281-1a.html 571281-1-ref.html
+pref(layout.css.column-span.enabled,true) == 571281-1b.html 571281-1-ref.html
+pref(layout.css.column-span.enabled,true) == 571281-1c.html 571281-1-ref.html
 == 571347-1a.html 571347-1-ref.html
 == 571347-1b.html 571347-1-ref.html
 == 571347-2a.html 571347-2-ref.html
@@ -1864,7 +1870,7 @@ fails-if(webrender) == 1059498-3.html 1059498-1-ref.html # WebRender: see bug 14
 == 1062108-1.html 1062108-1-ref.html
 == 1062792-1.html 1062792-1-ref.html
 == 1062963-floatmanager-reflow.html 1062963-floatmanager-reflow-ref.html
-test-pref(dom.webcomponents.shadowdom.enabled,true) == 1066554-1.html 1066554-1-ref.html
+== 1066554-1.html 1066554-1-ref.html
 == 1069716-1.html 1069716-1-ref.html
 == 1078262-1.html about:blank
 test-pref(layout.testing.overlay-scrollbars.always-visible,false) == 1081072-1.html 1081072-1-ref.html

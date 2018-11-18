@@ -39,8 +39,9 @@ const {
 } = require("../constants");
 
 async function getRuntimeInfo(runtime, client) {
-  const { extra, type } = runtime;
-  const { name, channel, version } = await client.getDeviceDescription();
+  const { type } = runtime;
+  const { brandName: name, channel, deviceName, version } =
+    await client.getDeviceDescription();
   const icon =
     (channel === "release" || channel === "beta" || channel === "aurora")
       ? `chrome://devtools/skin/images/aboutdebugging-firefox-${ channel }.svg`
@@ -48,7 +49,7 @@ async function getRuntimeInfo(runtime, client) {
 
   return {
     icon,
-    deviceName: extra ? extra.deviceName : undefined,
+    deviceName,
     name,
     type,
     version,
@@ -213,8 +214,10 @@ function updateUSBRuntimes(runtimes) {
     }
 
     // Disconnect runtimes that were no longer valid
-    const invalidRuntimes =
-      getState().runtimes.usbRuntimes.filter(r => !runtimes.includes(r));
+    const validIds = runtimes.map(r => r.id);
+    const existingRuntimes = getState().runtimes.usbRuntimes;
+    const invalidRuntimes = existingRuntimes.filter(r => !validIds.includes(r.id));
+
     for (const invalidRuntime of invalidRuntimes) {
       await dispatch(disconnectRuntime(invalidRuntime.id));
     }

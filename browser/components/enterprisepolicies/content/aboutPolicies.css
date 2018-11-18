@@ -118,11 +118,6 @@ tbody:nth-child(4n + 1) {
   background-image: url("chrome://browser/skin/developer.svg");
 }
 
-.icon.machine-only:dir(rtl) {
-  margin: 0 0.75rem;
-  transform: scaleX(-1);
-}
-
 .collapsible {
   cursor: pointer;
   border: none;

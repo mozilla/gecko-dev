@@ -3,14 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --markup-badge-active-background-color: var(--blue-50);
-  --markup-badge-active-border-color: #FFFFFFB3;
-  --markup-badge-background-color: white;
-  --markup-badge-border-color: #CACAD1;
-  --markup-badge-color: var(--grey-60);
-  --markup-badge-hover-background-color: #DFDFE8;
-  --markup-badge-interactive-background-color: var(--grey-20);
-  --markup-badge-interactive-color: var(--grey-90);
   --markup-hidden-attr-name-color: #BA89B8;
   --markup-hidden-attr-value-color: #5C6D87;
   --markup-hidden-punctuation-color: #909090;
@@ -19,14 +11,6 @@
 }
 
 .theme-dark:root {
-  --markup-badge-active-background-color: var(--blue-60);
-  --markup-badge-active-border-color: #FFF6;
-  --markup-badge-background-color: var(--grey-80);
-  --markup-badge-border-color: var(--grey-50);
-  --markup-badge-color: var(--grey-40);
-  --markup-badge-hover-background-color: var(--grey-80);
-  --markup-badge-interactive-background-color: var(--grey-70);
-  --markup-badge-interactive-color: var(--grey-30);
   --markup-hidden-attr-name-color: #B07EB3;
   --markup-hidden-attr-value-color: #9893A3;
   --markup-hidden-punctuation-color: #909090;
@@ -132,21 +116,18 @@ body.dragging .tag-line {
  * dropped here */
 .tag-line.drop-target::before,
 .tag-line.drag-target::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0;
-  width: 100%;
+  top: -1px;
+  height: 2px;
   /* Offset these by 1000px to make sure they cover the full width of the view */
-  padding-left: 1000px;
+  width: calc(100% + 1000px);
   left: -1000px;
-}
-
-.tag-line.drag-target::before {
-  border-top: 2px solid var(--theme-content-color2);
+  background-color: var(--theme-content-color2);
 }
 
 .tag-line.drop-target::before {
-  border-top: 2px solid var(--theme-contrast-background);
+  background-color: var(--theme-contrast-background);
 }
 
 /* In case the indicator is put on the closing .tag-line, the indentation level
@@ -155,12 +136,15 @@ ul.children + .tag-line::before {
   margin-left: 14px;
 }
 
+/* A tag line should have a height of 16px, with a line-height of 14px,
+ * (assuming a font-size of 11px). */
 .tag-line {
-  min-height: 1.4em;
-  line-height: 1.4em;
+  font-size: var(--theme-code-font-size);
+  min-height: 1.2727em;
+  line-height: 1.2727em;
   position: relative;
   cursor: default;
-  padding-left: 2px;
+  padding: 1px 0 1px 2px;
 }
 
 .tag-line[selected] + .children,
@@ -195,6 +179,7 @@ ul.children + .tag-line::before {
   position: absolute;
   left: -1000em;
   right: 0;
+  top: 0;
   height: 100%;
   z-index: 0;
 }
@@ -207,9 +192,9 @@ ul.children + .tag-line::before {
 .expander {
   display: inline-block;
   vertical-align: top;
-  margin-left: -14px;
-  margin-top: 1px;
-  margin-bottom: 1px;
+  width: 14px;
+  height: 16px;
+  margin: -1px 0 -1px -14px;
   /* Make sure the expander still appears above the tag-state */
   position: relative;
   z-index: 1;
@@ -238,26 +223,34 @@ ul.children + .tag-line::before {
 .expandable.collapsed .markup-expand-badge {
   cursor: pointer;
   display: inline-block;
-  vertical-align: -3px;
-  padding: 2px;
+  vertical-align: top;
+  box-sizing: border-box;
+  height: 16px;
+  margin: -1px 0;
+  padding: 3px 2px;
 }
 
 .expandable.collapsed .markup-expand-badge::before {
   /* Display an ellipsis character in collapsed nodes that can be expanded. */
   content: "";
-  background-color: var(--markup-badge-interactive-background-color);
+  background-color: var(--badge-interactive-background-color);
   background-image: url(chrome://devtools/skin/images/more.svg);
   background-repeat: no-repeat;
   background-position: center;
-  border: 1px solid var(--markup-badge-border-color);
-  color: var(--markup-badge-color);
-  fill: var(--markup-badge-interactive-color);
+  border: 1px solid var(--badge-border-color);
+  color: var(--badge-color);
+  fill: var(--badge-interactive-color);
   display: block;
   width: 12px;
   height: 8px;
-  line-height: 3px;
+  line-height: 8px;
   border-radius: 3px;
   -moz-context-properties: fill;
+}
+
+.expandable.collapsed .markup-expand-badge:focus::before,
+.expandable.collapsed .markup-expand-badge:hover::before {
+  background-color: var(--badge-hover-background-color);
 }
 
 /* Hide HTML void elements (img, hr, br, …) closing tag when the element is not
@@ -345,6 +338,8 @@ ul.children + .tag-line::before {
 }
 
 .styleinspector-propertyeditor {
+  vertical-align: top;
+  margin: -1px 0;
   border: 1px solid #CCC;
 }
 
@@ -405,62 +400,4 @@ ul.children + .tag-line::before {
 /* Applicable to the DOCTYPE */
 .doctype {
   font-style: italic;
-}
-
-/* Markup Badges */
-.markup-badge {
-  display: inline-block;
-  /* 9px text is too blurry on low-resolution screens */
-  font-size: 10px;
-  font-weight: normal;
-  line-height: 11px;
-  vertical-align: 0.5px;
-  border: 1px solid var(--markup-badge-border-color);
-  border-radius: 3px;
-  padding: 0px 2px;
-  margin-inline-start: 5px;
-  -moz-user-select: none;
-  background-color: var(--markup-badge-background-color);
-  color: var(--markup-badge-color);
-}
-
-@media (min-resolution: 1.1dppx) {
-  .markup-badge {
-    font-size: 9px;
-    vertical-align: 1px;
-  }
-}
-
-/* Markup badges that are interactive/clickable */
-.markup-badge[data-custom],
-.markup-badge[data-display="flex"].interactive,
-.markup-badge[data-display="grid"].interactive,
-.markup-badge[data-display="inline-flex"].interactive,
-.markup-badge[data-display="inline-grid"].interactive,
-.markup-badge[data-event] {
-  background-color: var(--markup-badge-interactive-background-color);
-  color: var(--markup-badge-interactive-color);
-  cursor: pointer;
-}
-
-.markup-badge[data-display="flex"]:not(.active).interactive:focus,
-.markup-badge[data-display="flex"]:not(.active).interactive:hover,
-.markup-badge[data-display="grid"]:not(.active).interactive:focus,
-.markup-badge[data-display="grid"]:not(.active).interactive:hover,
-.markup-badge[data-display="inline-flex"]:not(.active).interactive:focus,
-.markup-badge[data-display="inline-flex"]:not(.active).interactive:hover,
-.markup-badge[data-display="inline-grid"]:not(.active).interactive:focus,
-.markup-badge[data-display="inline-grid"]:not(.active).interactive:hover,
-.markup-badge[data-event]:focus,
-.markup-badge[data-event]:hover,
-.expandable.collapsed .markup-expand-badge:focus::before,
-.expandable.collapsed .markup-expand-badge:hover::before {
-  background-color: var(--markup-badge-hover-background-color);
-}
-
-.markup-badge.active,
-.markup-badge.interactive.active {
-  background-color: var(--markup-badge-active-background-color);
-  border-color: var(--markup-badge-active-border-color);
-  color: var(--theme-selection-color);
 }

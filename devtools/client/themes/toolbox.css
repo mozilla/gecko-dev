@@ -27,6 +27,30 @@
   --command-chevron-image: url(images/command-chevron.svg);
 }
 
+/*
+ *  Debug Target Info layout
+ *  +------+-------------------+------------------+
+ *  | icon | runtime info text | target info text |
+ *  | 32px |        auto       |        1fr       |
+ *  +------+-------------------+------------------+
+ */
+.debug-target-info {
+  display: grid;
+  grid-template-columns: 32px auto 1fr;
+  grid-column-gap: 8px;
+  align-items: center;
+  background: var(--theme-tab-toolbar-background);
+  border-bottom: 1px solid var(--theme-splitter-color);
+  padding-bottom: 4px;
+  padding-left: 12px;
+  padding-top: 4px;
+  font-size: 1.46em;
+}
+
+.debug-target-info .target {
+  font-weight: lighter;
+}
+
 /* Toolbox tabbar */
 
 .devtools-tabbar {
@@ -333,11 +357,11 @@
 }
 
 #command-button-stop-replay::before {
-  fill: var(--red-60);
+  fill: currentColor;
 }
 
-#command-button-stop-replay.paused::before{
-  fill: currentColor;
+#command-button-stop-replay.recording::before{
+  fill: var(--red-60);
 }
 
 #command-button-scratchpad::before {
@@ -492,6 +516,10 @@
   align-self: center;
 }
 
+.webreplay-player .command-button.active:hover {
+  background: none;
+}
+
 .webreplay-player .play-button {
   mask-image: var(--play-image);
   margin-right: 5px;
@@ -508,6 +536,5 @@
 .webreplay-player .pause-button {
   mask-image: var(--pause-image);
   margin-left: 5px;
-  margin-right: 10px;      
+  margin-right: 10px;
 }
-

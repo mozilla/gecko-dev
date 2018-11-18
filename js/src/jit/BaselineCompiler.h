@@ -54,6 +54,7 @@ namespace jit {
     _(JSOP_UINT24)             \
     _(JSOP_RESUMEINDEX)        \
     _(JSOP_DOUBLE)             \
+    IF_BIGINT(_(JSOP_BIGINT),) \
     _(JSOP_STRING)             \
     _(JSOP_SYMBOL)             \
     _(JSOP_OBJECT)             \
@@ -173,7 +174,6 @@ namespace jit {
     _(JSOP_TYPEOFEXPR)         \
     _(JSOP_THROWMSG)           \
     _(JSOP_THROW)              \
-    _(JSOP_THROWING)           \
     _(JSOP_TRY)                \
     _(JSOP_FINALLY)            \
     _(JSOP_GOSUB)              \

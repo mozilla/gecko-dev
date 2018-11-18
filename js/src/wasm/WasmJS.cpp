@@ -71,7 +71,7 @@ wasm::HasCompilerSupport(JSContext* cx)
         return false;
     }
 
-    if (!wasm::HaveSignalHandlers()) {
+    if (!wasm::EnsureFullSignalHandlers(cx)) {
         return false;
     }
 
@@ -124,7 +124,8 @@ wasm::HasStreamingSupport(JSContext* cx)
     return HasSupport(cx) &&
            cx->runtime()->offThreadPromiseState.ref().initialized() &&
            CanUseExtraThreads() &&
-           cx->runtime()->consumeStreamCallback;
+           cx->runtime()->consumeStreamCallback &&
+           cx->runtime()->reportStreamErrorCallback;
 }
 
 bool
@@ -240,7 +241,7 @@ GetImports(JSContext* cx,
            const Module& module,
            HandleObject importObj,
            MutableHandle<FunctionVector> funcImports,
-           MutableHandleWasmTableObject tableImport,
+           WasmTableObjectVector& tableImports,
            MutableHandleWasmMemoryObject memoryImport,
            WasmGlobalObjectVector& globalObjs,
            MutableHandleValVector globalImportValues)
@@ -254,6 +255,8 @@ GetImports(JSContext* cx,
 
     uint32_t globalIndex = 0;
     const GlobalDescVector& globals = metadata.globals;
+    uint32_t tableIndex = 0;
+    const TableDescVector& tables = metadata.tables;
     for (const Import& import : imports) {
         RootedValue v(cx);
         if (!GetProperty(cx, importObj, import.module.get(), &v)) {
@@ -284,12 +287,20 @@ GetImports(JSContext* cx,
             break;
           }
           case DefinitionKind::Table: {
+            const uint32_t index = tableIndex++;
             if (!v.isObject() || !v.toObject().is<WasmTableObject>()) {
                 return ThrowBadImportType(cx, import.field.get(), "Table");
             }
 
-            MOZ_ASSERT(!tableImport);
-            tableImport.set(&v.toObject().as<WasmTableObject>());
+            RootedWasmTableObject obj(cx, &v.toObject().as<WasmTableObject>());
+            if (obj->table().kind() != tables[index].kind) {
+                JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_TBL_TYPE_LINK);
+                return false;
+            }
+
+            if (!tableImports.append(obj)) {
+                return false;
+            }
             break;
           }
           case DefinitionKind::Memory: {
@@ -311,11 +322,11 @@ GetImports(JSContext* cx,
                 RootedWasmGlobalObject obj(cx, &v.toObject().as<WasmGlobalObject>());
 
                 if (obj->isMutable() != global.isMutable()) {
-                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_MUT_LINK);
+                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_GLOB_MUT_LINK);
                     return false;
                 }
                 if (obj->type() != global.type()) {
-                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_TYPE_LINK);
+                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_GLOB_TYPE_LINK);
                     return false;
                 }
 
@@ -343,7 +354,7 @@ GetImports(JSContext* cx,
                 }
 
                 if (global.isMutable()) {
-                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_MUT_LINK);
+                    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_GLOB_MUT_LINK);
                     return false;
                 }
 
@@ -429,16 +440,16 @@ wasm::Eval(JSContext* cx, Handle<TypedArrayObject*> code, HandleObject importObj
     }
 
     Rooted<FunctionVector> funcs(cx, FunctionVector(cx));
-    RootedWasmTableObject table(cx);
+    Rooted<WasmTableObjectVector> tables(cx);
     RootedWasmMemoryObject memory(cx);
     Rooted<WasmGlobalObjectVector> globalObjs(cx);
 
     RootedValVector globals(cx);
-    if (!GetImports(cx, *module, importObj, &funcs, &table, &memory, globalObjs.get(), &globals)) {
+    if (!GetImports(cx, *module, importObj, &funcs, tables.get(), &memory, globalObjs.get(), &globals)) {
         return false;
     }
 
-    return module->instantiate(cx, funcs, table, memory, globals, globalObjs.get(), nullptr,
+    return module->instantiate(cx, funcs, tables.get(), memory, globals, globalObjs.get(), nullptr,
                                instanceObj);
 }
 
@@ -1335,16 +1346,16 @@ Instantiate(JSContext* cx, const Module& module, HandleObject importObj,
     RootedObject instanceProto(cx, &cx->global()->getPrototype(JSProto_WasmInstance).toObject());
 
     Rooted<FunctionVector> funcs(cx, FunctionVector(cx));
-    RootedWasmTableObject table(cx);
+    Rooted<WasmTableObjectVector> tables(cx);
     RootedWasmMemoryObject memory(cx);
     Rooted<WasmGlobalObjectVector> globalObjs(cx);
 
     RootedValVector globals(cx);
-    if (!GetImports(cx, module, importObj, &funcs, &table, &memory, globalObjs.get(), &globals)) {
+    if (!GetImports(cx, module, importObj, &funcs, tables.get(), &memory, globalObjs.get(), &globals)) {
         return false;
     }
 
-    return module.instantiate(cx, funcs, table, memory, globals, globalObjs.get(), instanceProto,
+    return module.instantiate(cx, funcs, tables.get(), memory, globals, globalObjs.get(), instanceProto,
                               instanceObj);
 }
 
@@ -2065,7 +2076,7 @@ WasmTableObject::trace(JSTracer* trc, JSObject* obj)
 }
 
 /* static */ WasmTableObject*
-WasmTableObject::create(JSContext* cx, const Limits& limits)
+WasmTableObject::create(JSContext* cx, const Limits& limits, TableKind tableKind)
 {
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmTable).toObject());
 
@@ -2077,11 +2088,7 @@ WasmTableObject::create(JSContext* cx, const Limits& limits)
 
     MOZ_ASSERT(obj->isNewborn());
 
-    TableDesc td(TableKind::AnyFunction, limits);
-    td.external = true;
-#ifdef WASM_PRIVATE_REFTYPES
-    td.importedOrExported = true;
-#endif
+    TableDesc td(tableKind, limits, /*importedOrExported=*/true);
 
     SharedTable table = Table::create(cx, td, obj);
     if (!table) {
@@ -2135,8 +2142,23 @@ WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    if (!StringEqualsAscii(elementLinearStr, "anyfunc")) {
+    TableKind tableKind;
+    if (StringEqualsAscii(elementLinearStr, "anyfunc")) {
+        tableKind = TableKind::AnyFunction;
+#ifdef ENABLE_WASM_GENERALIZED_TABLES
+    } else if (StringEqualsAscii(elementLinearStr, "anyref")) {
+        if (!cx->options().wasmGc()) {
+            JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_ELEMENT);
+            return false;
+        }
+        tableKind = TableKind::AnyRef;
+#endif
+    } else {
+#ifdef ENABLE_WASM_GENERALIZED_TABLES
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_ELEMENT_GENERALIZED);
+#else
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_ELEMENT);
+#endif
         return false;
     }
 
@@ -2147,7 +2169,7 @@ WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    RootedWasmTableObject table(cx, WasmTableObject::create(cx, limits));
+    RootedWasmTableObject table(cx, WasmTableObject::create(cx, limits, tableKind));
     if (!table) {
         return false;
     }
@@ -2212,22 +2234,34 @@ WasmTableObject::getImpl(JSContext* cx, const CallArgs& args)
         return false;
     }
 
-    ExternalTableElem& elem = table.externalArray()[index];
-    if (!elem.code) {
-        args.rval().setNull();
-        return true;
+    switch (table.kind()) {
+      case TableKind::AnyFunction: {
+        const FunctionTableElem& elem = table.getAnyFunc(index);
+        if (!elem.code) {
+            args.rval().setNull();
+            return true;
+        }
+
+        Instance& instance = *elem.tls->instance;
+        const CodeRange& codeRange = *instance.code().lookupFuncRange(elem.code);
+
+        RootedWasmInstanceObject instanceObj(cx, instance.object());
+        RootedFunction fun(cx);
+        if (!instanceObj->getExportedFunction(cx, instanceObj, codeRange.funcIndex(), &fun)) {
+            return false;
+        }
+
+        args.rval().setObject(*fun);
+        break;
+      }
+      case TableKind::AnyRef: {
+        args.rval().setObjectOrNull(table.getAnyRef(index));
+        break;
+      }
+      default: {
+        MOZ_CRASH("Unexpected table kind");
+      }
     }
-
-    Instance& instance = *elem.tls->instance;
-    const CodeRange& codeRange = *instance.code().lookupFuncRange(elem.code);
-
-    RootedWasmInstanceObject instanceObj(cx, instance.object());
-    RootedFunction fun(cx);
-    if (!instanceObj->getExportedFunction(cx, instanceObj, codeRange.funcIndex(), &fun)) {
-        return false;
-    }
-
-    args.rval().setObject(*fun);
     return true;
 }
 
@@ -2253,30 +2287,50 @@ WasmTableObject::setImpl(JSContext* cx, const CallArgs& args)
         return false;
     }
 
-    RootedFunction value(cx);
-    if (!IsExportedFunction(args[1], &value) && !args[1].isNull()) {
-        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_TABLE_VALUE);
-        return false;
-    }
+    switch (table.kind()) {
+      case TableKind::AnyFunction: {
+        RootedFunction value(cx);
+        if (!IsExportedFunction(args[1], &value) && !args[1].isNull()) {
+            JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_TABLE_VALUE);
+            return false;
+        }
 
-    if (value) {
-        RootedWasmInstanceObject instanceObj(cx, ExportedFunctionToInstanceObject(value));
-        uint32_t funcIndex = ExportedFunctionToFuncIndex(value);
+        if (value) {
+            RootedWasmInstanceObject instanceObj(cx, ExportedFunctionToInstanceObject(value));
+            uint32_t funcIndex = ExportedFunctionToFuncIndex(value);
 
 #ifdef DEBUG
-        RootedFunction f(cx);
-        MOZ_ASSERT(instanceObj->getExportedFunction(cx, instanceObj, funcIndex, &f));
-        MOZ_ASSERT(value == f);
+            RootedFunction f(cx);
+            MOZ_ASSERT(instanceObj->getExportedFunction(cx, instanceObj, funcIndex, &f));
+            MOZ_ASSERT(value == f);
 #endif
 
-        Instance& instance = instanceObj->instance();
-        Tier tier = instance.code().bestTier();
-        const MetadataTier& metadata = instance.metadata(tier);
-        const CodeRange& codeRange = metadata.codeRange(metadata.lookupFuncExport(funcIndex));
-        void* code = instance.codeBase(tier) + codeRange.funcTableEntry();
-        table.set(index, code, &instance);
-    } else {
-        table.setNull(index);
+            Instance& instance = instanceObj->instance();
+            Tier tier = instance.code().bestTier();
+            const MetadataTier& metadata = instance.metadata(tier);
+            const CodeRange& codeRange = metadata.codeRange(metadata.lookupFuncExport(funcIndex));
+            void* code = instance.codeBase(tier) + codeRange.funcTableEntry();
+            table.setAnyFunc(index, code, &instance);
+        } else {
+            table.setNull(index);
+        }
+        break;
+      }
+      case TableKind::AnyRef: {
+        if (args[1].isNull()) {
+            table.setNull(index);
+        } else {
+            RootedObject value(cx, ToObject(cx, args[1]));
+            if (!value) {
+                return false;
+            }
+            table.setAnyRef(index, value.get());
+        }
+        break;
+      }
+      default: {
+        MOZ_CRASH("Unexpected table kind");
+      }
     }
 
     args.rval().setUndefined();
@@ -3038,10 +3092,18 @@ EnsureStreamSupport(JSContext* cx)
     return true;
 }
 
+// This value is chosen and asserted to be disjoint from any host error code.
+static const size_t StreamOOMCode = 0;
+
 static bool
-RejectWithErrorNumber(JSContext* cx, uint32_t errorNumber, Handle<PromiseObject*> promise)
+RejectWithStreamErrorNumber(JSContext* cx, size_t errorCode, Handle<PromiseObject*> promise)
 {
-    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, errorNumber);
+    if (errorCode == StreamOOMCode) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    cx->runtime()->reportStreamErrorCallback(cx, errorCode);
     return RejectWithPendingException(cx, promise);
 }
 
@@ -3055,7 +3117,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
     const bool                   instantiate_;
     const PersistentRootedObject importObj_;
 
-    // Mutated on a stream thread (consumeChunk() and streamClosed()):
+    // Mutated on a stream thread (consumeChunk(), streamEnd(), streamError()):
     ExclusiveStreamState         streamState_;
     Bytes                        envBytes_;        // immutable after Env state
     SectionRange                 codeSection_;     // immutable after Env state
@@ -3064,7 +3126,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
     ExclusiveBytesPtr            exclusiveCodeBytesEnd_;
     Bytes                        tailBytes_;       // immutable after Tail state
     ExclusiveStreamEndData       exclusiveStreamEnd_;
-    Maybe<uint32_t>              streamError_;
+    Maybe<size_t>                streamError_;
     Atomic<bool>                 streamFailed_;
     Tier2Listener                tier2Listener_;
 
@@ -3073,7 +3135,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
     UniqueChars                  compileError_;
     UniqueCharsVector            warnings_;
 
-    // Called on some thread before consumeChunk() or streamClosed():
+    // Called on some thread before consumeChunk(), streamEnd(), streamError()):
 
     void noteResponseURLs(const char* url, const char* sourceMapUrl) override {
         if (url) {
@@ -3098,7 +3160,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
     }
 
     // See setClosedAndDestroyBeforeHelperThreadStarted() comment.
-    bool rejectAndDestroyBeforeHelperThreadStarted(unsigned errorNumber) {
+    bool rejectAndDestroyBeforeHelperThreadStarted(size_t errorNumber) {
         MOZ_ASSERT(streamState_.lock() == Env);
         MOZ_ASSERT(!streamError_);
         streamError_ = Some(errorNumber);
@@ -3114,13 +3176,13 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
     // caller must immediately return from the stream callback.
     void setClosedAndDestroyAfterHelperThreadStarted() {
         auto streamState = streamState_.lock();
+        MOZ_ASSERT(streamState != Closed);
         streamState.get() = Closed;
         streamState.notify_one(/* stream closed */);
     }
 
     // See setClosedAndDestroyAfterHelperThreadStarted() comment.
-    bool rejectAndDestroyAfterHelperThreadStarted(unsigned errorNumber) {
-        MOZ_ASSERT(streamState_.lock() == Code || streamState_.lock() == Tail);
+    bool rejectAndDestroyAfterHelperThreadStarted(size_t errorNumber) {
         MOZ_ASSERT(!streamError_);
         streamError_ = Some(errorNumber);
         streamFailed_ = true;
@@ -3134,7 +3196,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
         switch (streamState_.lock().get()) {
           case Env: {
             if (!envBytes_.append(begin, length)) {
-                return rejectAndDestroyBeforeHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
+                return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
             }
 
             if (!StartsCodeSection(envBytes_.begin(), envBytes_.end(), &codeSection_)) {
@@ -3147,18 +3209,18 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
             }
 
             if (codeSection_.size > MaxCodeSectionBytes) {
-                return rejectAndDestroyBeforeHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
+                return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
             }
 
             if (!codeBytes_.resize(codeSection_.size)) {
-                return rejectAndDestroyBeforeHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
+                return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
             }
 
             codeBytesEnd_ = codeBytes_.begin();
             exclusiveCodeBytesEnd_.lock().get() = codeBytesEnd_;
 
             if (!StartOffThreadPromiseHelperTask(this)) {
-                return rejectAndDestroyBeforeHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
+                return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
             }
 
             // Set the state to Code iff StartOffThreadPromiseHelperTask()
@@ -3197,7 +3259,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
           }
           case Tail: {
             if (!tailBytes_.append(begin, length)) {
-                return rejectAndDestroyAfterHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
+                return rejectAndDestroyAfterHelperThreadStarted(StreamOOMCode);
             }
 
             return true;
@@ -3208,52 +3270,48 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
         MOZ_CRASH("unreachable");
     }
 
-    void streamClosed(JS::StreamConsumer::CloseReason closeReason,
-                      JS::OptimizedEncodingListener* tier2Listener) override {
-        switch (closeReason) {
-          case JS::StreamConsumer::EndOfFile:
-            switch (streamState_.lock().get()) {
-              case Env: {
-                SharedBytes bytecode = js_new<ShareableBytes>(std::move(envBytes_));
-                if (!bytecode) {
-                    rejectAndDestroyBeforeHelperThreadStarted(JSMSG_OUT_OF_MEMORY);
-                    return;
-                }
-                module_ = CompileBuffer(*compileArgs_, *bytecode, &compileError_, &warnings_);
-                setClosedAndDestroyBeforeHelperThreadStarted();
+    void streamEnd(JS::OptimizedEncodingListener* tier2Listener) override {
+        switch (streamState_.lock().get()) {
+          case Env: {
+            SharedBytes bytecode = js_new<ShareableBytes>(std::move(envBytes_));
+            if (!bytecode) {
+                rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
                 return;
-              }
-              case Code:
-              case Tail:
-                {
-                    auto streamEnd = exclusiveStreamEnd_.lock();
-                    MOZ_ASSERT(!streamEnd->reached);
-                    streamEnd->reached = true;
-                    streamEnd->tailBytes = &tailBytes_;
-                    streamEnd->tier2Listener = tier2Listener;
-                    streamEnd.notify_one();
-                }
-                setClosedAndDestroyAfterHelperThreadStarted();
-                return;
-              case Closed:
-                MOZ_CRASH("streamClosed() in Closed state");
             }
-            break;
-          case JS::StreamConsumer::Error:
-            switch (streamState_.lock().get()) {
-              case Env:
-                rejectAndDestroyBeforeHelperThreadStarted(JSMSG_WASM_STREAM_ERROR);
-                return;
-              case Tail:
-              case Code:
-                rejectAndDestroyAfterHelperThreadStarted(JSMSG_WASM_STREAM_ERROR);
-                return;
-              case Closed:
-                MOZ_CRASH("streamClosed() in Closed state");
+            module_ = CompileBuffer(*compileArgs_, *bytecode, &compileError_, &warnings_);
+            setClosedAndDestroyBeforeHelperThreadStarted();
+            return;
+          }
+          case Code:
+          case Tail:
+            {
+                auto streamEnd = exclusiveStreamEnd_.lock();
+                MOZ_ASSERT(!streamEnd->reached);
+                streamEnd->reached = true;
+                streamEnd->tailBytes = &tailBytes_;
+                streamEnd->tier2Listener = tier2Listener;
+                streamEnd.notify_one();
             }
-            break;
+            setClosedAndDestroyAfterHelperThreadStarted();
+            return;
+          case Closed:
+            MOZ_CRASH("streamEnd() in Closed state");
         }
-        MOZ_CRASH("unreachable");
+    }
+
+    void streamError(size_t errorCode) override {
+        MOZ_ASSERT(errorCode != StreamOOMCode);
+        switch (streamState_.lock().get()) {
+          case Env:
+            rejectAndDestroyBeforeHelperThreadStarted(errorCode);
+            return;
+          case Tail:
+          case Code:
+            rejectAndDestroyAfterHelperThreadStarted(errorCode);
+            return;
+          case Closed:
+            MOZ_CRASH("streamError() in Closed state");
+        }
     }
 
     void consumeOptimizedEncoding(const uint8_t* begin, size_t length) override {
@@ -3278,7 +3336,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
         // When execute() returns, the CompileStreamTask will be dispatched
         // back to its JS thread to call resolve() and then be destroyed. We
         // can't let this happen until the stream has been closed lest
-        // consumeChunk() or streamClosed() be called on a dead object.
+        // consumeChunk() or streamEnd() be called on a dead object.
         auto streamState = streamState_.lock();
         while (streamState != Closed) {
             streamState.wait(/* stream closed */);
@@ -3293,7 +3351,7 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer
         return module_
                ? Resolve(cx, *module_, promise, instantiate_, importObj_, warnings_)
                : streamError_
-                 ? RejectWithErrorNumber(cx, *streamError_, promise)
+                 ? RejectWithStreamErrorNumber(cx, *streamError_, promise)
                  : Reject(cx, *compileArgs_, promise, compileError_);
     }
 
@@ -3393,6 +3451,13 @@ static ResolveResponseClosure*
 ToResolveResponseClosure(CallArgs args)
 {
     return &args.callee().as<JSFunction>().getExtendedSlot(0).toObject().as<ResolveResponseClosure>();
+}
+
+static bool
+RejectWithErrorNumber(JSContext* cx, uint32_t errorNumber, Handle<PromiseObject*> promise)
+{
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, errorNumber);
+    return RejectWithPendingException(cx, promise);
 }
 
 static bool

@@ -658,7 +658,10 @@ public:
    */
   gfxSize ScreenSizeInchesForFontInflation(bool* aChanged = nullptr);
 
-  int32_t AppUnitsPerDevPixel() const;
+  int32_t AppUnitsPerDevPixel() const
+  {
+    return mCurAppUnitsPerDevPixel;
+  }
 
   static nscoord CSSPixelsToAppUnits(int32_t aPixels)
   { return NSToCoordRoundWithClamp(float(aPixels) *
@@ -1117,8 +1120,11 @@ public:
   bool HadNonBlankPaint() const {
     return mHadNonBlankPaint;
   }
-
+  bool HadContentfulPaint() const {
+    return mHadContentfulPaint;
+  }
   void NotifyNonBlankPaint();
+  void NotifyContentfulPaint();
   void NotifyDOMContentFlushed();
 
   bool UsesRootEMUnits() const {
@@ -1395,6 +1401,7 @@ protected:
   // Time of various first interaction types, used to report time from
   // first paint of the top level content pres shell to first interaction.
   mozilla::TimeStamp    mFirstNonBlankPaintTime;
+  mozilla::TimeStamp    mFirstContentfulPaintTime;
   mozilla::TimeStamp    mFirstClickTime;
   mozilla::TimeStamp    mFirstKeyTime;
   mozilla::TimeStamp    mFirstMouseMoveTime;
@@ -1471,6 +1478,8 @@ protected:
 
   // Has NotifyNonBlankPaint been called on this PresContext?
   unsigned              mHadNonBlankPaint : 1;
+  // Has NotifyContentfulPaint been called on this PresContext?
+  unsigned              mHadContentfulPaint : 1;
 
 #ifdef DEBUG
   unsigned mInitialized : 1;

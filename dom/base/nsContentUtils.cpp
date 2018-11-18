@@ -303,8 +303,6 @@ bool nsContentUtils::sIsResourceTimingEnabled = false;
 bool nsContentUtils::sIsPerformanceNavigationTimingEnabled = false;
 bool nsContentUtils::sIsFormAutofillAutocompleteEnabled = false;
 bool nsContentUtils::sIsUAWidgetEnabled = false;
-bool nsContentUtils::sIsShadowDOMEnabled = false;
-bool nsContentUtils::sIsCustomElementsEnabled = false;
 bool nsContentUtils::sSendPerformanceTimingNotifications = false;
 bool nsContentUtils::sUseActivityCursor = false;
 bool nsContentUtils::sAnimationsAPICoreEnabled = false;
@@ -673,12 +671,6 @@ nsContentUtils::Init()
 
   Preferences::AddBoolVarCache(&sIsUAWidgetEnabled,
                                "dom.ua_widget.enabled", false);
-
-  Preferences::AddBoolVarCache(&sIsShadowDOMEnabled,
-                               "dom.webcomponents.shadowdom.enabled", false);
-
-  Preferences::AddBoolVarCache(&sIsCustomElementsEnabled,
-                               "dom.webcomponents.customelements.enabled", false);
 
   Preferences::AddIntVarCache(&sPrivacyMaxInnerWidth,
                               "privacy.window.maxInnerWidth",
@@ -6989,7 +6981,12 @@ nsContentUtils::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
 {
   NS_ASSERTION(aDocument, "aDocument should be a valid pointer (not null)");
 
-  AutoJSContext cx;
+  // The fact that we're using a JS regexp under the hood should not be visible
+  // to things like window onerror handlers, so we don't initialize our JSAPI
+  // with the document's window (which may not exist anyway).
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
   AutoDisableJSInterruptCallback disabler(cx);
 
   // We can use the junk scope here, because we're just using it for
@@ -7385,10 +7382,46 @@ nsContentUtils::IsForbiddenResponseHeader(const nsACString& aHeader)
 
 // static
 bool
+nsContentUtils::IsCorsUnsafeRequestHeaderValue(const nsACString& aHeaderValue)
+{
+  const char* cur = aHeaderValue.BeginReading();
+  const char* end = aHeaderValue.EndReading();
+
+  while (cur != end) {
+    // Implementation of https://fetch.spec.whatwg.org/#cors-unsafe-request-header-byte
+    // Is less than a space but not a horizontal tab
+    if ((*cur < ' ' && *cur != '\t') ||
+      *cur == '"' || *cur ==  '(' || *cur ==  ')' || *cur ==  ':' ||
+      *cur ==  '<' || *cur ==  '>' || *cur ==  '?' || *cur ==  '@' ||
+      *cur ==  '[' || *cur ==  '\\' || *cur ==  ']' || *cur ==  '{' ||
+      *cur ==  '}' || *cur ==  0x7F) { // 0x75 is DEL
+      return true;
+    }
+    cur++;
+  }
+  return false;
+}
+
+// static
+bool
+nsContentUtils::IsAllowedNonCorsAccept(const nsACString& aHeaderValue)
+{
+  if (IsCorsUnsafeRequestHeaderValue(aHeaderValue)) {
+    return false;
+  }
+  return true;
+}
+
+// static
+bool
 nsContentUtils::IsAllowedNonCorsContentType(const nsACString& aHeaderValue)
 {
   nsAutoCString contentType;
   nsAutoCString unused;
+
+  if (IsCorsUnsafeRequestHeaderValue(aHeaderValue)) {
+    return false;
+  }
 
   nsresult rv = NS_ParseRequestContentType(aHeaderValue, contentType, unused);
   if (NS_FAILED(rv)) {
@@ -7398,6 +7431,27 @@ nsContentUtils::IsAllowedNonCorsContentType(const nsACString& aHeaderValue)
   return contentType.LowerCaseEqualsLiteral("text/plain") ||
          contentType.LowerCaseEqualsLiteral("application/x-www-form-urlencoded") ||
          contentType.LowerCaseEqualsLiteral("multipart/form-data");
+}
+
+// static
+bool
+nsContentUtils::IsAllowedNonCorsLanguage(const nsACString& aHeaderValue)
+{
+  const char* cur = aHeaderValue.BeginReading();
+  const char* end = aHeaderValue.EndReading();
+
+  while (cur != end) {
+    if ((*cur >= '0' && *cur <= '9') ||
+        (*cur >= 'A' && *cur <= 'Z') ||
+        (*cur >= 'a' && *cur <= 'z') ||
+        *cur == ' ' || *cur == '*' || *cur == ',' ||
+        *cur == '-' || *cur == '.' || *cur == ';' || *cur == '=') {
+      cur++;
+      continue;
+    }
+    return false;
+  }
+  return true;
 }
 
 bool
@@ -8997,11 +9051,17 @@ nsContentUtils::InternalStorageAllowedForPrincipal(nsIPrincipal* aPrincipal,
     }
   }
 
-  if (StorageDisabledByAntiTracking(aWindow, aChannel, aPrincipal, aURI)) {
-    return StorageAccess::eDeny;
+  if (!StorageDisabledByAntiTracking(aWindow, aChannel, aPrincipal, aURI)) {
+    return access;
   }
 
-  return access;
+  static const char* kPrefName =
+    "privacy.restrict3rdpartystorage.partitionedHosts";
+  if (IsURIInPrefList(uri, kPrefName)) {
+    return StorageAccess::ePartitionedOrDeny;
+  }
+
+  return StorageAccess::eDeny;
 }
 
 namespace {
@@ -10001,14 +10061,12 @@ nsContentUtils::NewXULOrHTMLElement(Element** aResult, mozilla::dom::NodeInfo* a
 
   MOZ_ASSERT_IF(aDefinition, isCustomElement);
 
-  bool customElementEnabled = CustomElementRegistry::IsCustomElementEnabled(nodeInfo->GetDocument());
-
   // https://dom.spec.whatwg.org/#concept-create-element
   // We only handle the "synchronous custom elements flag is set" now.
   // For the unset case (e.g. cloning a node), see bug 1319342 for that.
   // Step 4.
   CustomElementDefinition* definition = aDefinition;
-  if (customElementEnabled && isCustomElement && !definition) {
+  if (isCustomElement && !definition) {
     MOZ_ASSERT(nodeInfo->NameAtom()->Equals(nodeInfo->LocalName()));
     definition =
       nsContentUtils::LookupCustomElementDefinition(nodeInfo->GetDocument(),
@@ -10129,7 +10187,7 @@ nsContentUtils::NewXULOrHTMLElement(Element** aResult, mozilla::dom::NodeInfo* a
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (customElementEnabled && isCustomElement) {
+  if (isCustomElement) {
     (*aResult)->SetCustomElementData(new CustomElementData(typeAtom));
     nsContentUtils::RegisterCallbackUpgradeElement(*aResult, typeAtom);
   }
@@ -11120,4 +11178,77 @@ nsContentUtils::StringifyJSON(JSContext* aCx, JS::MutableHandle<JS::Value> aValu
                               JSONCreator, &serializedValue), false);
   aOutStr = serializedValue;
   return true;
+}
+
+/* static */ bool
+nsContentUtils::IsURIInPrefList(nsIURI* aURI, const char* aPrefName)
+{
+  MOZ_ASSERT(aPrefName);
+
+  if (!aURI) {
+    return false;
+  }
+
+  nsAutoCString scheme;
+  aURI->GetScheme(scheme);
+  if (!scheme.EqualsLiteral("http") &&
+      !scheme.EqualsLiteral("https")) {
+    return false;
+  }
+
+  nsAutoCString host;
+  aURI->GetHost(host);
+  if (host.IsEmpty()) {
+    return false;
+  }
+  ToLowerCase(host);
+
+  nsAutoCString blackList;
+  Preferences::GetCString(aPrefName, blackList);
+  ToLowerCase(blackList);
+  if (blackList.IsEmpty()) {
+    return false;
+  }
+
+  // The list is comma separated domain list.  Each item may start with "*.".
+  // If starts with "*.", it matches any sub-domains.
+
+  for (;;) {
+    int32_t index = blackList.Find(host, false);
+    if (index >= 0 &&
+        static_cast<uint32_t>(index) + host.Length() <= blackList.Length() &&
+        // If start of the black list or next to ","?
+        (!index || blackList[index - 1] == ',')) {
+      // If end of the black list or immediately before ","?
+      size_t indexAfterHost = index + host.Length();
+      if (indexAfterHost == blackList.Length() ||
+          blackList[indexAfterHost] == ',') {
+        return true;
+      }
+      // If next character is '/', we need to check the path too.
+      // We assume the path in blacklist means "/foo" + "*".
+      if (blackList[indexAfterHost] == '/') {
+        int32_t endOfPath = blackList.Find(",", false, indexAfterHost);
+        nsDependentCSubstring::size_type length =
+          endOfPath < 0 ? static_cast<nsDependentCSubstring::size_type>(-1) :
+                          endOfPath - indexAfterHost;
+        nsDependentCSubstring pathInBlackList(blackList,
+                                              indexAfterHost, length);
+        nsAutoCString filePath;
+        aURI->GetFilePath(filePath);
+        ToLowerCase(filePath);
+        if (StringBeginsWith(filePath, pathInBlackList)) {
+          return true;
+        }
+      }
+    }
+    int32_t startIndexOfCurrentLevel = host[0] == '*' ? 1 : 0;
+    int32_t startIndexOfNextLevel =
+      host.Find(".", false, startIndexOfCurrentLevel + 1);
+    if (startIndexOfNextLevel <= 0) {
+      return false;
+    }
+    host = NS_LITERAL_CSTRING("*") +
+             nsDependentCSubstring(host, startIndexOfNextLevel);
+  }
 }

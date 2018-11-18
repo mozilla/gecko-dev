@@ -207,6 +207,9 @@ private:
     mozilla::Atomic<bool, mozilla::ReleaseAcquire> mContentDocumentDisplayed;
 
 public:
+    static already_AddRefed<nsWindow> From(nsPIDOMWindowOuter* aDOMWindow);
+    static already_AddRefed<nsWindow> From(nsIWidget* aWidget);
+
     static nsWindow* TopWindow();
 
     static mozilla::Modifiers GetModifiers(int32_t aMetaState);
@@ -219,6 +222,13 @@ public:
 
     void UpdateOverscrollVelocity(const float aX, const float aY);
     void UpdateOverscrollOffset(const float aX, const float aY);
+
+    mozilla::widget::EventDispatcher* GetEventDispatcher() const {
+        if (mAndroidView) {
+            return mAndroidView->mEventDispatcher;
+        }
+        return nullptr;
+    }
 
     //
     // nsIWidget

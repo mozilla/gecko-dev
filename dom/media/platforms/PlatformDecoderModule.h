@@ -33,11 +33,9 @@ namespace layers {
 class ImageContainer;
 } // namespace layers
 
-namespace dom {
-class RemoteDecoderModule;
-}
-
+class GpuDecoderModule;
 class MediaDataDecoder;
+class RemoteDecoderModule;
 class TaskQueue;
 class CDMProxy;
 
@@ -214,8 +212,9 @@ protected:
 
   friend class MediaChangeMonitor;
   friend class PDMFactory;
-  friend class dom::RemoteDecoderModule;
+  friend class GpuDecoderModule;
   friend class EMEDecoderModule;
+  friend class RemoteDecoderModule;
 
   // Indicates if the PlatformDecoderModule supports decoding of aColorDepth.
   // Should override this method when the platform can support color depth != 8.

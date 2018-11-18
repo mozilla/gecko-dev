@@ -48,6 +48,7 @@
 #include "vm/JSScript.h"
 #include "vm/TraceLogging.h"
 #include "vm/TraceLoggingGraph.h"
+#include "wasm/WasmSignalHandlers.h"
 
 #include "gc/GC-inl.h"
 #include "vm/JSContext-inl.h"
@@ -100,6 +101,7 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
     profilerSampleBufferRangeStart_(0),
     telemetryCallback(nullptr),
     consumeStreamCallback(nullptr),
+    reportStreamErrorCallback(nullptr),
     readableStreamDataRequestCallback(nullptr),
     readableStreamWriteIntoReadRequestCallback(nullptr),
     readableStreamCancelCallback(nullptr),
@@ -181,6 +183,9 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
 {
     JS_COUNT_CTOR(JSRuntime);
     liveRuntimesCount++;
+
+    // See function comment for why we call this now, not in JS_Init().
+    wasm::EnsureEagerProcessSignalHandlers();
 }
 
 JSRuntime::~JSRuntime()

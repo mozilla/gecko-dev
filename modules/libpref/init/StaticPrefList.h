@@ -184,7 +184,7 @@ VARCACHE_PREF(
 // we fear the worst and kill it.
 #if !defined(DEBUG) && !defined(MOZ_ASAN) && !defined(MOZ_VALGRIND) && \
     !defined(MOZ_TSAN)
-# define PREF_VALUE 10
+# define PREF_VALUE 5
 #else
 # define PREF_VALUE 0
 #endif
@@ -894,6 +894,15 @@ VARCACHE_PREF(
   RelaxedAtomicBool, false
 )
 
+#ifdef ENABLE_BIGINT
+// BigInt API
+VARCACHE_PREF(
+  "javascript.options.bigint",
+   javascript_options_bigint,
+  RelaxedAtomicBool, false
+)
+#endif
+
 
 //---------------------------------------------------------------------------
 // Media prefs
@@ -1059,6 +1068,18 @@ VARCACHE_PREF(
   RelaxedAtomicBool, PREF_VALUE
 )
 #undef PREF_VALUE
+
+VARCACHE_PREF(
+  "media.rdd-process.enabled",
+   MediaRddProcessEnabled,
+  RelaxedAtomicBool, false
+)
+
+VARCACHE_PREF(
+  "media.rdd-process.startup_timeout_ms",
+   MediaRddProcessStartupTimeoutMs,
+  RelaxedAtomicInt32, 5000
+)
 
 #ifdef ANDROID
 
@@ -1755,6 +1776,24 @@ VARCACHE_PREF(
   RelaxedAtomicBool, false
 )
 
+#ifdef MOZILLA_OFFICIAL
+# define PREF_VALUE false
+#else
+# define PREF_VALUE true
+#endif
+VARCACHE_PREF(
+  "devtools.console.stdout.chrome",
+   devtools_console_stdout_chrome,
+  RelaxedAtomicBool, PREF_VALUE
+)
+#undef PREF_VALUE
+
+VARCACHE_PREF(
+  "devtools.console.stdout.content",
+   devtools_console_stdout_content,
+  RelaxedAtomicBool, false
+)
+
 //---------------------------------------------------------------------------
 // Feature-Policy prefs
 //---------------------------------------------------------------------------
@@ -1764,10 +1803,60 @@ VARCACHE_PREF(
 #else
 # define PREF_VALUE false
 #endif
+// This pref enables FeaturePolicy logic and the parsing of 'allow' attribute in
+// HTMLIFrameElement objects.
 VARCACHE_PREF(
   "dom.security.featurePolicy.enabled",
    dom_security_featurePolicy_enabled,
   bool, PREF_VALUE
+)
+
+// This pref enables the featurePolicy header support.
+VARCACHE_PREF(
+  "dom.security.featurePolicy.header.enabled",
+   dom_security_featurePolicy_header_enabled,
+  bool, PREF_VALUE
+)
+
+// Expose the 'policy' attribute in document and HTMLIFrameElement
+VARCACHE_PREF(
+  "dom.security.featurePolicy.webidl.enabled",
+   dom_security_featurePolicy_webidl_enabled,
+  bool, PREF_VALUE
+)
+#undef PREF_VALUE
+
+//---------------------------------------------------------------------------
+// Reporting API
+//---------------------------------------------------------------------------
+
+#ifdef NIGHTLY_BUILD
+# define PREF_VALUE true
+#else
+# define PREF_VALUE false
+#endif
+VARCACHE_PREF(
+  "dom.reporting.enabled",
+   dom_reporting_enabled,
+  RelaxedAtomicBool, PREF_VALUE
+)
+#undef PREF_VALUE
+
+VARCACHE_PREF(
+  "dom.reporting.testing.enabled",
+   dom_reporting_testing_enabled,
+  RelaxedAtomicBool, false
+)
+
+#ifdef NIGHTLY_BUILD
+# define PREF_VALUE true
+#else
+# define PREF_VALUE false
+#endif
+VARCACHE_PREF(
+  "dom.reporting.featurePolicy.enabled",
+   dom_reporting_featurePolicy_enabled,
+  RelaxedAtomicBool, PREF_VALUE
 )
 #undef PREF_VALUE
 

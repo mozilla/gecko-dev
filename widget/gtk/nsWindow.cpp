@@ -833,7 +833,7 @@ nsWindow::GetDesktopToDeviceScale()
 {
 #ifdef MOZ_WAYLAND
     GdkDisplay* gdkDisplay = gdk_display_get_default();
-    if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
+    if (!GDK_IS_X11_DISPLAY(gdkDisplay)) {
         return DesktopToLayoutDeviceScale(GdkScaleFactor());
     }
 #endif
@@ -853,7 +853,7 @@ nsWindow::GetDesktopToDeviceScaleByScreen()
     // so the GdkScaleFactor can return wrong value which can lead to wrong popup
     // placement.
     // We need to use parent's window scale factor for the new one.
-    if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
+    if (!GDK_IS_X11_DISPLAY(gdkDisplay)) {
         nsView* view = nsView::GetViewFor(this);
         if (view) {
             nsView* parentView = view->GetParent();
@@ -4617,7 +4617,6 @@ nsWindow::UpdateWindowDraggingRegion(const LayoutDeviceIntRegion& aRegion)
   }
 }
 
-#if (MOZ_WIDGET_GTK >= 3)
 void nsWindow::UpdateOpaqueRegion(const LayoutDeviceIntRegion& aOpaqueRegion)
 {
     // Available as of GTK 3.10+
@@ -4642,7 +4641,6 @@ void nsWindow::UpdateOpaqueRegion(const LayoutDeviceIntRegion& aOpaqueRegion)
         }
     }
 }
-#endif
 
 nsresult
 nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
@@ -6902,13 +6900,11 @@ nsWindow::SetDrawsInTitlebar(bool aState)
 gint
 nsWindow::GdkScaleFactor()
 {
-#if (MOZ_WIDGET_GTK >= 3)
     // Available as of GTK 3.10+
     static auto sGdkWindowGetScaleFactorPtr = (gint (*)(GdkWindow*))
         dlsym(RTLD_DEFAULT, "gdk_window_get_scale_factor");
     if (sGdkWindowGetScaleFactorPtr && mGdkWindow)
         return (*sGdkWindowGetScaleFactorPtr)(mGdkWindow);
-#endif
     return ScreenHelperGTK::GetGTKMonitorScaleFactor();
 }
 

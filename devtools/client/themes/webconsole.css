@@ -18,16 +18,15 @@
 }
 
 .theme-dark {
-  --console-arrow-color: hsl(210, 6%, 52%);
-  --console-input-icon-color: hsl(0, 0%, 50%, 0.5);
-  --console-input-icon-focused: hsl(210, 100%, 73%);
-  --console-output-icon-info: hsl(210, 6%, 52%);
-  --console-output-icon-input: hsl(210, 6%, 76%);
-  --console-output-icon-error: hsl(0, 100%, 65%);
-  --console-output-icon-warning: hsl(36, 100%, 60%);
+  --console-input-icon-color: var(--grey-60);
+  --console-input-icon-focused: var(--blue-30);
+  --console-output-icon-medium-color: var(--grey-50);
+  --console-output-icon-strong-color: var(--grey-30);
+  --console-output-icon-error-color: var(--red-40);
+  --console-output-icon-warning-color: var(--yellow-60);
   --console-output-indent-border-color: var(--theme-highlight-blue);
   --error-color: var(--red-20);
-  --error-background-color: hsl(352, 79%, 62%, 0.17);
+  --error-background-color: hsl(345, 23%, 24%);
   --warning-color: hsl(43, 94%, 81%);
   --warning-background-color: hsl(42, 37%, 19%);
   --console-output-color: white;
@@ -35,13 +34,12 @@
 }
 
 .theme-light {
-  --console-arrow-color: hsl(210, 6%, 67%);
-  --console-input-icon-color: hsl(210, 6%, 75%);
-  --console-input-icon-focused: hsl(210, 100%, 44%);
-  --console-output-icon-info: hsl(210, 6%, 67%);
-  --console-output-icon-input: hsl(210, 6%, 34%);
-  --console-output-icon-error: hsl(0, 90%, 45%);
-  --console-output-icon-warning: hsl(36, 100%, 45%);
+  --console-input-icon-color: var(--grey-40);
+  --console-input-icon-focused: var(--blue-55);
+  --console-output-icon-medium-color: var(--grey-40);
+  --console-output-icon-strong-color: var(--grey-60);
+  --console-output-icon-error-color: var(--red-60);
+  --console-output-icon-warning-color: var(--yellow-65);
   --console-output-indent-border-color: var(--theme-highlight-blue);
   --error-color: var(--red-70);
   --error-background-color: hsl(344, 73%, 97%);
@@ -117,7 +115,7 @@ a {
   opacity: 0.6;
   width: 100vw;
   height: 1px;
-  bottom: 0px;
+  top: 0px;
   left: -3px;
   display: block;
   content: "";
@@ -187,27 +185,27 @@ a {
 }
 
 .message.command > .icon {
-  color: var(--console-output-icon-input);
+  color: var(--console-output-icon-strong-color);
   background-image: url(chrome://devtools/skin/images/webconsole/input.svg);
 }
 
 .message.result > .icon {
-  color: var(--console-output-icon-info);
+  color: var(--console-output-icon-medium-color);
   background-image: url(chrome://devtools/skin/images/webconsole/return.svg);
 }
 
 .message.info > .icon {
-  color: var(--console-output-icon-info);
+  color: var(--console-output-icon-medium-color);
   background-image: url(chrome://devtools/skin/images/webconsole/info.svg);
 }
 
 .message.error > .icon {
-  color: var(--console-output-icon-error);
+  color: var(--console-output-icon-error-color);
   background-image: url(chrome://devtools/skin/images/alert.svg);
 }
 
 .message.warn > .icon {
-  color: var(--console-output-icon-warning);
+  color: var(--console-output-icon-warning-color);
   background-image: url(chrome://devtools/skin/images/alert.svg);
 }
 
@@ -461,11 +459,15 @@ textarea.jsterm-input-node:focus {
   overflow-y: auto;
   margin-block-start: 5px;
   margin-block-end: var(--attachment-margin-block-end);
-  padding-inline-start: 4px;
+  padding-inline-start: 16px;
 }
 
 .message.open .stacktrace {
   display: block;
+}
+
+.objectBox-stackTrace .frames {
+  padding-inline-start: 16px;
 }
 
 .consoletable {
@@ -649,36 +651,31 @@ a.learn-more-link.webconsole-learn-more-link {
   margin-inline-start: 0.5em;
 }
 
-/* Special casing String reps so they are legible */
-.webconsole-output-wrapper .message .message-body > .objectBox-string {
-  color: currentColor;
-}
-
-/* Special casing warning and error string colors so they are legible */
-.theme-dark .message.error .objectBox-string,
-.theme-light .message.error .objectBox-string,
-.theme-dark .message.warn .objectBox-string,
-.theme-light .message.warn .objectBox-string {
-  color: var(--error-color);
+/* Special casing String reps, and warning/error string colors
+ * so they are legible */
+.message .message-body > .objectBox-string,
+.message.error .objectBox-string,
+.message.warn .objectBox-string {
+  color: inherit;
 }
 
 /* Special casing dark-theme error and warning ObjectInspector colors */
-.theme-dark .webconsole-output-wrapper .message.error .tree.object-inspector .object-label,
-.theme-dark .webconsole-output-wrapper .message.error .tree.object-inspector .object-label *,
-.theme-dark .webconsole-output-wrapper .message.warn .tree.object-inspector .object-label,
-.theme-dark .webconsole-output-wrapper .message.warn .tree.object-inspector .object-label *,
-.theme-dark .webconsole-output-wrapper .message.error .objectLeftBrace,
-.theme-dark .webconsole-output-wrapper .message.error .objectRightBrace,
-.theme-dark .webconsole-output-wrapper .message.error .arrayLeftBracket,
-.theme-dark .webconsole-output-wrapper .message.error .arrayRightBracket,
-.theme-dark .webconsole-output-wrapper .message.warn .objectLeftBrace,
-.theme-dark .webconsole-output-wrapper .message.warn .objectRightBrace,
-.theme-dark .webconsole-output-wrapper .message.warn .arrayLeftBracket,
-.theme-dark .webconsole-output-wrapper .message.warn .arrayRightBracket {
+.theme-dark .message.error .tree.object-inspector .object-label,
+.theme-dark .message.error .tree.object-inspector .object-label *,
+.theme-dark .message.warn .tree.object-inspector .object-label,
+.theme-dark .message.warn .tree.object-inspector .object-label *,
+.theme-dark .message.error .objectLeftBrace,
+.theme-dark .message.error .objectRightBrace,
+.theme-dark .message.error .arrayLeftBracket,
+.theme-dark .message.error .arrayRightBracket,
+.theme-dark .message.warn .objectLeftBrace,
+.theme-dark .message.warn .objectRightBrace,
+.theme-dark .message.warn .arrayLeftBracket,
+.theme-dark .message.warn .arrayRightBracket {
   color: var(--theme-body-color);
 }
-.theme-dark .webconsole-output-wrapper .message.error .tree.object-inspector,
-.theme-dark .webconsole-output-wrapper .message.warn .tree.object-inspector {
+.theme-dark .message.error .tree.object-inspector,
+.theme-dark .message.warn .tree.object-inspector {
   --console-output-indent-border-color: var(--theme-body-color);
 }
 
@@ -911,11 +908,11 @@ body {
 .collapse-button {
   flex: none;
   align-self: flex-start;
-  margin-block-start: var(--console-output-vertical-padding);
-  margin-inline-start: -3px;
-  margin-inline-end: 0;
-  padding: 2px 4px;
+  margin-block-start: calc(var(--console-output-vertical-padding) - 1px);
+  margin-inline-start: -2px;
+  padding: 3px;
   border: none;
+  color: var(--theme-twisty-fill);
   background: transparent;
 }
 
@@ -924,11 +921,12 @@ body {
   display: block;
   width: 10px;
   height: 10px;
-  mask: url("chrome://devtools/skin/images/devtools-components/arrow.svg") no-repeat;
-  mask-size: 100%;
+  background: url("chrome://devtools/skin/images/arrow.svg") no-repeat center;
+  background-size: 10px;
   transform: rotate(-90deg);
-  transition: transform 0.125s ease;
-  background-color: var(--console-arrow-color);
+  transition: transform 125ms ease;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .collapse-button[aria-expanded="true"]::before {
@@ -937,15 +935,6 @@ body {
 
 .collapse-button::-moz-focus-inner {
   border: none;
-}
-
-/* Larger collapse buttons for groups and network requests */
-.message.network > .collapse-button,
-.message.startGroup .collapse-button,
-.message.startGroupCollapsed .collapse-button {
-  margin-inline-start: 0;
-  padding-inline-start: 6px;
-  padding-inline-end: 6px;
 }
 
 /* Hide the icon, so that we can use the collapse-button in its place */
@@ -958,9 +947,19 @@ body {
 /* Center the collapse button in the left gutter (first-level only) */
 .message.network > .collapse-button,
 .message.startGroup > .indent[data-indent="0"] ~ .collapse-button,
-.message.message.startGroupCollapsed > .indent[data-indent="0"] ~ .collapse-button {
-  margin-inline-start: calc(1px + var(--console-icon-horizontal-offset));
-  margin-inline-end: calc(5px - var(--console-icon-horizontal-offset));
+.message.startGroupCollapsed > .indent[data-indent="0"] ~ .collapse-button {
+  width: 24px;
+  margin-inline-start: var(--console-icon-horizontal-offset);
+  margin-inline-end: calc(4px - var(--console-icon-horizontal-offset));
+}
+
+/* Use a bigger arrow that is visually similar to other icons (10px) */
+.message.network > .collapse-button::before,
+.message.startGroup > .indent[data-indent="0"] ~ .collapse-button::before,
+.message.startGroupCollapsed > .indent[data-indent="0"] ~ .collapse-button::before {
+  width: 100%;
+  background-image: url("chrome://devtools/skin/images/arrow-big.svg");
+  fill: var(--console-output-icon-medium-color);
 }
 
 /* Apply a style similar to collapse-button for the object tree arrows */
@@ -970,7 +969,7 @@ body {
   height: 10px;
   vertical-align: 0px;
   line-height: 1;
-  background-color: var(--console-arrow-color);
+  background-color: var(--theme-twisty-fill);
 }
 
 /* Sidebar */

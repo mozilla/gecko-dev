@@ -680,8 +680,8 @@ SourceUnits<Utf8Unit>::assertNextCodePoint(const PeekedCodePoint<Utf8Unit>& peek
         expectedUnits[1] = 0b1000'0000 | ((c >> 6) & 0b11'1111);
         expectedUnits[2] = 0b1000'0000 | (c & 0b11'1111);
     } else {
-        expectedUnits[0] = 0b1110'0000 | (c >> 18);
-        expectedUnits[2] = 0b1000'0000 | ((c >> 12) & 0b11'1111);
+        expectedUnits[0] = 0b1111'0000 | (c >> 18);
+        expectedUnits[1] = 0b1000'0000 | ((c >> 12) & 0b11'1111);
         expectedUnits[2] = 0b1000'0000 | ((c >> 6) & 0b11'1111);
         expectedUnits[3] = 0b1000'0000 | (c & 0b11'1111);
     }
@@ -794,14 +794,17 @@ TokenStreamChars<Utf8Unit, AnyCharsAccess>::notEnoughUnits(Utf8Unit lead,
     const char actualStr[] = { toHexChar(remaining - 1), '\0' };
 
     internalEncodingError(remaining, JSMSG_NOT_ENOUGH_CODE_UNITS,
-                          leadByteStr, expectedStr, actualStr, remaining == 2 ? " was" : "s were");
+                          leadByteStr,
+                          expectedStr, required == 2 ? "" : "s",
+                          actualStr, remaining == 2 ? " was" : "s were");
 }
 
 template<class AnyCharsAccess>
 MOZ_COLD void
-TokenStreamChars<Utf8Unit, AnyCharsAccess>::badTrailingUnit(Utf8Unit badUnit,
-                                                            uint8_t unitsObserved)
+TokenStreamChars<Utf8Unit, AnyCharsAccess>::badTrailingUnit(uint8_t unitsObserved)
 {
+    Utf8Unit badUnit = this->sourceUnits.addressOfNextCodeUnit()[unitsObserved - 1];
+
     char badByteStr[5];
     byteToTerminatedString(badUnit.toUint8(), badByteStr);
 
@@ -829,12 +832,13 @@ TokenStreamChars<Utf8Unit, AnyCharsAccess>::badStructurallyValidCodePoint(uint32
     char* codePointStr = codePointCharsArray + ArrayLength(codePointCharsArray);
     *--codePointStr = '\0';
 
-    uint32_t copy = codePoint;
-    while (copy) {
+    // Note that by do-while looping here rather than while-looping, this
+    // writes a '0' when |codePoint == 0|.
+    do {
         MOZ_ASSERT(codePointCharsArray < codePointStr);
-        *--codePointStr = toHexChar(copy & 0xF);
-        copy >>= 4;
-    }
+        *--codePointStr = toHexChar(codePoint & 0xF);
+        codePoint >>= 4;
+    } while (codePoint);
 
     MOZ_ASSERT(codePointCharsArray + 2 <= codePointStr);
     *--codePointStr = 'x';
@@ -856,8 +860,8 @@ TokenStreamChars<Utf8Unit, AnyCharsAccess>::getNonAsciiCodePointDontNormalize(Ut
         this->notEnoughUnits(lead, remaining, required);
     };
 
-    auto onBadTrailingUnit = [this, &lead](uint8_t unitsObserved) {
-        this->badTrailingUnit(lead, unitsObserved);
+    auto onBadTrailingUnit = [this](uint8_t unitsObserved) {
+        this->badTrailingUnit(unitsObserved);
     };
 
     auto onBadCodePoint = [this](char32_t badCodePoint, uint8_t unitsObserved) {
@@ -977,8 +981,8 @@ TokenStreamChars<Utf8Unit, AnyCharsAccess>::getNonAsciiCodePoint(int32_t unit, i
         this->notEnoughUnits(lead, remaining, required);
     };
 
-    auto onBadTrailingUnit = [this, &lead](uint_fast8_t unitsObserved) {
-        this->badTrailingUnit(lead, unitsObserved);
+    auto onBadTrailingUnit = [this](uint_fast8_t unitsObserved) {
+        this->badTrailingUnit(unitsObserved);
     };
 
     auto onBadCodePoint = [this](char32_t badCodePoint, uint_fast8_t unitsObserved) {
@@ -2268,8 +2272,11 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::decimalNumber(int32_t unit, TokenStar
 
     // Numbers contain no escapes, so we can read directly from |sourceUnits|.
     double dval;
+#ifdef ENABLE_BIGINT
+    bool isBigInt = false;
+#endif
     DecimalPoint decimalPoint = NoDecimal;
-    if (unit != '.' && unit != 'e' && unit != 'E') {
+    if (unit != '.' && unit != 'e' && unit != 'E' && IF_BIGINT(unit != 'n', true)) {
         // NOTE: |unit| may be EOF here.
         ungetCodeUnit(unit);
 
@@ -2280,7 +2287,14 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::decimalNumber(int32_t unit, TokenStar
         {
             return false;
         }
-    } else {
+    }
+#ifdef ENABLE_BIGINT
+    else if (unit == 'n') {
+        isBigInt = true;
+        unit = peekCodeUnit();
+    }
+#endif
+    else {
         // Consume any decimal dot and fractional component.
         if (unit == '.') {
             decimalPoint = HasDecimal;
@@ -2342,6 +2356,13 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::decimalNumber(int32_t unit, TokenStar
     }
 
     noteBadToken.release();
+
+#ifdef ENABLE_BIGINT
+    if (isBigInt) {
+        return bigIntLiteral(start, modifier, out);
+    }
+#endif
+
     newNumberToken(dval, decimalPoint, start, modifier, out);
     return true;
 }
@@ -2471,6 +2492,35 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::regexpLiteral(TokenStart start, Token
     newRegExpToken(reflags, start, out);
     return true;
 }
+
+#ifdef ENABLE_BIGINT
+template<typename Unit, class AnyCharsAccess>
+MOZ_MUST_USE bool
+TokenStreamSpecific<Unit, AnyCharsAccess>::bigIntLiteral(TokenStart start,
+                                                         Modifier modifier,
+                                                         TokenKind* out)
+{
+    MOZ_ASSERT(this->sourceUnits.previousCodeUnit() == toUnit('n'));
+    MOZ_ASSERT(this->sourceUnits.offset() > start.offset());
+    uint32_t length = this->sourceUnits.offset() - start.offset();
+    MOZ_ASSERT(length >= 2);
+    this->charBuffer.clear();
+    mozilla::Range<const Unit> chars(this->sourceUnits.codeUnitPtrAt(start.offset()),
+                                     length);
+    for (uint32_t idx = 0; idx < length - 1; idx++) {
+        int32_t unit = CodeUnitValue(chars[idx]);
+        // Char buffer may start with a 0[bBoOxX] prefix, then follows with
+        // binary, octal, decimal, or hex digits.  Already checked by caller, as
+        // the "n" indicating bigint comes at the end.
+        MOZ_ASSERT(isAsciiCodePoint(unit));
+        if (!this->appendCodePointToCharBuffer(unit)) {
+            return false;
+        }
+    }
+    newBigIntToken(start, modifier, out);
+    return true;
+}
+#endif
 
 template<typename Unit, class AnyCharsAccess>
 MOZ_MUST_USE bool
@@ -2636,8 +2686,11 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(TokenKind* const ttp
         //
         if (c1kind == ZeroDigit) {
             TokenStart start(this->sourceUnits, -1);
-
             int radix;
+#ifdef ENABLE_BIGINT
+            bool isLegacyOctalOrNoctal = false;
+            bool isBigInt = false;
+#endif
             const Unit* numStart;
             unit = getCodeUnit();
             if (unit == 'x' || unit == 'X') {
@@ -2690,6 +2743,9 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(TokenKind* const ttp
                 }
             } else if (IsAsciiDigit(unit)) {
                 radix = 8;
+#ifdef ENABLE_BIGINT
+                isLegacyOctalOrNoctal = true;
+#endif
                 // one past the '0'
                 numStart = this->sourceUnits.addressOfNextCodeUnit() - 1;
 
@@ -2724,7 +2780,20 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(TokenKind* const ttp
                 return decimalNumber(unit, start, numStart, modifier, ttp);
             }
 
+#ifdef ENABLE_BIGINT
+            if (unit == 'n') {
+                if (isLegacyOctalOrNoctal) {
+                    error(JSMSG_BIGINT_INVALID_SYNTAX);
+                    return badToken();
+                }
+                isBigInt = true;
+                unit = peekCodeUnit();
+            } else {
+                ungetCodeUnit(unit);
+            }
+#else
             ungetCodeUnit(unit);
+#endif
 
             // Error if an identifier-start code point appears immediately
             // after the number.  Somewhat surprisingly, if we don't check
@@ -2743,6 +2812,12 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(TokenKind* const ttp
                     return badToken();
                 }
             }
+
+#ifdef ENABLE_BIGINT
+            if (isBigInt) {
+                return bigIntLiteral(start, modifier, ttp);
+            }
+#endif
 
             double dval;
             if (!GetFullInteger(anyCharsAccess().cx, numStart,

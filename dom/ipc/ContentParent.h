@@ -792,6 +792,9 @@ private:
   // Common initialization after sub process launch.
   void InitInternal(ProcessPriority aPriority);
 
+  // Generate a minidump for the child process and one for the main process
+  void GeneratePairedMinidump(const char* aReason);
+
   virtual ~ContentParent();
 
   void Init();
@@ -1038,10 +1041,6 @@ private:
   virtual mozilla::ipc::IPCResult RecvGetShowPasswordSetting(bool* showPassword) override;
 
   virtual mozilla::ipc::IPCResult RecvStartVisitedQuery(const URIParams& uri) override;
-
-  virtual mozilla::ipc::IPCResult RecvVisitURI(const URIParams& uri,
-                                               const OptionalURIParams& referrer,
-                                               const uint32_t& flags) override;
 
   virtual mozilla::ipc::IPCResult RecvSetURITitle(const URIParams& uri,
                                                   const nsString& title) override;
@@ -1296,8 +1295,6 @@ private:
   // nsFakePluginTag::NOT_JSPLUGIN.
   int32_t mJSPluginID;
 
-  nsCString mKillHardAnnotation;
-
   // After we initiate shutdown, we also start a timer to ensure
   // that even content processes that are 100% blocked (say from
   // SIGSTOP), are still killed eventually.  This task enforces that
@@ -1315,6 +1312,7 @@ private:
   // still pass through.
   bool mIsAlive;
 
+  bool mShuttingDown;
   bool mIsForBrowser;
 
   // Whether this process is recording or replaying its execution, and any

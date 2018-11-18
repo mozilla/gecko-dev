@@ -54,6 +54,20 @@ bool is_in_render_thread()
   return mozilla::wr::RenderThread::IsInRenderThread();
 }
 
+void gecko_profiler_start_marker(const char* name)
+{
+#ifdef MOZ_GECKO_PROFILER
+  profiler_tracing("WebRender", name, TRACING_INTERVAL_START);
+#endif
+}
+
+void gecko_profiler_end_marker(const char* name)
+{
+#ifdef MOZ_GECKO_PROFILER
+  profiler_tracing("WebRender", name, TRACING_INTERVAL_END);
+#endif
+}
+
 bool is_glcontext_egl(void* glcontext_ptr)
 {
   MOZ_ASSERT(glcontext_ptr);
@@ -183,6 +197,52 @@ protected:
   bool mIsActive;
 };
 
+class SceneBuiltNotification: public wr::NotificationHandler {
+public:
+  explicit SceneBuiltNotification(TimeStamp aTxnStartTime)
+  : mTxnStartTime(aTxnStartTime)
+  {}
+
+  virtual void Notify(wr::Checkpoint) override {
+    auto startTime = this->mTxnStartTime;
+    CompositorThreadHolder::Loop()->PostTask(
+      NS_NewRunnableFunction("SceneBuiltNotificationRunnable", [startTime]() {
+        auto endTime = TimeStamp::Now();
+#ifdef MOZ_GECKO_PROFILER
+        if (profiler_is_active()) {
+          class ContentFullPaintPayload : public ProfilerMarkerPayload
+          {
+          public:
+            ContentFullPaintPayload(const mozilla::TimeStamp& aStartTime,
+                                    const mozilla::TimeStamp& aEndTime)
+              : ProfilerMarkerPayload(aStartTime, aEndTime)
+            {
+            }
+            virtual void StreamPayload(SpliceableJSONWriter& aWriter,
+                                       const TimeStamp& aProcessStartTime,
+                                       UniqueStacks& aUniqueStacks) override
+            {
+              StreamCommonProps("CONTENT_FULL_PAINT_TIME",
+                                aWriter,
+                                aProcessStartTime,
+                                aUniqueStacks);
+            }
+          };
+
+          profiler_add_marker_for_thread(profiler_current_thread_id(),
+                                         "CONTENT_FULL_PAINT_TIME",
+                                         MakeUnique<ContentFullPaintPayload>(startTime, endTime));
+        }
+#endif
+        Telemetry::Accumulate(Telemetry::CONTENT_FULL_PAINT_TIME,
+                              static_cast<uint32_t>((endTime - startTime).ToMilliseconds()));
+      }));
+  }
+protected:
+  TimeStamp mTxnStartTime;
+};
+
+
 class WebRenderBridgeParent::ScheduleSharedSurfaceRelease final
   : public wr::NotificationHandler
 {
@@ -260,7 +320,7 @@ WebRenderBridgeParent::WebRenderBridgeParent(CompositorBridgeParentBase* aCompos
 {
   MOZ_ASSERT(mAsyncImageManager);
   MOZ_ASSERT(mAnimStorage);
-  mAsyncImageManager->AddPipeline(mPipelineId);
+  mAsyncImageManager->AddPipeline(mPipelineId, this);
   if (IsRootWebRenderBridgeParent()) {
     MOZ_ASSERT(!mCompositorScheduler);
     mCompositorScheduler = new CompositorVsyncScheduler(this, mWidget);
@@ -385,12 +445,12 @@ WebRenderBridgeParent::UpdateResources(const nsTArray<OpUpdateResource>& aResour
         if (!reader.Read(op.bytes(), bytes)) {
           return false;
         }
-        aUpdates.UpdateBlobImage(op.key(), op.descriptor(), bytes, wr::ToDeviceUintRect(op.dirtyRect()));
+        aUpdates.UpdateBlobImage(op.key(), op.descriptor(), bytes, wr::ToDeviceIntRect(op.dirtyRect()));
         break;
       }
       case OpUpdateResource::TOpSetImageVisibleArea: {
         const auto& op = cmd.get_OpSetImageVisibleArea();
-        wr::DeviceUintRect area;
+        wr::DeviceIntRect area;
         area.origin.x = op.area().x;
         area.origin.y = op.area().y;
         area.size.width = op.area().width;
@@ -639,7 +699,7 @@ WebRenderBridgeParent::UpdateExternalImage(wr::ExternalImageId aExtId,
                                    dSurf->GetFormat());
     aResources.UpdateExternalImageWithDirtyRect(aKey, descriptor, aExtId,
                                                 wr::WrExternalImageBufferType::ExternalBuffer,
-                                                wr::ToDeviceUintRect(aDirtyRect),
+                                                wr::ToDeviceIntRect(aDirtyRect),
                                                 0);
     return true;
   }
@@ -921,6 +981,13 @@ WebRenderBridgeParent::RecvSetDisplayList(const gfx::IntSize& aSize,
         )
       );
     }
+
+    txn.Notify(
+      wr::Checkpoint::SceneBuilt,
+      MakeUnique<SceneBuiltNotification>(
+        aTxnStartTime
+      )
+    );
 
     mApi->SendTransaction(txn);
 
@@ -1797,7 +1864,8 @@ WebRenderBridgeParent::LastPendingTransactionId()
 
 TransactionId
 WebRenderBridgeParent::FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch, const TimeStamp& aEndTime,
-                                                   UiCompositorControllerParent* aUiController)
+                                                   UiCompositorControllerParent* aUiController,
+                                                   wr::RendererStats* aStats)
 {
   TransactionId id{0};
   while (!mPendingTransactionIds.empty()) {
@@ -1835,6 +1903,20 @@ WebRenderBridgeParent::FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch, cons
       if (transactionId.mContainsSVGGroup) {
         Telemetry::Accumulate(Telemetry::CONTENT_FRAME_TIME_WITH_SVG, fracLatencyNorm);
       }
+
+      if (aStats) {
+        latencyMs -= (double(aStats->resource_upload_time) / 1000000.0);
+        latencyNorm = latencyMs / mVsyncRate.ToMilliseconds();
+        fracLatencyNorm = lround(latencyNorm * 100.0);
+      }
+      Telemetry::Accumulate(Telemetry::CONTENT_FRAME_TIME_WITHOUT_RESOURCE_UPLOAD, fracLatencyNorm);
+
+      if (aStats) {
+        latencyMs -= (double(aStats->gpu_cache_upload_time) / 1000000.0);
+        latencyNorm = latencyMs / mVsyncRate.ToMilliseconds();
+        fracLatencyNorm = lround(latencyNorm * 100.0);
+      }
+      Telemetry::Accumulate(Telemetry::CONTENT_FRAME_TIME_WITHOUT_UPLOAD, fracLatencyNorm);
     }
 
 #if defined(ENABLE_FRAME_LATENCY_LOG)

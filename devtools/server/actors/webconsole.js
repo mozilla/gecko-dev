@@ -311,7 +311,11 @@ WebConsoleActor.prototype =
       // We are very explicitly examining the "console" property of
       // the non-Xrayed object here.
       const console = window.wrappedJSObject.console;
-      isNative = new XPCNativeWrapper(console).IS_NATIVE_CONSOLE;
+      // In xpcshell tests, console ends up being undefined and XPCNativeWrapper
+      // crashes in debug builds.
+      if (console) {
+        isNative = new XPCNativeWrapper(console).IS_NATIVE_CONSOLE;
+      }
     } catch (ex) {
       // ignored
     }
@@ -548,26 +552,6 @@ WebConsoleActor.prototype =
    * When using a replaying debugger, all messages we have seen so far.
    */
   replayingMessages: null,
-
-  /**
-   * When using a replaying debugger, this helper returns whether a message has
-   * been seen before. When the process rewinds or plays back through regions
-   * of execution that have executed before, we will see the same messages
-   * again.
-   */
-  isDuplicateReplayingMessage: function(msg) {
-    if (!this.replayingMessages) {
-      this.replayingMessages = {};
-    }
-    // The progress counter on the message is unique across all messages in the
-    // replaying process.
-    const progress = msg.executionPoint.progress;
-    if (this.replayingMessages[progress]) {
-      return true;
-    }
-    this.replayingMessages[progress] = true;
-    return false;
-  },
 
   // Request handlers for known packet types.
 
@@ -849,9 +833,7 @@ WebConsoleActor.prototype =
 
     let replayingMessages = [];
     if (this.dbg.replaying) {
-      replayingMessages = this.dbg.findAllConsoleMessages().filter(msg => {
-        return !this.isDuplicateReplayingMessage(msg);
-      });
+      replayingMessages = this.dbg.findAllConsoleMessages();
     }
 
     while (types.length > 0) {
@@ -1223,8 +1205,15 @@ WebConsoleActor.prototype =
         dbgObject = this.dbg.addDebuggee(this.evalWindow);
       }
 
-      const result = JSPropertyProvider(dbgObject, environment, request.text,
-                                      request.cursor, frameActorId) || {};
+      const result = JSPropertyProvider({
+        dbgObject,
+        environment,
+        inputValue: request.text,
+        cursor: request.cursor,
+        invokeUnsafeGetter: false,
+        webconsoleActor: this,
+        selectedNodeActor: request.selectedNodeActor,
+      }) || {};
 
       if (!hadDebuggee && dbgObject) {
         this.dbg.removeDebuggee(this.evalWindow);
@@ -1425,10 +1414,6 @@ WebConsoleActor.prototype =
    * debugger.
    */
   onReplayingMessage: function(msg) {
-    if (this.isDuplicateReplayingMessage(msg)) {
-      return;
-    }
-
     if (msg.messageType == "ConsoleAPI") {
       this.onConsoleAPICall(msg);
     }

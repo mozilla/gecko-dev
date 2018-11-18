@@ -11,12 +11,14 @@ DIRS += ['input']
 
 MOCHITEST_MANIFESTS += [
     'test/forms/mochitest.ini',
+    'test/forms/xbl/mochitest.ini',
     'test/mochitest.ini',
 ]
 
 MOCHITEST_CHROME_MANIFESTS += [
     'test/chrome.ini',
     'test/forms/chrome.ini',
+    'test/forms/xbl/chrome.ini',
 ]
 
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
@@ -85,6 +87,7 @@ EXPORTS.mozilla.dom += [
     'HTMLLIElement.h',
     'HTMLLinkElement.h',
     'HTMLMapElement.h',
+    'HTMLMarqueeElement.h',
     'HTMLMediaElement.h',
     'HTMLMenuElement.h',
     'HTMLMenuItemElement.h',
@@ -165,6 +168,7 @@ UNIFIED_SOURCES += [
     'HTMLLIElement.cpp',
     'HTMLLinkElement.cpp',
     'HTMLMapElement.cpp',
+    'HTMLMarqueeElement.cpp',
     'HTMLMediaElement.cpp',
     'HTMLMenuElement.cpp',
     'HTMLMenuItemElement.cpp',

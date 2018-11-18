@@ -19,7 +19,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/DeclarationBlock.h"
 #include "js/CompilationAndEvaluation.h"
-#include "js/SourceBufferHolder.h"
+#include "js/SourceText.h"
 #include "nsFocusManager.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsNameSpaceManager.h"
@@ -439,16 +439,15 @@ nsXULElement::IsFocusableInternal(int32_t *aTabIndex, bool aWithMouse)
    * For controls, the element cannot be focused and is not part of the tab
    * order if it is disabled.
    *
-   * Controls (those that implement nsIDOMXULControlElement):
+   * -moz-user-focus is overridden if a tabindex (even -1) is specified.
+   *
+   * Specifically, the behaviour for all XUL elements is as follows:
    *  *aTabIndex = -1  no tabindex     Not focusable or tabbable
-   *  *aTabIndex = -1  tabindex="-1"   Not focusable or tabbable
+   *  *aTabIndex = -1  tabindex="-1"   Focusable but not tabbable
    *  *aTabIndex = -1  tabindex=">=0"  Focusable and tabbable
    *  *aTabIndex >= 0  no tabindex     Focusable and tabbable
    *  *aTabIndex >= 0  tabindex="-1"   Focusable but not tabbable
    *  *aTabIndex >= 0  tabindex=">=0"  Focusable and tabbable
-   * Non-controls:
-   *  *aTabIndex = -1                  Not focusable or tabbable
-   *  *aTabIndex >= 0                  Focusable and tabbable
    *
    * If aTabIndex is null, then the tabindex is not computed, and
    * true is returned for non-disabled controls and false otherwise.
@@ -483,36 +482,32 @@ nsXULElement::IsFocusableInternal(int32_t *aTabIndex, bool aWithMouse)
   }
 
   if (aTabIndex) {
-    if (xulControl) {
-      if (HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
-        // if either the aTabIndex argument or a specified tabindex is non-negative,
-        // the element becomes focusable.
-        int32_t tabIndex = 0;
-        xulControl->GetTabIndex(&tabIndex);
-        shouldFocus = *aTabIndex >= 0 || tabIndex >= 0;
-        *aTabIndex = tabIndex;
-      } else {
-        // otherwise, if there is no tabindex attribute, just use the value of
-        // *aTabIndex to indicate focusability. Reset any supplied tabindex to 0.
-        shouldFocus = *aTabIndex >= 0;
-        if (shouldFocus)
-          *aTabIndex = 0;
-      }
-
-      if (shouldFocus && sTabFocusModelAppliesToXUL &&
-          !(sTabFocusModel & eTabFocus_formElementsMask)) {
-        // By default, the tab focus model doesn't apply to xul element on any system but OS X.
-        // on OS X we're following it for UI elements (XUL) as sTabFocusModel is based on
-        // "Full Keyboard Access" system setting (see mac/nsILookAndFeel).
-        // both textboxes and list elements (i.e. trees and list) should always be focusable
-        // (textboxes are handled as html:input)
-        // For compatibility, we only do this for controls, otherwise elements like <browser>
-        // cannot take this focus.
-        if (IsNonList(mNodeInfo))
-          *aTabIndex = -1;
-      }
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+      // The tabindex attribute was specified, so the element becomes
+      // focusable.
+      shouldFocus = true;
+      *aTabIndex = TabIndex();
     } else {
+      // otherwise, if there is no tabindex attribute, just use the value of
+      // *aTabIndex to indicate focusability. Reset any supplied tabindex to 0.
       shouldFocus = *aTabIndex >= 0;
+      if (shouldFocus) {
+        *aTabIndex = 0;
+      }
+    }
+
+    if (xulControl && shouldFocus && sTabFocusModelAppliesToXUL &&
+        !(sTabFocusModel & eTabFocus_formElementsMask)) {
+      // By default, the tab focus model doesn't apply to xul element on any system but OS X.
+      // on OS X we're following it for UI elements (XUL) as sTabFocusModel is based on
+      // "Full Keyboard Access" system setting (see mac/nsILookAndFeel).
+      // both textboxes and list elements (i.e. trees and list) should always be focusable
+      // (textboxes are handled as html:input)
+      // For compatibility, we only do this for controls, otherwise elements like <browser>
+      // cannot take this focus.
+      if (IsNonList(mNodeInfo)) {
+        *aTabIndex = -1;
+      }
     }
   }
 
@@ -1035,6 +1030,11 @@ nsXULElement::ParseAttribute(int32_t aNamespaceID,
                              nsIPrincipal* aMaybeScriptedPrincipal,
                              nsAttrValue& aResult)
 {
+    if (aNamespaceID == kNameSpaceID_None &&
+        aAttribute == nsGkAtoms::tabindex) {
+      return aResult.ParseIntValue(aValue);
+    }
+
     // Parse into a nsAttrValue
     if (!nsStyledElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
                                          aMaybeScriptedPrincipal, aResult)) {
@@ -1960,6 +1960,10 @@ nsXULPrototypeElement::SetAttrAt(uint32_t aPos, const nsAString& aValue,
             return NS_OK;
         }
         // Don't abort if parsing failed, it could just be malformed css.
+    } else if (mAttributes[aPos].mName.Equals(nsGkAtoms::tabindex)) {
+        mAttributes[aPos].mValue.ParseIntValue(aValue);
+
+        return NS_OK;
     }
 
     mAttributes[aPos].mValue.ParseStringOrAtom(aValue);
@@ -2278,7 +2282,9 @@ OffThreadScriptReceiverCallback(JS::OffThreadToken* aToken, void* aCallbackData)
 }
 
 nsresult
-nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
+nsXULPrototypeScript::Compile(const char16_t* aText,
+                              size_t aTextLength,
+                              JS::SourceOwnership aOwnership,
                               nsIURI* aURI, uint32_t aLineNo,
                               nsIDocument* aDocument,
                               nsIOffThreadScriptReceiver *aOffThreadReceiver /* = nullptr */)
@@ -2286,9 +2292,20 @@ nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
     // We'll compile the script in the compilation scope.
     AutoJSAPI jsapi;
     if (!jsapi.Init(xpc::CompilationScope())) {
+        if (aOwnership == JS::SourceOwnership::TakeOwnership) {
+            // In this early-exit case -- before the |srcBuf.init| call will
+            // own |aText| -- we must relinquish ownership manually.
+            js_free(const_cast<char16_t*>(aText));
+        }
+
         return NS_ERROR_UNEXPECTED;
     }
     JSContext* cx = jsapi.cx();
+
+    JS::SourceText<char16_t> srcBuf;
+    if (NS_WARN_IF(!srcBuf.init(cx, aText, aTextLength, aOwnership))) {
+        return NS_ERROR_FAILURE;
+    }
 
     nsAutoCString urlspec;
     nsresult rv = aURI->GetSpec(urlspec);
@@ -2309,9 +2326,8 @@ nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
       JS::ExposeObjectToActiveJS(scope);
     }
 
-    if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aSrcBuf.length())) {
-        if (!JS::CompileOffThread(cx, options,
-                                  aSrcBuf,
+    if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
+        if (!JS::CompileOffThread(cx, options, srcBuf,
                                   OffThreadScriptReceiverCallback,
                                   static_cast<void*>(aOffThreadReceiver))) {
             return NS_ERROR_OUT_OF_MEMORY;
@@ -2319,24 +2335,11 @@ nsXULPrototypeScript::Compile(JS::SourceBufferHolder& aSrcBuf,
         NotifyOffThreadScriptCompletedRunnable::NoteReceiver(aOffThreadReceiver);
     } else {
         JS::Rooted<JSScript*> script(cx);
-        if (!JS::Compile(cx, options, aSrcBuf, &script))
+        if (!JS::Compile(cx, options, srcBuf, &script))
             return NS_ERROR_OUT_OF_MEMORY;
         Set(script);
     }
     return NS_OK;
-}
-
-nsresult
-nsXULPrototypeScript::Compile(const char16_t* aText,
-                              int32_t aTextLength,
-                              nsIURI* aURI,
-                              uint32_t aLineNo,
-                              nsIDocument* aDocument,
-                              nsIOffThreadScriptReceiver *aOffThreadReceiver /* = nullptr */)
-{
-  JS::SourceBufferHolder srcBuf(aText, aTextLength,
-                                JS::SourceBufferHolder::NoOwnership);
-  return Compile(srcBuf, aURI, aLineNo, aDocument, aOffThreadReceiver);
 }
 
 void

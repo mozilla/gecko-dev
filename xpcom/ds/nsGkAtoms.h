@@ -47,7 +47,7 @@
 //
 //   GK_ATOM(a, "a", 0x01234567, nsStaticAtom, Atom)
 //   GK_ATOM(bb, "bb", 0x12345678, nsCSSPseudoElementStaticAtom, PseudoElementAtom)
-//   GK_ATOM(ccc, "ccc", 0x23456789, nsCSSAnonBoxPseudoStaticAtom, InheritingAnonBoxAtom)
+//   GK_ATOM(Ccc, "Ccc", 0x23456789, nsCSSAnonBoxPseudoStaticAtom, InheritingAnonBoxAtom)
 //
 // Comments throughout this file and nsGkAtoms.cpp show how these entries get
 // expanded by macros.
@@ -58,8 +58,9 @@
   class name_ : public nsStaticAtom                                            \
   {                                                                            \
   public:                                                                      \
-    constexpr name_(uint32_t aLength, uint32_t aHash, uint32_t aOffset)        \
-      : nsStaticAtom(aLength, aHash, aOffset) {}                               \
+    constexpr name_(uint32_t aLength, uint32_t aHash, uint32_t aOffset,        \
+                    bool aIsAsciiLowercase)                                    \
+      : nsStaticAtom(aLength, aHash, aOffset, aIsAsciiLowercase) {}            \
   };
 
 DEFINE_STATIC_ATOM_SUBCLASS(nsCSSAnonBoxPseudoStaticAtom)
@@ -84,9 +85,9 @@ struct GkAtoms
   //
   //   const char16_t a_string[sizeof("a")];
   //   const char16_t bb_string[sizeof("bb")];
-  //   const char16_t ccc_string[sizeof("ccc")];
+  //   const char16_t Ccc_string[sizeof("Ccc")];
   //
-  #define GK_ATOM(name_, value_, hash_, type_, atom_type_) \
+  #define GK_ATOM(name_, value_, hash_, is_ascii_lower_, type_, atom_type_) \
     const char16_t name_##_string[sizeof(value_)];
   #include "nsGkAtomList.h"
   #undef GK_ATOM
@@ -97,9 +98,9 @@ struct GkAtoms
     //
     //   a,
     //   bb,
-    //   ccc,
+    //   Ccc,
     //
-    #define GK_ATOM(name_, value_, hash_, type_, atom_type_) \
+    #define GK_ATOM(name_, value_, hash_, is_ascii_lower_, type_, atom_type_) \
       name_,
     #include "nsGkAtomList.h"
     #undef GK_ATOM
@@ -161,12 +162,12 @@ public:
   //       &mozilla::detail::gGkAtoms.mAtoms[
   //         static_cast<size_t>(mozilla::detail::GkAtoms::Atoms::bb)]);
   //
-  //   static constexpr nsStaticAtom* ccc =
+  //   static constexpr nsStaticAtom* Ccc =
   //     const_cast<nsStaticAtom*>(
   //       &mozilla::detail::gGkAtoms.mAtoms[
-  //         static_cast<size_t>(mozilla::detail::GkAtoms::Atoms::ccc)]);
+  //         static_cast<size_t>(mozilla::detail::GkAtoms::Atoms::Ccc)]);
   //
-  #define GK_ATOM(name_, value_, hash_, type_, atom_type_)                    \
+  #define GK_ATOM(name_, value_, hash_, is_ascii_lower_, type_, atom_type_)   \
     static constexpr nsStaticAtom* name_ =                                    \
       const_cast<nsStaticAtom*>(                                              \
         &mozilla::detail::gGkAtoms.mAtoms[                                    \

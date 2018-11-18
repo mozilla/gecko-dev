@@ -896,7 +896,9 @@ InitJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSContext* aWorkerCx)
   // store a raw pointer as the callback's closure argument on the JSRuntime.
   JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoop, (void*)aWorkerPrivate);
 
-  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStream);
+  JS::InitConsumeStreamCallback(aWorkerCx,
+                                ConsumeStream,
+                                FetchUtil::ReportJSStreamError);
 
   if (!JS::InitSelfHostedCode(aWorkerCx)) {
     NS_WARNING("Could not init self-hosted code!");
@@ -1648,6 +1650,7 @@ RuntimeService::ScheduleWorker(WorkerPrivate* aWorkerPrivate)
     NS_WARNING("Could not set the thread's priority!");
   }
 
+  aWorkerPrivate->SetThread(thread);
   JSContext* cx = CycleCollectedJSContext::Get()->Context();
   nsCOMPtr<nsIRunnable> runnable =
     new WorkerThreadPrimaryRunnable(aWorkerPrivate, thread,
@@ -2716,20 +2719,20 @@ WorkerThreadPrimaryRunnable::Run()
       MOZ_ASSERT(aWorkerPrivate);
       MOZ_ASSERT(aThread);
 
-      mWorkerPrivate->SetThread(aThread);
+      mWorkerPrivate->SetWorkerPrivateInWorkerThread(aThread);
     }
 
     ~SetThreadHelper()
     {
       if (mWorkerPrivate) {
-        mWorkerPrivate->SetThread(nullptr);
+        mWorkerPrivate->ResetWorkerPrivateInWorkerThread();
       }
     }
 
     void Nullify()
     {
       MOZ_ASSERT(mWorkerPrivate);
-      mWorkerPrivate->SetThread(nullptr);
+      mWorkerPrivate->ResetWorkerPrivateInWorkerThread();
       mWorkerPrivate = nullptr;
     }
   };

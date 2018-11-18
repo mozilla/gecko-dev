@@ -634,6 +634,11 @@ BrowserGlue.prototype = {
     const MAX_DELAY = 300;
     let delay = 3;
     for (let win of Services.wm.getEnumerator("navigator:browser")) {
+      // browser windows without a gBrowser almost certainly means we are
+      // shutting down, so instead of just ignoring that window we abort.
+      if (win.closed || !win.gBrowser) {
+        return;
+      }
       delay += win.gBrowser.tabs.length;
     }
     delay = delay <= MAX_DELAY ? delay : MAX_DELAY;
@@ -1443,7 +1448,7 @@ BrowserGlue.prototype = {
   _monitorScreenshotsPref() {
     const PREF = "extensions.screenshots.disabled";
     const ID = "screenshots@mozilla.org";
-    Services.prefs.addObserver(PREF, async () => {
+    const _checkScreenshotsPref = async () => {
       let addon = await AddonManager.getAddonByID(ID);
       let disabled = Services.prefs.getBoolPref(PREF, false);
       if (disabled) {
@@ -1451,7 +1456,9 @@ BrowserGlue.prototype = {
       } else {
         await addon.enable({allowSystemAddons: true});
       }
-    });
+    };
+    Services.prefs.addObserver(PREF, _checkScreenshotsPref);
+    _checkScreenshotsPref();
   },
 
   _monitorWebcompatReporterPref() {

@@ -632,7 +632,6 @@ class GCRuntime
     IncrementalProgress endMarkingSweepGroup(FreeOp* fop, SliceBudget& budget);
     void markIncomingCrossCompartmentPointers(MarkColor color);
     IncrementalProgress beginSweepingSweepGroup(FreeOp* fop, SliceBudget& budget);
-    bool shouldReleaseObservedTypes();
     void sweepDebuggerOnMainThread(FreeOp* fop);
     void sweepJitDataOnMainThread(FreeOp* fop);
     IncrementalProgress endSweepingSweepGroup(FreeOp* fop, SliceBudget& budget);
@@ -816,9 +815,6 @@ class GCRuntime
     /* Incremented at the start of every major GC. */
     MainThreadData<uint64_t> majorGCNumber;
 
-    /* The major GC number at which to release observed type information. */
-    MainThreadData<uint64_t> jitReleaseNumber;
-
     /* Incremented on every GC slice. */
     MainThreadData<uint64_t> number;
 
@@ -859,9 +855,6 @@ class GCRuntime
 
     /* Whether any sweeping will take place in the separate GC helper thread. */
     MainThreadData<bool> sweepOnBackgroundThread;
-
-    /* Whether observed type information is being released in the current GC. */
-    MainThreadData<bool> releaseObservedTypes;
 
     /* Singly linked list of zones to be swept in the background. */
     HelperThreadLockData<ZoneList> backgroundSweepZones;

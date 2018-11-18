@@ -4,16 +4,16 @@
 
 //! Specified types for UI properties.
 
+use crate::parser::{Parse, ParserContext};
+use crate::values::generics::ui as generics;
+use crate::values::specified::color::Color;
+use crate::values::specified::url::SpecifiedImageUrl;
+use crate::values::specified::Number;
+use crate::values::{Auto, Either};
 use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::cursor::CursorKind;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::generics::ui as generics;
-use values::specified::color::Color;
-use values::specified::url::SpecifiedImageUrl;
-use values::specified::Number;
-use values::{Auto, Either};
 
 /// auto | <color>
 pub type ColorOrAuto = Either<Color, Auto>;
@@ -139,4 +139,44 @@ impl Parse for ScrollbarColor {
             track: Color::parse(context, input)?,
         })
     }
+}
+
+fn in_ua_sheet(context: &ParserContext) -> bool {
+    use crate::stylesheets::Origin;
+    context.stylesheet_origin == Origin::UserAgent
+}
+
+/// The specified value for the `user-select` property.
+///
+/// https://drafts.csswg.org/css-ui-4/#propdef-user-select
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
+#[repr(u8)]
+pub enum UserSelect {
+    Auto,
+    Text,
+    #[parse(aliases = "-moz-none")]
+    None,
+    /// Force selection of all children, unless an ancestor has `none` set.
+    All,
+    /// Like `text`, except that it won't get overridden by ancestors having
+    /// `all`.
+    ///
+    /// FIXME(emilio): This only has one use in contenteditable.css, can we find
+    /// a better way to do this?
+    ///
+    /// See bug 1181130.
+    #[parse(condition = "in_ua_sheet")]
+    MozText,
 }

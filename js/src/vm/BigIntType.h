@@ -21,12 +21,16 @@
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "vm/StringType.h"
+#include "vm/Xdr.h"
 
 namespace js {
 
 template <typename CharT>
 static bool StringToBigIntImpl(const mozilla::Range<const CharT>& chars,
                                uint8_t radix, Handle<JS::BigInt*> res);
+
+template<XDRMode mode>
+XDRResult XDRBigInt(XDRState<mode>* xdr, MutableHandleBigInt bi);
 
 } // namespace js
 
@@ -38,6 +42,8 @@ class BigInt final : public js::gc::TenuredCell
     template <typename CharT>
     friend bool js::StringToBigIntImpl(const mozilla::Range<const CharT>& chars,
                                        uint8_t radix, Handle<BigInt*> res);
+    template <js::XDRMode mode>
+    friend js::XDRResult js::XDRBigInt(js::XDRState<mode>* xdr, MutableHandleBigInt bi);
 
   protected:
     // Reserved word for Cell GC invariants. This also ensures minimum
@@ -60,6 +66,9 @@ class BigInt final : public js::gc::TenuredCell
 
     // Read a BigInt value from a little-endian byte array.
     static BigInt* createFromBytes(JSContext* cx, int sign, void* bytes, size_t nbytes);
+
+    static BigInt* createFromInt64(JSContext* cx, int64_t n);
+    static BigInt* createFromUint64(JSContext* cx, uint64_t n);
 
     static const JS::TraceKind TraceKind = JS::TraceKind::BigInt;
 
@@ -90,6 +99,12 @@ class BigInt final : public js::gc::TenuredCell
     static BigInt* bitXor(JSContext* cx, Handle<BigInt*> x, Handle<BigInt*> y);
     static BigInt* bitOr(JSContext* cx, Handle<BigInt*> x, Handle<BigInt*> y);
     static BigInt* bitNot(JSContext* cx, Handle<BigInt*> x);
+
+    static int64_t toInt64(BigInt* x);
+    static uint64_t toUint64(BigInt* x);
+
+    static BigInt* asIntN(JSContext* cx, HandleBigInt x, uint64_t bits);
+    static BigInt* asUintN(JSContext* cx, HandleBigInt x, uint64_t bits);
 
     // Type-checking versions of arithmetic operations. These methods
     // must be called with at least one BigInt operand. Binary
@@ -151,6 +166,10 @@ NumberToBigInt(JSContext* cx, double d);
 // Convert a string to a BigInt, returning nullptr if parsing fails.
 extern JS::Result<JS::BigInt*, JS::OOM&>
 StringToBigInt(JSContext* cx, JS::Handle<JSString*> str, uint8_t radix);
+
+// Same.
+extern JS::BigInt*
+StringToBigInt(JSContext* cx, const mozilla::Range<const char16_t>& chars);
 
 extern JS::BigInt*
 ToBigInt(JSContext* cx, JS::Handle<JS::Value> v);

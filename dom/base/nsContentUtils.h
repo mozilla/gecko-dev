@@ -177,6 +177,7 @@ enum EventNameType {
   EventNameType_SVGSVG = 0x0008, // the svg element
   EventNameType_SMIL = 0x0010, // smil elements
   EventNameType_HTMLBodyOrFramesetOnly = 0x0020,
+  EventNameType_HTMLMarqueeOnly = 0x0040,
 
   EventNameType_HTMLXUL = 0x0003,
   EventNameType_All = 0xFFFF
@@ -1210,6 +1211,12 @@ public:
                                             size_t* aMaxBufferSize,
                                             size_t* aUsedBufferSize);
 
+  // Returns true if the URI's host is contained in a pref list which is a comma
+  // separated domain list.  Each item may start with "*.".  If starts with
+  // "*.", it matches any sub-domains.
+  static bool
+  IsURIInPrefList(nsIURI* aURI, const char* aPrefName);
+
 private:
   /**
    * Fill (with the parameters given) the localized string named |aKey| in
@@ -2059,6 +2066,25 @@ public:
   static JSContext *GetCurrentJSContext();
 
   /**
+   * Case insensitive comparison between two atoms.
+   */
+  static bool EqualsIgnoreASCIICase(nsAtom* aAtom1, nsAtom* aAtom2)
+  {
+    if (aAtom1 == aAtom2) {
+      return true;
+    }
+
+    // If both are ascii lowercase already, we know that the slow comparison
+    // below is going to return false.
+    if (aAtom1->IsAsciiLowercase() && aAtom2->IsAsciiLowercase()) {
+      return false;
+    }
+
+    return EqualsIgnoreASCIICase(nsDependentAtomString(aAtom1),
+                                 nsDependentAtomString(aAtom2));
+  }
+
+  /**
    * Case insensitive comparison between two strings. However it only ignores
    * case for ASCII characters a-z.
    */
@@ -2744,10 +2770,27 @@ public:
   static bool IsForbiddenSystemRequestHeader(const nsACString& aHeader);
 
   /**
+   * Returns whether a given header has characters that aren't permitted
+   */
+  static bool IsCorsUnsafeRequestHeaderValue(const nsACString& aHeaderValue);
+
+  /**
+   * Returns whether a given Accept header value is allowed
+   * for a non-CORS XHR or fetch request.
+   */
+  static bool IsAllowedNonCorsAccept(const nsACString& aHeaderValue);
+
+  /**
    * Returns whether a given Content-Type header value is allowed
    * for a non-CORS XHR or fetch request.
    */
   static bool IsAllowedNonCorsContentType(const nsACString& aHeaderValue);
+
+  /**
+   * Returns whether a given Content-Language or accept-language header value is allowed
+   * for a non-CORS XHR or fetch request.
+   */
+  static bool IsAllowedNonCorsLanguage(const nsACString& aHeaderValue);
 
   /**
    * Returns whether a given header is forbidden for an XHR or fetch
@@ -2947,6 +2990,9 @@ public:
   // of permissions. Private Browsing is considered to be more limiting
   // then session scoping
   enum class StorageAccess {
+    // The storage should be partitioned. if the caller is unable to do it, deny
+    // the storage access.
+    ePartitionedOrDeny = -1,
     // Don't allow access to the storage
     eDeny = 0,
     // Allow access to the storage, but only if it is secure to do so in a
@@ -3193,10 +3239,7 @@ public:
    * It is really enabled only if Shadow DOM is also enabled.
    */
   static bool
-  IsUAWidgetEnabled() { return sIsShadowDOMEnabled && sIsUAWidgetEnabled; }
-
-  static bool
-  IsShadowDOMEnabled() { return sIsShadowDOMEnabled; }
+  IsUAWidgetEnabled() { return sIsUAWidgetEnabled; }
 
   /**
    * Returns true if reserved key events should be prevented from being sent
@@ -3242,9 +3285,6 @@ public:
    */
   static bool
   IsLocalRefURL(const nsString& aString);
-
-  static bool
-  IsCustomElementsEnabled() { return sIsCustomElementsEnabled; }
 
   /**
    * Compose a tab id with process id and a serial number.
@@ -3509,7 +3549,6 @@ private:
   static bool sIsFrameTimingPrefEnabled;
   static bool sIsFormAutofillAutocompleteEnabled;
   static bool sIsUAWidgetEnabled;
-  static bool sIsShadowDOMEnabled;
   static bool sIsCustomElementsEnabled;
   static bool sSendPerformanceTimingNotifications;
   static bool sUseActivityCursor;

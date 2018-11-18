@@ -146,7 +146,7 @@ impl WrenchThing for CapturedDocument {
 }
 
 pub struct Wrench {
-    window_size: DeviceUintSize,
+    window_size: DeviceIntSize,
     pub device_pixel_ratio: f32,
     page_zoom_factor: ZoomFactor,
 
@@ -174,7 +174,7 @@ impl Wrench {
         shader_override_path: Option<PathBuf>,
         dp_ratio: f32,
         save_type: Option<SaveType>,
-        size: DeviceUintSize,
+        size: DeviceIntSize,
         do_rebuild: bool,
         no_subpixel_aa: bool,
         verbose: bool,
@@ -491,7 +491,7 @@ impl Wrench {
         self.api.update_resources(txn.resource_updates);
     }
 
-    pub fn update(&mut self, dim: DeviceUintSize) {
+    pub fn update(&mut self, dim: DeviceIntSize) {
         if dim != self.window_size {
             self.window_size = dim;
         }
@@ -575,7 +575,7 @@ impl Wrench {
             let x = self.device_pixel_ratio * (15.0 + co.1);
             let mut y = self.device_pixel_ratio * (15.0 + co.1 + dr.line_height());
             for ref line in &help_lines {
-                dr.add_text(x, y, line, co.0.into());
+                dr.add_text(x, y, line, co.0.into(), None);
                 y += self.device_pixel_ratio * dr.line_height();
             }
         }

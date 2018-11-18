@@ -15,6 +15,7 @@
 #include "mozilla/Range.h"
 #include "mozilla/RangedPtr.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Utf8.h"
 #include "mozilla/Variant.h"
 
 #include <stdarg.h>
@@ -51,7 +52,8 @@
 
 namespace JS {
 
-class SourceBufferHolder;
+template<typename UnitT> class SourceText;
+
 class TwoByteChars;
 
 /** AutoValueArray roots an internal fixed-size array of Values. */
@@ -413,6 +415,43 @@ JS_IsBuiltinFunctionConstructor(JSFunction* fun);
 
 /************************************************************************/
 
+// [SMDOC] Data Structures (JSContext, JSRuntime, Realm, Compartment, Zone)
+//
+// SpiderMonkey uses some data structures that behave a lot like Russian dolls:
+// runtimes contain zones, zones contain compartments, compartments contain
+// realms. Each layer has its own purpose.
+//
+// Realm
+// -----
+// Data associated with a global object. In the browser each frame has its
+// own global/realm.
+//
+// Compartment
+// -----------
+// Security membrane; when an object from compartment A is used in compartment
+// B, a cross-compartment wrapper (a kind of proxy) is used. In the browser each
+// compartment currently contains one global/realm, but we want to change that
+// so each compartment contains multiple same-origin realms (bug 1357862).
+//
+// Zone
+// ----
+// A Zone is a group of compartments that share GC resources (arenas, strings,
+// etc) for memory usage and performance reasons. Zone is the GC unit: the GC
+// can operate on one or more zones at a time. The browser uses roughly one zone
+// per tab.
+//
+// Context
+// -------
+// JSContext represents a thread: there must be exactly one JSContext for each
+// thread running JS/Wasm. Internally, helper threads have their own JSContext.
+//
+// Runtime
+// -------
+// JSRuntime is very similar to JSContext: each runtime belongs to one context
+// (thread), but helper threads don't have their own runtimes (they're shared by
+// all runtimes in the process and use the runtime of the task they're
+// executing).
+
 /*
  * Locking, contexts, and memory allocation.
  *
@@ -422,8 +461,7 @@ JS_IsBuiltinFunctionConstructor(JSFunction* fun);
  * See: https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/JSAPI_reference
  */
 
-// Create a new runtime, with a single cooperative context for this thread.
-// On success, the new context will be the active context for the runtime.
+// Create a new context (and runtime) for this thread.
 extern JS_PUBLIC_API(JSContext*)
 JS_NewContext(uint32_t maxbytes,
               uint32_t maxNurseryBytes = JS::DefaultNurseryBytes,
@@ -1501,6 +1539,9 @@ class JS_PUBLIC_API(RealmCreationOptions)
         cloneSingletons_(false),
         sharedMemoryAndAtomics_(false),
         streams_(false),
+#ifdef ENABLE_BIGINT
+        bigint_(false),
+#endif
         secureContext_(false),
         clampAndJitterTime_(true)
     {}
@@ -1572,6 +1613,14 @@ class JS_PUBLIC_API(RealmCreationOptions)
         return *this;
     }
 
+#ifdef ENABLE_BIGINT
+    bool getBigIntEnabled() const { return bigint_; }
+    RealmCreationOptions& setBigIntEnabled(bool flag) {
+        bigint_ = flag;
+        return *this;
+    }
+#endif
+
     // This flag doesn't affect JS engine behavior.  It is used by Gecko to
     // mark whether content windows and workers are "Secure Context"s. See
     // https://w3c.github.io/webappsec-secure-contexts/
@@ -1601,6 +1650,9 @@ class JS_PUBLIC_API(RealmCreationOptions)
     bool cloneSingletons_;
     bool sharedMemoryAndAtomics_;
     bool streams_;
+#ifdef ENABLE_BIGINT
+    bool bigint_;
+#endif
     bool secureContext_;
     bool clampAndJitterTime_;
 };
@@ -1782,6 +1834,21 @@ JS_NewGlobalObject(JSContext* cx, const JSClass* clasp, JSPrincipals* principals
  */
 extern JS_PUBLIC_API(void)
 JS_GlobalObjectTraceHook(JSTracer* trc, JSObject* global);
+
+namespace JS {
+
+/**
+ * This allows easily constructing a global object without having to deal with
+ * JSClassOps, forgetting to add JS_GlobalObjectTraceHook, or forgetting to call
+ * JS::InitRealmStandardClasses(). Example:
+ *
+ *     const JSClass globalClass = { "MyGlobal", JSCLASS_GLOBAL_FLAGS,
+ *         &JS::DefaultGlobalClassOps };
+ *     JS_NewGlobalObject(cx, &globalClass, ...);
+ */
+extern JS_PUBLIC_DATA(const JSClassOps) DefaultGlobalClassOps;
+
+} // namespace JS
 
 extern JS_PUBLIC_API(void)
 JS_FireOnNewGlobalObject(JSContext* cx, JS::HandleObject global);
@@ -3075,7 +3142,7 @@ FinishDynamicModuleImport(JSContext* cx, HandleValue referencingPrivate, HandleS
  */
 extern JS_PUBLIC_API(bool)
 CompileModule(JSContext* cx, const ReadOnlyCompileOptions& options,
-              SourceBufferHolder& srcBuf, JS::MutableHandleObject moduleRecord);
+              SourceText<char16_t>& srcBuf, JS::MutableHandleObject moduleRecord);
 
 /**
  * Set a private value associated with a source text module record.
@@ -3343,6 +3410,14 @@ extern JS_PUBLIC_API(JS::Value)
 GetPromiseResult(JS::HandleObject promise);
 
 /**
+ * Returns whether the given promise's rejection is already handled or not.
+ *
+ * The caller must check the given promise is rejected before checking it's handled or not.
+ */
+extern JS_PUBLIC_API(bool)
+GetPromiseIsHandled(JS::HandleObject promise);
+
+/**
  * Returns a js::SavedFrame linked list of the stack that lead to the given
  * Promise's allocation.
  */
@@ -3527,13 +3602,14 @@ typedef js::Vector<char, 0, js::SystemAllocPolicy> BuildIdCharVector;
  * appropriate error on 'cx'. On success, the embedding must call
  * consumer->consumeChunk() repeatedly on any thread until exactly one of:
  *  - consumeChunk() returns false
- *  - the embedding calls consumer->streamClosed()
+ *  - the embedding calls consumer->streamEnd()
+ *  - the embedding calls consumer->streamError()
  * before JS_DestroyContext(cx) or JS::ShutdownAsyncTasks(cx) is called.
  *
- * Note: consumeChunk() and streamClosed() may be called synchronously by
- * ConsumeStreamCallback.
+ * Note: consumeChunk(), streamEnd() and streamError() may be called
+ * synchronously by ConsumeStreamCallback.
  *
- * When streamClosed() is called, the embedding may optionally pass an
+ * When streamEnd() is called, the embedding may optionally pass an
  * OptimizedEncodingListener*, indicating that there is a cache entry associated
  * with this stream that can store an optimized encoding of the bytes that were
  * just streamed at some point in the future by having SpiderMonkey call
@@ -3541,7 +3617,7 @@ typedef js::Vector<char, 0, js::SystemAllocPolicy> BuildIdCharVector;
  * will hold an outstanding refcount to keep the listener alive.
  *
  * After storeOptimizedEncoding() is called, on cache hit, the embedding
- * may call consumeOptimizedEncoding() instead of consumeChunk()/streamClosed().
+ * may call consumeOptimizedEncoding() instead of consumeChunk()/streamEnd().
  * The embedding must ensure that the GetOptimizedEncodingBuildId() at the time
  * when an optimized encoding is created is the same as when it is later
  * consumed.
@@ -3579,19 +3655,22 @@ class JS_PUBLIC_API(StreamConsumer)
     // this StreamConsumer.
     virtual bool consumeChunk(const uint8_t* begin, size_t length) = 0;
 
-    // Called by the embedding when the stream is closed according to the
-    // contract described above.
-    enum CloseReason { EndOfFile, Error };
-    virtual void streamClosed(CloseReason reason,
-                              OptimizedEncodingListener* listener = nullptr) = 0;
+    // Called by the embedding when the stream reaches end-of-file, passing the
+    // listener described above.
+    virtual void streamEnd(OptimizedEncodingListener* listener = nullptr) = 0;
 
-    // Called by the embedding *instead of* consumeChunk()/streamClosed() if an
+    // Called by the embedding when there is an error during streaming. The
+    // given error code should be passed to the ReportStreamErrorCallback on the
+    // main thread to produce the semantically-correct rejection value.
+    virtual void streamError(size_t errorCode) = 0;
+
+    // Called by the embedding *instead of* consumeChunk()/streamEnd() if an
     // optimized encoding is available from a previous streaming of the same
     // contents with the same optimized build id.
     virtual void consumeOptimizedEncoding(const uint8_t* begin, size_t length) = 0;
 
     // Provides optional stream attributes such as base or source mapping URLs.
-    // Necessarily called before consumeChunk(), streamClosed() or
+    // Necessarily called before consumeChunk(), streamEnd(), streamError() or
     // consumeOptimizedEncoding(). The caller retains ownership of the strings.
     virtual void noteResponseURLs(const char* maybeUrl, const char* maybeSourceMapUrl) = 0;
 };
@@ -3602,8 +3681,13 @@ typedef bool
 (*ConsumeStreamCallback)(JSContext* cx, JS::HandleObject obj, MimeType mimeType,
                          StreamConsumer* consumer);
 
+typedef void
+(*ReportStreamErrorCallback)(JSContext* cx, size_t errorCode);
+
 extern JS_PUBLIC_API(void)
-InitConsumeStreamCallback(JSContext* cx, ConsumeStreamCallback callback);
+InitConsumeStreamCallback(JSContext* cx,
+                          ConsumeStreamCallback consume,
+                          ReportStreamErrorCallback report);
 
 /**
  * When a JSRuntime is destroyed it implicitly cancels all async tasks in

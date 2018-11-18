@@ -106,7 +106,6 @@
  * doesn't reverse the order of the items in the titlebar in RTL mode. */
 .titlebar-buttonbox {
   margin-left: 12px;
-  margin-top: calc(-1 * var(--space-above-tabbar));
 }
 
 /* The fullscreen button doesnt show on Yosemite(10.10) or above so dont give it a
@@ -625,7 +624,7 @@ html|input.urlbar-input {
   box-shadow: var(--focus-ring-box-shadow);
 }
 
-#TabsToolbar {
+#TabsToolbar > .toolbar-items {
   padding-top: var(--space-above-tabbar);
 }
 
@@ -936,22 +935,6 @@ html|*.addon-webext-perm-list {
 %include ../shared/customizableui/customizeMode.inc.css
 
 /* End customization mode */
-
-/* Private browsing and accessibility indicators */
-
-:root[accessibilitymode][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #titlebar > #TabsToolbar > .accessibility-indicator,
-:root[privatebrowsingmode=temporary][tabsintitlebar]:not([inFullscreen]) > #navigator-toolbox > #titlebar > #TabsToolbar > .private-browsing-indicator,
-:root[accessibilitymode]:not([tabsintitlebar]) > #navigator-toolbox > #titlebar > #TabsToolbar > #titlebar-secondary-buttonbox > .accessibility-indicator,
-:root[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #navigator-toolbox > #titlebar > #TabsToolbar > #titlebar-secondary-buttonbox > .private-browsing-indicator {
-  display: none;
-}
-
-#TabsToolbar > .private-browsing-indicator:-moz-locale-dir(rtl),
-#TabsToolbar > .accessibility-indicator:-moz-locale-dir(rtl) {
-  -moz-box-ordinal-group: 0;
-}
-
-/* End private browsing and accessibility indicators */
 
 %include ../shared/UITour.inc.css
 

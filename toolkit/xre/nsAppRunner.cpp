@@ -8,6 +8,7 @@
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FilePreferences.h"
 #include "mozilla/ChaosMode.h"
@@ -785,9 +786,10 @@ SYNC_ENUMS(GMPLUGIN, GMPlugin)
 SYNC_ENUMS(GPU, GPU)
 SYNC_ENUMS(PDFIUM, PDFium)
 SYNC_ENUMS(VR, VR)
+SYNC_ENUMS(RDD, RDD)
 
 // .. and ensure that that is all of them:
-static_assert(GeckoProcessType_VR + 1 == GeckoProcessType_End,
+static_assert(GeckoProcessType_RDD + 1 == GeckoProcessType_End,
               "Did not find the final GeckoProcessType");
 
 NS_IMETHODIMP
@@ -1711,8 +1713,6 @@ StartRemoteClient(const char* aDesktopStartupID,
     client = new XRemoteClient();
   }
 
-  // There are people who build Wayland without DBus...well
-  // don't judge others for personal taste.
   nsresult rv = client ? client->Init() : NS_ERROR_FAILURE;
   if (NS_FAILED(rv))
     return REMOTE_NOT_FOUND;
@@ -4036,7 +4036,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
             SaveWordToEnv("DISPLAY", nsDependentCString(display_name));
         }
 #ifdef MOZ_WAYLAND
-        else if (GDK_IS_WAYLAND_DISPLAY(mGdkDisplay)) {
+        else if (!GDK_IS_X11_DISPLAY(mGdkDisplay)) {
             SaveWordToEnv("WAYLAND_DISPLAY", nsDependentCString(display_name));
         }
 #endif
@@ -5130,6 +5130,12 @@ XRE_IsGPUProcess()
 }
 
 bool
+XRE_IsRDDProcess()
+{
+  return XRE_GetProcessType() == GeckoProcessType_RDD;
+}
+
+bool
 XRE_IsVRProcess()
 {
   return XRE_GetProcessType() == GeckoProcessType_VR;
@@ -5166,6 +5172,11 @@ XRE_IsPluginProcess()
 bool
 XRE_UseNativeEventProcessing()
 {
+#ifdef XP_MACOSX
+  if (XRE_IsRDDProcess()) {
+    return false;
+  }
+#endif
   if (XRE_IsContentProcess()) {
     static bool sInited = false;
     static bool sUseNativeEventProcessing = false;
@@ -5332,6 +5343,23 @@ extern "C" void
 GeckoHandleOOM(size_t size) {
   mozalloc_handle_oom(size);
 }
+
+// Similarly, this wraps MOZ_CrashOOL
+extern "C" void
+GeckoCrashOOL(const char* aFilename, int aLine, const char* aReason) {
+  MOZ_CrashOOL(aFilename, aLine, aReason);
+}
+
+// From toolkit/library/rust/shared/lib.rs
+extern "C" void install_rust_panic_hook();
+
+struct InstallRustPanicHook {
+  InstallRustPanicHook() {
+    install_rust_panic_hook();
+  }
+};
+
+InstallRustPanicHook sInstallRustPanicHook;
 
 #ifdef MOZ_ASAN_REPORTER
 void setASanReporterPath(nsIFile* aDir) {

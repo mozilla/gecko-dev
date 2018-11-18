@@ -376,8 +376,9 @@ class GeckoInstance(object):
 
 class FennecInstance(GeckoInstance):
     fennec_prefs = {
-        # Enable output of dump()
+        # Enable output for dump() and chrome console API
         "browser.dom.window.dump.enabled": True,
+        "devtools.console.stdout.chrome": True,
 
         # Disable Android snippets
         "browser.snippets.enabled": False,
@@ -504,8 +505,9 @@ class DesktopInstance(GeckoInstance):
         # We use a larger number than the default 22 to have some buffer
         "browser.contentblocking.introCount": 99,
 
-        # Enable output of dump()
+        # Enable output for dump() and chrome console API
         "browser.dom.window.dump.enabled": True,
+        "devtools.console.stdout.chrome": True,
 
         # Indicate that the download panel has been shown once so that whichever
         # download test runs first doesn"t show the popup inconsistently
@@ -513,6 +515,9 @@ class DesktopInstance(GeckoInstance):
 
         # Do not show the EULA notification which can interfer with tests
         "browser.EULA.override": True,
+
+        # Always display a blank page
+        "browser.newtabpage.enabled": False,
 
         # Background thumbnails in particular cause grief, and disabling thumbnails
         # in general can"t hurt - we re-enable them when tests need them

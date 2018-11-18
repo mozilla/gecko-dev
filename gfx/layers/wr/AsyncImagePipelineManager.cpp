@@ -20,12 +20,27 @@
 namespace mozilla {
 namespace layers {
 
+AsyncImagePipelineManager::ForwardingExternalImage::~ForwardingExternalImage()
+{
+  DebugOnly<bool> released =
+    SharedSurfacesParent::Release(mImageId);
+    MOZ_ASSERT(released);
+}
+
 AsyncImagePipelineManager::AsyncImagePipeline::AsyncImagePipeline()
  : mInitialised(false)
  , mIsChanged(false)
  , mUseExternalImage(false)
  , mFilter(wr::ImageRendering::Auto)
  , mMixBlendMode(wr::MixBlendMode::Normal)
+{}
+
+AsyncImagePipelineManager::PipelineUpdates::PipelineUpdates(RefPtr<wr::WebRenderPipelineInfo> aPipelineInfo,
+                                                            const uint64_t aUpdatesCount,
+                                                            const bool aRendered)
+  : mPipelineInfo(aPipelineInfo)
+  , mUpdatesCount(aUpdatesCount)
+  , mRendered(aRendered)
 {}
 
 AsyncImagePipelineManager::AsyncImagePipelineManager(already_AddRefed<wr::WebRenderAPI>&& aApi)
@@ -52,6 +67,7 @@ AsyncImagePipelineManager::Destroy()
 {
   MOZ_ASSERT(!mDestroyed);
   mApi = nullptr;
+  mPipelineTexturesHolders.Clear();
   mDestroyed = true;
 }
 
@@ -85,7 +101,7 @@ AsyncImagePipelineManager::GetNextExternalImageId()
 }
 
 void
-AsyncImagePipelineManager::AddPipeline(const wr::PipelineId& aPipelineId)
+AsyncImagePipelineManager::AddPipeline(const wr::PipelineId& aPipelineId, WebRenderBridgeParent* aWrBridge)
 {
   if (mDestroyed) {
     return;
@@ -98,9 +114,11 @@ AsyncImagePipelineManager::AddPipeline(const wr::PipelineId& aPipelineId)
     // Previously removed holder could be still alive for waiting destroyed.
     MOZ_ASSERT(holder->mDestroyedEpoch.isSome());
     holder->mDestroyedEpoch = Nothing(); // Revive holder
+    holder->mWrBridge = aWrBridge;
     return;
   }
   holder = new PipelineTexturesHolder();
+  holder->mWrBridge = aWrBridge;
   mPipelineTexturesHolders.Put(id, holder);
 }
 
@@ -116,7 +134,27 @@ AsyncImagePipelineManager::RemovePipeline(const wr::PipelineId& aPipelineId, con
   if (!holder) {
     return;
   }
+  holder->mWrBridge = nullptr;
   holder->mDestroyedEpoch = Some(aEpoch);
+}
+
+WebRenderBridgeParent*
+AsyncImagePipelineManager::GetWrBridge(const wr::PipelineId& aPipelineId)
+{
+  if (mDestroyed) {
+    return nullptr;
+  }
+
+  PipelineTexturesHolder* holder = mPipelineTexturesHolders.Get(wr::AsUint64(aPipelineId));
+  if (!holder) {
+    return nullptr;
+  }
+  if (holder->mWrBridge) {
+    MOZ_ASSERT(holder->mDestroyedEpoch.isNothing());
+    return holder->mWrBridge;
+  }
+
+  return nullptr;
 }
 
 void
@@ -540,11 +578,12 @@ AsyncImagePipelineManager::HoldExternalImage(const wr::PipelineId& aPipelineId, 
     return;
   }
 
-  holder->mExternalImages.push(ForwardingExternalImage(aEpoch, aImageId));
+  auto image = MakeUnique<ForwardingExternalImage>(aEpoch, aImageId);
+  holder->mExternalImages.push(std::move(image));
 }
 
 void
-AsyncImagePipelineManager::NotifyPipelinesUpdated(wr::WrPipelineInfo aInfo, bool aRender)
+AsyncImagePipelineManager::NotifyPipelinesUpdated(RefPtr<wr::WebRenderPipelineInfo> aInfo, bool aRender)
 {
   // This is called on the render thread, so we just stash the data into
   // UpdatesQueue and process it later on the compositor thread.
@@ -552,18 +591,7 @@ AsyncImagePipelineManager::NotifyPipelinesUpdated(wr::WrPipelineInfo aInfo, bool
 
   // Increment the count when render happens.
   uint64_t currCount = aRender ? ++mUpdatesCount : mUpdatesCount;
-  auto updates = MakeUnique<PipelineUpdates>(currCount, aRender);
-
-  for (uintptr_t i = 0; i < aInfo.epochs.length; i++) {
-    updates->mQueue.emplace(std::make_pair(
-        aInfo.epochs.data[i].pipeline_id,
-        Some(aInfo.epochs.data[i].epoch)));
-  }
-  for (uintptr_t i = 0; i < aInfo.removed_pipelines.length; i++) {
-    updates->mQueue.emplace(std::make_pair(
-        aInfo.removed_pipelines.data[i],
-        Nothing()));
-  }
+  auto updates = MakeUnique<PipelineUpdates>(aInfo, currCount, aRender);
 
   {
     // Scope lock to push UpdatesQueue to mUpdatesQueues.
@@ -595,13 +623,7 @@ AsyncImagePipelineManager::ProcessPipelineUpdates()
   UniquePtr<PipelineUpdates> updates;
 
   while (true) {
-    // Clear updates if it is empty. It is a preparation for next PipelineUpdates handling.
-    if (updates && updates->mQueue.empty()) {
-      updates = nullptr;
-    }
-
-    // Get new PipelineUpdates if necessary.
-    if (!updates) {
+    {
       // Scope lock to extract UpdatesQueue from mUpdatesQueues.
       MutexAutoLock lock(mUpdatesLock);
       if (mUpdatesQueues.empty()) {
@@ -619,19 +641,16 @@ AsyncImagePipelineManager::ProcessPipelineUpdates()
     }
     MOZ_ASSERT(updates);
 
-    if (updates->mQueue.empty()) {
-      // Try next PipelineUpdates.
-      continue;
+    auto& info = updates->mPipelineInfo->Raw();
+
+    for (uintptr_t i = 0; i < info.epochs.length; i++) {
+      ProcessPipelineRendered(info.epochs.data[i].pipeline_id,
+                              info.epochs.data[i].epoch,
+                              updates->mUpdatesCount);
     }
-
-    wr::PipelineId pipelineId = updates->mQueue.front().first;
-    Maybe<wr::Epoch> epoch = updates->mQueue.front().second;
-    updates->mQueue.pop();
-
-    if (epoch.isSome()) {
-      ProcessPipelineRendered(pipelineId, *epoch, updates->mUpdatesCount);
-    } else {
-      ProcessPipelineRemoved(pipelineId, updates->mUpdatesCount);
+    for (uintptr_t i = 0; i < info.removed_pipelines.length; i++) {
+      ProcessPipelineRemoved(info.removed_pipelines.data[i],
+                             updates->mUpdatesCount);
     }
   }
   CheckForTextureHostsNotUsedByGPU();
@@ -658,12 +677,9 @@ AsyncImagePipelineManager::ProcessPipelineRendered(const wr::PipelineId& aPipeli
       holder->mTextureHostWrappers.pop();
     }
     while (!holder->mExternalImages.empty()) {
-      if (aEpoch <= holder->mExternalImages.front().mEpoch) {
+      if (aEpoch <= holder->mExternalImages.front()->mEpoch) {
         break;
       }
-      DebugOnly<bool> released =
-        SharedSurfacesParent::Release(holder->mExternalImages.front().mImageId);
-      MOZ_ASSERT(released);
       holder->mExternalImages.pop();
     }
   }
@@ -683,14 +699,6 @@ AsyncImagePipelineManager::ProcessPipelineRemoved(const wr::PipelineId& aPipelin
         HoldUntilNotUsedByGPU(holder->mTextureHosts.front().mTexture, aUpdatesCount);
         holder->mTextureHosts.pop();
       }
-      // Explicitly release all of the shared surfaces.
-      while (!holder->mExternalImages.empty()) {
-        DebugOnly<bool> released =
-          SharedSurfacesParent::Release(holder->mExternalImages.front().mImageId);
-        MOZ_ASSERT(released);
-        holder->mExternalImages.pop();
-      }
-
       // Remove Pipeline
       entry.Remove();
     }

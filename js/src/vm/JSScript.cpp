@@ -40,7 +40,7 @@
 #include "js/CompileOptions.h"
 #include "js/MemoryMetrics.h"
 #include "js/Printf.h"
-#include "js/SourceBufferHolder.h"
+#include "js/SourceText.h"
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "js/Wrapper.h"
@@ -84,7 +84,7 @@ using mozilla::Utf8Unit;
 
 using JS::CompileOptions;
 using JS::ReadOnlyCompileOptions;
-using JS::SourceBufferHolder;
+using JS::SourceText;
 
 template<XDRMode mode>
 XDRResult
@@ -101,7 +101,10 @@ js::XDRScriptConst(XDRState<mode>* xdr, MutableHandleValue vp)
         SCRIPT_NULL,
         SCRIPT_OBJECT,
         SCRIPT_VOID,
-        SCRIPT_HOLE
+        SCRIPT_HOLE,
+#ifdef ENABLE_BIGINT
+        SCRIPT_BIGINT
+#endif
     };
 
     ConstTag tag;
@@ -122,7 +125,13 @@ js::XDRScriptConst(XDRState<mode>* xdr, MutableHandleValue vp)
             tag = SCRIPT_OBJECT;
         } else if (vp.isMagic(JS_ELEMENTS_HOLE)) {
             tag = SCRIPT_HOLE;
-        } else {
+        }
+#ifdef ENABLE_BIGINT
+        else if (vp.isBigInt()) {
+            tag = SCRIPT_BIGINT;
+        }
+#endif
+        else {
             MOZ_ASSERT(vp.isUndefined());
             tag = SCRIPT_VOID;
         }
@@ -202,6 +211,21 @@ js::XDRScriptConst(XDRState<mode>* xdr, MutableHandleValue vp)
             vp.setMagic(JS_ELEMENTS_HOLE);
         }
         break;
+#ifdef ENABLE_BIGINT
+      case SCRIPT_BIGINT: {
+        RootedBigInt bi(cx);
+        if (mode == XDR_ENCODE) {
+            bi = vp.toBigInt();
+        }
+
+        MOZ_TRY(XDRBigInt(xdr, &bi));
+
+        if (mode == XDR_DECODE) {
+            vp.setBigInt(bi);
+        }
+        break;
+      }
+#endif
       default:
         // Fail in debug, but only soft-fail in release
         MOZ_ASSERT(false, "Bad XDR value kind");
@@ -252,7 +276,8 @@ static XDRResult
 XDRRelazificationInfo(XDRState<mode>* xdr, HandleFunction fun, HandleScript script,
                       HandleScope enclosingScope, MutableHandle<LazyScript*> lazy)
 {
-    MOZ_ASSERT_IF(mode == XDR_ENCODE, script->isRelazifiable() && script->maybeLazyScript());
+    MOZ_ASSERT_IF(mode == XDR_ENCODE,
+                  script->isRelazifiableIgnoringJitCode() && script->maybeLazyScript());
     MOZ_ASSERT_IF(mode == XDR_ENCODE, !lazy->numInnerFunctions());
 
     JSContext* cx = xdr->cx();
@@ -425,7 +450,7 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
         if (!sourceObjectArg) {
             scriptBits |= (1 << OwnSource);
         }
-        if (script->isRelazifiable()) {
+        if (script->isRelazifiableIgnoringJitCode()) {
             scriptBits |= (1 << HasLazyScript);
         }
     }
@@ -1831,17 +1856,27 @@ ScriptSource::appendSubstring(JSContext* cx, StringBuffer& buf, size_t start, si
     UncompressedSourceCache::AutoHoldEntry holder;
 
     if (hasSourceType<Utf8Unit>()) {
-        MOZ_CRASH("for now");
-        return false;
-    } else {
-        PinnedUnits<char16_t> units(cx, this, holder, start, len);
-        if (!units.asChars()) {
+        PinnedUnits<Utf8Unit> pinned(cx, this, holder, start, len);
+        if (!pinned.get()) {
             return false;
         }
         if (len > SourceDeflateLimit && !buf.ensureTwoByteChars()) {
             return false;
         }
-        return buf.append(units.asChars(), len);
+
+        const Utf8Unit* units = pinned.get();
+        return buf.append(units, len);
+    } else {
+        PinnedUnits<char16_t> pinned(cx, this, holder, start, len);
+        if (!pinned.get()) {
+            return false;
+        }
+        if (len > SourceDeflateLimit && !buf.ensureTwoByteChars()) {
+            return false;
+        }
+
+        const char16_t* units = pinned.get();
+        return buf.append(units, len);
     }
 }
 
@@ -2000,16 +2035,18 @@ ScriptSource::setCompressedSource(JSContext* cx, UniqueChars&& compressed, size_
     return true;
 }
 
+template<typename Unit>
 bool
-ScriptSource::setSourceCopy(JSContext* cx, SourceBufferHolder& srcBuf)
+ScriptSource::setSourceCopy(JSContext* cx, SourceText<Unit>& srcBuf)
 {
     MOZ_ASSERT(!hasSourceText());
 
     JSRuntime* runtime = cx->zone()->runtimeFromAnyThread();
     auto& cache = runtime->sharedImmutableStrings();
     auto deduped = cache.getOrCreate(srcBuf.get(), srcBuf.length(), [&srcBuf]() {
-        return srcBuf.ownsChars()
-               ? UniqueTwoByteChars(srcBuf.take())
+        using CharT = typename SourceTypeTraits<Unit>::CharT;
+        return srcBuf.ownsUnits()
+               ? UniquePtr<CharT[], JS::FreePolicy>(srcBuf.takeChars())
                : DuplicateString(srcBuf.get(), srcBuf.length());
     });
     if (!deduped) {
@@ -2017,9 +2054,12 @@ ScriptSource::setSourceCopy(JSContext* cx, SourceBufferHolder& srcBuf)
         return false;
     }
 
-    setSource<char16_t>(std::move(*deduped));
+    setSource<Unit>(std::move(*deduped));
     return true;
 }
+
+template bool ScriptSource::setSourceCopy(JSContext* cx, SourceText<char16_t>& srcBuf);
+template bool ScriptSource::setSourceCopy(JSContext* cx, SourceText<Utf8Unit>& srcBuf);
 
 void
 ScriptSource::trace(JSTracer* trc)
@@ -2378,27 +2418,6 @@ ScriptSource::performXDR(XDRState<mode>* xdr)
         }
         MOZ_TRY(xdr->codeUint32(&uncompressedLength));
 
-        // A compressed length of 0 indicates source is uncompressed (or is
-        // BinAST if |hasBinSource|).
-        uint32_t compressedLength;
-        if (mode == XDR_ENCODE) {
-            compressedLength = compressedLengthOrZero();
-        }
-        MOZ_TRY(xdr->codeUint32(&compressedLength));
-
-        uint8_t srcCharSize;
-        if (mode == XDR_ENCODE) {
-            srcCharSize = sourceCharSize();
-        }
-        MOZ_TRY(xdr->codeUint8(&srcCharSize));
-
-        if (srcCharSize != 1 && srcCharSize != 2) {
-            // Fail in debug, but only soft-fail in release, if the source-char
-            // size is invalid.
-            MOZ_ASSERT_UNREACHABLE("bad XDR source chars size");
-            return xdr->fail(JS::TranscodeResult_Failure_BadDecode);
-        }
-
         if (hasBinSource) {
             if (mode == XDR_DECODE) {
 #if defined(JS_BUILD_BINAST)
@@ -2420,31 +2439,53 @@ ScriptSource::performXDR(XDRState<mode>* xdr)
                 void* bytes = binASTData();
                 MOZ_TRY(xdr->codeBytes(bytes, uncompressedLength));
             }
-        } else if (compressedLength) {
-            if (mode == XDR_DECODE) {
-                // Compressed data is always single-byte chars.
-                auto bytes = xdr->cx()->template make_pod_array<char>(compressedLength);
-                if (!bytes) {
-                    return xdr->fail(JS::TranscodeResult_Throw);
-                }
-                MOZ_TRY(xdr->codeBytes(bytes.get(), compressedLength));
+        } else {
+            // A compressed length of 0 indicates source is uncompressed
+            uint32_t compressedLength;
+            if (mode == XDR_ENCODE) {
+                compressedLength = compressedLengthOrZero();
+            }
+            MOZ_TRY(xdr->codeUint32(&compressedLength));
 
-                if (!(srcCharSize == 1
-                      ? setCompressedSource<Utf8Unit>(xdr->cx(), std::move(bytes),
-                                                      compressedLength, uncompressedLength)
-                      : setCompressedSource<char16_t>(xdr->cx(), std::move(bytes),
-                                                      compressedLength, uncompressedLength)))
-                {
-                    return xdr->fail(JS::TranscodeResult_Throw);
+            uint8_t srcCharSize;
+            if (mode == XDR_ENCODE) {
+                srcCharSize = sourceCharSize();
+            }
+            MOZ_TRY(xdr->codeUint8(&srcCharSize));
+
+            if (srcCharSize != 1 && srcCharSize != 2) {
+                // Fail in debug, but only soft-fail in release, if the source-char
+                // size is invalid.
+                MOZ_ASSERT_UNREACHABLE("bad XDR source chars size");
+                return xdr->fail(JS::TranscodeResult_Failure_BadDecode);
+            }
+
+            if (compressedLength) {
+                if (mode == XDR_DECODE) {
+                    // Compressed data is always single-byte chars.
+                    auto bytes = xdr->cx()->template make_pod_array<char>(compressedLength);
+                    if (!bytes) {
+                        return xdr->fail(JS::TranscodeResult_Throw);
+                    }
+                    MOZ_TRY(xdr->codeBytes(bytes.get(), compressedLength));
+
+                    if (!(srcCharSize == 1
+                          ? setCompressedSource<Utf8Unit>(xdr->cx(), std::move(bytes),
+                                                          compressedLength, uncompressedLength)
+                          : setCompressedSource<char16_t>(xdr->cx(), std::move(bytes),
+                                                          compressedLength, uncompressedLength)))
+                    {
+                        return xdr->fail(JS::TranscodeResult_Throw);
+                    }
+                } else {
+                    void* bytes = srcCharSize == 1
+                                  ? compressedData<Utf8Unit>()
+                                  : compressedData<char16_t>();
+                    MOZ_TRY(xdr->codeBytes(bytes, compressedLength));
                 }
             } else {
-                void* bytes = srcCharSize == 1
-                              ? compressedData<Utf8Unit>()
-                              : compressedData<char16_t>();
-                MOZ_TRY(xdr->codeBytes(bytes, compressedLength));
+                MOZ_TRY(xdrUncompressedSource(xdr, srcCharSize, uncompressedLength));
             }
-        } else {
-            MOZ_TRY(xdrUncompressedSource(xdr, srcCharSize, uncompressedLength));
         }
 
         uint8_t hasMetadata = !!binASTMetadata_;
@@ -2463,12 +2504,13 @@ ScriptSource::performXDR(XDRState<mode>* xdr)
             if (mode == XDR_DECODE) {
                 // Use calloc, since we're storing this immediately, and filling it might GC, to
                 // avoid marking bogus atoms.
-                setBinASTSourceMetadata(
-                    static_cast<frontend::BinASTSourceMetadata*>(
-                        js_calloc(frontend::BinASTSourceMetadata::totalSize(numBinKinds, numStrings))));
-                if (!binASTMetadata_) {
+                auto metadata = static_cast<frontend::BinASTSourceMetadata*>(
+                    js_calloc(frontend::BinASTSourceMetadata::totalSize(numBinKinds, numStrings)));
+                if (!metadata) {
                     return xdr->fail(JS::TranscodeResult_Throw);
                 }
+                new (metadata) frontend::BinASTSourceMetadata(numBinKinds, numStrings);
+                setBinASTSourceMetadata(metadata);
             }
 
             for (uint32_t i = 0; i < numBinKinds; i++) {
@@ -3893,9 +3935,7 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
     MOZ_ASSERT(!src->sourceObject()->isMarkedGray());
 
     uint32_t nscopes = src->scopes().size();
-#ifdef DEBUG
     uint32_t nconsts = src->hasConsts() ? src->consts().size() : 0;
-#endif
     uint32_t nobjects = src->hasObjects() ? src->objects().size() : 0;
 
     /* Script data */
@@ -3921,6 +3961,41 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
             original = elem.get();
             clone = Scope::clone(cx, original, scopes[FindScopeIndex(src, *original->enclosing())]);
             if (!clone || !scopes.append(clone)) {
+                return false;
+            }
+        }
+    }
+
+    /* Constants */
+
+    AutoValueVector consts(cx);
+    if (nconsts != 0) {
+        RootedValue val(cx);
+        RootedValue clone(cx);
+        for (const GCPtrValue& elem : src->consts()) {
+            val = elem.get();
+            if (val.isDouble()) {
+                clone = val;
+            }
+#ifdef ENABLE_BIGINT
+            else if (val.isBigInt()) {
+                if (cx->zone() == val.toBigInt()->zone()) {
+                    clone.setBigInt(val.toBigInt());
+                } else {
+                    RootedBigInt b(cx, val.toBigInt());
+                    BigInt* copy = BigInt::copy(cx, b);
+                    if (!copy) {
+                        return false;
+                    }
+                    clone.setBigInt(copy);
+                }
+            }
+#endif
+            else {
+                MOZ_ASSERT_UNREACHABLE("bad script consts() element");
+            }
+
+            if (!consts.append(clone)) {
                 return false;
             }
         }
@@ -4006,15 +4081,12 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
             array[i].init(scopes[i]);
         }
     }
-#ifdef DEBUG
     if (nconsts) {
         auto array = dst->data_->consts();
         for (unsigned i = 0; i < nconsts; ++i) {
-            // We don't support GCThings here and thus don't need to call |init|.
-            MOZ_ASSERT(!array[i].isGCThing());
+            array[i].init(consts[i]);
         }
     }
-#endif
     if (nobjects) {
         auto array = dst->data_->objects();
         for (unsigned i = 0; i < nobjects; ++i) {
@@ -4572,15 +4644,6 @@ JSScript::argumentsOptimizationFailed(JSContext* cx, HandleScript script)
     MOZ_ASSERT(!script->isAsync());
 
     script->setFlag(MutableFlags::NeedsArgsObj);
-
-    /*
-     * Since we can't invalidate baseline scripts, set a flag that's checked from
-     * JIT code to indicate the arguments optimization failed and JSOP_ARGUMENTS
-     * should create an arguments object next time.
-     */
-    if (script->hasBaselineScript()) {
-        script->baselineScript()->setNeedsArgsObj();
-    }
 
     /*
      * By design, the arguments optimization is only made when there are no

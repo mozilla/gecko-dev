@@ -23,7 +23,7 @@
 //! that channel and operate on the `RenderBackend`.
 
 use api::{BlobImageHandler, ColorF, DeviceIntPoint, DeviceIntRect, DeviceIntSize};
-use api::{DeviceUintPoint, DeviceUintRect, DeviceUintSize, DocumentId, Epoch, ExternalImageId};
+use api::{DocumentId, Epoch, ExternalImageId};
 use api::{ExternalImageType, FontRenderMode, FrameMsg, ImageFormat, PipelineId};
 use api::{ImageRendering, Checkpoint, NotificationRequest};
 use api::{MemoryReport, VoidPtrToSizeFn};
@@ -37,7 +37,7 @@ use capture::{CaptureConfig, ExternalCaptureImage, PlainExternalImage};
 use debug_colors;
 use device::{DepthFunction, Device, GpuFrameId, Program, UploadMethod, Texture, PBO};
 use device::{DrawTarget, ExternalTexture, FBOId, ReadTarget, TextureSlot};
-use device::{ShaderError, TextureFilter,
+use device::{ShaderError, TextureFilter, TextureFlags,
              VertexUsageHint, VAO, VBO, CustomVAO};
 use device::{ProgramCache, ReadPixelsFormat};
 #[cfg(feature = "debug_renderer")]
@@ -57,7 +57,7 @@ use internal_types::{CacheTextureId, DebugOutput, FastHashMap, LayerIndex, Rende
 use internal_types::{TextureCacheAllocationKind, TextureCacheUpdate, TextureUpdateList, TextureUpdateSource};
 use internal_types::{RenderTargetInfo, SavedTargetIndex};
 use prim_store::DeferredResolve;
-use profiler::{BackendProfileCounters, FrameProfileCounters,
+use profiler::{BackendProfileCounters, FrameProfileCounters, TimeProfileCounter,
                GpuProfileTag, RendererProfileCounters, RendererProfileTimers};
 use device::query::GpuProfiler;
 use rayon::{ThreadPool, ThreadPoolBuilder};
@@ -1080,7 +1080,7 @@ impl GpuCacheTexture {
 
     /// Ensures that we have an appropriately-sized texture. Returns true if a
     /// new texture was created.
-    fn ensure_texture(&mut self, device: &mut Device, height: u32) -> bool {
+    fn ensure_texture(&mut self, device: &mut Device, height: i32) -> bool {
         // If we already have a texture that works, we're done.
         if self.texture.as_ref().map_or(false, |t| t.get_dimensions().height >= height) {
             if GPU_CACHE_RESIZE_TEST && self.bus.uses_render_target() {
@@ -1093,7 +1093,7 @@ impl GpuCacheTexture {
         // Compute a few parameters for the new texture. We round the height up to
         // a multiple of 256 to avoid many small resizes.
         let new_height = (height + 255) & !255;
-        let new_size = DeviceUintSize::new(MAX_VERTEX_TEXTURE_WIDTH as _, new_height);
+        let new_size = DeviceIntSize::new(MAX_VERTEX_TEXTURE_WIDTH as _, new_height);
         let rt_info = if self.bus.uses_render_target() {
             Some(RenderTargetInfo { has_depth: false })
         } else {
@@ -1186,7 +1186,7 @@ impl GpuCacheTexture {
         }
     }
 
-    fn get_height(&self) -> u32 {
+    fn get_height(&self) -> i32 {
         self.texture.as_ref().map_or(0, |t| t.get_dimensions().height)
     }
 
@@ -1194,7 +1194,7 @@ impl GpuCacheTexture {
         &mut self,
         device: &mut Device,
         total_block_count: usize,
-        max_height: u32,
+        max_height: i32,
     ) {
         let allocated_new_texture = self.ensure_texture(device, max_height);
         match self.bus {
@@ -1320,9 +1320,9 @@ impl GpuCacheTexture {
                     let block_index = row_index * MAX_VERTEX_TEXTURE_WIDTH;
                     let cpu_blocks =
                         &cpu_blocks[block_index .. (block_index + MAX_VERTEX_TEXTURE_WIDTH)];
-                    let rect = DeviceUintRect::new(
-                        DeviceUintPoint::new(0, row_index as u32),
-                        DeviceUintSize::new(MAX_VERTEX_TEXTURE_WIDTH as u32, 1),
+                    let rect = DeviceIntRect::new(
+                        DeviceIntPoint::new(0, row_index as i32),
+                        DeviceIntSize::new(MAX_VERTEX_TEXTURE_WIDTH as i32, 1),
                     );
 
                     uploader.upload(rect, 0, None, cpu_blocks);
@@ -1399,8 +1399,8 @@ impl VertexDataTexture {
         }
 
         let width =
-            (MAX_VERTEX_TEXTURE_WIDTH - (MAX_VERTEX_TEXTURE_WIDTH % texels_per_item)) as u32;
-        let needed_height = (data.len() / items_per_row) as u32;
+            (MAX_VERTEX_TEXTURE_WIDTH - (MAX_VERTEX_TEXTURE_WIDTH % texels_per_item)) as i32;
+        let needed_height = (data.len() / items_per_row) as i32;
         let existing_height = self.texture.as_ref().map_or(0, |t| t.get_dimensions().height);
 
         // Create a new texture if needed.
@@ -1423,9 +1423,9 @@ impl VertexDataTexture {
             self.texture = Some(texture);
         }
 
-        let rect = DeviceUintRect::new(
-            DeviceUintPoint::zero(),
-            DeviceUintSize::new(width, needed_height),
+        let rect = DeviceIntRect::new(
+            DeviceIntPoint::zero(),
+            DeviceIntSize::new(width, needed_height),
         );
         device
             .upload_texture(self.texture(), &self.pbo, 0)
@@ -1447,7 +1447,7 @@ struct FrameOutput {
 
 #[derive(PartialEq)]
 struct TargetSelector {
-    size: DeviceUintSize,
+    size: DeviceIntSize,
     num_layers: usize,
     format: ImageFormat,
 }
@@ -1534,6 +1534,8 @@ pub struct Renderer {
     debug_flags: DebugFlags,
     backend_profile_counters: BackendProfileCounters,
     profile_counters: RendererProfileCounters,
+    resource_upload_time: u64,
+    gpu_cache_upload_time: u64,
     #[cfg(feature = "debug_renderer")]
     profiler: Profiler,
     #[cfg(feature = "debug_renderer")]
@@ -1669,7 +1671,7 @@ impl Renderer {
             device.supports_extension("GL_ARB_explicit_attrib_location");
 
         // 512 is the minimum that the texture cache can work with.
-        const MIN_TEXTURE_SIZE: u32 = 512;
+        const MIN_TEXTURE_SIZE: i32 = 512;
         if let Some(user_limit) = options.max_texture_size {
             assert!(user_limit >= MIN_TEXTURE_SIZE);
             device.clamp_max_texture_size(user_limit);
@@ -1985,6 +1987,8 @@ impl Renderer {
             debug_flags,
             backend_profile_counters: BackendProfileCounters::new(),
             profile_counters: RendererProfileCounters::new(),
+            resource_upload_time: 0,
+            gpu_cache_upload_time: 0,
             #[cfg(feature = "debug_renderer")]
             profiler: Profiler::new(),
             #[cfg(feature = "debug_renderer")]
@@ -2022,7 +2026,7 @@ impl Renderer {
             gpu_cache_texture,
             #[cfg(feature = "debug_renderer")]
             gpu_cache_debug_chunks: Vec::new(),
-            gpu_cache_frame_id: FrameId::invalid(),
+            gpu_cache_frame_id: FrameId::INVALID,
             gpu_cache_overflow: false,
             texture_cache_upload_pbo,
             texture_resolver,
@@ -2040,7 +2044,7 @@ impl Renderer {
         Ok((renderer, sender))
     }
 
-    pub fn get_max_texture_size(&self) -> u32 {
+    pub fn get_max_texture_size(&self) -> i32 {
         self.device.max_texture_size()
     }
 
@@ -2134,6 +2138,7 @@ impl Renderer {
                 } => {
                     self.pending_texture_updates.push(updates);
                     self.device.begin_frame();
+
                     self.update_texture_cache();
 
                     // Flush the render target pool on memory pressure.
@@ -2203,7 +2208,7 @@ impl Renderer {
 
         let desc = ImageDescriptor::new(1024, 768, ImageFormat::BGRA8, true, false);
         let data = self.device.read_pixels(&desc);
-        let screenshot = debug_server::Screenshot::new(desc.size.width, desc.size.height, data);
+        let screenshot = debug_server::Screenshot::new(desc.size, data);
 
         serde_json::to_string(&screenshot).unwrap()
     }
@@ -2488,7 +2493,7 @@ impl Renderer {
     /// [genframe]: ../../webrender_api/struct.DocumentApi.html#method.generate_frame
     pub fn render(
         &mut self,
-        framebuffer_size: DeviceUintSize,
+        framebuffer_size: DeviceIntSize,
     ) -> Result<RendererStats, Vec<RendererError>> {
         let result = self.render_impl(Some(framebuffer_size));
 
@@ -2512,7 +2517,7 @@ impl Renderer {
     // avoid doing a full frame render.
     fn render_impl(
         &mut self,
-        framebuffer_size: Option<DeviceUintSize>,
+        framebuffer_size: Option<DeviceIntSize>,
     ) -> Result<RendererStats, Vec<RendererError>> {
         profile_scope!("render");
         if self.active_documents.is_empty() {
@@ -2576,7 +2581,7 @@ impl Renderer {
                     .iter()
                     .any(|&(_, RenderedDocument { ref frame, .. })| {
                         frame.background_color.is_some() &&
-                        frame.inner_rect.origin == DeviceUintPoint::zero() &&
+                        frame.inner_rect.origin == DeviceIntPoint::zero() &&
                         frame.inner_rect.size == framebuffer_size
                     });
 
@@ -2705,6 +2710,10 @@ impl Renderer {
         self.backend_profile_counters.reset();
         self.profile_counters.reset();
         self.profile_counters.frame_counter.inc();
+        stats.resource_upload_time = self.resource_upload_time;
+        self.resource_upload_time = 0;
+        stats.gpu_cache_upload_time = self.gpu_cache_upload_time;
+        self.gpu_cache_upload_time = 0;
 
         profile_timers.cpu_time.profile(|| {
             let _gm = self.gpu_profile.start_marker("end frame");
@@ -2736,7 +2745,7 @@ impl Renderer {
         let gpu_cache_height = self.gpu_cache_texture.get_height();
         if gpu_cache_height != 0 && GPU_CACHE_RESIZE_TEST {
             self.pending_gpu_cache_updates.push(GpuCacheUpdateList {
-                frame_id: FrameId::invalid(),
+                frame_id: FrameId::INVALID,
                 height: gpu_cache_height,
                 blocks: vec![[1f32; 4].into()],
                 updates: Vec::new(),
@@ -2774,7 +2783,11 @@ impl Renderer {
                 .update(&mut self.device, &update_list);
         }
 
-        let updated_rows = self.gpu_cache_texture.flush(&mut self.device);
+        let mut upload_time = TimeProfileCounter::new("GPU cache upload time", false);
+        let updated_rows = upload_time.profile(|| {
+            return self.gpu_cache_texture.flush(&mut self.device);
+        });
+        self.gpu_cache_upload_time += upload_time.get();
 
         let counters = &mut self.backend_profile_counters.resources.gpu_cache;
         counters.updated_rows.set(updated_rows);
@@ -2799,101 +2812,109 @@ impl Renderer {
         let _gm = self.gpu_profile.start_marker("texture cache update");
         let mut pending_texture_updates = mem::replace(&mut self.pending_texture_updates, vec![]);
 
-        for update_list in pending_texture_updates.drain(..) {
-            for allocation in update_list.allocations {
-                let is_realloc = matches!(allocation.kind, TextureCacheAllocationKind::Realloc(..));
-                match allocation.kind {
-                    TextureCacheAllocationKind::Alloc(info) |
-                    TextureCacheAllocationKind::Realloc(info) => {
-                        // Create a new native texture, as requested by the texture cache.
-                        //
-                        // Ensure no PBO is bound when creating the texture storage,
-                        // or GL will attempt to read data from there.
-                        let texture = self.device.create_texture(
-                            TextureTarget::Array,
-                            info.format,
-                            info.width,
-                            info.height,
-                            info.filter,
-                            // This needs to be a render target because some render
-                            // tasks get rendered into the texture cache.
-                            Some(RenderTargetInfo { has_depth: false }),
-                            info.layer_count,
-                        );
-
-                        let old = self.texture_resolver.texture_cache_map.insert(allocation.id, texture);
-                        assert_eq!(old.is_some(), is_realloc, "Renderer and RenderBackend disagree");
-                        if let Some(old) = old {
-                            self.device.blit_renderable_texture(
-                                self.texture_resolver.texture_cache_map.get_mut(&allocation.id).unwrap(),
-                                &old
+        let mut upload_time = TimeProfileCounter::new("Resource upload time", false);
+        upload_time.profile(|| {
+            for update_list in pending_texture_updates.drain(..) {
+                for allocation in update_list.allocations {
+                    let is_realloc = matches!(allocation.kind, TextureCacheAllocationKind::Realloc(..));
+                    match allocation.kind {
+                        TextureCacheAllocationKind::Alloc(info) |
+                        TextureCacheAllocationKind::Realloc(info) => {
+                            // Create a new native texture, as requested by the texture cache.
+                            //
+                            // Ensure no PBO is bound when creating the texture storage,
+                            // or GL will attempt to read data from there.
+                            let mut texture = self.device.create_texture(
+                                TextureTarget::Array,
+                                info.format,
+                                info.width,
+                                info.height,
+                                info.filter,
+                                // This needs to be a render target because some render
+                                // tasks get rendered into the texture cache.
+                                Some(RenderTargetInfo { has_depth: false }),
+                                info.layer_count,
                             );
-                            self.device.delete_texture(old);
+
+                            if info.is_shared_cache {
+                                texture.flags_mut()
+                                    .insert(TextureFlags::IS_SHARED_TEXTURE_CACHE);
+                            }
+
+                            let old = self.texture_resolver.texture_cache_map.insert(allocation.id, texture);
+                            assert_eq!(old.is_some(), is_realloc, "Renderer and RenderBackend disagree");
+                            if let Some(old) = old {
+                                self.device.blit_renderable_texture(
+                                    self.texture_resolver.texture_cache_map.get_mut(&allocation.id).unwrap(),
+                                    &old
+                                );
+                                self.device.delete_texture(old);
+                            }
+                        },
+                        TextureCacheAllocationKind::Free => {
+                            let texture = self.texture_resolver.texture_cache_map.remove(&allocation.id).unwrap();
+                            self.device.delete_texture(texture);
+                        },
+                    }
+                }
+
+                for update in update_list.updates {
+                    let TextureCacheUpdate { id, rect, stride, offset, layer_index, source } = update;
+                    let texture = &self.texture_resolver.texture_cache_map[&id];
+                    let mut uploader = self.device.upload_texture(
+                        texture,
+                        &self.texture_cache_upload_pbo,
+                        0,
+                    );
+
+                    let bytes_uploaded = match source {
+                        TextureUpdateSource::Bytes { data } => {
+                            uploader.upload(
+                                rect, layer_index, stride,
+                                &data[offset as usize ..],
+                            )
                         }
-                    },
-                    TextureCacheAllocationKind::Free => {
-                        let texture = self.texture_resolver.texture_cache_map.remove(&allocation.id).unwrap();
-                        self.device.delete_texture(texture);
-                    },
+                        TextureUpdateSource::External { id, channel_index } => {
+                            let handler = self.external_image_handler
+                                .as_mut()
+                                .expect("Found external image, but no handler set!");
+                            // The filter is only relevant for NativeTexture external images.
+                            let size = match handler.lock(id, channel_index, ImageRendering::Auto).source {
+                                ExternalImageSource::RawData(data) => {
+                                    uploader.upload(
+                                        rect, layer_index, stride,
+                                        &data[offset as usize ..],
+                                    )
+                                }
+                                ExternalImageSource::Invalid => {
+                                    // Create a local buffer to fill the pbo.
+                                    let bpp = texture.get_format().bytes_per_pixel();
+                                    let width = stride.unwrap_or(rect.size.width * bpp);
+                                    let total_size = width * rect.size.height;
+                                    // WR haven't support RGBAF32 format in texture_cache, so
+                                    // we use u8 type here.
+                                    let dummy_data: Vec<u8> = vec![255; total_size as usize];
+                                    uploader.upload(rect, layer_index, stride, &dummy_data)
+                                }
+                                ExternalImageSource::NativeTexture(eid) => {
+                                    panic!("Unexpected external texture {:?} for the texture cache update of {:?}", eid, id);
+                                }
+                            };
+                            handler.unlock(id, channel_index);
+                            size
+                        }
+                    };
+                    self.profile_counters.texture_data_uploaded.add(bytes_uploaded >> 10);
                 }
             }
 
-            for update in update_list.updates {
-                let TextureCacheUpdate { id, rect, stride, offset, layer_index, source } = update;
-                let texture = &self.texture_resolver.texture_cache_map[&id];
-                let mut uploader = self.device.upload_texture(
-                    texture,
-                    &self.texture_cache_upload_pbo,
-                    0,
-                );
-
-                let bytes_uploaded = match source {
-                    TextureUpdateSource::Bytes { data } => {
-                        uploader.upload(
-                            rect, layer_index, stride,
-                            &data[offset as usize ..],
-                        )
-                    }
-                    TextureUpdateSource::External { id, channel_index } => {
-                        let handler = self.external_image_handler
-                            .as_mut()
-                            .expect("Found external image, but no handler set!");
-                        // The filter is only relevant for NativeTexture external images.
-                        let size = match handler.lock(id, channel_index, ImageRendering::Auto).source {
-                            ExternalImageSource::RawData(data) => {
-                                uploader.upload(
-                                    rect, layer_index, stride,
-                                    &data[offset as usize ..],
-                                )
-                            }
-                            ExternalImageSource::Invalid => {
-                                // Create a local buffer to fill the pbo.
-                                let bpp = texture.get_format().bytes_per_pixel();
-                                let width = stride.unwrap_or(rect.size.width * bpp);
-                                let total_size = width * rect.size.height;
-                                // WR haven't support RGBAF32 format in texture_cache, so
-                                // we use u8 type here.
-                                let dummy_data: Vec<u8> = vec![255; total_size as usize];
-                                uploader.upload(rect, layer_index, stride, &dummy_data)
-                            }
-                            ExternalImageSource::NativeTexture(eid) => {
-                                panic!("Unexpected external texture {:?} for the texture cache update of {:?}", eid, id);
-                            }
-                        };
-                        handler.unlock(id, channel_index);
-                        size
-                    }
-                };
-
-                self.profile_counters.texture_data_uploaded.add(bytes_uploaded >> 10);
-            }
-        }
-
-        drain_filter(
-            &mut self.notifications,
-            |n| { n.when() == Checkpoint::FrameTexturesUpdated },
-            |n| { n.notify(); },
-        );
+            drain_filter(
+                &mut self.notifications,
+                |n| { n.when() == Checkpoint::FrameTexturesUpdated },
+                |n| { n.notify(); },
+            );
+        });
+        self.resource_upload_time += upload_time.get();
     }
 
     pub(crate) fn draw_instanced_batch<T>(
@@ -3106,7 +3127,7 @@ impl Renderer {
         &mut self,
         draw_target: DrawTarget,
         target: &ColorRenderTarget,
-        framebuffer_target_rect: DeviceUintRect,
+        framebuffer_target_rect: DeviceIntRect,
         depth_is_ready: bool,
         clear_color: Option<[f32; 4]>,
         render_tasks: &RenderTaskTree,
@@ -3157,7 +3178,7 @@ impl Renderer {
                 } else {
                     None
                 }
-            } else if framebuffer_target_rect == DeviceUintRect::new(DeviceUintPoint::zero(), draw_target.dimensions()) {
+            } else if framebuffer_target_rect == DeviceIntRect::new(DeviceIntPoint::zero(), draw_target.dimensions()) {
                 // whole screen is covered, no need for scissor
                 None
             } else {
@@ -3721,7 +3742,7 @@ impl Renderer {
     fn stencil_glyphs(&mut self,
                       _: &[GlyphJob],
                       _: &Transform3D<f32>,
-                      _: &DeviceUintSize,
+                      _: &DeviceIntSize,
                       _: &mut RendererStats)
                       -> Option<StenciledGlyphPage> {
         None
@@ -3747,7 +3768,7 @@ impl Renderer {
             .expect("Found external image, but no handler set!");
 
         let mut list = GpuCacheUpdateList {
-            frame_id: FrameId::invalid(),
+            frame_id: FrameId::INVALID,
             height: self.gpu_cache_texture.get_height(),
             blocks: Vec::new(),
             updates: Vec::new(),
@@ -3851,9 +3872,9 @@ impl Renderer {
             bounding_rect = t.used_rect().union(&bounding_rect);
         }
         debug_assert_eq!(bounding_rect.origin, DeviceIntPoint::zero());
-        let dimensions = DeviceUintSize::new(
-            (bounding_rect.size.width as u32 + 255) & !255,
-            (bounding_rect.size.height as u32 + 255) & !255,
+        let dimensions = DeviceIntSize::new(
+            (bounding_rect.size.width + 255) & !255,
+            (bounding_rect.size.height + 255) & !255,
         );
 
         counters.targets_used.inc();
@@ -3945,7 +3966,7 @@ impl Renderer {
     fn draw_tile_frame(
         &mut self,
         frame: &mut Frame,
-        framebuffer_size: Option<DeviceUintSize>,
+        framebuffer_size: Option<DeviceIntSize>,
         framebuffer_depth_is_ready: bool,
         frame_id: GpuFrameId,
         stats: &mut RendererStats,
@@ -4164,55 +4185,76 @@ impl Renderer {
     }
 
     #[cfg(feature = "debug_renderer")]
-    fn draw_render_target_debug(&mut self, framebuffer_size: DeviceUintSize) {
+    fn draw_render_target_debug(&mut self, framebuffer_size: DeviceIntSize) {
         if !self.debug_flags.contains(DebugFlags::RENDER_TARGET_DBG) {
             return;
         }
 
-        let mut spacing = 16;
-        let mut size = 512;
-        let fb_width = framebuffer_size.width as i32;
-        let num_layers: i32 = self.texture_resolver.render_target_pool
-            .iter()
-            .map(|texture| texture.get_layer_count() as i32)
-            .sum();
+        let debug_renderer = match self.debug.get_mut(&mut self.device) {
+            Some(render) => render,
+            None => return,
+        };
 
-        if num_layers * (size + spacing) > fb_width {
-            let factor = fb_width as f32 / (num_layers * (size + spacing)) as f32;
-            size = (size as f32 * factor) as i32;
-            spacing = (spacing as f32 * factor) as i32;
-        }
+        let textures =
+            self.texture_resolver.render_target_pool.iter().collect::<Vec<&Texture>>();
 
-        let mut target_index = 0;
-        for texture in &self.texture_resolver.render_target_pool {
-            let dimensions = texture.get_dimensions();
-            let src_rect = DeviceIntRect::new(DeviceIntPoint::zero(), dimensions.to_i32());
-
-            let layer_count = texture.get_layer_count() as usize;
-            for layer in 0 .. layer_count {
-                self.device.bind_read_target(ReadTarget::Texture { texture, layer });
-                let x = fb_width - (spacing + size) * (target_index + 1);
-                let y = spacing;
-
-                let dest_rect = rect(x, y, size, size);
-                self.device.blit_render_target(src_rect, dest_rect);
-                target_index += 1;
-            }
-        }
+        Self::do_debug_blit(
+            &mut self.device,
+            debug_renderer,
+            textures,
+            framebuffer_size,
+            0,
+            &|_| [0.0, 1.0, 0.0, 1.0], // Use green for all RTs.
+        );
     }
 
     #[cfg(feature = "debug_renderer")]
-    fn draw_texture_cache_debug(&mut self, framebuffer_size: DeviceUintSize) {
+    fn draw_texture_cache_debug(&mut self, framebuffer_size: DeviceIntSize) {
         if !self.debug_flags.contains(DebugFlags::TEXTURE_CACHE_DBG) {
             return;
         }
 
+        let debug_renderer = match self.debug.get_mut(&mut self.device) {
+            Some(render) => render,
+            None => return,
+        };
+
+        let textures =
+            self.texture_resolver.texture_cache_map.values().collect::<Vec<&Texture>>();
+
+        fn select_color(texture: &Texture) -> [f32; 4] {
+            if texture.flags().contains(TextureFlags::IS_SHARED_TEXTURE_CACHE) {
+                [1.0, 0.5, 0.0, 1.0] // Orange for shared.
+            } else {
+                [1.0, 0.0, 1.0, 1.0] // Fuchsia for standalone.
+            }
+        }
+
+        Self::do_debug_blit(
+            &mut self.device,
+            debug_renderer,
+            textures,
+            framebuffer_size,
+            if self.debug_flags.contains(DebugFlags::RENDER_TARGET_DBG) { 544 } else { 0 },
+            &select_color,
+        );
+    }
+
+    #[cfg(feature = "debug_renderer")]
+    fn do_debug_blit(
+        device: &mut Device,
+        debug_renderer: &mut DebugRenderer,
+        mut textures: Vec<&Texture>,
+        framebuffer_size: DeviceIntSize,
+        bottom: i32,
+        select_color: &Fn(&Texture) -> [f32; 4],
+    ) {
         let mut spacing = 16;
         let mut size = 512;
+
         let fb_width = framebuffer_size.width as i32;
-        let num_layers: i32 = self.texture_resolver
-            .texture_cache_map
-            .values()
+        let fb_height = framebuffer_size.height as i32;
+        let num_layers: i32 = textures.iter()
             .map(|texture| texture.get_layer_count())
             .sum();
 
@@ -4222,13 +4264,16 @@ impl Renderer {
             spacing = (spacing as f32 * factor) as i32;
         }
 
+        // Sort the display by layer size (in bytes), so that left-to-right is
+        // largest-to-smallest.
+        //
+        // Note that the vec here is in increasing order, because the elements
+        // get drawn right-to-left.
+        textures.sort_by_key(|t| t.layer_size_in_bytes());
+
         let mut i = 0;
-        for texture in self.texture_resolver.texture_cache_map.values() {
-            let y = spacing + if self.debug_flags.contains(DebugFlags::RENDER_TARGET_DBG) {
-                528
-            } else {
-                0
-            };
+        for texture in textures.iter() {
+            let y = spacing + bottom;
             let dimensions = texture.get_dimensions();
             let src_rect = DeviceIntRect::new(
                 DeviceIntPoint::zero(),
@@ -4237,7 +4282,7 @@ impl Renderer {
 
             let layer_count = texture.get_layer_count() as usize;
             for layer in 0 .. layer_count {
-                self.device.bind_read_target(ReadTarget::Texture { texture, layer});
+                device.bind_read_target(ReadTarget::Texture { texture, layer});
 
                 let x = fb_width - (spacing + size) * (i as i32 + 1);
 
@@ -4246,8 +4291,32 @@ impl Renderer {
                     return;
                 }
 
-                let dest_rect = rect(x, y, size, size);
-                self.device.blit_render_target(src_rect, dest_rect);
+                // Draw the info tag.
+                let text_margin = 1;
+                let text_height = 14; // Visually aproximated.
+                let tag_height = text_height + text_margin * 2;
+                let tag_rect = rect(x, y, size, tag_height);
+                let tag_color = select_color(texture);
+                device.clear_target(Some(tag_color), None, Some(tag_rect));
+
+                // Draw the dimensions onto the tag.
+                let dim = texture.get_dimensions();
+                let mut text_rect = tag_rect;
+                text_rect.origin.y =
+                    fb_height - text_rect.origin.y - text_rect.size.height; // Top-relative.
+                debug_renderer.add_text(
+                    (x + text_margin) as f32,
+                    (fb_height - y - text_margin) as f32, // Top-relative.
+                    &format!("{}x{}", dim.width, dim.height),
+                    ColorU::new(0, 0, 0, 255),
+                    Some(text_rect.to_f32())
+                );
+
+                // Blit the contents of the layer. We need to invert Y because
+                // we're blitting from a texture to the main framebuffer, which
+                // use different conventions.
+                let dest_rect = rect(x, y + tag_height, size, size);
+                device.blit_render_target_invert_y(src_rect, dest_rect);
                 i += 1;
             }
         }
@@ -4275,6 +4344,7 @@ impl Renderer {
                 x0, y,
                 &format!("{:?}: {:?}", pipeline, epoch),
                 ColorU::new(255, 255, 0, 255),
+                None,
             ).size.width;
             text_width = f32::max(text_width, w);
         }
@@ -4291,7 +4361,7 @@ impl Renderer {
     }
 
     #[cfg(feature = "debug_renderer")]
-    fn draw_gpu_cache_debug(&mut self, framebuffer_size: DeviceUintSize) {
+    fn draw_gpu_cache_debug(&mut self, framebuffer_size: DeviceIntSize) {
         if !self.debug_flags.contains(DebugFlags::GPU_CACHE_DBG) {
             return;
         }
@@ -4329,24 +4399,24 @@ impl Renderer {
     }
 
     /// Pass-through to `Device::read_pixels_into`, used by Gecko's WR bindings.
-    pub fn read_pixels_into(&mut self, rect: DeviceUintRect, format: ReadPixelsFormat, output: &mut [u8]) {
+    pub fn read_pixels_into(&mut self, rect: DeviceIntRect, format: ReadPixelsFormat, output: &mut [u8]) {
         self.device.read_pixels_into(rect, format, output);
     }
 
-    pub fn read_pixels_rgba8(&mut self, rect: DeviceUintRect) -> Vec<u8> {
+    pub fn read_pixels_rgba8(&mut self, rect: DeviceIntRect) -> Vec<u8> {
         let mut pixels = vec![0; (rect.size.width * rect.size.height * 4) as usize];
         self.device.read_pixels_into(rect, ReadPixelsFormat::Rgba8, &mut pixels);
         pixels
     }
 
-    pub fn read_gpu_cache(&mut self) -> (DeviceUintSize, Vec<u8>) {
+    pub fn read_gpu_cache(&mut self) -> (DeviceIntSize, Vec<u8>) {
         let texture = self.gpu_cache_texture.texture.as_ref().unwrap();
         let size = texture.get_dimensions();
         let mut texels = vec![0; (size.width * size.height * 16) as usize];
         self.device.begin_frame();
         self.device.bind_read_target(ReadTarget::Texture { texture, layer: 0 });
         self.device.read_pixels_into(
-            DeviceUintRect::new(DeviceUintPoint::zero(), size),
+            DeviceIntRect::new(DeviceIntPoint::zero(), size),
             ReadPixelsFormat::Standard(ImageFormat::RGBAF32),
             &mut texels,
         );
@@ -4539,6 +4609,8 @@ pub trait SceneBuilderHooks {
     /// This is called exactly once, when the scene builder thread is started
     /// and before it processes anything.
     fn register(&self);
+    /// This is called before each scene build starts.
+    fn pre_scene_build(&self);
     /// This is called before each scene swap occurs.
     fn pre_scene_swap(&self, scenebuild_time: u64);
     /// This is called after each scene swap occurs. The PipelineInfo contains
@@ -4549,6 +4621,11 @@ pub trait SceneBuilderHooks {
     /// thread, in the case where resource updates were applied without a scene
     /// build.
     fn post_resource_update(&self);
+    /// This is called after a scene build completes without any changes being
+    /// made. We guarantee that each pre_scene_build call will be matched with
+    /// exactly one of post_scene_swap, post_resource_update or
+    /// post_empty_scene_build.
+    fn post_empty_scene_build(&self);
     /// This is a generic callback which provides an opportunity to run code
     /// on the scene builder thread. This is called as part of the main message
     /// loop of the scene builder thread, but outside of any specific message
@@ -4601,7 +4678,7 @@ pub struct RendererOptions {
     pub enable_subpixel_aa: bool,
     pub clear_color: Option<ColorF>,
     pub enable_clear_scissor: bool,
-    pub max_texture_size: Option<u32>,
+    pub max_texture_size: Option<i32>,
     pub scatter_gpu_cache_updates: bool,
     pub upload_method: UploadMethod,
     pub workers: Option<Arc<ThreadPool>>,
@@ -4679,6 +4756,8 @@ pub struct RendererStats {
     pub alpha_target_count: usize,
     pub color_target_count: usize,
     pub texture_upload_kb: usize,
+    pub resource_upload_time: u64,
+    pub gpu_cache_upload_time: u64,
 }
 
 impl RendererStats {
@@ -4688,6 +4767,8 @@ impl RendererStats {
             alpha_target_count: 0,
             color_target_count: 0,
             texture_upload_kb: 0,
+            resource_upload_time: 0,
+            gpu_cache_upload_time: 0,
         }
     }
 }
@@ -4699,7 +4780,7 @@ impl RendererStats {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 struct PlainTexture {
     data: String,
-    size: (u32, u32, i32),
+    size: (DeviceIntSize, i32),
     format: ImageFormat,
     filter: TextureFilter,
 }
@@ -4769,8 +4850,8 @@ impl Renderer {
 
         let bytes_per_pixel = texture.get_format().bytes_per_pixel();
         let read_format = ReadPixelsFormat::Standard(texture.get_format());
-        let rect = DeviceUintRect::new(
-            DeviceUintPoint::zero(),
+        let rect = DeviceIntRect::new(
+            DeviceIntPoint::zero(),
             texture.get_dimensions(),
         );
 
@@ -4797,7 +4878,7 @@ impl Renderer {
                 };
                 CaptureConfig::save_png(
                     root.join(format!("textures/{}-{}.png", name, layer_id)),
-                    (rect.size.width, rect.size.height), format,
+                    rect.size, format,
                     data_ref,
                 );
             }
@@ -4808,7 +4889,7 @@ impl Renderer {
 
         PlainTexture {
             data: short_path,
-            size: (rect.size.width, rect.size.height, texture.get_layer_count()),
+            size: (rect.size, texture.get_layer_count()),
             format: texture.get_format(),
             filter: texture.get_filter(),
         }
@@ -4835,11 +4916,11 @@ impl Renderer {
         let texture = device.create_texture(
             target,
             plain.format,
-            plain.size.0,
-            plain.size.1,
+            plain.size.0.width,
+            plain.size.0.height,
             plain.filter,
             rt_info,
-            plain.size.2,
+            plain.size.1,
         );
         device.upload_texture_immediate(&texture, &texels);
 
@@ -5065,7 +5146,7 @@ impl Renderer {
                         let (layer_count, filter) = (1, TextureFilter::Linear);
                         let plain_tex = PlainTexture {
                             data: e.key().clone(),
-                            size: (descriptor.size.width, descriptor.size.height, layer_count),
+                            size: (descriptor.size, layer_count),
                             format: descriptor.format,
                             filter,
                         };

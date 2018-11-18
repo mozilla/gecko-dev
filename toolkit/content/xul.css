@@ -176,12 +176,6 @@ browser {
   -moz-binding: url("chrome://global/content/bindings/browser.xml#browser");
 }
 
-/********** notifications **********/
-
-notification {
-  -moz-binding: url("chrome://global/content/bindings/notification.xml#notification");
-}
-
 /*********** popup notification ************/
 popupnotification {
   -moz-binding: url("chrome://global/content/bindings/notification.xml#popup-notification");
@@ -454,7 +448,6 @@ treecol {
 
 tree > treechildren {
   display: -moz-box;
-  -moz-binding: url("chrome://global/content/bindings/tree.xml#treebody");
   -moz-user-select: none;
   -moz-box-flex: 1;
 }

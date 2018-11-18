@@ -154,7 +154,7 @@ option('--enable-default-toolkit', nargs=1,
        help='Select default toolkit')
 
 @depends('--enable-default-toolkit', target, '--help')
-def toolkit(value, target, _):
+def full_toolkit(value, target, _):
     # Define possible choices for each platform. The default is the first one
     # listed when there are several.
     if target.os == 'WINNT':
@@ -177,11 +177,7 @@ def toolkit(value, target, _):
 
     return platform_choices[0]
 
-@depends(toolkit)
-def wayland(toolkit):
-    return toolkit == 'cairo-gtk3-wayland'
-
-@depends(toolkit)
+@depends(full_toolkit)
 def toolkit(toolkit):
     if toolkit == 'cairo-gtk3-wayland':
         widget_toolkit = 'gtk3'
@@ -193,19 +189,17 @@ set_config('MOZ_WIDGET_TOOLKIT', toolkit)
 add_old_configure_assignment('MOZ_WIDGET_TOOLKIT', toolkit)
 
 @depends(toolkit)
-def toolkit_gtk(toolkit):
-    if toolkit == 'gtk3':
-        return '3'
-
-set_define('MOZ_WIDGET_GTK', toolkit_gtk)
-
-@depends(toolkit)
 def toolkit_define(toolkit):
-    if toolkit not in ('gtk3', 'windows'):
+    if toolkit == 'gtk3':
+        toolkit = 'gtk'
+    if toolkit != 'windows':
         return 'MOZ_WIDGET_%s' % toolkit.upper()
 
 set_define(toolkit_define, True)
 
+@depends(toolkit)
+def toolkit_gtk(toolkit):
+    return toolkit == 'gtk3'
 
 set_config('MOZ_X11', True, when=toolkit_gtk)
 set_define('MOZ_X11', True, when=toolkit_gtk)
@@ -214,7 +208,17 @@ add_old_configure_assignment('MOZ_X11', True, when=toolkit_gtk)
 # Wayland support
 # ==============================================================
 wayland_headers = pkg_check_modules(
-    'MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.10 xkbcommon >= 0.4.1', when=wayland)
+    'MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.10 xkbcommon >= 0.4.1',
+    allow_missing=depends(full_toolkit)(lambda t: t == 'cairo-gtk3'),
+    when=depends(full_toolkit)(lambda t: t in ('cairo-gtk3', 'cairo-gtk3-wayland')))
+
+
+@depends(wayland_headers, toolkit_gtk, artifact_builds)
+def wayland_headers(wayland, toolkit_gtk, artifacts):
+    if toolkit_gtk and artifacts:
+        return True
+    return wayland
+
 
 set_config('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
 set_define('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
@@ -235,7 +239,7 @@ def gl_provider_define(provider):
 
 set_define('MOZ_GL_PROVIDER', gl_provider_define)
 
-@depends(gl_provider, wayland, toolkit_gtk)
+@depends(gl_provider, wayland_headers, toolkit_gtk)
 def gl_default_provider(value, wayland, toolkit_gtk):
     if value:
         return value

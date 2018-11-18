@@ -93,8 +93,8 @@ var connect = async function() {
     const addonTargetActor = addons.filter(addon => addon.id === addonID).pop();
     await openToolbox({form: addonTargetActor, chrome: true});
   } else {
-    const response = await gClient.mainRoot.getProcess(0);
-    await openToolbox({form: response.form, chrome: true});
+    const front = await gClient.mainRoot.getMainProcess();
+    await openToolbox({activeTab: front, chrome: true});
   }
 };
 
@@ -104,6 +104,7 @@ function setPrefDefaults() {
   Services.prefs.setBoolPref("devtools.performance.ui.show-platform-data", true);
   Services.prefs.setBoolPref("devtools.inspector.showAllAnonymousContent", true);
   Services.prefs.setBoolPref("browser.dom.window.dump.enabled", true);
+  Services.prefs.setBoolPref("devtools.console.stdout.chrome", true);
   Services.prefs.setBoolPref("devtools.command-button-noautohide.enabled", true);
   // Bug 1225160 - Using source maps with browser debugging can lead to a crash
   Services.prefs.setBoolPref("devtools.debugger.source-maps-enabled", false);
@@ -140,13 +141,14 @@ function onCloseCommand(event) {
   window.close();
 }
 
-async function openToolbox({ form, chrome }) {
+async function openToolbox({ form, activeTab, chrome }) {
   let options = {
-    form: form,
+    form,
+    activeTab,
     client: gClient,
-    chrome: chrome,
+    chrome,
   };
-  appendStatusMessage(`Create toolbox target: ${JSON.stringify(arguments, null, 2)}`);
+  appendStatusMessage(`Create toolbox target: ${JSON.stringify({form, chrome}, null, 2)}`);
   const target = await TargetFactory.forRemoteTab(options);
   const frame = document.getElementById("toolbox-iframe");
 

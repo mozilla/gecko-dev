@@ -70,10 +70,6 @@
   min-width: 25px;
 }
 
-toolbar[customizable="true"] {
-  -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar");
-}
-
 %ifdef MENUBAR_CAN_AUTOHIDE
 #toolbar-menubar[autohide="true"] {
   overflow: hidden;
@@ -256,10 +252,10 @@ panelview[mainview] > .panel-header {
 }
 
 /* Allow dropping a tab on buttons with associated drop actions. */
-#TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #personal-bookmarks,
-#TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #home-button,
-#TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #downloads-button,
-#TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #bookmarks-menu-button {
+#navigator-toolbox[movingtab] > #nav-bar > #nav-bar-customization-target > #personal-bookmarks,
+#navigator-toolbox[movingtab] > #nav-bar > #nav-bar-customization-target > #home-button,
+#navigator-toolbox[movingtab] > #nav-bar > #nav-bar-customization-target > #downloads-button,
+#navigator-toolbox[movingtab] > #nav-bar > #nav-bar-customization-target > #bookmarks-menu-button {
   pointer-events: auto;
 }
 
@@ -977,13 +973,6 @@ html|*#fullscreen-exit-button {
   pointer-events: auto;
 }
 
-/* ::::: Ctrl-Tab Panel ::::: */
-
-.ctrlTab-preview {
-  -moz-binding: url("chrome://global/content/bindings/button.xml#button-base");
-}
-
-
 /* notification anchors should only be visible when their associated
    notifications are */
 .notification-anchor-icon {
@@ -1063,11 +1052,6 @@ browser[tabmodalPromptShowing] {
   height: 3em;
   width: 100%;
   -moz-box-align: end;
-}
-
-/* Translation */
-notification[value="translation"] {
-  -moz-binding: url("chrome://browser/content/translation-infobar.xml#translationbar");
 }
 
 /*** Visibility of downloads indicator controls ***/

@@ -110,7 +110,6 @@ ScreenHelperGTK::~ScreenHelperGTK()
 gint
 ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum)
 {
-#if (MOZ_WIDGET_GTK >= 3)
   // Since GDK 3.10
   static auto sGdkScreenGetMonitorScaleFactorPtr = (gint (*)(GdkScreen*, gint))
     dlsym(RTLD_DEFAULT, "gdk_screen_get_monitor_scale_factor");
@@ -118,7 +117,6 @@ ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum)
     GdkScreen *screen = gdk_screen_get_default();
     return sGdkScreenGetMonitorScaleFactorPtr(screen, aMonitorNum);
   }
-#endif
   return 1;
 }
 
@@ -155,7 +153,7 @@ MakeScreen(GdkScreen* aScreen, gint aMonitorNum)
   DesktopToLayoutDeviceScale contentsScale(1.0);
 #ifdef MOZ_WAYLAND
     GdkDisplay* gdkDisplay = gdk_display_get_default();
-    if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
+    if (!GDK_IS_X11_DISPLAY(gdkDisplay)) {
       contentsScale.scale = gdkScaleFactor;
     }
 #endif

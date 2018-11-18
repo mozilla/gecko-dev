@@ -10,6 +10,7 @@ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
 const CSSDeclaration = createFactory(require("./CSSDeclaration"));
+const { getStr } = require("../utils/l10n");
 
 class ChangesApp extends PureComponent {
   static get propTypes() {
@@ -33,24 +34,30 @@ class ChangesApp extends PureComponent {
     this.renderedRules = [];
   }
 
-  renderDeclarations(remove = {}, add = {}) {
-    const removals = Object.entries(remove).map(([property, value]) => {
-      return CSSDeclaration({
-        key: "remove-" + property,
-        className: "level diff-remove",
-        property,
-        value,
+  renderDeclarations(remove = [], add = []) {
+    const removals = remove
+      // Sorting changed declarations in the order they appear in the Rules view.
+      .sort((a, b) => a.index > b.index)
+      .map(({property, value, index}) => {
+        return CSSDeclaration({
+          key: "remove-" + property + index,
+          className: "level diff-remove",
+          property,
+          value,
+        });
       });
-    });
 
-    const additions = Object.entries(add).map(([property, value]) => {
-      return CSSDeclaration({
-        key: "add-" + property,
-        className: "level diff-add",
-        property,
-        value,
+    const additions = add
+      // Sorting changed declarations in the order they appear in the Rules view.
+      .sort((a, b) => a.index > b.index)
+      .map(({property, value, index}) => {
+        return CSSDeclaration({
+          key: "add-" + property + index,
+          className: "level diff-add",
+          property,
+          value,
+        });
       });
-    });
 
     return [removals, additions];
   }
@@ -121,16 +128,25 @@ class ChangesApp extends PureComponent {
     });
   }
 
+  renderEmptyState() {
+    return dom.div({ className: "devtools-sidepanel-no-result" },
+      dom.p({}, getStr("changes.noChanges")),
+      dom.p({}, getStr("changes.noChangesDescription"))
+    );
+  }
+
   render() {
     // Reset log of rendered rules.
     this.renderedRules = [];
+    const hasChanges = Object.keys(this.props.changes).length > 0;
 
     return dom.div(
       {
         className: "theme-sidebar inspector-tabpanel",
         id: "sidebar-panel-changes",
       },
-      this.renderDiff(this.props.changes)
+      !hasChanges && this.renderEmptyState(),
+      hasChanges && this.renderDiff(this.props.changes)
     );
   }
 }

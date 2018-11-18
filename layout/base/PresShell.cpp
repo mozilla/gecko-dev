@@ -747,8 +747,7 @@ PresShell::AccessibleCaretEnabled(nsIDocShell* aDocShell)
 }
 
 nsIPresShell::nsIPresShell()
-    : mFrameConstructor(nullptr)
-    , mViewManager(nullptr)
+    : mViewManager(nullptr)
     , mFrameManager(nullptr)
 #ifdef ACCESSIBILITY
     , mDocAccessible(nullptr)
@@ -833,7 +832,7 @@ PresShell::PresShell()
   MOZ_LOG(gLog, LogLevel::Debug, ("PresShell::PresShell this=%p", this));
 
 #ifdef MOZ_REFLOW_PERF
-  mReflowCountMgr = new ReflowCountMgr();
+  mReflowCountMgr = MakeUnique<ReflowCountMgr>();
   mReflowCountMgr->SetPresContext(mPresContext);
   mReflowCountMgr->SetPresShell(this);
 #endif
@@ -892,7 +891,8 @@ PresShell::~PresShell()
   MOZ_ASSERT(mAllocatedPointers.IsEmpty(), "Some pres arena objects were not freed");
 
   mStyleSet = nullptr;
-  delete mFrameConstructor;
+  mFrameManager = nullptr;
+  mFrameConstructor = nullptr;
 
   mCurrentEventContent = nullptr;
 }
@@ -929,9 +929,9 @@ PresShell::Init(nsIDocument* aDocument,
   SetNeedStyleFlush();
 
   // Create our frame constructor.
-  mFrameConstructor = new nsCSSFrameConstructor(mDocument, this);
+  mFrameConstructor = MakeUnique<nsCSSFrameConstructor>(mDocument, this);
 
-  mFrameManager = mFrameConstructor;
+  mFrameManager = mFrameConstructor.get();
 
   // The document viewer owns both view manager and pres shell.
   mViewManager->SetPresShell(this);
@@ -1182,10 +1182,7 @@ PresShell::Destroy()
 
 #ifdef MOZ_REFLOW_PERF
   DumpReflows();
-  if (mReflowCountMgr) {
-    delete mReflowCountMgr;
-    mReflowCountMgr = nullptr;
-  }
+  mReflowCountMgr = nullptr;
 #endif
 
   if (mZoomConstraintsClient) {
@@ -6403,6 +6400,14 @@ PresShell::Paint(nsView*         aViewToPaint,
     // We can paint directly into the widget using its layer manager.
     nsLayoutUtils::PaintFrame(nullptr, frame, aDirtyRegion, bgcolor,
                               nsDisplayListBuilderMode::PAINTING, flags);
+
+    // When recording/replaying, create a checkpoint after every paint. This
+    // can cause content JS to run, so reset |nojs|.
+    if (recordreplay::IsRecordingOrReplaying()) {
+      nojs.reset();
+      recordreplay::child::CreateCheckpoint();
+    }
+
     return;
   }
 
@@ -6965,10 +6970,8 @@ PresShell::HandleEvent(nsIFrame* aFrame,
     if (aEvent->mMessage == eKeyDown) {
       mNoDelayedKeyEvents = true;
     } else if (!mNoDelayedKeyEvents) {
-      DelayedEvent* event = new DelayedKeyEvent(aEvent->AsKeyboardEvent());
-      if (!mDelayedEvents.AppendElement(event)) {
-        delete event;
-      }
+      auto event = MakeUnique<DelayedKeyEvent>(aEvent->AsKeyboardEvent());
+      mDelayedEvents.AppendElement(std::move(event));
     }
     aEvent->mFlags.mIsSuppressedOrDelayed = true;
     return NS_OK;
@@ -7187,10 +7190,8 @@ PresShell::HandleEvent(nsIFrame* aFrame,
         // contextmenu is triggered after right mouseup on Windows and right
         // mousedown on other platforms.
         aEvent->mMessage == eContextMenu)) {
-        DelayedEvent* event = new DelayedMouseEvent(aEvent->AsMouseEvent());
-        if (!mDelayedEvents.AppendElement(event)) {
-          delete event;
-        }
+        auto event = MakeUnique<DelayedMouseEvent>(aEvent->AsMouseEvent());
+        mDelayedEvents.AppendElement(std::move(event));
       }
       return NS_OK;
     }
@@ -7926,74 +7927,6 @@ GetDocumentURIToCompareWithBlacklist(PresShell& aPresShell)
   }
   return nullptr;
 }
-
-static bool
-IsURIInBlacklistPref(nsIURI* aURI,
-                     const char* aBlacklistPrefName)
-{
-  if (!aURI) {
-    return false;
-  }
-
-  nsAutoCString scheme;
-  aURI->GetScheme(scheme);
-  if (!scheme.EqualsLiteral("http") &&
-      !scheme.EqualsLiteral("https")) {
-    return false;
-  }
-
-  nsAutoCString host;
-  aURI->GetHost(host);
-  if (host.IsEmpty()) {
-    return false;
-  }
-
-  // The black list is comma separated domain list.  Each item may start with
-  // "*.".  If starts with "*.", it matches any sub-domains.
-  nsAutoCString blackList;
-  Preferences::GetCString(aBlacklistPrefName, blackList);
-  if (blackList.IsEmpty()) {
-    return false;
-  }
-
-  for (;;) {
-    int32_t index = blackList.Find(host, false);
-    if (index >= 0 &&
-        static_cast<uint32_t>(index) + host.Length() <= blackList.Length() &&
-        // If start of the black list or next to ","?
-        (!index || blackList[index - 1] == ',')) {
-      // If end of the black list or immediately before ","?
-      size_t indexAfterHost = index + host.Length();
-      if (indexAfterHost == blackList.Length() ||
-          blackList[indexAfterHost] == ',') {
-        return true;
-      }
-      // If next character is '/', we need to check the path too.
-      // We assume the path in blacklist means "/foo" + "*".
-      if (blackList[indexAfterHost] == '/') {
-        int32_t endOfPath = blackList.Find(",", false, indexAfterHost);
-        nsDependentCSubstring::size_type length =
-          endOfPath < 0 ? static_cast<nsDependentCSubstring::size_type>(-1) :
-                          endOfPath - indexAfterHost;
-        nsDependentCSubstring pathInBlackList(blackList,
-                                              indexAfterHost, length);
-        nsAutoCString filePath;
-        aURI->GetFilePath(filePath);
-        if (StringBeginsWith(filePath, pathInBlackList)) {
-          return true;
-        }
-      }
-    }
-    int32_t startIndexOfCurrentLevel = host[0] == '*' ? 1 : 0;
-    int32_t startIndexOfNextLevel =
-      host.Find(".", false, startIndexOfCurrentLevel + 1);
-    if (startIndexOfNextLevel <= 0) {
-      return false;
-    }
-    host = NS_LITERAL_CSTRING("*") +
-             nsDependentCSubstring(host, startIndexOfNextLevel);
-  }
-}
 #endif // #ifdef NIGHTLY_BUILD
 
 nsresult
@@ -8039,10 +7972,10 @@ PresShell::DispatchEventToDOM(WidgetEvent* aEvent,
         mInitializedWithKeyPressEventDispatchingBlacklist = true;
         nsCOMPtr<nsIURI> uri = GetDocumentURIToCompareWithBlacklist(*this);
         mForceDispatchKeyPressEventsForNonPrintableKeys =
-          IsURIInBlacklistPref(uri,
+          nsContentUtils::IsURIInPrefList(uri,
             "dom.keyboardevent.keypress.hack.dispatch_non_printable_keys");
         mForceUseLegacyKeyCodeAndCharCodeValues =
-          IsURIInBlacklistPref(uri,
+          nsContentUtils::IsURIInPrefList(uri,
             "dom.keyboardevent.keypress.hack.use_legacy_keycode_and_charcode");
       }
       if (mForceDispatchKeyPressEventsForNonPrintableKeys) {
@@ -8795,7 +8728,7 @@ PresShell::FireOrClearDelayedEvents(bool aFireEvents)
     nsCOMPtr<nsIDocument> doc = mDocument;
     while (!mIsDestroying && mDelayedEvents.Length() &&
            !doc->EventHandlingSuppressed()) {
-      nsAutoPtr<DelayedEvent> ev(mDelayedEvents[0].forget());
+      UniquePtr<DelayedEvent> ev = std::move(mDelayedEvents[0]);
       mDelayedEvents.RemoveElementAt(0);
       if (ev->IsKeyPressEvent() && mIsLastKeyDownCanceled) {
         continue;

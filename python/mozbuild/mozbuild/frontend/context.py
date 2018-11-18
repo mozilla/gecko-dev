@@ -366,7 +366,13 @@ class AsmFlags(BaseCompileFlags):
         debug_flags = []
         if (self._context.config.substs.get('MOZ_DEBUG') or
             self._context.config.substs.get('MOZ_DEBUG_SYMBOLS')):
-            if self._context.get('USE_YASM'):
+            if self._context.get('USE_NASM') or (self._context.get('USE_YASM') and self._context.config.substs.get('NASM')):
+                if (self._context.config.substs.get('OS_ARCH') == 'WINNT' and
+                    not self._context.config.substs.get('GNU_CC')):
+                    debug_flags += ['-F', 'cv8']
+                elif self._context.config.substs.get('OS_ARCH') != 'Darwin':
+                    debug_flags += ['-F', 'dwarf']
+            elif self._context.get('USE_YASM'):
                 if (self._context.config.substs.get('OS_ARCH') == 'WINNT' and
                     not self._context.config.substs.get('GNU_CC')):
                     debug_flags += ['-g', 'cv8']
@@ -2141,6 +2147,17 @@ VARIABLES = {
     'NO_COMPONENTS_MANIFEST': (bool, bool,
         """Do not create a binary-component manifest entry for the
         corresponding XPCOMBinaryComponent.
+        """),
+
+    'USE_NASM': (bool, bool,
+        """Use the nasm assembler to assemble assembly files from SOURCES.
+
+        By default, the build will use the toolchain assembler, $(AS), to
+        assemble source files in assembly language (.s or .asm files). Setting
+        this value to ``True`` will cause it to use nasm instead.
+
+        If nasm is not available on this system, or does not support the
+        current target architecture, an error will be raised.
         """),
 
     'USE_YASM': (bool, bool,

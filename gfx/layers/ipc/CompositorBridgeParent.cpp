@@ -816,19 +816,22 @@ CompositorBridgeParent::CancelCurrentCompositeTask()
 }
 
 void
-CompositorBridgeParent::SetEGLSurfaceSize(int width, int height)
+CompositorBridgeParent::SetEGLSurfaceRect(int x, int y, int width, int height)
 {
   NS_ASSERTION(mUseExternalSurfaceSize, "Compositor created without UseExternalSurfaceSize provided");
   mEGLSurfaceSize.SizeTo(width, height);
   if (mCompositor) {
     mCompositor->SetDestinationSurfaceSize(gfx::IntSize(mEGLSurfaceSize.width, mEGLSurfaceSize.height));
+    if (mCompositor->AsCompositorOGL()) {
+      mCompositor->AsCompositorOGL()->SetSurfaceOrigin(ScreenIntPoint(x, y));
+    }
   }
 }
 
 void
-CompositorBridgeParent::ResumeCompositionAndResize(int width, int height)
+CompositorBridgeParent::ResumeCompositionAndResize(int x, int y, int width, int height)
 {
-  SetEGLSurfaceSize(width, height);
+  SetEGLSurfaceRect(x, y, width, height);
   ResumeComposition();
 }
 
@@ -869,15 +872,16 @@ CompositorBridgeParent::ScheduleResumeOnCompositorThread()
 }
 
 bool
-CompositorBridgeParent::ScheduleResumeOnCompositorThread(int width, int height)
+CompositorBridgeParent::ScheduleResumeOnCompositorThread(int x, int y, int width, int height)
 {
   MonitorAutoLock lock(mResumeCompositionMonitor);
 
   MOZ_ASSERT(CompositorLoop());
-  CompositorLoop()->PostTask(NewRunnableMethod<int, int>(
+  CompositorLoop()->PostTask(NewRunnableMethod<int, int, int, int>(
     "layers::CompositorBridgeParent::ResumeCompositionAndResize",
     this,
     &CompositorBridgeParent::ResumeCompositionAndResize,
+    x, y,
     width,
     height));
 
@@ -2204,9 +2208,10 @@ void
 CompositorBridgeParent::NotifyPipelineRendered(const wr::PipelineId& aPipelineId,
                                                const wr::Epoch& aEpoch,
                                                TimeStamp& aCompositeStart,
-                                               TimeStamp& aCompositeEnd)
+                                               TimeStamp& aCompositeEnd,
+                                               wr::RendererStats* aStats)
 {
-  if (!mWrBridge) {
+  if (!mWrBridge || !mAsyncImageManager) {
     return;
   }
 
@@ -2229,21 +2234,15 @@ CompositorBridgeParent::NotifyPipelineRendered(const wr::PipelineId& aPipelineId
     return;
   }
 
-  MonitorAutoLock lock(*sIndirectLayerTreesLock);
-  ForEachIndirectLayerTree([&] (LayerTreeState* lts, const LayersId& aLayersId) -> void {
-    if (lts->mCrossProcessParent &&
-        lts->mWrBridge &&
-        lts->mWrBridge->PipelineId() == aPipelineId) {
-
-      lts->mWrBridge->RemoveEpochDataPriorTo(aEpoch);
-
+  auto wrBridge = mAsyncImageManager->GetWrBridge(aPipelineId);
+  if (wrBridge && wrBridge->GetCompositorBridge()) {
+      MOZ_ASSERT(!wrBridge->IsRootWebRenderBridgeParent());
+      wrBridge->RemoveEpochDataPriorTo(aEpoch);
       if (!mPaused) {
-        CrossProcessCompositorBridgeParent* cpcp = lts->mCrossProcessParent;
-        TransactionId transactionId = lts->mWrBridge->FlushTransactionIdsForEpoch(aEpoch, aCompositeEnd, uiController);
-        Unused << cpcp->SendDidComposite(aLayersId, transactionId, aCompositeStart, aCompositeEnd);
+        TransactionId transactionId = wrBridge->FlushTransactionIdsForEpoch(aEpoch, aCompositeEnd, uiController, aStats);
+        Unused << wrBridge->GetCompositorBridge()->SendDidComposite(wrBridge->GetLayersId(), transactionId, aCompositeStart, aCompositeEnd);
       }
-    }
-  });
+  }
 }
 
 RefPtr<AsyncImagePipelineManager>

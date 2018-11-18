@@ -791,16 +791,47 @@ var gMainPane = {
   /* Show the confirmation message bar to allow a restart into the new locales. */
   async showConfirmLanguageChangeMessageBar(locales) {
     let messageBar = document.getElementById("confirmBrowserLanguage");
-    // Set the text in the message bar for the new locale.
+
+    // Get the bundle for the new locale.
     let newBundle = getBundleForLocales(locales);
-    let description = messageBar.querySelector(".message-bar-description");
-    description.textContent = await newBundle.formatValue(
-      "confirm-browser-language-change-description");
-    let button = messageBar.querySelector(".message-bar-button");
-    button.setAttribute(
-      "label", await newBundle.formatValue(
-        "confirm-browser-language-change-button"));
-    button.setAttribute("locales", locales.join(","));
+
+    // Find the messages and labels.
+    let messages = await Promise.all([newBundle, document.l10n].map(
+      async (bundle) => bundle.formatValue("confirm-browser-language-change-description")));
+    let buttonLabels = await Promise.all([newBundle, document.l10n].map(
+      async (bundle) => bundle.formatValue("confirm-browser-language-change-button")));
+
+    // If both the message and label are the same, just include one row.
+    if (messages[0] == messages[1] && buttonLabels[0] == buttonLabels[1]) {
+      messages.pop();
+      buttonLabels.pop();
+    }
+
+    let contentContainer = messageBar.querySelector(".message-bar-content-container");
+    contentContainer.textContent = "";
+
+    for (let i = 0; i < messages.length; i++) {
+      let messageContainer = document.createXULElement("hbox");
+      messageContainer.classList.add("message-bar-content");
+      messageContainer.setAttribute("flex", "1");
+      messageContainer.setAttribute("align", "center");
+
+      let description = document.createXULElement("description");
+      description.classList.add("message-bar-description");
+      description.setAttribute("flex", "1");
+      description.textContent = messages[i];
+      messageContainer.appendChild(description);
+
+      let button = document.createXULElement("button");
+      button.addEventListener("command", gMainPane.confirmBrowserLanguageChange);
+      button.classList.add("message-bar-button");
+      button.setAttribute("locales", locales.join(","));
+      button.setAttribute("label", buttonLabels[i]);
+      messageContainer.appendChild(button);
+
+      contentContainer.appendChild(messageContainer);
+    }
+
     messageBar.hidden = false;
     gMainPane.requestingLocales = locales;
   },
@@ -2255,7 +2286,7 @@ var gMainPane = {
     return this.chooseFolderTask().catch(Cu.reportError);
   },
   async chooseFolderTask() {
-    let title = gMainPane._prefsBundle.getString("chooseDownloadFolderTitle");
+    let [title] = await document.l10n.formatValues([{id: "choose-download-folder-title"}]);
     let folderListPref = Preferences.get("browser.download.folderList");
     let currentDirPref = await this._indexToFolder(folderListPref.value);
     let defDownloads = await this._indexToFolder(1);
@@ -2320,6 +2351,7 @@ var gMainPane = {
     }
 
     // Display a 'pretty' label or the path in the UI.
+    // note: downloadFolder.value is not read elsewhere in the code, its only purpose is to display to the user
     if (folderIndex == 2) {
       // Force the left-to-right direction when displaying a custom path.
       downloadFolder.value = currentDirPref.value ?
@@ -2327,11 +2359,11 @@ var gMainPane = {
       iconUrlSpec = fph.getURLSpecFromFile(currentDirPref.value);
     } else if (folderIndex == 1) {
       // 'Downloads'
-      downloadFolder.value = gMainPane._prefsBundle.getString("downloadsFolderName");
+      [downloadFolder.value] = await document.l10n.formatValues([{id: "downloads-folder-name"}]);
       iconUrlSpec = fph.getURLSpecFromFile(await this._indexToFolder(1));
     } else {
       // 'Desktop'
-      downloadFolder.value = gMainPane._prefsBundle.getString("desktopFolderName");
+      [downloadFolder.value] = await document.l10n.formatValues([{id: "desktop-folder-name"}]);
       iconUrlSpec = fph.getURLSpecFromFile(await this._getDownloadsFolder("Desktop"));
     }
     downloadFolder.style.backgroundImage = "url(moz-icon://" + iconUrlSpec + "?size=16)";

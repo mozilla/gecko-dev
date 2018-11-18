@@ -11,9 +11,11 @@
 #include "mozIDOMWindow.h"
 
 #include "nsCOMPtr.h"
+#include "nsDataHashtable.h"
 #include "nsTArray.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/TaskCategory.h"
+#include "mozilla/TimeStamp.h"
 #include "js/TypeDecls.h"
 #include "nsRefPtrHashtable.h"
 
@@ -58,6 +60,9 @@ class Element;
 class MozIdleObserver;
 class Navigator;
 class Performance;
+class Report;
+class ReportBody;
+class ReportingObserver;
 class Selection;
 class ServiceWorker;
 class ServiceWorkerDescriptor;
@@ -254,6 +259,16 @@ public:
   void SetHasPointerEnterLeaveEventListeners()
   {
     mMayHavePointerEnterLeaveEventListener = true;
+  }
+
+  /**
+   * Call this to indiate that some node (this window, its document,
+   * or content in that document) has a text event listener in the default
+   * group.
+   */
+  void SetHasTextEventListenerInDefaultGroup()
+  {
+    mMayHaveTextEventListenerInDefaultGroup = true;
   }
 
   // Sets the event for window.event. Does NOT take ownership, so
@@ -618,6 +633,19 @@ public:
   already_AddRefed<mozilla::AutoplayPermissionManager>
   GetAutoplayPermissionManager();
 
+  void
+  RegisterReportingObserver(mozilla::dom::ReportingObserver* aObserver,
+                            bool aBuffered);
+
+  void
+  UnregisterReportingObserver(mozilla::dom::ReportingObserver* aObserver);
+
+  void
+  BroadcastReport(mozilla::dom::Report* aReport);
+
+  void
+  NotifyReportingObservers();
+
 protected:
   void CreatePerformanceObjectIfNeeded();
 
@@ -661,6 +689,9 @@ protected:
   bool mMayHaveSelectionChangeEventListener;
   bool mMayHaveMouseEnterLeaveEventListener;
   bool mMayHavePointerEnterLeaveEventListener;
+  // Only for telemetry probe so that you can remove this after the
+  // telemetry stops working.
+  bool mMayHaveTextEventListenerInDefaultGroup;
 
   bool mAudioCaptured;
 
@@ -709,6 +740,10 @@ protected:
   // The event dispatch code sets and unsets this while keeping
   // the event object alive.
   mozilla::dom::Event* mEvent;
+
+  // List of Report objects for ReportingObservers.
+  nsTArray<RefPtr<mozilla::dom::ReportingObserver>> mReportingObservers;
+  nsTArray<RefPtr<mozilla::dom::Report>> mReportRecords;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowInner, NS_PIDOMWINDOWINNER_IID)
@@ -825,6 +860,13 @@ public:
   virtual nsPIDOMWindowOuter* GetPrivateRoot() = 0;
 
   virtual void ActivateOrDeactivate(bool aActivate) = 0;
+
+  /**
+   * These functions are used to modify and check temporary autoplay permission.
+   */
+  void NotifyTemporaryAutoplayPermissionChanged(int32_t aState,
+                                                const nsAString& aPrePath);
+  bool HasTemporaryAutoplayPermission();
 
   /**
    * |top| gets the root of the window hierarchy.
@@ -1245,6 +1287,9 @@ protected:
   mozilla::dom::LargeAllocStatus mLargeAllocStatus;
 
   nsCOMPtr<nsPIDOMWindowOuter> mOpenerForInitialContentBrowser;
+
+  using PermissionInfo = std::pair<bool, mozilla::TimeStamp>;
+  nsDataHashtable<nsStringHashKey, PermissionInfo> mAutoplayTemporaryPermission;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowOuter, NS_PIDOMWINDOWOUTER_IID)

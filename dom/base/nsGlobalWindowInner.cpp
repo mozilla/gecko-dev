@@ -23,6 +23,7 @@
 #include "mozilla/dom/DOMPrefs.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/LocalStorage.h"
+#include "mozilla/dom/PartitionedLocalStorage.h"
 #include "mozilla/dom/Storage.h"
 #include "mozilla/dom/IdleRequest.h"
 #include "mozilla/dom/Performance.h"
@@ -236,6 +237,8 @@
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/InstallTriggerBinding.h"
+#include "mozilla/dom/Report.h"
+#include "mozilla/dom/ReportingObserver.h"
 #include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerRegistration.h"
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
@@ -335,6 +338,9 @@ using mozilla::dom::cache::CacheStorage;
 
 // Min idle notification time in seconds.
 #define MIN_IDLE_NOTIFICATION_TIME_S 1
+
+// Max number of Report objects
+#define MAX_REPORT_RECORDS 100
 
 static LazyLogModule gDOMLeakPRLogInner("DOMLeakInner");
 
@@ -1102,6 +1108,8 @@ nsGlobalWindowInner::~nsGlobalWindowInner()
 
   Telemetry::Accumulate(Telemetry::INNERWINDOWS_WITH_MUTATION_LISTENERS,
                         mMutationBits ? 1 : 0);
+  Telemetry::Accumulate(Telemetry::INNERWINDOWS_WITH_TEXT_EVENT_LISTENERS,
+                        mMayHaveTextEventListenerInDefaultGroup ? 1 : 0);
 
   // An inner window is destroyed, pull it out of the outer window's
   // list if inner windows.
@@ -1468,6 +1476,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExternal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInstallTrigger)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mIntlUtils)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReportRecords)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReportingObservers)
 
   tmp->TraverseHostObjectURIs(cb);
 
@@ -1557,6 +1567,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExternal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mInstallTrigger)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mIntlUtils)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mReportRecords)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mReportingObservers)
 
   tmp->UnlinkHostObjectURIs();
 
@@ -1720,9 +1732,13 @@ nsGlobalWindowInner::InnerSetNewDocument(JSContext* aCx, nsIDocument* aDocument)
 
   Telemetry::Accumulate(Telemetry::INNERWINDOWS_WITH_MUTATION_LISTENERS,
                         mMutationBits ? 1 : 0);
+  Telemetry::Accumulate(Telemetry::INNERWINDOWS_WITH_TEXT_EVENT_LISTENERS,
+                        mMayHaveTextEventListenerInDefaultGroup ? 1 : 0);
 
   // Clear our mutation bitfield.
   mMutationBits = 0;
+
+  mMayHaveTextEventListenerInDefaultGroup = false;
 }
 
 nsresult
@@ -4884,18 +4900,33 @@ nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError)
     return nullptr;
   }
 
-  if (!mLocalStorage) {
-    if (nsContentUtils::StorageAllowedForWindow(this) ==
-          nsContentUtils::StorageAccess::eDeny) {
-      aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
-      return nullptr;
-    }
+  // LocalStorage needs to be exposed in every context except for sandboxes and
+  // NullPrincipals (data: URLs, for instance). But we need to keep data
+  // separate in some scenarios: private-browsing and partitioned trackers.
+  // In private-browsing, LocalStorage keeps data in memory, and it shares
+  // StorageEvents just with other origins in the same private-browsing
+  // environment.
+  // For Partitioned Trackers, we expose a partitioned LocalStorage, which
+  // doesn't share data with other contexts, and it's just in memory.
+  // Partitioned localStorage is available only for trackers listed in the
+  // privacy.restrict3rdpartystorage.partitionedHosts pref. See
+  // nsContentUtils::IsURIInPrefList to know the syntax for the pref value.
+  // This is a temporary web-compatibility hack.
 
-    nsIPrincipal *principal = GetPrincipal();
-    if (!principal) {
-      return nullptr;
-    }
+  nsContentUtils::StorageAccess access =
+    nsContentUtils::StorageAllowedForWindow(this);
+  if (access == nsContentUtils::StorageAccess::eDeny) {
+    aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
 
+  // Note that this behavior is observable: if we grant storage permission to a
+  // tracker, we pass from the partitioned LocalStorage to the 'normal'
+  // LocalStorage. The previous data is lost and the 2 window.localStorage
+  // objects, before and after the permission granted, will be different.
+  if (access != nsContentUtils::StorageAccess::ePartitionedOrDeny &&
+      (!mLocalStorage ||
+        mLocalStorage->Type() == Storage::ePartitionedLocalStorage)) {
     nsresult rv;
     nsCOMPtr<nsIDOMStorageManager> storageManager =
       do_GetService("@mozilla.org/dom/localStorage-manager;1", &rv);
@@ -4912,6 +4943,12 @@ nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError)
       }
     }
 
+    nsIPrincipal *principal = GetPrincipal();
+    if (!principal) {
+      aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
+      return nullptr;
+    }
+
     RefPtr<Storage> storage;
     aError = storageManager->CreateStorage(this, principal, documentURI,
                                            IsPrivateBrowsing(),
@@ -4923,6 +4960,20 @@ nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError)
     mLocalStorage = storage;
     MOZ_ASSERT(mLocalStorage);
   }
+
+  if (access == nsContentUtils::StorageAccess::ePartitionedOrDeny &&
+      !mLocalStorage) {
+    nsIPrincipal *principal = GetPrincipal();
+    if (!principal) {
+      aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
+      return nullptr;
+    }
+
+    mLocalStorage = new PartitionedLocalStorage(this, principal);
+  }
+
+  MOZ_ASSERT((access == nsContentUtils::StorageAccess::ePartitionedOrDeny) ==
+               (mLocalStorage->Type() == Storage::ePartitionedLocalStorage));
 
   return mLocalStorage;
 }
@@ -4957,7 +5008,7 @@ nsGlobalWindowInner::GetInterface(const nsIID & aIID, void **aSink)
 }
 
 void
-nsGlobalWindowInner::GetInterface(JSContext* aCx, nsIJSID* aIID,
+nsGlobalWindowInner::GetInterface(JSContext* aCx, JS::Handle<JS::Value> aIID,
                                   JS::MutableHandle<JS::Value> aRetval,
                                   ErrorResult& aError)
 {
@@ -5627,6 +5678,7 @@ nsGlobalWindowInner::Observe(nsISupports* aSubject, const char* aTopic,
   if (!nsCRT::strcmp(aTopic, MEMORY_PRESSURE_OBSERVER_TOPIC)) {
     if (mPerformance) {
       mPerformance->MemoryPressure();
+      mReportRecords.Clear();
     }
     return NS_OK;
   }
@@ -5827,12 +5879,13 @@ nsGlobalWindowInner::CloneStorageEvent(const nsAString& aType,
       return nullptr;
     }
 
-    MOZ_ASSERT(storage->Type() == Storage::eLocalStorage);
-    RefPtr<LocalStorage> localStorage =
-      static_cast<LocalStorage*>(storage.get());
+    if (storage->Type() == Storage::eLocalStorage) {
+      RefPtr<LocalStorage> localStorage =
+        static_cast<LocalStorage*>(storage.get());
 
-    // We must apply the current change to the 'local' localStorage.
-    localStorage->ApplyEvent(aEvent);
+      // We must apply the current change to the 'local' localStorage.
+      localStorage->ApplyEvent(aEvent);
+    }
   } else if (storageArea->Type() == Storage::eSessionStorage) {
     storage = GetSessionStorage(aRv);
   } else {
@@ -5841,6 +5894,12 @@ nsGlobalWindowInner::CloneStorageEvent(const nsAString& aType,
   }
 
   if (aRv.Failed() || !storage) {
+    return nullptr;
+  }
+
+  if (storage->Type() == Storage::ePartitionedLocalStorage) {
+    // This error message is not exposed.
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
   }
 
@@ -8023,6 +8082,7 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter *aOuterWindow)
   mMayHaveSelectionChangeEventListener(false),
   mMayHaveMouseEnterLeaveEventListener(false),
   mMayHavePointerEnterLeaveEventListener(false),
+  mMayHaveTextEventListenerInDefaultGroup(false),
   mAudioCaptured(false),
   mOuterWindow(aOuterWindow),
   // Make sure no actual window ends up with mWindowID == 0
@@ -8034,6 +8094,62 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter *aOuterWindow)
   mEvent(nullptr)
 {
   MOZ_ASSERT(aOuterWindow);
+}
+
+void
+nsPIDOMWindowInner::RegisterReportingObserver(ReportingObserver* aObserver,
+                                              bool aBuffered)
+{
+  MOZ_ASSERT(aObserver);
+
+  if (mReportingObservers.Contains(aObserver)) {
+    return;
+  }
+
+  if (NS_WARN_IF(!mReportingObservers.AppendElement(aObserver, fallible))) {
+    return;
+  }
+
+  if (!aBuffered) {
+    return;
+  }
+
+  for (Report* report : mReportRecords) {
+    aObserver->MaybeReport(report);
+  }
+}
+
+void
+nsPIDOMWindowInner::UnregisterReportingObserver(ReportingObserver* aObserver)
+{
+  MOZ_ASSERT(aObserver);
+  mReportingObservers.RemoveElement(aObserver);
+}
+
+void
+nsPIDOMWindowInner::BroadcastReport(Report* aReport)
+{
+  MOZ_ASSERT(aReport);
+
+  for (ReportingObserver* observer : mReportingObservers) {
+    observer->MaybeReport(aReport);
+  }
+
+  if (NS_WARN_IF(!mReportRecords.AppendElement(aReport, fallible))) {
+    return;
+  }
+
+  while (mReportRecords.Length() > MAX_REPORT_RECORDS) {
+    mReportRecords.RemoveElementAt(0);
+  }
+}
+
+void
+nsPIDOMWindowInner::NotifyReportingObservers()
+{
+  for (ReportingObserver* observer : mReportingObservers) {
+    observer->MaybeNotify();
+  }
 }
 
 nsPIDOMWindowInner::~nsPIDOMWindowInner() {}

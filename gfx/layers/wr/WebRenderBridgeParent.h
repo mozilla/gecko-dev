@@ -66,6 +66,7 @@ public:
   already_AddRefed<wr::WebRenderAPI> GetWebRenderAPI() { return do_AddRef(mApi); }
   AsyncImagePipelineManager* AsyncImageManager() { return mAsyncImageManager; }
   CompositorVsyncScheduler* CompositorScheduler() { return mCompositorScheduler.get(); }
+  CompositorBridgeParentBase* GetCompositorBridge() { return mCompositorBridge; }
 
   mozilla::ipc::IPCResult RecvEnsureConnected(TextureFactoryIdentifier* aTextureFactoryIdentifier,
                                               MaybeIdNamespace* aMaybeIdNamespace) override;
@@ -169,7 +170,8 @@ public:
                                 const bool aUseForTelemetry = true);
   TransactionId LastPendingTransactionId();
   TransactionId FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch, const TimeStamp& aEndTime,
-                                            UiCompositorControllerParent* aUiController);
+                                            UiCompositorControllerParent* aUiController,
+                                            wr::RendererStats* aStats = nullptr);
 
   TextureFactoryIdentifier GetTextureFactoryIdentifier();
 
@@ -222,6 +224,8 @@ public:
    */
   void ForceIsFirstPaint() { mIsFirstPaint = true; }
 
+  bool IsRootWebRenderBridgeParent() const;
+  LayersId GetLayersId() const;
 private:
   class ScheduleSharedSurfaceRelease;
 
@@ -262,7 +266,6 @@ private:
                    wr::TransactionBuilder& aUpdates);
   void ReleaseTextureOfImage(const wr::ImageKey& aKey);
 
-  LayersId GetLayersId() const;
   bool ProcessWebRenderParentCommands(const InfallibleTArray<WebRenderParentCommand>& aCommands,
                                       wr::TransactionBuilder& aTxn);
 
@@ -275,8 +278,6 @@ private:
   bool AdvanceAnimations();
   bool SampleAnimations(nsTArray<wr::WrOpacityProperty>& aOpacityArray,
                         nsTArray<wr::WrTransformProperty>& aTransformArray);
-
-  bool IsRootWebRenderBridgeParent() const;
 
   CompositorBridgeParent* GetRootCompositorBridgeParent() const;
 

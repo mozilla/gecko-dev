@@ -34,7 +34,6 @@ public:
   {
     if (CanBeInstantiated()) {
       UpdateConfigFromExtraData(aInfo.mExtraData);
-      mPreviousExtraData = aInfo.mExtraData;
     }
   }
 
@@ -72,8 +71,14 @@ public:
       // We now check if the out of band one has changed.
       // This scenario can currently only occur on Android with devices that can
       // recycle a decoder.
-      if (!H264::HasSPS(aSample->mExtraData) ||
+      bool hasOutOfBandExtraData = H264::HasSPS(aSample->mExtraData);
+      if (!hasOutOfBandExtraData || !mPreviousExtraData ||
           H264::CompareExtraData(aSample->mExtraData, mPreviousExtraData)) {
+        if (hasOutOfBandExtraData && !mPreviousExtraData) {
+          // We are decoding the first sample, store the out of band sample's
+          // extradata so that we can check for future change.
+          mPreviousExtraData = aSample->mExtraData;
+        }
         return NS_OK;
       }
       extra_data = aSample->mExtraData;
@@ -86,57 +91,54 @@ public:
     mPreviousExtraData = aSample->mExtraData;
     UpdateConfigFromExtraData(extra_data);
 
-    mNeedKeyframe = true;
-
     return NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
   }
 
-  const TrackInfo& Config() const override
-  {
-    return mCurrentConfig;
-  }
+  const TrackInfo& Config() const override { return mCurrentConfig; }
 
   MediaResult PrepareSample(MediaDataDecoder::ConversionRequired aConversion,
-                            MediaRawData* aSample) override
+                            MediaRawData* aSample,
+                            bool aNeedKeyFrame) override
   {
+    MOZ_DIAGNOSTIC_ASSERT(
+      aConversion == MediaDataDecoder::ConversionRequired::kNeedAnnexB ||
+        aConversion == MediaDataDecoder::ConversionRequired::kNeedAVCC,
+      "Conversion must be either AVCC or AnnexB");
+
+    aSample->mExtraData = mCurrentConfig.mExtraData;
+    aSample->mTrackInfo = mTrackInfo;
+
     if (aConversion == MediaDataDecoder::ConversionRequired::kNeedAnnexB) {
-      auto res = AnnexB::ConvertSampleToAnnexB(aSample, mNeedKeyframe);
+      auto res = AnnexB::ConvertSampleToAnnexB(aSample, aNeedKeyFrame);
       if (res.isErr()) {
         return MediaResult(res.unwrapErr(),
                            RESULT_DETAIL("ConvertSampleToAnnexB"));
       }
     }
-    if (aSample->mKeyframe && mNeedKeyframe) {
-      mNeedKeyframe = false;
-    }
-
-    aSample->mExtraData = mCurrentConfig.mExtraData;
-    aSample->mTrackInfo = mTrackInfo;
 
     return NS_OK;
   }
 
-  private:
-    void UpdateConfigFromExtraData(MediaByteBuffer* aExtraData)
-    {
-      SPSData spsdata;
-      if (H264::DecodeSPSFromExtraData(aExtraData, spsdata) &&
-          spsdata.pic_width > 0 && spsdata.pic_height > 0) {
-        H264::EnsureSPSIsSane(spsdata);
-        mCurrentConfig.mImage.width = spsdata.pic_width;
-        mCurrentConfig.mImage.height = spsdata.pic_height;
-        mCurrentConfig.mDisplay.width = spsdata.display_width;
-        mCurrentConfig.mDisplay.height = spsdata.display_height;
-      }
-      mCurrentConfig.mExtraData = aExtraData;
-      mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
+private:
+  void UpdateConfigFromExtraData(MediaByteBuffer* aExtraData)
+  {
+    SPSData spsdata;
+    if (H264::DecodeSPSFromExtraData(aExtraData, spsdata) &&
+        spsdata.pic_width > 0 && spsdata.pic_height > 0) {
+      H264::EnsureSPSIsSane(spsdata);
+      mCurrentConfig.mImage.width = spsdata.pic_width;
+      mCurrentConfig.mImage.height = spsdata.pic_height;
+      mCurrentConfig.mDisplay.width = spsdata.display_width;
+      mCurrentConfig.mDisplay.height = spsdata.display_height;
     }
+    mCurrentConfig.mExtraData = aExtraData;
+    mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
+  }
 
-    VideoInfo mCurrentConfig;
-    bool mNeedKeyframe = true;
-    uint32_t mStreamID = 0;
-    RefPtr<TrackInfoSharedPtr> mTrackInfo;
-    RefPtr<MediaByteBuffer> mPreviousExtraData;
+  VideoInfo mCurrentConfig;
+  uint32_t mStreamID = 0;
+  RefPtr<TrackInfoSharedPtr> mTrackInfo;
+  RefPtr<MediaByteBuffer> mPreviousExtraData;
 };
 
 class VPXChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor
@@ -147,12 +149,10 @@ public:
     , mCodec(VPXDecoder::IsVP8(aInfo.mMimeType) ? VPXDecoder::Codec::VP8
                                                 : VPXDecoder::Codec::VP9)
   {
+    mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
   }
 
-  bool CanBeInstantiated() const override
-  {
-    return true;
-  }
+  bool CanBeInstantiated() const override { return true; }
 
   MediaResult CheckForChange(MediaRawData* aSample) override
   {
@@ -167,42 +167,46 @@ public:
     }
 
     auto dataSpan = MakeSpan<const uint8_t>(aSample->Data(), aSample->Size());
-    auto dimensions = VPXDecoder::GetFrameSize(dataSpan, mCodec);
-    int profile = mCodec == VPXDecoder::Codec::VP9
-                    ? VPXDecoder::GetVP9Profile(dataSpan)
-                    : 0;
 
-    if (!mSize) {
-      mSize = Some(dimensions);
-      mProfile = Some(profile);
+    VPXDecoder::VPXStreamInfo info;
+    if (!VPXDecoder::GetStreamInfo(dataSpan, info, mCodec)) {
+      return NS_ERROR_DOM_MEDIA_DECODE_ERR;
+    }
+
+    if (!mInfo) {
+      mInfo = Some(info);
       return NS_OK;
     }
-    if (mSize.ref() == dimensions && mProfile.ref() == profile) {
+    if (mInfo.ref().IsCompatible(info)) {
       return NS_OK;
     }
-    mSize = Some(dimensions);
-    mProfile = Some(profile);
-    mCurrentConfig.mDisplay = dimensions;
+    mInfo = Some(info);
+    mCurrentConfig.mImage = info.mImage;
+    mCurrentConfig.mDisplay = info.mDisplay;
+    mCurrentConfig.SetImageRect(
+      gfx::IntRect(0, 0, info.mImage.width, info.mImage.height));
+    mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
 
     return NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
   }
 
-  const TrackInfo& Config() const override
-  {
-    return mCurrentConfig;
-  }
+  const TrackInfo& Config() const override { return mCurrentConfig; }
 
   MediaResult PrepareSample(MediaDataDecoder::ConversionRequired aConversion,
-                            MediaRawData* aSample) override
+                            MediaRawData* aSample,
+                            bool aNeedKeyFrame) override
   {
+    aSample->mTrackInfo = mTrackInfo;
+
     return NS_OK;
   }
 
-  private:
-    VideoInfo mCurrentConfig;
-    const VPXDecoder::Codec mCodec;
-    Maybe<gfx::IntSize> mSize;
-    Maybe<int> mProfile;
+private:
+  VideoInfo mCurrentConfig;
+  const VPXDecoder::Codec mCodec;
+  Maybe<VPXDecoder::VPXStreamInfo> mInfo;
+  uint32_t mStreamID = 0;
+  RefPtr<TrackInfoSharedPtr> mTrackInfo;
 };
 
 MediaChangeMonitor::MediaChangeMonitor(PlatformDecoderModule* aPDM,
@@ -299,7 +303,8 @@ MediaChangeMonitor::Decode(MediaRawData* aSample)
       return DecodePromise::CreateAndResolve(DecodedData(), __func__);
     }
 
-    rv = mChangeMonitor->PrepareSample(*mConversionRequired, sample);
+    rv = mChangeMonitor->PrepareSample(
+      *mConversionRequired, sample, mNeedKeyframe);
     if (NS_FAILED(rv)) {
       return DecodePromise::CreateAndReject(rv, __func__);
     }
@@ -557,7 +562,8 @@ MediaChangeMonitor::DecodeFirstSample(MediaRawData* aSample)
     return;
   }
 
-  MediaResult rv = mChangeMonitor->PrepareSample(*mConversionRequired, aSample);
+  MediaResult rv =
+    mChangeMonitor->PrepareSample(*mConversionRequired, aSample, mNeedKeyframe);
 
   if (NS_FAILED(rv)) {
     mDecodePromise.Reject(rv, __func__);
@@ -568,7 +574,7 @@ MediaChangeMonitor::DecodeFirstSample(MediaRawData* aSample)
 
   RefPtr<MediaChangeMonitor> self = this;
   mDecoder->Decode(aSample)
-    ->Then(AbstractThread::GetCurrent()->AsTaskQueue(), __func__,
+    ->Then(mTaskQueue, __func__,
            [self, this](MediaDataDecoder::DecodedData&& aResults) {
              mDecodePromiseRequest.Complete();
              mPendingFrames.AppendElements(std::move(aResults));
@@ -617,7 +623,7 @@ MediaChangeMonitor::DrainThenFlushDecoder(MediaRawData* aPendingSample)
   RefPtr<MediaRawData> sample = aPendingSample;
   RefPtr<MediaChangeMonitor> self = this;
   mDecoder->Drain()
-    ->Then(AbstractThread::GetCurrent()->AsTaskQueue(),
+    ->Then(mTaskQueue,
            __func__,
            [self, sample, this](MediaDataDecoder::DecodedData&& aResults) {
              mDrainRequest.Complete();
