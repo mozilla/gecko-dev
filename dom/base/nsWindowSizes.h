@@ -100,10 +100,10 @@ struct nsStyleSizes
 #define NS_ARENA_SIZES_FIELD(classname) mArena##classname
 
 struct nsArenaSizes {
-#define FOR_EACH_SIZE(macro) \
-  macro(Other, mLineBoxes) \
-  macro(Style, mRuleNodes) \
-  macro(Style, mStyleContexts)
+#define FOR_EACH_SIZE(MACRO) \
+  MACRO(Other, mLineBoxes) \
+  MACRO(Style, mRuleNodes) \
+  MACRO(Style, mStyleContexts)
 
   nsArenaSizes()
     :
@@ -169,34 +169,34 @@ struct nsArenaSizes {
 
 class nsWindowSizes
 {
-#define FOR_EACH_SIZE(macro) \
-  macro(DOM,   mDOMElementNodesSize) \
-  macro(DOM,   mDOMTextNodesSize) \
-  macro(DOM,   mDOMCDATANodesSize) \
-  macro(DOM,   mDOMCommentNodesSize) \
-  macro(DOM,   mDOMEventTargetsSize) \
-  macro(DOM,   mDOMPerformanceUserEntries) \
-  macro(DOM,   mDOMPerformanceResourceEntries) \
-  macro(DOM,   mDOMOtherSize) \
-  macro(Style, mLayoutStyleSheetsSize) \
-  macro(Other, mLayoutPresShellSize) \
-  macro(Style, mLayoutGeckoStyleSets) \
-  macro(Style, mLayoutServoStyleSetsStylistRuleTree) \
-  macro(Style, mLayoutServoStyleSetsStylistElementAndPseudosMaps) \
-  macro(Style, mLayoutServoStyleSetsStylistInvalidationMap) \
-  macro(Style, mLayoutServoStyleSetsStylistRevalidationSelectors) \
-  macro(Style, mLayoutServoStyleSetsStylistOther) \
-  macro(Style, mLayoutServoStyleSetsOther) \
-  macro(Style, mLayoutServoElementDataObjects) \
-  macro(Other, mLayoutTextRunsSize) \
-  macro(Other, mLayoutPresContextSize) \
-  macro(Other, mLayoutFramePropertiesSize) \
-  macro(Style, mLayoutComputedValuesDom) \
-  macro(Style, mLayoutComputedValuesNonDom) \
-  macro(Style, mLayoutComputedValuesVisited) \
-  macro(Style, mLayoutComputedValuesStale) \
-  macro(Other, mPropertyTablesSize) \
-  macro(Other, mBindingsSize) \
+#define FOR_EACH_SIZE(MACRO) \
+  MACRO(DOM,   mDOMElementNodesSize) \
+  MACRO(DOM,   mDOMTextNodesSize) \
+  MACRO(DOM,   mDOMCDATANodesSize) \
+  MACRO(DOM,   mDOMCommentNodesSize) \
+  MACRO(DOM,   mDOMEventTargetsSize) \
+  MACRO(DOM,   mDOMPerformanceUserEntries) \
+  MACRO(DOM,   mDOMPerformanceResourceEntries) \
+  MACRO(DOM,   mDOMOtherSize) \
+  MACRO(Style, mLayoutStyleSheetsSize) \
+  MACRO(Other, mLayoutPresShellSize) \
+  MACRO(Style, mLayoutGeckoStyleSets) \
+  MACRO(Style, mLayoutServoStyleSetsStylistRuleTree) \
+  MACRO(Style, mLayoutServoStyleSetsStylistElementAndPseudosMaps) \
+  MACRO(Style, mLayoutServoStyleSetsStylistInvalidationMap) \
+  MACRO(Style, mLayoutServoStyleSetsStylistRevalidationSelectors) \
+  MACRO(Style, mLayoutServoStyleSetsStylistOther) \
+  MACRO(Style, mLayoutServoStyleSetsOther) \
+  MACRO(Style, mLayoutServoElementDataObjects) \
+  MACRO(Other, mLayoutTextRunsSize) \
+  MACRO(Other, mLayoutPresContextSize) \
+  MACRO(Other, mLayoutFramePropertiesSize) \
+  MACRO(Style, mLayoutComputedValuesDom) \
+  MACRO(Style, mLayoutComputedValuesNonDom) \
+  MACRO(Style, mLayoutComputedValuesVisited) \
+  MACRO(Style, mLayoutComputedValuesStale) \
+  MACRO(Other, mPropertyTablesSize) \
+  MACRO(Other, mBindingsSize) \
 
 public:
   explicit nsWindowSizes(mozilla::SizeOfState& aState)
