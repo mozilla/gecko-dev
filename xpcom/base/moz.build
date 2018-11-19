@@ -30,16 +30,13 @@ XPIDL_SOURCES += [
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     XPIDL_SOURCES += [
-        'nsIMacPreferencesReader.idl',
         'nsIMacUtils.idl',
     ]
     EXPORTS.mozilla += [
         'MacHelpers.h',
-        'nsMacPreferencesReader.h',
     ]
     UNIFIED_SOURCES += [
         'MacHelpers.mm',
-        'nsMacPreferencesReader.mm',
     ]
 
 XPIDL_MODULE = 'xpcom_base'
@@ -199,8 +196,6 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '../build',
     '/dom/base',
-    '/js/src',
-    '/mfbt',
     '/xpcom/ds',
 ]
 
