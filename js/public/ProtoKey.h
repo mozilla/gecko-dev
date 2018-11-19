@@ -60,7 +60,8 @@
 #define IF_SAB(real,imaginary) imaginary
 #endif
 
-#define JS_FOR_PROTOTYPES(real,imaginary) \
+#define JS_FOR_PROTOTYPES_(real, imaginary, \
+                           REAL_IF_INTL, REAL_IF_BDATA, REAL_IF_SAB, REAL_IF_SIMD) \
     imaginary(Null,             InitNullClass,          dummy) \
     real(Object,                InitViaClassSpec,       OCLASP(Plain)) \
     real(Function,              InitViaClassSpec,       &JSFunction::class_) \
@@ -101,14 +102,14 @@
     real(Set,                   InitViaClassSpec,       OCLASP(Set)) \
     real(DataView,              InitViaClassSpec,       OCLASP(DataView)) \
     real(Symbol,                InitSymbolClass,        OCLASP(Symbol)) \
-IF_SAB(real,imaginary)(SharedArrayBuffer,       InitViaClassSpec, OCLASP(SharedArrayBuffer)) \
-IF_INTL(real,imaginary) (Intl,                  InitIntlClass,          CLASP(Intl)) \
-IF_BDATA(real,imaginary)(TypedObject,           InitTypedObjectModuleObject,   OCLASP(TypedObjectModule)) \
+    REAL_IF_SAB(SharedArrayBuffer, InitViaClassSpec, OCLASP(SharedArrayBuffer)) \
+    REAL_IF_INTL(Intl, InitIntlClass, CLASP(Intl)) \
+    REAL_IF_BDATA(TypedObject, InitTypedObjectModuleObject, OCLASP(TypedObjectModule)) \
     real(Reflect,               InitReflect,            nullptr) \
-IF_SIMD(real,imaginary)(SIMD,                   InitSimdClass, OCLASP(Simd)) \
+    REAL_IF_SIMD(SIMD, InitSimdClass, OCLASP(Simd)) \
     real(WeakSet,               InitWeakSetClass,       OCLASP(WeakSet)) \
     real(TypedArray,            InitViaClassSpec,       &js::TypedArrayObject::sharedTypedArrayPrototypeClass) \
-IF_SAB(real,imaginary)(Atomics, InitAtomicsClass, OCLASP(Atomics)) \
+    REAL_IF_SAB(Atomics, InitAtomicsClass, OCLASP(Atomics)) \
     real(SavedFrame,            InitViaClassSpec,       &js::SavedFrame::class_) \
     real(Promise,               InitViaClassSpec,       OCLASP(Promise)) \
     real(ReadableStream,        InitViaClassSpec,       &js::ReadableStream::class_) \
@@ -128,6 +129,14 @@ IF_SAB(real,imaginary)(Atomics, InitAtomicsClass, OCLASP(Atomics)) \
     imaginary(WasmMemory,       dummy,                  dummy) \
     imaginary(WasmTable,        dummy,                  dummy) \
     imaginary(WasmGlobal,       dummy,                  dummy) \
+
+#define JS_FOR_PROTOTYPES(REAL, IMAGINARY) \
+    JS_FOR_PROTOTYPES_(REAL, \
+                       IMAGINARY, \
+                       IF_INTL(REAL, IMAGINARY), \
+                       IF_BDATA(REAL, IMAGINARY), \
+                       IF_SAB(REAL, IMAGINARY), \
+                       IF_SIMD(REAL, IMAGINARY))
 
 #define JS_FOR_EACH_PROTOTYPE(macro) JS_FOR_PROTOTYPES(macro,macro)
 
