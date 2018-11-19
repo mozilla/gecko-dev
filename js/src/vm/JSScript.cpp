@@ -3366,7 +3366,7 @@ out:
     return script->offsetToPC(offset);
 }
 
-JS_FRIEND_API(unsigned)
+JS_FRIEND_API unsigned
 js::GetScriptLineExtent(JSScript* script)
 {
     unsigned lineno = script->lineno();

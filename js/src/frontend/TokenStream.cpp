@@ -2447,7 +2447,7 @@ frontend::TokenStreamSpecific<char16_t, frontend::ParserAnyCharsAccess<frontend:
 } // namespace js
 
 
-JS_FRIEND_API(int)
+JS_FRIEND_API int
 js_fgets(char* buf, int size, FILE* file)
 {
     int n, i, c;

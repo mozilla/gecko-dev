@@ -101,7 +101,7 @@ JS::CallbackTracer::getTracingEdgeName(char* buffer, size_t bufferSize)
 
 /*** Public Tracing API **************************************************************************/
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::TraceChildren(JSTracer* trc, GCCellPtr thing)
 {
     js::TraceChildren(trc, thing.asCell(), thing.kind());
@@ -147,7 +147,7 @@ struct TraceIncomingFunctor {
 };
 } // namespace (anonymous)
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::TraceIncomingCCWs(JSTracer* trc, const JS::CompartmentSet& compartments)
 {
     for (js::CompartmentsIter comp(trc->runtime(), SkipAtoms); !comp.done(); comp.next()) {
@@ -321,7 +321,7 @@ StringKindHeader(JSString* str)
     return "linear: ";
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
                      JS::TraceKind kind, bool details)
 {

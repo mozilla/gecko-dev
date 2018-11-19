@@ -351,7 +351,7 @@ PopulateReportBlame(JSContext* cx, JSErrorReport* report)
  * Furthermore, callers of ReportOutOfMemory (viz., malloc) assume a GC does
  * not occur, so GC must be avoided or suppressed.
  */
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::ReportOutOfMemory(JSContext* cx)
 {
 #ifdef JS_MORE_DETERMINISTIC
@@ -407,7 +407,7 @@ js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber)
     }
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::ReportOverRecursed(JSContext* maybecx)
 {
     ReportOverRecursed(maybecx, JSMSG_OVER_RECURSED);
@@ -1085,7 +1085,7 @@ const JSErrorFormatString js_ErrorFormatString[JSErr_Limit] = {
 #undef MSG_DEF
 };
 
-JS_FRIEND_API(const JSErrorFormatString*)
+JS_FRIEND_API const JSErrorFormatString*
 js::GetErrorMessage(void* userRef, const unsigned errorNumber)
 {
     if (errorNumber > 0 && errorNumber < JSErr_Limit)
@@ -1137,7 +1137,7 @@ class MOZ_STACK_CLASS ReportExceptionClosure : public ScriptEnvironmentPreparer:
 };
 } // anonymous namespace
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::UseInternalJobQueues(JSContext* cx, bool cooperative)
 {
     // Internal job queue handling must be set up very early. Self-hosting
@@ -1160,7 +1160,7 @@ js::UseInternalJobQueues(JSContext* cx, bool cooperative)
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::EnqueueJob(JSContext* cx, JS::HandleObject job)
 {
     MOZ_ASSERT(cx->jobQueue);
@@ -1172,14 +1172,14 @@ js::EnqueueJob(JSContext* cx, JS::HandleObject job)
     return true;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::StopDrainingJobQueue(JSContext* cx)
 {
     MOZ_ASSERT(cx->jobQueue);
     cx->stopDrainingJobQueue = true;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::RunJobs(JSContext* cx)
 {
     MOZ_ASSERT(cx->jobQueue);

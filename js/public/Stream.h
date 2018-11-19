@@ -161,7 +161,7 @@ typedef void
  *
  * See the documentation for the individual callback types for details.
  */
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 SetReadableStreamCallbacks(JSContext* cx,
                            RequestReadableStreamDataCallback dataRequestCallback,
                            WriteIntoReadRequestBufferCallback writeIntoReadRequestCallback,
@@ -170,7 +170,7 @@ SetReadableStreamCallbacks(JSContext* cx,
                            ReadableStreamErroredCallback erroredCallback,
                            ReadableStreamFinalizeCallback finalizeCallback);
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 HasReadableStreamCallbacks(JSContext* cx);
 
 /**
@@ -179,7 +179,7 @@ HasReadableStreamCallbacks(JSContext* cx);
  * If a |proto| is passed, that gets set as the instance's [[Prototype]]
  * instead of the original value of |ReadableStream.prototype|.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 NewReadableDefaultStreamObject(JSContext* cx, HandleObject underlyingSource = nullptr,
                                HandleFunction size = nullptr, double highWaterMark = 1,
                                HandleObject proto = nullptr);
@@ -190,7 +190,7 @@ NewReadableDefaultStreamObject(JSContext* cx, HandleObject underlyingSource = nu
  * If a |proto| is passed, that gets set as the instance's [[Prototype]]
  * instead of the original value of |ReadableStream.prototype|.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 NewReadableByteStreamObject(JSContext* cx, HandleObject underlyingSource = nullptr,
                             double highWaterMark = 0, HandleObject proto = nullptr);
 
@@ -214,7 +214,7 @@ NewReadableByteStreamObject(JSContext* cx, HandleObject underlyingSource = nullp
  * It can also be freed if the stream is destroyed. The embedding is notified
  * of that using ReadableStreamFinalizeCallback.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 NewReadableExternalSourceStreamObject(JSContext* cx, void* underlyingSource,
                                       uint8_t flags = 0, HandleObject proto = nullptr);
 
@@ -224,7 +224,7 @@ NewReadableExternalSourceStreamObject(JSContext* cx, void* underlyingSource,
  *
  * Asserts that the given stream has an embedding-provided underlying source.
  */
-extern JS_PUBLIC_API(uint8_t)
+extern JS_PUBLIC_API uint8_t
 ReadableStreamGetEmbeddingFlags(const JSObject* stream);
 
 /**
@@ -248,7 +248,7 @@ ReadableStreamGetEmbeddingFlags(const JSObject* stream);
  *
  * Asserts that the stream has an embedding-provided underlying source.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamGetExternalUnderlyingSource(JSContext* cx, HandleObject stream, void** source);
 
 /**
@@ -260,7 +260,7 @@ ReadableStreamGetExternalUnderlyingSource(JSContext* cx, HandleObject stream, vo
  *
  * Asserts that the stream has an embedding-provided underlying source.
  */
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 ReadableStreamReleaseExternalUnderlyingSource(JSObject* stream);
 
 /**
@@ -271,7 +271,7 @@ ReadableStreamReleaseExternalUnderlyingSource(JSObject* stream);
  * The JS engine will use the given value to satisfy read requests for the
  * stream by invoking the JS::WriteIntoReadRequestBuffer callback.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamUpdateDataAvailableFromSource(JSContext* cx, HandleObject stream,
                                             uint32_t availableData);
 
@@ -279,7 +279,7 @@ ReadableStreamUpdateDataAvailableFromSource(JSContext* cx, HandleObject stream,
  * Returns true if the given object is an unwrapped ReadableStream object,
  * false otherwise.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 IsReadableStream(const JSObject* obj);
 
 /**
@@ -287,21 +287,21 @@ IsReadableStream(const JSObject* obj);
  * ReadableStreamDefaultReader or ReadableStreamBYOBReader object,
  * false otherwise.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 IsReadableStreamReader(const JSObject* obj);
 
 /**
  * Returns true if the given object is an unwrapped
  * ReadableStreamDefaultReader object, false otherwise.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 IsReadableStreamDefaultReader(const JSObject* obj);
 
 /**
  * Returns true if the given object is an unwrapped
  * ReadableStreamBYOBReader object, false otherwise.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 IsReadableStreamBYOBReader(const JSObject* obj);
 
 enum class ReadableStreamMode {
@@ -317,7 +317,7 @@ enum class ReadableStreamMode {
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(ReadableStreamMode)
+extern JS_PUBLIC_API ReadableStreamMode
 ReadableStreamGetMode(const JSObject* stream);
 
 enum class ReadableStreamReaderMode {
@@ -330,7 +330,7 @@ enum class ReadableStreamReaderMode {
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamIsReadable(const JSObject* stream);
 
 /**
@@ -338,7 +338,7 @@ ReadableStreamIsReadable(const JSObject* stream);
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamIsLocked(const JSObject* stream);
 
 /**
@@ -346,7 +346,7 @@ ReadableStreamIsLocked(const JSObject* stream);
  *
  * Asserts that |stream| is an ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamIsDisturbed(const JSObject* stream);
 
 /**
@@ -355,7 +355,7 @@ ReadableStreamIsDisturbed(const JSObject* stream);
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 ReadableStreamCancel(JSContext* cx, HandleObject stream, HandleValue reason);
 
 /**
@@ -364,7 +364,7 @@ ReadableStreamCancel(JSContext* cx, HandleObject stream, HandleValue reason);
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 ReadableStreamGetReader(JSContext* cx, HandleObject stream, ReadableStreamReaderMode mode);
 
 /**
@@ -374,7 +374,7 @@ ReadableStreamGetReader(JSContext* cx, HandleObject stream, ReadableStreamReader
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamTee(JSContext* cx, HandleObject stream,
                   MutableHandleObject branch1Stream, MutableHandleObject branch2Stream);
 
@@ -392,7 +392,7 @@ ReadableStreamTee(JSContext* cx, HandleObject stream,
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 ReadableStreamGetDesiredSize(JSObject* stream, bool* hasValue, double* value);
 
 /**
@@ -406,7 +406,7 @@ ReadableStreamGetDesiredSize(JSObject* stream, bool* hasValue, double* value);
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamClose(JSContext* cx, HandleObject stream);
 
 /**
@@ -415,7 +415,7 @@ ReadableStreamClose(JSContext* cx, HandleObject stream);
  * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
  * ReadableStreamBYOBReader instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamReaderIsClosed(const JSObject* reader);
 
 /**
@@ -433,7 +433,7 @@ ReadableStreamReaderIsClosed(const JSObject* reader);
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamEnqueue(JSContext* cx, HandleObject stream, HandleValue chunk);
 
 /**
@@ -451,7 +451,7 @@ ReadableStreamEnqueue(JSContext* cx, HandleObject stream, HandleValue chunk);
  * Asserts that |stream| is an unwrapped ReadableStream instance and |buffer|
  * an unwrapped ArrayBuffer instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableByteStreamEnqueueBuffer(JSContext* cx, HandleObject stream, HandleObject buffer);
 
 /**
@@ -466,7 +466,7 @@ ReadableByteStreamEnqueueBuffer(JSContext* cx, HandleObject stream, HandleObject
  *
  * Asserts that |stream| is an unwrapped ReadableStream instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamError(JSContext* cx, HandleObject stream, HandleValue error);
 
 /**
@@ -477,7 +477,7 @@ ReadableStreamError(JSContext* cx, HandleObject stream, HandleValue error);
  * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
  * ReadableStreamBYOBReader instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamReaderCancel(JSContext* cx, HandleObject reader, HandleValue reason);
 
 /**
@@ -489,7 +489,7 @@ ReadableStreamReaderCancel(JSContext* cx, HandleObject reader, HandleValue reaso
  * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader or
  * ReadableStreamBYOBReader instance.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ReadableStreamReaderReleaseLock(JSContext* cx, HandleObject reader);
 
 /**
@@ -501,7 +501,7 @@ ReadableStreamReaderReleaseLock(JSContext* cx, HandleObject reader);
  *
  * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader instance.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 ReadableStreamDefaultReaderRead(JSContext* cx, HandleObject reader);
 
 /**
@@ -514,7 +514,7 @@ ReadableStreamDefaultReaderRead(JSContext* cx, HandleObject reader);
  * Asserts that |reader| is an unwrapped ReadableStreamDefaultReader and
  * |view| an unwrapped typed array or DataView instance.
  */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 ReadableStreamBYOBReaderRead(JSContext* cx, HandleObject reader, HandleObject view);
 
 } // namespace JS

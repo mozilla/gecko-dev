@@ -129,7 +129,7 @@ js::IterateGrayObjectsUnderCC(Zone* zone, GCThingCallback cellCallback, void* da
     ::IterateGrayObjects(zone, cellCallback, data);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_IterateCompartments(JSContext* cx, void* data,
                        JSIterateCompartmentCallback compartmentCallback)
 {

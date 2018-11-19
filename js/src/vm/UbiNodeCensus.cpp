@@ -18,7 +18,7 @@ using namespace js;
 namespace JS {
 namespace ubi {
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 CountDeleter::operator()(CountBase* ptr)
 {
     if (!ptr)
@@ -30,7 +30,7 @@ CountDeleter::operator()(CountBase* ptr)
     js_free(ptr);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 Census::init() {
     AutoLockForExclusiveAccess lock(cx);
     atomsZone = cx->runtime()->atomsCompartment(lock)->zone();
@@ -920,7 +920,7 @@ ByFilename::report(JSContext* cx, CountBase& countBase, MutableHandleValue repor
 
 /*** Census Handler *******************************************************************************/
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 CensusHandler::operator() (BreadthFirst<CensusHandler>& traversal,
                            Node origin, const Edge& edge,
                            NodeData* referentData, bool first)
@@ -963,7 +963,7 @@ ParseChildBreakdown(JSContext* cx, HandleObject breakdown, PropertyName* prop)
     return ParseBreakdown(cx, v);
 }
 
-JS_PUBLIC_API(CountTypePtr)
+JS_PUBLIC_API CountTypePtr
 ParseBreakdown(JSContext* cx, HandleValue breakdownValue)
 {
     if (breakdownValue.isUndefined()) {
@@ -1155,7 +1155,7 @@ GetDefaultBreakdown(JSContext* cx)
                                                other));
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 ParseCensusOptions(JSContext* cx, Census& census, HandleObject options, CountTypePtr& outResult)
 {
     RootedValue breakdown(cx, UndefinedValue());

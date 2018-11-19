@@ -335,7 +335,7 @@ js::FinishDateTimeState()
     DateTimeInfo::instance = nullptr;
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::ResetTimeZone()
 {
     js::DateTimeInfo::updateTimeZoneAdjustment();

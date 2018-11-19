@@ -1841,7 +1841,7 @@ GCRuntime::removeRoot(Value* vp)
     notifyRootsRemoved();
 }
 
-extern JS_FRIEND_API(bool)
+extern JS_FRIEND_API bool
 js::AddRawValueRoot(JSContext* cx, Value* vp, const char* name)
 {
     MOZ_ASSERT(vp);
@@ -1852,7 +1852,7 @@ js::AddRawValueRoot(JSContext* cx, Value* vp, const char* name)
     return ok;
 }
 
-extern JS_FRIEND_API(void)
+extern JS_FRIEND_API void
 js::RemoveRawValueRoot(JSContext* cx, Value* vp)
 {
     cx->runtime()->gc.removeRoot(vp);
@@ -6752,7 +6752,7 @@ AutoTraceSession::~AutoTraceSession()
     TlsContext.get()->heapState = prevState;
 }
 
-JS_PUBLIC_API(JS::HeapState)
+JS_PUBLIC_API JS::HeapState
 JS::CurrentThreadHeapState()
 {
     return TlsContext.get()->heapState;
@@ -7798,7 +7798,7 @@ JS::AutoDisableGenerationalGC::~AutoDisableGenerationalGC()
     }
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsGenerationalGCEnabled(JSRuntime* rt)
 {
     return !TlsContext.get()->generationalDisabled;
@@ -8339,7 +8339,7 @@ AutoDisableProxyCheck::~AutoDisableProxyCheck()
     TlsContext.get()->enableStrictProxyChecking();
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 JS::AssertGCThingMustBeTenured(JSObject* obj)
 {
     MOZ_ASSERT(obj->isTenured() &&
@@ -8347,14 +8347,14 @@ JS::AssertGCThingMustBeTenured(JSObject* obj)
                 obj->getClass()->hasFinalize()));
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 JS::AssertGCThingIsNotNurseryAllocable(Cell* cell)
 {
     MOZ_ASSERT(cell);
     MOZ_ASSERT(!cell->is<JSObject>() && !cell->is<JSString>());
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::gc::AssertGCThingHasType(js::gc::Cell* cell, JS::TraceKind kind)
 {
     if (!cell) {
@@ -8425,7 +8425,7 @@ JS::AutoAssertGCCallback::AutoAssertGCCallback()
 
 #endif // DEBUG
 
-JS_FRIEND_API(const char*)
+JS_FRIEND_API const char*
 JS::GCTraceKindToAscii(JS::TraceKind kind)
 {
     switch(kind) {
@@ -8498,20 +8498,20 @@ js::gc::CheckHashTablesAfterMovingGC(JSRuntime* rt)
 }
 #endif
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::PrepareZoneForGC(Zone* zone)
 {
     zone->scheduleGC();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::PrepareForFullGC(JSContext* cx)
 {
     for (ZonesIter zone(cx->runtime(), WithAtoms); !zone.done(); zone.next())
         zone->scheduleGC();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::PrepareForIncrementalGC(JSContext* cx)
 {
     if (!JS::IsIncrementalGCInProgress(cx))
@@ -8523,7 +8523,7 @@ JS::PrepareForIncrementalGC(JSContext* cx)
     }
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsGCScheduled(JSContext* cx)
 {
     for (ZonesIter zone(cx->runtime(), WithAtoms); !zone.done(); zone.next()) {
@@ -8534,39 +8534,39 @@ JS::IsGCScheduled(JSContext* cx)
     return false;
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::SkipZoneForGC(Zone* zone)
 {
     zone->unscheduleGC();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::GCForReason(JSContext* cx, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
     MOZ_ASSERT(gckind == GC_NORMAL || gckind == GC_SHRINK);
     cx->runtime()->gc.gc(gckind, reason);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::StartIncrementalGC(JSContext* cx, JSGCInvocationKind gckind, gcreason::Reason reason, int64_t millis)
 {
     MOZ_ASSERT(gckind == GC_NORMAL || gckind == GC_SHRINK);
     cx->runtime()->gc.startGC(gckind, reason, millis);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::IncrementalGCSlice(JSContext* cx, gcreason::Reason reason, int64_t millis)
 {
     cx->runtime()->gc.gcSlice(reason, millis);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::FinishIncrementalGC(JSContext* cx, gcreason::Reason reason)
 {
     cx->runtime()->gc.finishGC(reason);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::AbortIncrementalGC(JSContext* cx)
 {
     if (IsIncrementalGCInProgress(cx))
@@ -8663,56 +8663,56 @@ JS::GCDescription::summaryToJSON(JSContext* cx) const
     return cx->runtime()->gc.stats().renderJsonMessage(0, false);
 }
 
-JS_PUBLIC_API(JS::UniqueChars)
+JS_PUBLIC_API JS::UniqueChars
 JS::MinorGcToJSON(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
     return rt->gc.stats().renderNurseryJson(rt);
 }
 
-JS_PUBLIC_API(JS::GCSliceCallback)
+JS_PUBLIC_API JS::GCSliceCallback
 JS::SetGCSliceCallback(JSContext* cx, GCSliceCallback callback)
 {
     return cx->runtime()->gc.setSliceCallback(callback);
 }
 
-JS_PUBLIC_API(JS::DoCycleCollectionCallback)
+JS_PUBLIC_API JS::DoCycleCollectionCallback
 JS::SetDoCycleCollectionCallback(JSContext* cx, JS::DoCycleCollectionCallback callback)
 {
     return cx->runtime()->gc.setDoCycleCollectionCallback(callback);
 }
 
-JS_PUBLIC_API(JS::GCNurseryCollectionCallback)
+JS_PUBLIC_API JS::GCNurseryCollectionCallback
 JS::SetGCNurseryCollectionCallback(JSContext* cx, GCNurseryCollectionCallback callback)
 {
     return cx->runtime()->gc.setNurseryCollectionCallback(callback);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::DisableIncrementalGC(JSContext* cx)
 {
     cx->runtime()->gc.disallowIncrementalGC();
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsIncrementalGCEnabled(JSContext* cx)
 {
     return cx->runtime()->gc.isIncrementalGCEnabled();
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsIncrementalGCInProgress(JSContext* cx)
 {
     return cx->runtime()->gc.isIncrementalGCInProgress() && !cx->runtime()->gc.isVerifyPreBarriersEnabled();
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsIncrementalGCInProgress(JSRuntime* rt)
 {
     return rt->gc.isIncrementalGCInProgress() && !rt->gc.isVerifyPreBarriersEnabled();
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::IsIncrementalBarrierNeeded(JSContext* cx)
 {
     if (JS::CurrentThreadIsHeapBusy())
@@ -8722,7 +8722,7 @@ JS::IsIncrementalBarrierNeeded(JSContext* cx)
     return state != gc::State::NotActive && state <= gc::State::Sweep;
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::IncrementalPreWriteBarrier(JSObject* obj)
 {
     if (!obj)
@@ -8736,7 +8736,7 @@ struct IncrementalReadBarrierFunctor {
     template <typename T> void operator()(T* t) { T::readBarrier(t); }
 };
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::IncrementalReadBarrier(GCCellPtr thing)
 {
     if (!thing)
@@ -8746,7 +8746,7 @@ JS::IncrementalReadBarrier(GCCellPtr thing)
     DispatchTyped(IncrementalReadBarrierFunctor(), thing);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::WasIncrementalGC(JSRuntime* rt)
 {
     return rt->gc.isIncrementalGc();
@@ -9017,7 +9017,7 @@ namespace js {
 // We don't want jsfriendapi.h to depend on GenericPrinter,
 // so these functions are declared directly in the cpp.
 
-extern JS_FRIEND_API(void)
+extern JS_FRIEND_API void
 DumpString(JSString* str, js::GenericPrinter& out);
 
 }
@@ -9064,7 +9064,7 @@ CanCheckGrayBits(const Cell* cell)
     return CurrentThreadCanAccessRuntime(rt) && rt->gc.areGrayBitsValid();
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 js::gc::detail::CellIsMarkedGrayIfKnown(const Cell* cell)
 {
     // We ignore the gray marking state of cells and return false in the
@@ -9096,7 +9096,7 @@ js::gc::detail::CellIsMarkedGrayIfKnown(const Cell* cell)
 
 #ifdef DEBUG
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 js::gc::detail::CellIsNotGray(const Cell* cell)
 {
     // Check that a cell is not marked gray.
@@ -9130,7 +9130,7 @@ js::gc::detail::CellIsNotGray(const Cell* cell)
     return false;
 }
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 js::gc::detail::ObjectIsMarkedBlack(const JSObject* obj)
 {
     return obj->isMarkedBlack();

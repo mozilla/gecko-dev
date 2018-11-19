@@ -415,7 +415,7 @@ js::ErrorFromException(JSContext* cx, HandleObject objArg)
     return report;
 }
 
-JS_PUBLIC_API(JSObject*)
+JS_PUBLIC_API JSObject*
 JS::ExceptionStackOrNull(HandleObject objArg)
 {
     JSObject* obj = CheckedUnwrap(objArg);
@@ -618,7 +618,7 @@ ErrorObject::createConstructor(JSContext* cx, JSProtoKey key)
     return ctor;
 }
 
-JS_FRIEND_API(JSFlatString*)
+JS_FRIEND_API JSFlatString*
 js::GetErrorTypeName(JSContext* cx, int16_t exnType)
 {
     /*
@@ -1081,7 +1081,7 @@ js::CopyErrorObject(JSContext* cx, Handle<ErrorObject*> err)
                                lineNumber, columnNumber, &copyReport, message);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CreateError(JSContext* cx, JSExnType type, HandleObject stack, HandleString fileName,
                     uint32_t lineNumber, uint32_t columnNumber, JSErrorReport* report,
                     HandleString message, MutableHandleValue rval)

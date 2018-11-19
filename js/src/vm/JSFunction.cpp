@@ -2391,7 +2391,7 @@ js::ReportIncompatible(JSContext* cx, const CallArgs& args)
 namespace JS {
 namespace detail {
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 CheckIsValidConstructible(const Value& calleev)
 {
     JSObject* callee = &calleev.toObject();

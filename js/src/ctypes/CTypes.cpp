@@ -2461,7 +2461,7 @@ static bool GetObjectProperty(JSContext* cx, HandleObject obj,
 using namespace js;
 using namespace js::ctypes;
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_InitCTypesClass(JSContext* cx, HandleObject global)
 {
   // attach ctypes property to global object
@@ -2507,7 +2507,7 @@ JS_InitCTypesClass(JSContext* cx, HandleObject global)
   return JS_FreezeObject(cx, ctypes);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_SetCTypesCallbacks(JSObject* ctypesObj, const JSCTypesCallbacks* callbacks)
 {
   MOZ_ASSERT(callbacks);
@@ -2520,7 +2520,7 @@ JS_SetCTypesCallbacks(JSObject* ctypesObj, const JSCTypesCallbacks* callbacks)
 
 namespace js {
 
-JS_FRIEND_API(size_t)
+JS_FRIEND_API size_t
 SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf, JSObject* obj)
 {
     if (!CData::IsCData(obj))

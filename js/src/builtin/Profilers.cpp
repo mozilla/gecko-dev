@@ -51,7 +51,7 @@ UnsafeError(const char* format, ...)
 }
 #endif
 
-JS_PUBLIC_API(const char*)
+JS_PUBLIC_API const char*
 JS_UnsafeGetLastProfilingError()
 {
     return gLastError;
@@ -78,7 +78,7 @@ StartOSXProfiling(const char* profileName, pid_t pid)
 }
 #endif
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_StartProfiling(const char* profileName, pid_t pid)
 {
     bool ok = true;
@@ -92,7 +92,7 @@ JS_StartProfiling(const char* profileName, pid_t pid)
     return ok;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_StopProfiling(const char* profileName)
 {
     bool ok = true;
@@ -163,19 +163,19 @@ ControlProfilers(bool toState)
  * profilers' pause/resume functions, because only overall state is
  * tracked, not the state of each profiler.
  */
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_PauseProfilers(const char* profileName)
 {
     return ControlProfilers(false);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_ResumeProfilers(const char* profileName)
 {
     return ControlProfilers(true);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_DumpProfile(const char* outfile, const char* profileName)
 {
     bool ok = true;
@@ -400,7 +400,7 @@ static const JSFunctionSpec profiling_functions[] = {
 
 #endif
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_DefineProfilingFunctions(JSContext* cx, HandleObject obj)
 {
     assertSameCompartment(cx, obj);
@@ -413,7 +413,7 @@ JS_DefineProfilingFunctions(JSContext* cx, HandleObject obj)
 
 #ifdef MOZ_CALLGRIND
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js_StartCallgrind()
 {
     JS_SILENCE_UNUSED_VALUE_IN_EXPR(CALLGRIND_START_INSTRUMENTATION);
@@ -421,14 +421,14 @@ js_StartCallgrind()
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js_StopCallgrind()
 {
     JS_SILENCE_UNUSED_VALUE_IN_EXPR(CALLGRIND_STOP_INSTRUMENTATION);
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js_DumpCallgrind(const char* outfile)
 {
     if (outfile) {

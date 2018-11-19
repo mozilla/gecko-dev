@@ -72,7 +72,7 @@ ComputeRandomAllocationAddress()
 # ifdef HAVE_64BIT_BUILD
 static js::JitExceptionHandler sJitExceptionHandler;
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::SetJitExceptionHandler(JitExceptionHandler handler)
 {
     MOZ_ASSERT(!sJitExceptionHandler);

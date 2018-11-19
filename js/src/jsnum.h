@@ -161,7 +161,7 @@ ToNumber(JSContext* cx, JS::MutableHandleValue vp)
     if (vp.isNumber())
         return true;
     double d;
-    extern JS_PUBLIC_API(bool) ToNumberSlow(JSContext* cx, HandleValue v, double* dp);
+    extern JS_PUBLIC_API bool ToNumberSlow(JSContext* cx, HandleValue v, double* dp);
     if (!ToNumberSlow(cx, vp, &d))
         return false;
 
@@ -254,7 +254,7 @@ ToInteger(JSContext* cx, HandleValue v, double* dp)
         *dp = v.toString()->getIndexValue();
         return true;
     } else {
-        extern JS_PUBLIC_API(bool) ToNumberSlow(JSContext* cx, HandleValue v, double* dp);
+        extern JS_PUBLIC_API bool ToNumberSlow(JSContext* cx, HandleValue v, double* dp);
         if (!ToNumberSlow(cx, v, dp))
             return false;
     }

@@ -247,7 +247,7 @@ StringIsArrayIndex(const CharT* s, uint32_t length, uint32_t* indexp)
     return false;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::StringIsArrayIndex(JSLinearString* str, uint32_t* indexp)
 {
     AutoCheckCannotGC nogc;

@@ -66,7 +66,7 @@ CheckMessageParameterCounts()
 
 #define RETURN_IF_FAIL(code) do { if (!code) return #code " failed"; } while (0)
 
-JS_PUBLIC_API(const char*)
+JS_PUBLIC_API const char*
 JS::detail::InitWithFailureDiagnostic(bool isDebugBuild)
 {
     // Verify that our DEBUG setting matches the caller's.
@@ -143,7 +143,7 @@ JS::detail::InitWithFailureDiagnostic(bool isDebugBuild)
 
 #undef RETURN_IF_FAIL
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_ShutDown(void)
 {
     MOZ_ASSERT(libraryInitState == InitState::Running,
@@ -210,7 +210,7 @@ JS_ShutDown(void)
     libraryInitState = InitState::ShutDown;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_ICUFreeFn freeFn)
 {
     MOZ_ASSERT(libraryInitState == InitState::Uninitialized,

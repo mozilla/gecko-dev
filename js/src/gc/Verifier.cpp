@@ -713,7 +713,7 @@ CheckGrayMarkingTracer::check(AutoTraceSession& session)
     return failures == 0;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::CheckGrayMarkingState(JSRuntime* rt)
 {
     MOZ_ASSERT(!JS::CurrentThreadIsHeapCollecting());

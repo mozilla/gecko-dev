@@ -104,7 +104,7 @@ namespace js {
  * We need to define this value here, rather than in the code which actually
  * generates the memory reports, because NotableStringInfo uses this value.
  */
-JS_FRIEND_API(size_t) MemoryReportingSundriesThreshold();
+JS_FRIEND_API size_t MemoryReportingSundriesThreshold();
 
 /**
  * This hash policy avoids flattening ropes (which perturbs the site being
@@ -946,27 +946,27 @@ class ObjectPrivateVisitor
     {}
 };
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 CollectRuntimeStats(JSContext* cx, RuntimeStats* rtStats, ObjectPrivateVisitor* opv, bool anonymize);
 
-extern JS_PUBLIC_API(size_t)
+extern JS_PUBLIC_API size_t
 SystemCompartmentCount(JSContext* cx);
 
-extern JS_PUBLIC_API(size_t)
+extern JS_PUBLIC_API size_t
 UserCompartmentCount(JSContext* cx);
 
-extern JS_PUBLIC_API(size_t)
+extern JS_PUBLIC_API size_t
 PeakSizeOfTemporary(const JSContext* cx);
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 AddSizeOfTab(JSContext* cx, JS::HandleObject obj, mozilla::MallocSizeOf mallocSizeOf,
              ObjectPrivateVisitor* opv, TabSizes* sizes);
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 AddServoSizeOf(JSContext* cx, mozilla::MallocSizeOf mallocSizeOf,
                ObjectPrivateVisitor* opv, ServoSizes* sizes);
 
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 CollectTraceLoggerStateStats(RuntimeStats* rtStats);
 
 } // namespace JS

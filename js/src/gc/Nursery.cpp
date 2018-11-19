@@ -1223,7 +1223,7 @@ js::Nursery::sweepDictionaryModeObjects()
 }
 
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::EnableNurseryStrings(JSContext* cx)
 {
     AutoEmptyNursery empty(cx);
@@ -1231,7 +1231,7 @@ JS::EnableNurseryStrings(JSContext* cx)
     cx->runtime()->gc.nursery().enableStrings();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::DisableNurseryStrings(JSContext* cx)
 {
     AutoEmptyNursery empty(cx);

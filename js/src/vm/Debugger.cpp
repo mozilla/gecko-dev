@@ -11508,7 +11508,7 @@ AutoEntryMonitor::~AutoEntryMonitor()
 
 /*** Glue ****************************************************************************************/
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 JS_DefineDebuggerObject(JSContext* cx, HandleObject obj)
 {
     RootedNativeObject
@@ -11585,7 +11585,7 @@ JS_DefineDebuggerObject(JSContext* cx, HandleObject obj)
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::dbg::IsDebugger(JSObject& obj)
 {
     JSObject* unwrapped = CheckedUnwrap(&obj);
@@ -11594,7 +11594,7 @@ JS::dbg::IsDebugger(JSObject& obj)
            js::Debugger::fromJSObject(unwrapped) != nullptr;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::dbg::GetDebuggeeGlobals(JSContext* cx, JSObject& dbgObj, AutoObjectVector& vector)
 {
     MOZ_ASSERT(IsDebugger(dbgObj));
@@ -11727,7 +11727,7 @@ GarbageCollectionEvent::toJSObject(JSContext* cx) const
     return obj;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 FireOnGarbageCollectionHookRequired(JSContext* cx)
 {
     AutoCheckCannotGC noGC;
@@ -11746,7 +11746,7 @@ FireOnGarbageCollectionHookRequired(JSContext* cx)
     return false;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 FireOnGarbageCollectionHook(JSContext* cx, JS::dbg::GarbageCollectionEvent::Ptr&& data)
 {
     AutoObjectVector triggered(cx);

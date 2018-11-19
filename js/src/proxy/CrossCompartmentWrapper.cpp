@@ -509,7 +509,7 @@ NukeRemovedCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
     MOZ_ASSERT(IsDeadProxyObject(wrapper));
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
 {
     JSCompartment* comp = wrapper->compartment();
@@ -527,7 +527,7 @@ js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
  * and only do that on tab close (outer window destruction).  Thus the
  * option of how to handle the global object.
  */
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::NukeCrossCompartmentWrappers(JSContext* cx,
                                  const CompartmentFilter& sourceFilter,
                                  JSCompartment* target,
@@ -666,7 +666,7 @@ js::RemapWrapper(JSContext* cx, JSObject* wobjArg, JSObject* newTargetArg)
 
 // Remap all cross-compartment wrappers pointing to |oldTarget| to point to
 // |newTarget|. All wrappers are recomputed.
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::RemapAllWrappersForObject(JSContext* cx, JSObject* oldTargetArg,
                               JSObject* newTargetArg)
 {
@@ -693,7 +693,7 @@ js::RemapAllWrappersForObject(JSContext* cx, JSObject* oldTargetArg,
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::RecomputeWrappers(JSContext* cx, const CompartmentFilter& sourceFilter,
                       const CompartmentFilter& targetFilter)
 {

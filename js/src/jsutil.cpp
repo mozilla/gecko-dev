@@ -35,21 +35,21 @@ mozilla::Atomic<AutoEnterOOMUnsafeRegion*> AutoEnterOOMUnsafeRegion::owner_;
 
 namespace oom {
 
-JS_PUBLIC_DATA(uint32_t) targetThread = 0;
+JS_PUBLIC_DATA uint32_t targetThread = 0;
 MOZ_THREAD_LOCAL(uint32_t) threadType;
-JS_PUBLIC_DATA(uint64_t) maxAllocations = UINT64_MAX;
-JS_PUBLIC_DATA(uint64_t) counter = 0;
-JS_PUBLIC_DATA(bool) failAlways = true;
+JS_PUBLIC_DATA uint64_t maxAllocations = UINT64_MAX;
+JS_PUBLIC_DATA uint64_t counter = 0;
+JS_PUBLIC_DATA bool failAlways = true;
 
-JS_PUBLIC_DATA(uint32_t) stackTargetThread = 0;
-JS_PUBLIC_DATA(uint64_t) maxStackChecks = UINT64_MAX;
-JS_PUBLIC_DATA(uint64_t) stackCheckCounter = 0;
-JS_PUBLIC_DATA(bool) stackCheckFailAlways = true;
+JS_PUBLIC_DATA uint32_t stackTargetThread = 0;
+JS_PUBLIC_DATA uint64_t maxStackChecks = UINT64_MAX;
+JS_PUBLIC_DATA uint64_t stackCheckCounter = 0;
+JS_PUBLIC_DATA bool stackCheckFailAlways = true;
 
-JS_PUBLIC_DATA(uint32_t) interruptTargetThread = 0;
-JS_PUBLIC_DATA(uint64_t) maxInterruptChecks = UINT64_MAX;
-JS_PUBLIC_DATA(uint64_t) interruptCheckCounter = 0;
-JS_PUBLIC_DATA(bool) interruptCheckFailAlways = true;
+JS_PUBLIC_DATA uint32_t interruptTargetThread = 0;
+JS_PUBLIC_DATA uint64_t maxInterruptChecks = UINT64_MAX;
+JS_PUBLIC_DATA uint64_t interruptCheckCounter = 0;
+JS_PUBLIC_DATA bool interruptCheckFailAlways = true;
 
 bool
 InitThreadType(void) {
@@ -166,7 +166,7 @@ ResetSimulatedInterrupt()
 } // namespace js
 #endif // defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 
-JS_PUBLIC_DATA(arena_id_t) js::MallocArena;
+JS_PUBLIC_DATA arena_id_t js::MallocArena;
 
 void
 js::InitMallocAllocator()
@@ -181,7 +181,7 @@ js::ShutDownMallocAllocator()
     // moz_dispose_arena(MallocArena);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_Assert(const char* s, const char* file, int ln)
 {
     MOZ_ReportAssertionFailure(s, file, ln);

@@ -38,7 +38,7 @@ using JS::CompartmentStats;
 
 namespace js {
 
-JS_FRIEND_API(size_t)
+JS_FRIEND_API size_t
 MemoryReportingSundriesThreshold()
 {
     return 8 * 1024;
@@ -847,14 +847,14 @@ CollectRuntimeStatsHelper(JSContext* cx, RuntimeStats* rtStats, ObjectPrivateVis
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CollectRuntimeStats(JSContext* cx, RuntimeStats *rtStats, ObjectPrivateVisitor *opv,
                         bool anonymize)
 {
     return CollectRuntimeStatsHelper(cx, rtStats, opv, anonymize, StatsCellCallback<FineGrained>);
 }
 
-JS_PUBLIC_API(size_t)
+JS_PUBLIC_API size_t
 JS::SystemCompartmentCount(JSContext* cx)
 {
     size_t n = 0;
@@ -865,7 +865,7 @@ JS::SystemCompartmentCount(JSContext* cx)
     return n;
 }
 
-JS_PUBLIC_API(size_t)
+JS_PUBLIC_API size_t
 JS::UserCompartmentCount(JSContext* cx)
 {
     size_t n = 0;
@@ -876,13 +876,13 @@ JS::UserCompartmentCount(JSContext* cx)
     return n;
 }
 
-JS_PUBLIC_API(size_t)
+JS_PUBLIC_API size_t
 JS::PeakSizeOfTemporary(const JSContext* cx)
 {
     return cx->tempLifoAlloc().peakSizeOfExcludingThis();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::CollectTraceLoggerStateStats(RuntimeStats* rtStats)
 {
 #ifdef JS_TRACE_LOGGING
@@ -909,7 +909,7 @@ class SimpleJSRuntimeStats : public JS::RuntimeStats
     {}
 };
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 AddSizeOfTab(JSContext* cx, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectPrivateVisitor* opv,
              TabSizes* sizes)
 {
@@ -949,7 +949,7 @@ AddSizeOfTab(JSContext* cx, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectP
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 AddServoSizeOf(JSContext* cx, MallocSizeOf mallocSizeOf, ObjectPrivateVisitor* opv,
                ServoSizes* sizes)
 {

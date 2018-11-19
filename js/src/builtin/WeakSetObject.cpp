@@ -243,7 +243,7 @@ js::InitWeakSetClass(JSContext* cx, HandleObject obj)
     return WeakSetObject::initClass(cx, obj);
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_NondeterministicGetWeakSetKeys(JSContext* cx, HandleObject objArg, MutableHandleObject ret)
 {
     RootedObject obj(cx, UncheckedUnwrap(objArg));

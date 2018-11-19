@@ -5454,7 +5454,7 @@ ReadableStream::getReader(JSContext* cx, Handle<ReadableStream*> stream,
     return CreateReadableStreamBYOBReader(cx, stream);
 }
 
-JS_FRIEND_API(JSObject*)
+JS_FRIEND_API JSObject*
 js::UnwrapReadableStream(JSObject* obj)
 {
     if (JSObject* unwrapped = CheckedUnwrap(obj))

@@ -36,11 +36,11 @@ using AutoObjectVector = AutoVector<JSObject*>;
 
 class CallArgs;
 
-class JS_FRIEND_API(CompileOptions);
-class JS_FRIEND_API(ReadOnlyCompileOptions);
-class JS_FRIEND_API(OwningCompileOptions);
-class JS_FRIEND_API(TransitiveCompileOptions);
-class JS_PUBLIC_API(CompartmentOptions);
+class JS_FRIEND_API CompileOptions;
+class JS_FRIEND_API ReadOnlyCompileOptions;
+class JS_FRIEND_API OwningCompileOptions;
+class JS_FRIEND_API TransitiveCompileOptions;
+class JS_PUBLIC_API CompartmentOptions;
 
 } // namespace JS
 
@@ -77,7 +77,7 @@ struct JSSecurityCallbacks;
 struct JSStructuredCloneCallbacks;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
-class JS_PUBLIC_API(JSTracer);
+class JS_PUBLIC_API JSTracer;
 
 class JSFlatString;
 
@@ -100,11 +100,11 @@ inline JS::Zone* GetContextZone(const JSContext* cx);
 
 // Whether the current thread is permitted access to any part of the specified
 // runtime or zone.
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 CurrentThreadCanAccessRuntime(const JSRuntime* rt);
 
 #ifdef DEBUG
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 CurrentThreadIsPerformingGC();
 #endif
 
@@ -112,9 +112,9 @@ CurrentThreadIsPerformingGC();
 
 namespace JS {
 
-class JS_PUBLIC_API(AutoEnterCycleCollection);
-class JS_PUBLIC_API(AutoAssertOnBarrier);
-struct JS_PUBLIC_API(PropertyDescriptor);
+class JS_PUBLIC_API AutoEnterCycleCollection;
+class JS_PUBLIC_API AutoAssertOnBarrier;
+struct JS_PUBLIC_API PropertyDescriptor;
 
 typedef void (*OffThreadCompileCallback)(void* token, void* callbackData);
 
@@ -126,7 +126,7 @@ enum class HeapState {
     CycleCollecting   // in the "Unlink" phase of cycle collection
 };
 
-JS_PUBLIC_API(HeapState)
+JS_PUBLIC_API HeapState
 CurrentThreadHeapState();
 
 static inline bool
@@ -168,7 +168,7 @@ CurrentThreadIsHeapCycleCollecting()
 
 // Decorates the Unlinking phase of CycleCollection so that accidental use
 // of barriered accessors results in assertions instead of leaks.
-class MOZ_STACK_CLASS JS_PUBLIC_API(AutoEnterCycleCollection)
+class MOZ_STACK_CLASS JS_PUBLIC_API AutoEnterCycleCollection
 {
 #ifdef DEBUG
   public:

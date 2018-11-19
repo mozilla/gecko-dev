@@ -1641,7 +1641,7 @@ JS::ProfiledFrameHandle::ProfiledFrameHandle(JSRuntime* rt, js::jit::JitcodeGlob
     }
 }
 
-JS_PUBLIC_API(JS::ProfilingFrameIterator::FrameKind)
+JS_PUBLIC_API JS::ProfilingFrameIterator::FrameKind
 JS::ProfiledFrameHandle::frameKind() const
 {
     if (entry_.isBaseline())
@@ -1649,7 +1649,7 @@ JS::ProfiledFrameHandle::frameKind() const
     return JS::ProfilingFrameIterator::Frame_Ion;
 }
 
-JS_PUBLIC_API(JS::ProfiledFrameRange)
+JS_PUBLIC_API JS::ProfiledFrameRange
 JS::GetProfiledFrames(JSContext* cx, void* addr)
 {
     JSRuntime* rt = cx->runtime();

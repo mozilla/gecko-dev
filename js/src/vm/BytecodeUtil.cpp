@@ -1098,7 +1098,7 @@ js::Disassemble(JSContext* cx, HandleScript script, bool lines, Sprinter* sp)
     return DisassembleAtPC(cx, script, lines, nullptr, false, sp);
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::DumpPC(JSContext* cx, FILE* fp)
 {
     gc::AutoSuppressGC suppressGC(cx);
@@ -1116,7 +1116,7 @@ js::DumpPC(JSContext* cx, FILE* fp)
     return ok;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::DumpScript(JSContext* cx, JSScript* scriptArg, FILE* fp)
 {
     gc::AutoSuppressGC suppressGC(cx);
@@ -2496,7 +2496,7 @@ ReleaseScriptCounts(FreeOp* fop)
     rt->scriptAndCountsVector = nullptr;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::StartPCCountProfiling(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2512,7 +2512,7 @@ js::StartPCCountProfiling(JSContext* cx)
     rt->profilingScripts = true;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::StopPCCountProfiling(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2541,7 +2541,7 @@ js::StopPCCountProfiling(JSContext* cx)
     rt->scriptAndCountsVector = vec;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::PurgePCCounts(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2553,7 +2553,7 @@ js::PurgePCCounts(JSContext* cx)
     ReleaseScriptCounts(rt->defaultFreeOp());
 }
 
-JS_FRIEND_API(size_t)
+JS_FRIEND_API size_t
 js::GetPCCountScriptCount(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2577,7 +2577,7 @@ AppendJSONProperty(StringBuffer& buf, const char* name, MaybeComma comma = COMMA
            buf.append("\":", 2);
 }
 
-JS_FRIEND_API(JSString*)
+JS_FRIEND_API JSString*
 js::GetPCCountScriptSummary(JSContext* cx, size_t index)
 {
     JSRuntime* rt = cx->runtime();
@@ -2862,7 +2862,7 @@ GetPCCountJSON(JSContext* cx, const ScriptAndCounts& sac, StringBuffer& buf)
     return true;
 }
 
-JS_FRIEND_API(JSString*)
+JS_FRIEND_API JSString*
 js::GetPCCountScriptContents(JSContext* cx, size_t index)
 {
     JSRuntime* rt = cx->runtime();
@@ -2966,7 +2966,7 @@ GenerateLcovInfo(JSContext* cx, JSCompartment* comp, GenericPrinter& out)
     return true;
 }
 
-JS_FRIEND_API(char*)
+JS_FRIEND_API char*
 js::GetCodeCoverageSummary(JSContext* cx, size_t* length)
 {
     Sprinter out(cx);

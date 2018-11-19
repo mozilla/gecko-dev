@@ -565,13 +565,13 @@ GCRuntime::resetBufferedGrayRoots() const
         zone->gcGrayRoots().clearAndFree();
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::AddPersistentRoot(JS::RootingContext* cx, RootKind kind, PersistentRooted<void*>* root)
 {
     static_cast<JSContext*>(cx)->runtime()->heapRoots.ref()[kind].insertBack(root);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::AddPersistentRoot(JSRuntime* rt, RootKind kind, PersistentRooted<void*>* root)
 {
     rt->heapRoots.ref()[kind].insertBack(root);

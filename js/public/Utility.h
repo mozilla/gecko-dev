@@ -41,7 +41,7 @@ namespace js {}
 #define JS_STATIC_ASSERT(cond)           static_assert(cond, "JS_STATIC_ASSERT")
 #define JS_STATIC_ASSERT_IF(cond, expr)  MOZ_STATIC_ASSERT_IF(cond, expr, "JS_STATIC_ASSERT_IF")
 
-extern MOZ_NORETURN MOZ_COLD JS_PUBLIC_API(void)
+extern MOZ_NORETURN MOZ_COLD JS_PUBLIC_API void
 JS_Assert(const char* s, const char* file, int ln);
 
 /*
@@ -97,7 +97,7 @@ const ThreadType LastThreadTypeToTest = THREAD_TYPE_WASM_TIER2;
 
 extern bool InitThreadType(void);
 extern void SetThreadType(ThreadType);
-extern JS_FRIEND_API(uint32_t) GetThreadType(void);
+extern JS_FRIEND_API uint32_t GetThreadType(void);
 
 # else
 
@@ -131,10 +131,10 @@ namespace oom {
  * simulate OOM conditions and so we can test that they are handled correctly.
  */
 
-extern JS_PUBLIC_DATA(uint32_t) targetThread;
-extern JS_PUBLIC_DATA(uint64_t) maxAllocations;
-extern JS_PUBLIC_DATA(uint64_t) counter;
-extern JS_PUBLIC_DATA(bool) failAlways;
+extern JS_PUBLIC_DATA uint32_t targetThread;
+extern JS_PUBLIC_DATA uint64_t maxAllocations;
+extern JS_PUBLIC_DATA uint64_t counter;
+extern JS_PUBLIC_DATA bool failAlways;
 
 extern void
 SimulateOOMAfter(uint64_t allocations, uint32_t thread, bool always);
@@ -178,10 +178,10 @@ HadSimulatedOOM() {
  * Out of stack space testing support, similar to OOM testing functions.
  */
 
-extern JS_PUBLIC_DATA(uint32_t) stackTargetThread;
-extern JS_PUBLIC_DATA(uint64_t) maxStackChecks;
-extern JS_PUBLIC_DATA(uint64_t) stackCheckCounter;
-extern JS_PUBLIC_DATA(bool) stackCheckFailAlways;
+extern JS_PUBLIC_DATA uint32_t stackTargetThread;
+extern JS_PUBLIC_DATA uint64_t maxStackChecks;
+extern JS_PUBLIC_DATA uint64_t stackCheckCounter;
+extern JS_PUBLIC_DATA bool stackCheckFailAlways;
 
 extern void
 SimulateStackOOMAfter(uint64_t checks, uint32_t thread, bool always);
@@ -226,10 +226,10 @@ HadSimulatedStackOOM()
  * Interrupt testing support, similar to OOM testing functions.
  */
 
-extern JS_PUBLIC_DATA(uint32_t) interruptTargetThread;
-extern JS_PUBLIC_DATA(uint64_t) maxInterruptChecks;
-extern JS_PUBLIC_DATA(uint64_t) interruptCheckCounter;
-extern JS_PUBLIC_DATA(bool) interruptCheckFailAlways;
+extern JS_PUBLIC_DATA uint32_t interruptTargetThread;
+extern JS_PUBLIC_DATA uint64_t maxInterruptChecks;
+extern JS_PUBLIC_DATA uint64_t interruptCheckCounter;
+extern JS_PUBLIC_DATA bool interruptCheckFailAlways;
 
 extern void
 SimulateInterruptAfter(uint64_t checks, uint32_t thread, bool always);
@@ -326,7 +326,7 @@ static inline bool ShouldFailWithOOM() { return false; }
 namespace js {
 
 /* Disable OOM testing in sections which are not OOM safe. */
-struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
+struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion
 {
     MOZ_NORETURN MOZ_COLD void crash(const char* reason);
     MOZ_NORETURN MOZ_COLD void crash(size_t size, const char* reason);
@@ -375,7 +375,7 @@ struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
 
 namespace js {
 
-extern JS_PUBLIC_DATA(arena_id_t) MallocArena;
+extern JS_PUBLIC_DATA arena_id_t MallocArena;
 
 extern void InitMallocAllocator();
 extern void ShutDownMallocAllocator();
@@ -419,7 +419,7 @@ static inline void js_free(void* p)
     free(p);
 }
 
-JS_PUBLIC_API(char*) js_strdup(const char* s);
+JS_PUBLIC_API char* js_strdup(const char* s);
 #endif/* JS_USE_CUSTOM_ALLOCATOR */
 
 #include <new>

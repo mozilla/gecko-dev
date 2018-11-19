@@ -236,7 +236,7 @@ class ProfileEntry
         return spOrScript;
     }
 
-    JS_PUBLIC_API(JSScript*) script() const;
+    JS_PUBLIC_API JSScript* script() const;
 
     uint32_t line() const {
         MOZ_ASSERT(!isJs());
@@ -251,7 +251,7 @@ class ProfileEntry
     }
 
     // We can't know the layout of JSScript, so look in vm/GeckoProfiler.cpp.
-    JS_FRIEND_API(jsbytecode*) pc() const;
+    JS_FRIEND_API jsbytecode* pc() const;
     void setPC(jsbytecode* pc);
 
     void trace(JSTracer* trc);
@@ -262,15 +262,15 @@ class ProfileEntry
     static const int32_t NullPCOffset = -1;
 };
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 SetContextProfilingStack(JSContext* cx, PseudoStack* pseudoStack);
 
 // GetContextProfilingStack also exists, but it's defined in RootingAPI.h.
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 EnableContextProfilingStack(JSContext* cx, bool enabled);
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*));
 
 } // namespace js

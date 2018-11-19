@@ -34,7 +34,7 @@ using JS::Value;
 
 class RegExpShared;
 
-class JS_FRIEND_API(Wrapper);
+class JS_FRIEND_API Wrapper;
 
 /*
  * A proxy is a JSObject with highly customizable behavior. ES6 specifies a
@@ -149,7 +149,7 @@ class JS_FRIEND_API(Wrapper);
  * Proxy::foo entry point with an AutoEnterPolicy. If you don't, you need an
  * explicit override for the method in SecurityWrapper. See bug 945826 comment 0.
  */
-class JS_FRIEND_API(BaseProxyHandler)
+class JS_FRIEND_API BaseProxyHandler
 {
     /*
      * Sometimes it's desirable to designate groups of proxy handlers as "similar".
@@ -352,7 +352,7 @@ class JS_FRIEND_API(BaseProxyHandler)
     virtual bool isScripted() const { return false; }
 };
 
-extern JS_FRIEND_DATA(const js::Class* const) ProxyClassPtr;
+extern JS_FRIEND_DATA const js::Class* const ProxyClassPtr;
 
 inline bool IsProxy(const JSObject* obj)
 {
@@ -496,7 +496,7 @@ SetProxyHandler(JSObject* obj, const BaseProxyHandler* handler)
     detail::GetProxyDataLayout(obj)->handler = handler;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 SetValueInProxy(Value* slot, const Value& value);
 
 inline void
@@ -575,14 +575,14 @@ class MOZ_STACK_CLASS ProxyOptions {
     const Class* clasp_;
 };
 
-JS_FRIEND_API(JSObject*)
+JS_FRIEND_API JSObject*
 NewProxyObject(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv,
                JSObject* proto, const ProxyOptions& options = ProxyOptions());
 
 JSObject*
 RenewProxyObject(JSContext* cx, JSObject* obj, BaseProxyHandler* handler, const Value& priv);
 
-class JS_FRIEND_API(AutoEnterPolicy)
+class JS_FRIEND_API AutoEnterPolicy
 {
   public:
     typedef BaseProxyHandler::Action Action;
@@ -633,7 +633,7 @@ class JS_FRIEND_API(AutoEnterPolicy)
     void recordEnter(JSContext* cx, HandleObject proxy, HandleId id, Action act);
     void recordLeave();
 
-    friend JS_FRIEND_API(void) assertEnteredPolicy(JSContext* cx, JSObject* proxy, jsid id, Action act);
+    friend JS_FRIEND_API void assertEnteredPolicy(JSContext* cx, JSObject* proxy, jsid id, Action act);
 #else
     inline void recordEnter(JSContext* cx, JSObject* proxy, jsid id, Action act) {}
     inline void recordLeave() {}
@@ -651,7 +651,7 @@ class JS_FRIEND_API(AutoEnterPolicy)
 };
 
 #ifdef JS_DEBUG
-class JS_FRIEND_API(AutoWaivePolicy) : public AutoEnterPolicy {
+class JS_FRIEND_API AutoWaivePolicy : public AutoEnterPolicy {
 public:
     AutoWaivePolicy(JSContext* cx, HandleObject proxy, HandleId id,
                     BaseProxyHandler::Action act)
@@ -661,7 +661,7 @@ public:
     }
 };
 #else
-class JS_FRIEND_API(AutoWaivePolicy) {
+class JS_FRIEND_API AutoWaivePolicy {
   public:
     AutoWaivePolicy(JSContext* cx, HandleObject proxy, HandleId id,
                     BaseProxyHandler::Action act)
@@ -670,7 +670,7 @@ class JS_FRIEND_API(AutoWaivePolicy) {
 #endif
 
 #ifdef JS_DEBUG
-extern JS_FRIEND_API(void)
+extern JS_FRIEND_API void
 assertEnteredPolicy(JSContext* cx, JSObject* obj, jsid id,
                     BaseProxyHandler::Action act);
 #else
@@ -679,12 +679,12 @@ inline void assertEnteredPolicy(JSContext* cx, JSObject* obj, jsid id,
 {}
 #endif
 
-extern JS_FRIEND_API(JSObject*)
+extern JS_FRIEND_API JSObject*
 InitProxyClass(JSContext* cx, JS::HandleObject obj);
 
-extern JS_FRIEND_DATA(const js::ClassOps) ProxyClassOps;
-extern JS_FRIEND_DATA(const js::ClassExtension) ProxyClassExtension;
-extern JS_FRIEND_DATA(const js::ObjectOps) ProxyObjectOps;
+extern JS_FRIEND_DATA const js::ClassOps ProxyClassOps;
+extern JS_FRIEND_DATA const js::ClassExtension ProxyClassExtension;
+extern JS_FRIEND_DATA const js::ObjectOps ProxyObjectOps;
 
 template <unsigned Flags>
 constexpr unsigned

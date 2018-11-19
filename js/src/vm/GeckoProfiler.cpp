@@ -420,7 +420,7 @@ GeckoProfilerBaselineOSRMarker::~GeckoProfilerBaselineOSRMarker()
     entry.setKind(ProfileEntry::Kind::JS_NORMAL);
 }
 
-JS_PUBLIC_API(JSScript*)
+JS_PUBLIC_API JSScript*
 ProfileEntry::script() const
 {
     MOZ_ASSERT(isJs());
@@ -443,7 +443,7 @@ ProfileEntry::script() const
     return script;
 }
 
-JS_FRIEND_API(jsbytecode*)
+JS_FRIEND_API jsbytecode*
 ProfileEntry::pc() const
 {
     MOZ_ASSERT(isJs());
@@ -468,19 +468,19 @@ ProfileEntry::setPC(jsbytecode* pc)
     lineOrPcOffset = pcToOffset(script, pc);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::SetContextProfilingStack(JSContext* cx, PseudoStack* pseudoStack)
 {
     cx->geckoProfiler().setProfilingStack(pseudoStack);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::EnableContextProfilingStack(JSContext* cx, bool enabled)
 {
     cx->runtime()->geckoProfiler().enable(enabled);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*))
 {
     MOZ_ASSERT(cx->runtime()->geckoProfiler().enabled());

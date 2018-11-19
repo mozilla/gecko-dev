@@ -1918,28 +1918,28 @@ JS_FOR_EACH_TYPED_ARRAY(GET_ELEMENTS)
  */
 
 #define IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Name,NativeType)                                    \
-  JS_FRIEND_API(JSObject*) JS_New ## Name ## Array(JSContext* cx, uint32_t nelements)           \
+  JS_FRIEND_API JSObject* JS_New ## Name ## Array(JSContext* cx, uint32_t nelements)            \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromLength(cx, nelements);                   \
   }                                                                                             \
-  JS_FRIEND_API(JSObject*) JS_New ## Name ## ArrayFromArray(JSContext* cx, HandleObject other)  \
+  JS_FRIEND_API JSObject* JS_New ## Name ## ArrayFromArray(JSContext* cx, HandleObject other)   \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromArray(cx, other);                        \
   }                                                                                             \
-  JS_FRIEND_API(JSObject*) JS_New ## Name ## ArrayWithBuffer(JSContext* cx,                     \
+  JS_FRIEND_API JSObject* JS_New ## Name ## ArrayWithBuffer(JSContext* cx,                      \
                                HandleObject arrayBuffer, uint32_t byteOffset, int32_t length)   \
   {                                                                                             \
       return TypedArrayObjectTemplate<NativeType>::fromBuffer(cx, arrayBuffer, byteOffset,      \
                                                               length);                          \
   }                                                                                             \
-  JS_FRIEND_API(bool) JS_Is ## Name ## Array(JSObject* obj)                                     \
+  JS_FRIEND_API bool JS_Is ## Name ## Array(JSObject* obj)                                      \
   {                                                                                             \
       if (!(obj = CheckedUnwrap(obj)))                                                          \
           return false;                                                                         \
       const Class* clasp = obj->getClass();                                                     \
       return clasp == TypedArrayObjectTemplate<NativeType>::instanceClass();                    \
   }                                                                                             \
-  JS_FRIEND_API(JSObject*) js::Unwrap ## Name ## Array(JSObject* obj)                           \
+  JS_FRIEND_API JSObject* js::Unwrap ## Name ## Array(JSObject* obj)                            \
   {                                                                                             \
       obj = CheckedUnwrap(obj);                                                                 \
       if (!obj)                                                                                 \
@@ -1963,10 +1963,10 @@ IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Float32, float)
 IMPL_TYPED_ARRAY_JSAPI_CONSTRUCTORS(Float64, double)
 
 #define IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Name, ExternalType, InternalType)              \
-  JS_FRIEND_API(JSObject*) JS_GetObjectAs ## Name ## Array(JSObject* obj,                  \
-                                                            uint32_t* length,               \
-                                                            bool* isShared,                 \
-                                                            ExternalType** data)            \
+  JS_FRIEND_API JSObject* JS_GetObjectAs ## Name ## Array(JSObject* obj,                    \
+                                                          uint32_t* length,                 \
+                                                          bool* isShared,                   \
+                                                          ExternalType** data)              \
   {                                                                                         \
       if (!(obj = CheckedUnwrap(obj)))                                                      \
           return nullptr;                                                                   \
@@ -2295,14 +2295,14 @@ js::DefineTypedArrayElement(JSContext* cx, HandleObject obj, uint64_t index,
 
 /* JS Friend API */
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_IsTypedArrayObject(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
     return obj ? obj->is<TypedArrayObject>() : false;
 }
 
-JS_FRIEND_API(uint32_t)
+JS_FRIEND_API uint32_t
 JS_GetTypedArrayLength(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
@@ -2311,7 +2311,7 @@ JS_GetTypedArrayLength(JSObject* obj)
     return obj->as<TypedArrayObject>().length();
 }
 
-JS_FRIEND_API(uint32_t)
+JS_FRIEND_API uint32_t
 JS_GetTypedArrayByteOffset(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
@@ -2320,7 +2320,7 @@ JS_GetTypedArrayByteOffset(JSObject* obj)
     return obj->as<TypedArrayObject>().byteOffset();
 }
 
-JS_FRIEND_API(uint32_t)
+JS_FRIEND_API uint32_t
 JS_GetTypedArrayByteLength(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
@@ -2329,7 +2329,7 @@ JS_GetTypedArrayByteLength(JSObject* obj)
     return obj->as<TypedArrayObject>().byteLength();
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_GetTypedArraySharedness(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
@@ -2338,7 +2338,7 @@ JS_GetTypedArraySharedness(JSObject* obj)
     return obj->as<TypedArrayObject>().isSharedMemory();
 }
 
-JS_FRIEND_API(js::Scalar::Type)
+JS_FRIEND_API js::Scalar::Type
 JS_GetArrayBufferViewType(JSObject* obj)
 {
     obj = CheckedUnwrap(obj);
@@ -2352,7 +2352,7 @@ JS_GetArrayBufferViewType(JSObject* obj)
     MOZ_CRASH("invalid ArrayBufferView type");
 }
 
-JS_FRIEND_API(int8_t*)
+JS_FRIEND_API int8_t*
 JS_GetInt8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2364,7 +2364,7 @@ JS_GetInt8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNo
     return static_cast<int8_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isShared*/));
 }
 
-JS_FRIEND_API(uint8_t*)
+JS_FRIEND_API uint8_t*
 JS_GetUint8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2376,7 +2376,7 @@ JS_GetUint8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireN
     return static_cast<uint8_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(uint8_t*)
+JS_FRIEND_API uint8_t*
 JS_GetUint8ClampedArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2388,7 +2388,7 @@ JS_GetUint8ClampedArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoR
     return static_cast<uint8_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(int16_t*)
+JS_FRIEND_API int16_t*
 JS_GetInt16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2400,7 +2400,7 @@ JS_GetInt16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireN
     return static_cast<int16_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(uint16_t*)
+JS_FRIEND_API uint16_t*
 JS_GetUint16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2412,7 +2412,7 @@ JS_GetUint16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequire
     return static_cast<uint16_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(int32_t*)
+JS_FRIEND_API int32_t*
 JS_GetInt32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2424,7 +2424,7 @@ JS_GetInt32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireN
     return static_cast<int32_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(uint32_t*)
+JS_FRIEND_API uint32_t*
 JS_GetUint32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2436,7 +2436,7 @@ JS_GetUint32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequire
     return static_cast<uint32_t*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(float*)
+JS_FRIEND_API float*
 JS_GetFloat32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
@@ -2448,7 +2448,7 @@ JS_GetFloat32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequir
     return static_cast<float*>(tarr->viewDataEither().unwrap(/*safe - caller sees isSharedMemory*/));
 }
 
-JS_FRIEND_API(double*)
+JS_FRIEND_API double*
 JS_GetFloat64ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);

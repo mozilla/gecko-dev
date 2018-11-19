@@ -27,10 +27,10 @@ enum class InitState {
  * manner, so this (internal -- embedders, don't use!) variable doesn't need to
  * be atomic.
  */
-extern JS_PUBLIC_DATA(InitState)
+extern JS_PUBLIC_DATA InitState
 libraryInitState;
 
-extern JS_PUBLIC_API(const char*)
+extern JS_PUBLIC_API const char*
 InitWithFailureDiagnostic(bool isDebugBuild);
 
 } // namespace detail
@@ -48,7 +48,7 @@ typedef void (*JS_ICUFreeFn)(const void*, void* p);
  * *must* be called before JS_Init.  Don't use it unless you know what you're
  * doing!
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn,
                          JS_ICUReallocFn reallocFn,
                          JS_ICUFreeFn freeFn);
@@ -124,7 +124,7 @@ JS_IsInitialized(void)
  * is, calling JS_Init/JSAPI methods/JS_ShutDown in that order, then doing so
  * again).  This restriction may eventually be lifted.
  */
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 JS_ShutDown(void);
 
 #endif /* js_Initialization_h */
