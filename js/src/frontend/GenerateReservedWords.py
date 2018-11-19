@@ -6,7 +6,7 @@ import re
 import sys
 
 def read_reserved_word_list(filename):
-    macro_pat = re.compile(r"^\s*macro\(([^,]+), *[^,]+, *[^\)]+\)\s*\\?$")
+    macro_pat = re.compile(r"^\s*MACRO\(([^,]+), *[^,]+, *[^\)]+\)\s*\\?$")
 
     reserved_word_list = []
     index = 0
