@@ -35,6 +35,7 @@ namespace gc {
 //  - whether they can be finalized on the background thread
 //  - whether they can be allocated in the nursery
 
+// clang-format off
 #define FOR_EACH_OBJECT_ALLOCKIND(D) \
  /* AllocKind              TraceKind     TypeName           SizedType          BGFinal Nursery */ \
     D(FUNCTION,            Object,       JSObject,          JSFunction,        true,   true)  \
@@ -71,6 +72,7 @@ namespace gc {
 #define FOR_EACH_NURSERY_STRING_ALLOCKIND(D) \
     D(FAT_INLINE_STRING,   String,        JSFatInlineString, JSFatInlineString, true,   true) \
     D(STRING,              String,        JSString,          JSString,          true,   true)
+// clang-format on
 
 #define FOR_EACH_NONOBJECT_ALLOCKIND(D) \
     FOR_EACH_NONOBJECT_NONNURSERY_ALLOCKIND(D) \
@@ -81,6 +83,7 @@ namespace gc {
     FOR_EACH_NONOBJECT_ALLOCKIND(D)
 
 enum class AllocKind : uint8_t {
+    // clang-format off
 #define DEFINE_ALLOC_KIND(allocKind, _1, _2, _3, _4, _5) allocKind,
 
     FOR_EACH_OBJECT_ALLOCKIND(DEFINE_ALLOC_KIND)
@@ -95,9 +98,9 @@ enum class AllocKind : uint8_t {
 
     FIRST = 0,
     OBJECT_FIRST = FUNCTION // Hardcoded to first object kind.
-
-#undef DEFINE_ALLOC_KIND
+    // clang-format on
 };
+#undef DEFINE_ALLOC_KIND
 
 static_assert(int(AllocKind::FIRST) == 0,
               "Various places depend on AllocKind starting at 0");
