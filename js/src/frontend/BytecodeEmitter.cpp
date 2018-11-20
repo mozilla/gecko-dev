@@ -2821,7 +2821,8 @@ NonLocalExitControl::prepareForNonLocalJump(BytecodeEmitter::NestableControl* ta
                 ForOfLoopControl& loopinfo = control->as<ForOfLoopControl>();
                 if (!loopinfo.emitPrepareForNonLocalJumpFromScope(bce_, *es,
                                                                   /* isTarget = */ false))
-                {                                         // ...
+                {
+                    //        [stack] ...
                     return false;
                 }
             } else {
@@ -2854,7 +2855,8 @@ NonLocalExitControl::prepareForNonLocalJump(BytecodeEmitter::NestableControl* ta
         ForOfLoopControl& loopinfo = target->as<ForOfLoopControl>();
         if (!loopinfo.emitPrepareForNonLocalJumpFromScope(bce_, *es,
                                                           /* isTarget = */ true))
-        {                                                 // ... UNDEF UNDEF UNDEF
+        {
+            //                [stack] ... UNDEF UNDEF UNDEF
             return false;
         }
     }
@@ -5266,7 +5268,8 @@ BytecodeEmitter::emitIteratorNext(ParseNode* pn, IteratorKind iterKind /* = Iter
                ".next() iteration is prohibited in self-hosted code because it "
                "can run user-modifiable iteration code");
 
-    MOZ_ASSERT(this->stackDepth >= 2);                    // ... NEXT ITER
+    //                        [stack] ... NEXT ITER
+    MOZ_ASSERT(this->stackDepth >= 2);
 
     if (!emitCall(JSOP_CALL, 0, pn))                      // ... RESULT
         return false;
@@ -5285,7 +5288,8 @@ BytecodeEmitter::emitIteratorNext(ParseNode* pn, IteratorKind iterKind /* = Iter
 bool
 BytecodeEmitter::emitPushNotUndefinedOrNull()
 {
-    MOZ_ASSERT(this->stackDepth > 0);                     // V
+    //                        [stack] V
+    MOZ_ASSERT(this->stackDepth > 0);
 
     if (!emit1(JSOP_DUP))                                 // V V
         return false;
@@ -5454,7 +5458,8 @@ BytecodeEmitter::emitIteratorCloseInScope(EmitterScope& currentScope,
     if (!ifReturnMethodIsDefined.emitEnd())
         return false;
 
-    return emit1(JSOP_POP);                               // ...
+    return emit1(JSOP_POP);
+    //                        [stack] ...
 }
 
 template <typename InnerEmitter>
@@ -5674,7 +5679,8 @@ BytecodeEmitter::emitDestructuringOpsArray(ParseNode* pattern, DestructuringFlav
         if (!emit1(JSOP_POP))                                     // ... OBJ ITER
             return false;
 
-        return emitIteratorCloseInInnermostScope();               // ... OBJ
+        return emitIteratorCloseInInnermostScope();
+        //                    [stack] ... OBJ
     }
 
     // Push an initial FALSE value for DONE.
@@ -5700,7 +5706,8 @@ BytecodeEmitter::emitDestructuringOpsArray(ParseNode* pattern, DestructuringFlav
         bool isElision = lhsPattern->isKind(ParseNodeKind::Elision);
         if (!isElision) {
             auto emitLHSRef = [lhsPattern, &emitted](BytecodeEmitter* bce) {
-                return bce->emitDestructuringLHSRef(lhsPattern, &emitted); // ... OBJ NEXT ITER DONE *LREF
+                return bce->emitDestructuringLHSRef(lhsPattern, &emitted);
+                //            [stack] ... OBJ NEXT ITER DONE LREF*
             };
             if (!wrapWithDestructuringIteratorCloseTryNote(tryNoteDepth, emitLHSRef))
                 return false;
@@ -5764,7 +5771,8 @@ BytecodeEmitter::emitDestructuringOpsArray(ParseNode* pattern, DestructuringFlav
                 return false;
 
             auto emitAssignment = [member, flav](BytecodeEmitter* bce) {
-                return bce->emitSetOrInitializeDestructuring(member, flav); // ... OBJ NEXT ITER TRUE
+                return bce->emitSetOrInitializeDestructuring(member, flav);
+                //            [stack] ... OBJ NEXT ITER TRUE
             };
             if (!wrapWithDestructuringIteratorCloseTryNote(tryNoteDepth, emitAssignment))
                 return false;
@@ -5845,7 +5853,8 @@ BytecodeEmitter::emitDestructuringOpsArray(ParseNode* pattern, DestructuringFlav
 
         if (pndefault) {
             auto emitDefault = [pndefault, lhsPattern](BytecodeEmitter* bce) {
-                return bce->emitDefault(pndefault, lhsPattern);    // ... OBJ NEXT ITER DONE *LREF VALUE
+                return bce->emitDefault(pndefault, lhsPattern);
+                //            [stack] ... OBJ NEXT ITER DONE LREF* VALUE
             };
 
             if (!wrapWithDestructuringIteratorCloseTryNote(tryNoteDepth, emitDefault))
@@ -5854,7 +5863,8 @@ BytecodeEmitter::emitDestructuringOpsArray(ParseNode* pattern, DestructuringFlav
 
         if (!isElision) {
             auto emitAssignment = [lhsPattern, flav](BytecodeEmitter* bce) {
-                return bce->emitSetOrInitializeDestructuring(lhsPattern, flav); // ... OBJ NEXT ITER DONE
+                return bce->emitSetOrInitializeDestructuring(lhsPattern, flav);
+                //            [stack] ... OBJ NEXT ITER DONE
             };
 
             if (!wrapWithDestructuringIteratorCloseTryNote(tryNoteDepth, emitAssignment))
@@ -5900,7 +5910,8 @@ BytecodeEmitter::emitDestructuringOpsObject(ParseNode* pattern, DestructuringFla
     MOZ_ASSERT(pattern->isKind(ParseNodeKind::Object));
     MOZ_ASSERT(pattern->isArity(PN_LIST));
 
-    MOZ_ASSERT(this->stackDepth > 0);                             // ... RHS
+    //                        [stack] ... RHS
+    MOZ_ASSERT(this->stackDepth > 0);
 
     if (!emit1(JSOP_CHECKOBJCOERCIBLE))                           // ... RHS
         return false;
@@ -6913,21 +6924,25 @@ BytecodeEmitter::emitCopyDataProperties(CopyOption option)
 
     uint32_t argc;
     if (option == CopyOption::Filtered) {
-        MOZ_ASSERT(depth > 2);                 // TARGET SOURCE SET
+        MOZ_ASSERT(depth > 2);
+        //                    [stack] TARGET SOURCE SET
         argc = 3;
 
         if (!emitAtomOp(cx->names().CopyDataProperties,
-                        JSOP_GETINTRINSIC))    // TARGET SOURCE SET COPYDATAPROPERTIES
+                        JSOP_GETINTRINSIC))
         {
+            //                [stack] TARGET SOURCE SET COPYDATAPROPERTIES
             return false;
         }
     } else {
-        MOZ_ASSERT(depth > 1);                 // TARGET SOURCE
+        MOZ_ASSERT(depth > 1);
+        //                    [stack] TARGET SOURCE
         argc = 2;
 
         if (!emitAtomOp(cx->names().CopyDataPropertiesUnfiltered,
-                        JSOP_GETINTRINSIC))    // TARGET SOURCE COPYDATAPROPERTIES
+                        JSOP_GETINTRINSIC))
         {
+            //                [stack] TARGET SOURCE COPYDATAPROPERTIES
             return false;
         }
     }
@@ -7130,7 +7145,8 @@ BytecodeEmitter::emitSpread(bool allowSelfHosted)
     if (!emit2(JSOP_PICK, 4))                             // ARR FINAL_INDEX RESULT NEXT ITER
         return false;
 
-    return emitPopN(3);                                   // ARR FINAL_INDEX
+    return emitPopN(3);
+    //                        [stack] ARR FINAL_INDEX
 }
 
 bool
@@ -8659,6 +8675,8 @@ BytecodeEmitter::emitYieldStar(ParseNode* iter)
 
     if (!tryCatch.emitEnd())
         return false;
+
+    //                        [stack] NEXT ITER RECEIVED
 
     // After the try-catch-finally block: send the received value to the iterator.
     // result = iter.next(received)                              // NEXT ITER RECEIVED
