@@ -271,7 +271,7 @@ js::Throw(JSContext* cx, jsid id, unsigned errorNumber, const char* details)
 }
 
 
-/*** PropertyDescriptor operations and DefineProperties ******************************************/
+/*** PropertyDescriptor operations and DefineProperties *********************/
 
 static Result<>
 CheckCallable(JSContext* cx, JSObject* obj, const char* fieldName)
@@ -453,7 +453,7 @@ js::ReadPropertyDescriptors(JSContext* cx, HandleObject props, bool checkAccesso
     return true;
 }
 
-/*** Seal and freeze *****************************************************************************/
+/*** Seal and freeze ********************************************************/
 
 static unsigned
 GetSealedOrFrozenAttributes(unsigned attrs, IntegrityLevel level)
@@ -2627,7 +2627,7 @@ js::GetPrototypeIfOrdinary(JSContext* cx, HandleObject obj, bool* isOrdinary,
     return true;
 }
 
-/*** ES6 standard internal methods ***************************************************************/
+/*** ES6 standard internal methods ******************************************/
 
 bool
 js::SetPrototype(JSContext* cx, HandleObject obj, HandleObject proto, JS::ObjectOpResult& result)
@@ -2927,7 +2927,7 @@ js::DefineDataElement(JSContext* cx, HandleObject obj, uint32_t index, HandleVal
     return DefineDataProperty(cx, obj, id, value, attrs);
 }
 
-/*** SpiderMonkey nonstandard internal methods ***************************************************/
+/*** SpiderMonkey nonstandard internal methods ******************************/
 
 bool
 js::SetImmutablePrototype(JSContext* cx, HandleObject obj, bool* succeeded)
@@ -3013,7 +3013,7 @@ js::DefineFunctions(JSContext* cx, HandleObject obj, const JSFunctionSpec* fs,
 }
 
 
-/*** ToPrimitive *************************************************************/
+/*** ToPrimitive ************************************************************/
 
 /*
  * Gets |obj[id]|.  If that value's not callable, returns true and stores an
@@ -3359,7 +3359,7 @@ GetObjectSlotNameFunctor::operator()(JS::CallbackTracer* trc, char* buf, size_t 
     }
 }
 
-/*** Debugging routines **************************************************************************/
+/*** Debugging routines *****************************************************/
 
 #ifdef DEBUG
 

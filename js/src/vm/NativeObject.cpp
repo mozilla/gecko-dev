@@ -1203,7 +1203,7 @@ template bool
 js::NativeLookupOwnProperty<NoGC>(JSContext* cx, NativeObject* const& obj, const jsid& id,
                                   FakeMutableHandle<PropertyResult> propp);
 
-/*** [[DefineOwnProperty]] ***********************************************************************/
+/*** [[DefineOwnProperty]] **************************************************/
 
 static MOZ_ALWAYS_INLINE bool
 CallAddPropertyHook(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue value)
@@ -2026,7 +2026,7 @@ DefineNonexistentProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
 }
 
 
-/*** [[HasProperty]] *****************************************************************************/
+/*** [[HasProperty]] ********************************************************/
 
 // ES6 draft rev31 9.1.7.1 OrdinaryHasProperty
 bool
@@ -2081,7 +2081,7 @@ js::NativeHasProperty(JSContext* cx, HandleNativeObject obj, HandleId id, bool* 
 }
 
 
-/*** [[GetOwnPropertyDescriptor]] ****************************************************************/
+/*** [[GetOwnPropertyDescriptor]] *******************************************/
 
 bool
 js::NativeGetOwnPropertyDescriptor(JSContext* cx, HandleNativeObject obj, HandleId id,
@@ -2142,7 +2142,7 @@ js::NativeGetOwnPropertyDescriptor(JSContext* cx, HandleNativeObject obj, Handle
 }
 
 
-/*** [[Get]] *************************************************************************************/
+/*** [[Get]] ****************************************************************/
 
 static inline bool
 CallGetter(JSContext* cx, HandleObject obj, HandleValue receiver, HandleShape shape,
@@ -2475,7 +2475,7 @@ js::GetNameBoundInEnvironment(JSContext* cx, HandleObject envArg, HandleId id, M
 }
 
 
-/*** [[Set]] *************************************************************************************/
+/*** [[Set]] ****************************************************************/
 
 static bool
 MaybeReportUndeclaredVarAssignment(JSContext* cx, HandleString propname)
@@ -2851,7 +2851,7 @@ js::NativeSetElement(JSContext* cx, HandleNativeObject obj, uint32_t index, Hand
     return NativeSetProperty<Qualified>(cx, obj, id, v, receiver, result);
 }
 
-/*** [[Delete]] **********************************************************************************/
+/*** [[Delete]] *************************************************************/
 
 // ES6 draft rev31 9.1.10 [[Delete]]
 bool

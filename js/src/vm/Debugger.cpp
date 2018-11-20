@@ -64,7 +64,7 @@ using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
 
-/*** Forward declarations, ClassOps and Classes **************************************************/
+/*** Forward declarations, ClassOps and Classes *****************************/
 
 static void DebuggerFrame_finalize(FreeOp* fop, JSObject* obj);
 static void DebuggerFrame_trace(JSTracer* trc, JSObject* obj);
@@ -214,7 +214,7 @@ static const Class DebuggerSource_class = {
 };
 
 
-/*** Utils ***************************************************************************************/
+/*** Utils ******************************************************************/
 
 /*
  * If fun is an interpreted function, remove any async function/generator
@@ -541,7 +541,7 @@ RequireGlobalObject(JSContext* cx, HandleValue dbgobj, HandleObject referent)
 }
 
 
-/*** Breakpoints *********************************************************************************/
+/*** Breakpoints ************************************************************/
 
 BreakpointSite::BreakpointSite(Type type)
   : type_(type), enabledCount(0)
@@ -661,7 +661,7 @@ WasmBreakpointSite::destroyIfEmpty(FreeOp* fop)
         debug->destroyBreakpointSite(fop, offset);
 }
 
-/*** Debugger hook dispatch **********************************************************************/
+/*** Debugger hook dispatch *************************************************/
 
 Debugger::Debugger(JSContext* cx, NativeObject* dbg)
   : object(dbg),
@@ -2369,7 +2369,7 @@ Debugger::slowPathPromiseHook(JSContext* cx, Hook hook, Handle<PromiseObject*> p
 }
 
 
-/*** Debugger code invalidation for observing execution ******************************************/
+/*** Debugger code invalidation for observing execution *********************/
 
 class MOZ_RAII ExecutionObservableCompartments : public Debugger::ExecutionObservableSet
 {
@@ -2904,7 +2904,7 @@ Debugger::updateObservesBinarySourceDebuggees(IsObserving observing)
 }
 
 
-/*** Allocations Tracking *************************************************************************/
+/*** Allocations Tracking ***************************************************/
 
 /* static */ bool
 Debugger::cannotTrackAllocations(const GlobalObject& global)
@@ -2999,7 +2999,7 @@ Debugger::removeAllocationsTrackingForAllDebuggees()
 
 
 
-/*** Debugger JSObjects **************************************************************************/
+/*** Debugger JSObjects *****************************************************/
 
 void
 Debugger::traceCrossCompartmentEdges(JSTracer* trc)
@@ -5182,7 +5182,7 @@ const JSFunctionSpec Debugger::static_methods[] {
     JS_FS_END
 };
 
-/*** Debugger.Script *****************************************************************************/
+/*** Debugger.Script ********************************************************/
 
 // Get the Debugger.Script referent as bare Cell. This should only be used for
 // GC operations like tracing. Please use GetScriptReferent below.
@@ -6864,7 +6864,7 @@ static const JSFunctionSpec DebuggerScript_methods[] = {
 };
 
 
-/*** Debugger.Source *****************************************************************************/
+/*** Debugger.Source ********************************************************/
 
 // For internal use only.
 static inline NativeObject*
@@ -7441,7 +7441,7 @@ static const JSFunctionSpec DebuggerSource_methods[] = {
 };
 
 
-/*** Debugger.Frame ******************************************************************************/
+/*** Debugger.Frame *********************************************************/
 
 ScriptedOnStepHandler::ScriptedOnStepHandler(JSObject* object)
   : object_(object)
@@ -8753,7 +8753,7 @@ const JSFunctionSpec DebuggerFrame::methods_[] = {
 };
 
 
-/*** Debugger.Object *****************************************************************************/
+/*** Debugger.Object ********************************************************/
 
 void
 DebuggerObject_trace(JSTracer* trc, JSObject* obj)
@@ -10849,7 +10849,7 @@ DebuggerObject::getScriptedProxyHandler(JSContext* cx, HandleDebuggerObject obje
 }
 
 
-/*** Debugger.Environment ************************************************************************/
+/*** Debugger.Environment ***************************************************/
 
 void
 DebuggerEnv_trace(JSTracer* trc, JSObject* obj)
@@ -11416,7 +11416,7 @@ DebuggerEnvironment::setVariable(JSContext* cx, HandleDebuggerEnvironment enviro
 }
 
 
-/*** JS::dbg::Builder ****************************************************************************/
+/*** JS::dbg::Builder *******************************************************/
 
 Builder::Builder(JSContext* cx, js::Debugger* debugger)
   : debuggerObject(cx, debugger->toJSObject().get()),
@@ -11491,7 +11491,7 @@ Builder::newObject(JSContext* cx)
 }
 
 
-/*** JS::dbg::AutoEntryMonitor ******************************************************************/
+/*** JS::dbg::AutoEntryMonitor **********************************************/
 
 AutoEntryMonitor::AutoEntryMonitor(JSContext* cx)
   : cx_(cx),
@@ -11506,7 +11506,7 @@ AutoEntryMonitor::~AutoEntryMonitor()
 }
 
 
-/*** Glue ****************************************************************************************/
+/*** Glue *******************************************************************/
 
 extern JS_PUBLIC_API bool
 JS_DefineDebuggerObject(JSContext* cx, HandleObject obj)
@@ -11634,7 +11634,7 @@ Debugger::isDebuggerCrossCompartmentEdge(JSObject* obj, const gc::Cell* target)
 #endif
 
 
-/*** JS::dbg::GarbageCollectionEvent **************************************************************/
+/*** JS::dbg::GarbageCollectionEvent ****************************************/
 
 namespace JS {
 namespace dbg {

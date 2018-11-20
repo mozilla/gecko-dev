@@ -1901,7 +1901,7 @@ JSString::fillWithRepresentatives(JSContext* cx, HandleArrayObject array)
 }
 
 
-/*** Conversions *********************************************************************************/
+/*** Conversions ************************************************************/
 
 const char*
 js::ValueToPrintable(JSContext* cx, const Value& vArg, JSAutoByteString* bytes, bool asSource)

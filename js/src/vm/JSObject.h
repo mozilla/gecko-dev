@@ -32,7 +32,7 @@ namespace gc {
 class RelocationOverlay;
 } // namespace gc
 
-/******************************************************************************/
+/****************************************************************************/
 
 extern const Class IntlClass;
 extern const Class JSONClass;

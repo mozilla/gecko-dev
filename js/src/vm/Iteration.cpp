@@ -972,7 +972,7 @@ JSCompartment::getOrCreateIterResultTemplateObject(JSContext* cx)
     return iterResultTemplate_;
 }
 
-/*** Iterator objects ****************************************************************************/
+/*** Iterator objects *******************************************************/
 
 MOZ_ALWAYS_INLINE void
 NativeIteratorNext(NativeIterator* ni, MutableHandleValue rval)

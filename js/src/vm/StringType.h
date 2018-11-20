@@ -1571,7 +1571,7 @@ JSString*
 SubstringKernel(JSContext* cx, HandleString str, int32_t beginInt, int32_t lengthInt);
 
 
-/*** Conversions *********************************************************************************/
+/*** Conversions ************************************************************/
 
 /*
  * Convert a value to a printable C string.

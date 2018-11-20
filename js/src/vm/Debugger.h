@@ -832,7 +832,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     WeakGlobalObjectSet::Range allDebuggees() const { return debuggees.all(); }
 
-    /*********************************** Methods for interaction with the GC. */
+    /*** Methods for interaction with the GC. *******************************/
 
     /*
      * A Debugger object is live if:
@@ -953,7 +953,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     // promise can only make the transition from unsettled to settled once.
     static inline void onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise);
 
-    /************************************* Functions for use by Debugger.cpp. */
+    /*** Functions for use by Debugger.cpp. *********************************/
 
     inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;

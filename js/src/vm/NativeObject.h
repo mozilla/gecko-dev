@@ -1465,7 +1465,7 @@ NativeObject::privateWriteBarrierPre(void** oldval)
 }
 
 
-/*** Standard internal methods *******************************************************************/
+/*** Standard internal methods **********************************************/
 
 /*
  * These functions should follow the algorithms in ES6 draft rev 29 section 9.1
@@ -1561,7 +1561,7 @@ extern bool
 NativeDeleteProperty(JSContext* cx, HandleNativeObject obj, HandleId id, ObjectOpResult& result);
 
 
-/*** SpiderMonkey nonstandard internal methods ***************************************************/
+/*** SpiderMonkey nonstandard internal methods ******************************/
 
 template <AllowGC allowGC>
 extern bool
