@@ -1165,7 +1165,8 @@ class FunctionCompiler
             for (MWasmStackArg* stackArg : call->stackArgs_)
                 stackArg->incrementOffset(call->spIncrement_);
 
-            // If instanceArg_ is not initialized then instanceArg_.kind() != ABIArg::Stack
+            // If instanceArg_ is not initialized then
+            // instanceArg_.kind() != ABIArg::Stack
             if (call->instanceArg_.kind() == ABIArg::Stack) {
                 call->instanceArg_ = ABIArg(call->instanceArg_.offsetFromArgBase() +
                                             call->spIncrement_);

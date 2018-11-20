@@ -61,7 +61,8 @@ struct GraphNodeBase
  *     }
  * }
  *
- * struct MyComponentFinder : public ComponentFinder<MyGraphNode, MyComponentFinder>
+ * struct MyComponentFinder : public ComponentFinder<MyGraphNode,
+ *                                                   MyComponentFinder>
  * {
  *     ...
  * };
