@@ -157,9 +157,9 @@ ScriptedProxyHandler::handlerObject(const JSObject* proxy)
     return proxy->as<ProxyObject>().reservedSlot(ScriptedProxyHandler::HANDLER_EXTRA).toObjectOrNull();
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 7.3.9 GetMethod,
-// reimplemented for proxy handler trap-getting to produce better error
-// messages.
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 7.3.9 GetMethod, reimplemented for proxy handler trap-getting to produce
+// better error messages.
 static bool
 GetProxyTrap(JSContext* cx, HandleObject handler, HandlePropertyName name, MutableHandleValue func)
 {
@@ -189,7 +189,8 @@ GetProxyTrap(JSContext* cx, HandleObject handler, HandlePropertyName name, Mutab
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.1 Proxy.[[GetPrototypeOf]].
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.1 Proxy.[[GetPrototypeOf]].
 bool
 ScriptedProxyHandler::getPrototype(JSContext* cx, HandleObject proxy,
                                    MutableHandleObject protop) const
@@ -262,7 +263,8 @@ ScriptedProxyHandler::getPrototype(JSContext* cx, HandleObject proxy,
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.2 Proxy.[[SetPrototypeOf]].
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.2 Proxy.[[SetPrototypeOf]].
 bool
 ScriptedProxyHandler::setPrototype(JSContext* cx, HandleObject proxy, HandleObject proto,
                                    ObjectOpResult& result) const
@@ -354,7 +356,8 @@ ScriptedProxyHandler::setImmutablePrototype(JSContext* cx, HandleObject proxy,
     return SetImmutablePrototype(cx, target, succeeded);
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.4 Proxy.[[PreventExtensions]]()
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.4 Proxy.[[PreventExtensions]]()
 bool
 ScriptedProxyHandler::preventExtensions(JSContext* cx, HandleObject proxy,
                                         ObjectOpResult& result) const
@@ -411,7 +414,8 @@ ScriptedProxyHandler::preventExtensions(JSContext* cx, HandleObject proxy,
     return result.fail(JSMSG_PROXY_PREVENTEXTENSIONS_RETURNED_FALSE);
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.3 Proxy.[[IsExtensible]]()
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.3 Proxy.[[IsExtensible]]()
 bool
 ScriptedProxyHandler::isExtensible(JSContext* cx, HandleObject proxy, bool* extensible) const
 {
@@ -462,7 +466,8 @@ ScriptedProxyHandler::isExtensible(JSContext* cx, HandleObject proxy, bool* exte
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.5 Proxy.[[GetOwnProperty]](P)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.5 Proxy.[[GetOwnProperty]](P)
 bool
 ScriptedProxyHandler::getOwnPropertyDescriptor(JSContext* cx, HandleObject proxy, HandleId id,
                                                MutableHandle<PropertyDescriptor> desc) const
@@ -570,7 +575,8 @@ ScriptedProxyHandler::getOwnPropertyDescriptor(JSContext* cx, HandleObject proxy
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.6 Proxy.[[DefineOwnProperty]](P, Desc)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.6 Proxy.[[DefineOwnProperty]](P, Desc)
 bool
 ScriptedProxyHandler::defineProperty(JSContext* cx, HandleObject proxy, HandleId id,
                                      Handle<PropertyDescriptor> desc, ObjectOpResult& result) const
@@ -839,7 +845,8 @@ ScriptedProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy, AutoIdV
     return props.appendAll(trapResult);
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.10 Proxy.[[Delete]](P)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.10 Proxy.[[Delete]](P)
 bool
 ScriptedProxyHandler::delete_(JSContext* cx, HandleObject proxy, HandleId id,
                               ObjectOpResult& result) const
@@ -899,7 +906,8 @@ ScriptedProxyHandler::delete_(JSContext* cx, HandleObject proxy, HandleId id,
     return result.succeed();
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.7 Proxy.[[HasProperty]](P)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.7 Proxy.[[HasProperty]](P)
 bool
 ScriptedProxyHandler::has(JSContext* cx, HandleObject proxy, HandleId id, bool* bp) const
 {
@@ -964,7 +972,8 @@ ScriptedProxyHandler::has(JSContext* cx, HandleObject proxy, HandleId id, bool* 
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.8 Proxy.[[GetP]](P, Receiver)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.8 Proxy.[[GetP]](P, Receiver)
 bool
 ScriptedProxyHandler::get(JSContext* cx, HandleObject proxy, HandleValue receiver, HandleId id,
                           MutableHandleValue vp) const
@@ -1038,7 +1047,8 @@ ScriptedProxyHandler::get(JSContext* cx, HandleObject proxy, HandleValue receive
     return true;
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.9 Proxy.[[Set]](P, V, Receiver)
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.9 Proxy.[[Set]](P, V, Receiver)
 bool
 ScriptedProxyHandler::set(JSContext* cx, HandleObject proxy, HandleId id, HandleValue v,
                           HandleValue receiver, ObjectOpResult& result) const
@@ -1310,7 +1320,8 @@ IsRevokedScriptedProxy(JSObject* obj)
     return obj && IsScriptedProxy(obj) && !obj->as<ProxyObject>().target();
 }
 
-// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 9.5.14 ProxyCreate.
+// ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 9.5.14 ProxyCreate.
 static bool
 ProxyCreate(JSContext* cx, CallArgs& args, const char* callerName)
 {
