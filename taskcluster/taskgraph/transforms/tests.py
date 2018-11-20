@@ -476,12 +476,6 @@ def setup_talos(config, tests):
             extra_options.append('--add-option')
             extra_options.append('--setpref,gfx.direct2d.disabled=true')
 
-        # Per https://bugzilla.mozilla.org/show_bug.cgi?id=1357753#c3, branch
-        # name is only required for try
-        if config.params.is_try():
-            extra_options.append('--branch-name')
-            extra_options.append('try')
-
         yield test
 
 
