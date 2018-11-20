@@ -372,6 +372,11 @@ test_description_schema = Schema({
         Any(basestring, None),
     ),
 
+    Optional(
+        'require-signed-extensions',
+        description="Whether the build being tested requires extensions be signed.",
+    ): optionally_keyed_by('release-type', 'test-platform', bool),
+
     # The target name, specifying the build artifact to be tested.
     # If None or not specified, a transform sets the target based on OS:
     # target.dmg (Mac), target.apk (Android), target.tar.bz2 (Linux),
@@ -443,6 +448,7 @@ def set_defaults(config, tests):
         test.setdefault('loopback-video', False)
         test.setdefault('docker-image', {'in-tree': 'desktop1604-test'})
         test.setdefault('checkout', False)
+        test.setdefault('require-signed-extensions', False)
 
         test['mozharness'].setdefault('extra-options', [])
         test['mozharness'].setdefault('requires-signed-builds', False)
@@ -458,6 +464,19 @@ def validate(config, tests):
     for test in tests:
         validate_schema(test_description_schema, test,
                         "In test {!r}:".format(test['test-name']))
+        yield test
+
+
+@transforms.add
+def resolve_keys(config, tests):
+    for test in tests:
+        resolve_keyed_by(
+            test, 'requite-signed-extensions',
+            item_name=test['test-name'],
+            **{
+                'release-type': config.params['release_type'],
+            }
+        )
         yield test
 
 
