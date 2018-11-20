@@ -24,7 +24,6 @@ from taskgraph.util.schema import resolve_keyed_by, OptimizationSchema
 from taskgraph.util.treeherder import split_symbol, join_symbol, add_suffix
 from taskgraph.util.platforms import platform_family
 from taskgraph.util.schema import (
-    validate_schema,
     optionally_keyed_by,
     Schema,
 )
@@ -459,12 +458,7 @@ def set_defaults(config, tests):
         yield test
 
 
-@transforms.add
-def validate(config, tests):
-    for test in tests:
-        validate_schema(test_description_schema, test,
-                        "In test {!r}:".format(test['test-name']))
-        yield test
+transforms.add_validate(test_description_schema)
 
 
 @transforms.add
