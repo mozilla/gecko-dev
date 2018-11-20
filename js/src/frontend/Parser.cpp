@@ -7008,7 +7008,8 @@ GeneralParser<ParseHandler, CharT>::tryStatement(YieldHandling yieldHandling)
      *
      * catch lvalue nodes are either:
      *   a single identifier
-     *   TokenKind::Rb or TokenKind::Rc for a destructuring left-hand side
+     *   TokenKind::RightBracket for a destructuring left-hand side
+     *   TokenKind::RightCurly for a destructuring left-hand side
      *
      * finally nodes are TokenKind::Lc statement lists.
      */
@@ -7583,7 +7584,11 @@ GeneralParser<ParseHandler, CharT>::statement(YieldHandling yieldHandling)
             // Peek only on the same line: ExpressionStatement's lookahead
             // restriction is phrased as
             //
-            //   [lookahead ∉ { {, function, async [no LineTerminator here] function, class, let [ }]
+            //   [lookahead ∉ { '{',
+            //                  function,
+            //                  async [no LineTerminator here] function,
+            //                  class,
+            //                  let '[' }]
             //
             // meaning that code like this is valid:
             //
@@ -9240,7 +9245,9 @@ GeneralParser<ParseHandler, CharT>::checkDestructuringAssignmentElement(Node exp
     //
     // AssignmentElement[Yield, Await]:
     //   DestructuringAssignmentTarget[?Yield, ?Await]
-    //   DestructuringAssignmentTarget[?Yield, ?Await] Initializer[+In, ?Yield, ?Await]
+    //   DestructuringAssignmentTarget[?Yield, ?Await] Initializer[+In,
+    //                                                             ?Yield,
+    //                                                             ?Await]
 
     // If |expr| is an assignment element with an initializer expression, its
     // destructuring assignment target was already validated in assignExpr().

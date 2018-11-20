@@ -365,8 +365,10 @@ struct BaselineStackBuilder
 
         // BaselineStub - Baseline calling into Ion.
         //  PrevFramePtr needs to point to the BaselineStubFrame's saved frame pointer.
-        //      STACK_START_ADDR + JitFrameLayout::Size() + PREV_FRAME_SIZE
-        //                      - BaselineStubFrameLayout::reverseOffsetOfSavedFramePtr()
+        //      STACK_START_ADDR
+        //          + JitFrameLayout::Size()
+        //          + PREV_FRAME_SIZE
+        //          - BaselineStubFrameLayout::reverseOffsetOfSavedFramePtr()
         if (type == JitFrame_BaselineStub) {
             size_t offset = JitFrameLayout::Size() + topFrame->prevFrameLocalSize() +
                             BaselineStubFrameLayout::reverseOffsetOfSavedFramePtr();
