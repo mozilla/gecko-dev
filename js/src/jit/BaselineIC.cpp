@@ -57,7 +57,7 @@ namespace jit {
 //
 
 
-//
+/* clang-format off */
 // The following data is kept in a temporary heap-allocated buffer, stored in
 // JitRuntime (high memory addresses at top, low at bottom):
 //
@@ -77,6 +77,7 @@ namespace jit {
 //            +=================================+  --      <---- Low Address
 //
 // A pointer to the IonOsrTempData is returned.
+/* clang-format on */
 
 struct IonOsrTempData
 {

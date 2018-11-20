@@ -882,6 +882,7 @@ class ICStub;
 
 class JitStubFrameLayout : public CommonFrameLayout
 {
+    /* clang-format off */
     // Info on the stack
     //
     // --------------------
@@ -893,6 +894,7 @@ class JitStubFrameLayout : public CommonFrameLayout
     // | - StubPtr        | => First thing pushed in a stub only when the stub will do
     // --------------------    a vmcall. Else we cannot have JitStubFrame. But technically
     //                         not a member of the layout.
+    /* clang-format on */
 
   public:
     static size_t Size() {
@@ -911,6 +913,7 @@ class JitStubFrameLayout : public CommonFrameLayout
 
 class BaselineStubFrameLayout : public JitStubFrameLayout
 {
+    /* clang-format off */
     // Info on the stack
     //
     // -------------------------
@@ -925,6 +928,7 @@ class BaselineStubFrameLayout : public JitStubFrameLayout
     // -------------------------    a vmcall.
     //                              Technically these last two variables are not part of the
     //                              layout.
+    /* clang-format on */
 
   public:
     static inline size_t Size() {

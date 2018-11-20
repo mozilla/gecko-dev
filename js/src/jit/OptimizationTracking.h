@@ -185,6 +185,7 @@ class UniqueTrackedOptimizations
     uint8_t indexOf(const TrackedOptimizations* optimizations) const;
 };
 
+/* clang-format off */
 // A compact table of tracked optimization information. Pictorially,
 //
 //    +------------------------------------------------+
@@ -242,6 +243,7 @@ class UniqueTrackedOptimizations
 //    | Optimization attempts N                        |  |
 //    |   uint32_t entryOffset                         |  |
 //    +------------------------------------------------+
+/* clang-format on */
 //
 // Abstractly, each region in the PayloadR section is a list of triples of the
 // following, in order of ascending startOffset:

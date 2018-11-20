@@ -74,6 +74,7 @@ using mozilla::PodCopy;
 // The following is a rough outline of the general struture of the tracing
 // internals.
 //
+/* clang-format off */
 //                                                                                              //
 //   .---------.    .---------.    .--------------------------.       .----------.              //
 //   |TraceEdge|    |TraceRoot|    |TraceManuallyBarrieredEdge|  ...  |TraceRange|   ... etc.   //
@@ -114,6 +115,7 @@ using mozilla::PodCopy;
 //     . . .   Static dispatch                                                                  //
 //     ======  Dispatch through a manual stack.                                                 //
 //                                                                                              //
+/* clang-format on */
 
 
 /*** Tracing Invariants **************************************************************************/

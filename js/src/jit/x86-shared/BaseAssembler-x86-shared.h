@@ -4500,6 +4500,8 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
             }
         }
 
+        /* clang-format off */
+        //
         // Word-sized operands / no operand instruction formatters.
         //
         // In addition to the opcode, the following operand permutations are supported:
@@ -4515,6 +4517,8 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
         //
         // The twoByteOp methods plant two-byte Intel instructions sequences
         // (first opcode byte 0x0F).
+        //
+        /* clang-format on */
 
         void oneByteOp(OneByteOpcodeID opcode)
         {

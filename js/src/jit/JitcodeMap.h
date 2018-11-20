@@ -1172,6 +1172,7 @@ class JitcodeGlobalTable
 };
 
 
+// clang-format off
 /*
  * Container class for main jitcode table.
  * The Region table's memory is structured as follows:
@@ -1242,6 +1243,7 @@ class JitcodeGlobalTable
  *          - The rest of the entry is a deltaRun that stores a series of variable-length
  *            encoded NativeAndBytecodeDelta datums.
  */
+// clang-format on
 class JitcodeRegionEntry
 {
   private:
