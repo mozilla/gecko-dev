@@ -10,8 +10,8 @@
 #ifndef util_UnicodeNonBMP_h
 #define util_UnicodeNonBMP_h
 
-// |macro| receives the following arguments
-//   macro(FROM, TO, LEAD, TRAIL_FROM, TRAIL_TO, DIFF)
+// |MACRO| receives the following arguments
+//   MACRO(FROM, TO, LEAD, TRAIL_FROM, TRAIL_TO, DIFF)
 //     FROM:       code point where the range starts
 //     TO:         code point where the range ends
 //     LEAD:       common lead surrogate of FROM and TO
