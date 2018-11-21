@@ -9,6 +9,8 @@ from mozharness.base import log
 from mozharness.base.log import OutputParser, WARNING, INFO, ERROR
 from mozharness.mozilla.automation import TBPL_WARNING, TBPL_FAILURE
 from mozharness.mozilla.automation import TBPL_SUCCESS, TBPL_WORST_LEVEL_TUPLE
+from mozharness.mozilla.automation import TBPL_RETRY
+from mozharness.mozilla.testing.errors import TinderBoxPrintRe
 from mozharness.mozilla.testing.unittest import tbox_print_summary
 
 
@@ -38,6 +40,7 @@ class StructuredOutputParser(OutputParser):
 
         self.worst_log_level = INFO
         self.tbpl_status = TBPL_SUCCESS
+        self.harness_retry_re = TinderBoxPrintRe['harness_error']['retry_regex']
 
     def _get_mozlog_module(self):
         try:
@@ -93,6 +96,11 @@ class StructuredOutputParser(OutputParser):
             error_level = self._handle_unstructured_output(message, log_output=False)
             if error_level is not None:
                 level = self.worst_level(error_level, level)
+
+            if self.harness_retry_re.search(message):
+                self.update_levels(TBPL_RETRY, log.CRITICAL)
+                tbpl_level = TBPL_RETRY
+                level = log.CRITICAL
 
         log_data = self.formatter(data)
         if log_data is not None:
