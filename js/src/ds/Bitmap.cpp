@@ -6,6 +6,8 @@
 
 #include "ds/Bitmap.h"
 
+#include "js/UniquePtr.h"
+
 using namespace js;
 
 SparseBitmap::~SparseBitmap()
@@ -25,13 +27,23 @@ SparseBitmap::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
     return size;
 }
 
-SparseBitmap::BitBlock&
+SparseBitmap::BitBlock*
 SparseBitmap::createBlock(Data::AddPtr p, size_t blockId)
 {
     MOZ_ASSERT(!p);
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    BitBlock* block = js_new<BitBlock>();
-    if (!block || !data.add(p, blockId, block))
+    auto block = js::MakeUnique<BitBlock>();
+    if (!block || !data.add(p, blockId, block.get())) {
+        return nullptr;
+    }
+    std::fill(block->begin(), block->end(), 0);
+    return block.release();
+}
+
+SparseBitmap::BitBlock&
+SparseBitmap::createBlock(Data::AddPtr p, size_t blockId, AutoEnterOOMUnsafeRegion& oomUnsafe)
+{
+    BitBlock* block = createBlock(p, blockId);
+    if (!block)
         oomUnsafe.crash("Bitmap OOM");
     PodZero(block);
     return *block;
