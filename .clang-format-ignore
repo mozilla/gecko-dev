@@ -159,3 +159,6 @@ toolkit/components/url-classifier/chromium/.*
 toolkit/components/url-classifier/protobuf/.*
 toolkit/crashreporter/google-breakpad/.*
 tools/fuzzing/libfuzzer.*
+xpcom/build/mach_override.c
+xpcom/build/mach_override.h
+xpcom/io/crc32c.c
