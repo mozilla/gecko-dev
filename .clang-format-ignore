@@ -71,6 +71,7 @@ intl/icu/.*
 ipc/chromium/.*
 js/src/ctypes/libffi/.*
 js/src/dtoa.c.*
+js/src/editline/.*
 js/src/jit/arm64/vixl/.*
 media/ffvpx/.*
 media/gmp-clearkey/0.1/openaes/.*
