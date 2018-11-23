@@ -4,6 +4,8 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import glob
+import json
 import os
 import sys
 
@@ -17,6 +19,7 @@ from taskgraph.parameters import (
     ParameterMismatch,
     load_parameters_file,
 )
+from taskgraph.taskgraph import TaskGraph
 
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
@@ -50,13 +53,18 @@ def generate_tasks(params, full, root):
     params = params or "project=mozilla-central"
 
     cache_dir = os.path.join(get_state_dir()[0], 'cache', 'taskgraph')
-    attr = 'full_task_set' if full else 'target_task_set'
+
+    # Cleanup old cache files
+    for path in glob.glob(os.path.join(cache_dir, '*_set')):
+        os.remove(path)
+
+    attr = 'full_task_graph' if full else 'target_task_graph'
     cache = os.path.join(cache_dir, attr)
 
     invalidate(cache, root)
     if os.path.isfile(cache):
         with open(cache, 'r') as fh:
-            return fh.read().splitlines()
+            return TaskGraph.from_json(json.load(fh))[1]
 
     if not os.path.isdir(cache_dir):
         os.makedirs(cache_dir)
@@ -75,10 +83,8 @@ def generate_tasks(params, full, root):
 
     root = os.path.join(root, 'taskcluster', 'ci')
     tg = getattr(TaskGraphGenerator(root_dir=root, parameters=params), attr)
-    labels = [label for label in tg.graph.visit_postorder()]
-
     os.chdir(cwd)
 
     with open(cache, 'w') as fh:
-        fh.write('\n'.join(labels))
-    return labels
+        json.dump(tg.to_json(), fh)
+    return tg

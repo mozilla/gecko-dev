@@ -24,6 +24,13 @@ terminal = Terminal()
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+# Some tasks show up in the target task set, but are either special cases
+# or uncommon enough that they should only be selectable with --full.
+TARGET_TASK_FILTERS = (
+    '.*-ccov\/.*',
+)
+
+
 FZF_NOT_FOUND = """
 Could not find the `fzf` binary.
 
@@ -194,6 +201,10 @@ def filter_by_paths(tasks, paths):
     return filter(match_task, tasks)
 
 
+def filter_target_task(task):
+    return not any(re.search(pattern, task) for pattern in TARGET_TASK_FILTERS)
+
+
 def run_fuzzy_try(update=False, query=None, templates=None, full=False, parameters=None,
                   save=False, preset=None, mod_presets=False, push=True, message='{msg}',
                   paths=None, **kwargs):
@@ -207,7 +218,11 @@ def run_fuzzy_try(update=False, query=None, templates=None, full=False, paramete
         return 1
 
     check_working_directory(push)
-    all_tasks = generate_tasks(parameters, full, root=vcs.path)
+    tg = generate_tasks(parameters, full, root=vcs.path)
+    all_tasks = sorted(tg.tasks.keys())
+
+    if not full:
+        all_tasks = filter(filter_target_task, all_tasks)
 
     if paths:
         all_tasks = filter_by_paths(all_tasks, paths)
