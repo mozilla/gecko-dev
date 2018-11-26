@@ -970,6 +970,9 @@ def build_beetmover_push_to_release_payload(config, task, task_def):
     Optional('blob-suffix'): basestring,
     Optional('complete-mar-filename-pattern'): basestring,
     Optional('complete-mar-bouncer-product-pattern'): basestring,
+    Optional('update-line'): object,
+    Optional('suffixes'): [basestring],
+
 
     # list of artifact URLs for the artifacts that should be beetmoved
     Optional('upstream-artifacts'): [{
@@ -989,7 +992,8 @@ def build_balrog_payload(config, task, task_def):
 
     if worker['balrog-action'] == 'submit-locale':
         task_def['payload'] = {
-            'upstreamArtifacts':  worker['upstream-artifacts']
+            'upstreamArtifacts':  worker['upstream-artifacts'],
+            'suffixes': worker['suffixes'],
         }
     else:
         for prop in ('archive-domain', 'channel-names', 'download-domain',
@@ -1021,6 +1025,7 @@ def build_balrog_payload(config, task, task_def):
                 'platforms': worker['platforms'],
                 'rules_to_update': worker['rules-to-update'],
                 'require_mirrors': worker['require-mirrors'],
+                'update_line': worker['update-line'],
             })
         else:  # schedule / ship
             task_def['payload'].update({
