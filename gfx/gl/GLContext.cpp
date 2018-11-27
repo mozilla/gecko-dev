@@ -63,11 +63,13 @@ using namespace mozilla::layers;
 MOZ_THREAD_LOCAL(uintptr_t) GLContext::sCurrentContext;
 
 // If adding defines, don't forget to undefine symbols. See #undef block below.
+// clang-format off
 #define CORE_SYMBOL(x) { (PRFuncPtr*) &mSymbols.f##x, { #x, nullptr } }
 #define CORE_EXT_SYMBOL2(x,y,z) { (PRFuncPtr*) &mSymbols.f##x, { #x, #x #y, #x #z, nullptr } }
 #define EXT_SYMBOL2(x,y,z) { (PRFuncPtr*) &mSymbols.f##x, { #x #y, #x #z, nullptr } }
 #define EXT_SYMBOL3(x,y,z,w) { (PRFuncPtr*) &mSymbols.f##x, { #x #y, #x #z, #x #w, nullptr } }
 #define END_SYMBOLS { nullptr, { nullptr } }
+// clang-format on
 
 // should match the order of GLExtensions, and be null-terminated.
 static const char* const sExtensionNames[] = {
@@ -400,6 +402,7 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
 {
     mWorkAroundDriverBugs = gfxPrefs::WorkAroundDriverBugs();
 
+    // clang-format off
     const SymLoadStruct coreSymbols[] = {
         { (PRFuncPtr*) &mSymbols.fActiveTexture, { "ActiveTexture", "ActiveTextureARB", nullptr } },
         { (PRFuncPtr*) &mSymbols.fAttachShader, { "AttachShader", "AttachShaderARB", nullptr } },
@@ -528,6 +531,7 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
 
         END_SYMBOLS
     };
+    // clang-format on
 
     if (!LoadGLSymbols(this, prefix, trygl, coreSymbols, "GL"))
         return false;
@@ -581,9 +585,9 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
     // Load OpenGL ES 2.0 symbols, or desktop if we aren't using ES 2.
     if (mProfile == ContextProfile::OpenGLES) {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fGetShaderPrecisionFormat, { "GetShaderPrecisionFormat", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fClearDepthf, { "ClearDepthf", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fDepthRangef, { "DepthRangef", nullptr } },
+            CORE_SYMBOL(GetShaderPrecisionFormat),
+            CORE_SYMBOL(ClearDepthf),
+            CORE_SYMBOL(DepthRangef),
             END_SYMBOLS
         };
 
@@ -591,27 +595,27 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
             return false;
     } else {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fClearDepth, { "ClearDepth", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fDepthRange, { "DepthRange", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fReadBuffer, { "ReadBuffer", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fMapBuffer, { "MapBuffer", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fUnmapBuffer, { "UnmapBuffer", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fPointParameterf, { "PointParameterf", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fDrawBuffer, { "DrawBuffer", nullptr } },
+            CORE_SYMBOL(ClearDepth),
+            CORE_SYMBOL(DepthRange),
+            CORE_SYMBOL(ReadBuffer),
+            CORE_SYMBOL(MapBuffer),
+            CORE_SYMBOL(UnmapBuffer),
+            CORE_SYMBOL(PointParameterf),
+            CORE_SYMBOL(DrawBuffer),
             // The following functions are only used by Skia/GL in desktop mode.
             // Other parts of Gecko should avoid using these
-            { (PRFuncPtr*) &mSymbols.fDrawBuffers, { "DrawBuffers", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fClientActiveTexture, { "ClientActiveTexture", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fDisableClientState, { "DisableClientState", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fEnableClientState, { "EnableClientState", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fLoadIdentity, { "LoadIdentity", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fLoadMatrixf, { "LoadMatrixf", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fMatrixMode, { "MatrixMode", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fPolygonMode, { "PolygonMode", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fTexGeni, { "TexGeni", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fTexGenf, { "TexGenf", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fTexGenfv, { "TexGenfv", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fVertexPointer, { "VertexPointer", nullptr } },
+            CORE_SYMBOL(DrawBuffers),
+            CORE_SYMBOL(ClientActiveTexture),
+            CORE_SYMBOL(DisableClientState),
+            CORE_SYMBOL(EnableClientState),
+            CORE_SYMBOL(LoadIdentity),
+            CORE_SYMBOL(LoadMatrixf),
+            CORE_SYMBOL(MatrixMode),
+            CORE_SYMBOL(PolygonMode),
+            CORE_SYMBOL(TexGeni),
+            CORE_SYMBOL(TexGenf),
+            CORE_SYMBOL(TexGenfv),
+            CORE_SYMBOL(VertexPointer),
             END_SYMBOLS
         };
 
@@ -1051,13 +1055,13 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
 
     if (IsSupported(GLFeature::sync)) {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fFenceSync,      { "FenceSync",      nullptr } },
-            { (PRFuncPtr*) &mSymbols.fIsSync,         { "IsSync",         nullptr } },
-            { (PRFuncPtr*) &mSymbols.fDeleteSync,     { "DeleteSync",     nullptr } },
-            { (PRFuncPtr*) &mSymbols.fClientWaitSync, { "ClientWaitSync", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fWaitSync,       { "WaitSync",       nullptr } },
-            { (PRFuncPtr*) &mSymbols.fGetInteger64v,  { "GetInteger64v",  nullptr } },
-            { (PRFuncPtr*) &mSymbols.fGetSynciv,      { "GetSynciv",      nullptr } },
+            CORE_SYMBOL(FenceSync),
+            CORE_SYMBOL(IsSync),
+            CORE_SYMBOL(DeleteSync),
+            CORE_SYMBOL(ClientWaitSync),
+            CORE_SYMBOL(WaitSync),
+            CORE_SYMBOL(GetInteger64v),
+            CORE_SYMBOL(GetSynciv),
             END_SYMBOLS
         };
         fnLoadForFeature(symbols, GLFeature::sync);
@@ -1074,11 +1078,13 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
 
     if (IsExtensionSupported(APPLE_texture_range)) {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fTextureRangeAPPLE, { "TextureRangeAPPLE", nullptr } },
+            CORE_SYMBOL(TextureRangeAPPLE),
             END_SYMBOLS
         };
         fnLoadForExt(symbols, APPLE_texture_range);
     }
+
+// clang-format off
 
     if (IsSupported(GLFeature::vertex_array_object)) {
         const SymLoadStruct coreSymbols[] = {
@@ -1502,6 +1508,8 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
         fnLoadForExt(symbols, NV_fence);
     }
 
+// clang-format off
+
     if (IsExtensionSupported(NV_texture_barrier)) {
         const SymLoadStruct symbols[] = {
             { (PRFuncPtr*) &mSymbols.fTextureBarrier, { "TextureBarrierNV", nullptr } },
@@ -1512,7 +1520,7 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
 
     if (IsSupported(GLFeature::read_buffer)) {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fReadBuffer, { "ReadBuffer", nullptr } },
+            CORE_SYMBOL(ReadBuffer),
             END_SYMBOLS
         };
         fnLoadForFeature(symbols, GLFeature::read_buffer);
@@ -1520,7 +1528,7 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
 
     if (IsExtensionSupported(APPLE_framebuffer_multisample)) {
         const SymLoadStruct symbols[] = {
-            { (PRFuncPtr*) &mSymbols.fResolveMultisampleFramebufferAPPLE, { "ResolveMultisampleFramebufferAPPLE", nullptr } },
+            CORE_SYMBOL(ResolveMultisampleFramebufferAPPLE),
             END_SYMBOLS
         };
         fnLoadForExt(symbols, APPLE_framebuffer_multisample);
@@ -1528,8 +1536,8 @@ GLContext::LoadMoreSymbols(const char* prefix, bool trygl)
 
     // Load developer symbols, don't fail if we can't find them.
     const SymLoadStruct devSymbols[] = {
-            { (PRFuncPtr*) &mSymbols.fGetTexImage, { "GetTexImage", nullptr } },
-            { (PRFuncPtr*) &mSymbols.fGetTexLevelParameteriv, { "GetTexLevelParameteriv", nullptr } },
+            CORE_SYMBOL(GetTexImage),
+            CORE_SYMBOL(GetTexLevelParameteriv),
             END_SYMBOLS
     };
     const bool warnOnFailures = ShouldSpew();

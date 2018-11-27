@@ -89,6 +89,8 @@ AddCompressedFormatInfo(EffectiveFormat format, uint16_t bitsPerBlock, uint8_t b
 static void
 InitCompressedFormatInfo()
 {
+    // clang-format off
+
     // GLES 3.0.4, p147, table 3.19
     // GLES 3.0.4, p286+, $C.1 "ETC Compressed Texture Image Formats"
     AddCompressedFormatInfo(EffectiveFormat::COMPRESSED_RGB8_ETC2                     ,  64, 4, 4, CompressionFamily::ES3);
@@ -158,6 +160,8 @@ InitCompressedFormatInfo()
 
     // OES_compressed_ETC1_RGB8_texture
     AddCompressedFormatInfo(EffectiveFormat::ETC1_RGB8_OES, 64, 4, 4, CompressionFamily::ETC1);
+
+    // clang-format on
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -235,6 +239,9 @@ AddFormatInfo(EffectiveFormat format, const char* name, GLenum sizedFormat,
 static void
 InitFormatInfo()
 {
+    // This function is full of expressive formatting, so:
+    // clang-format off
+
 #define FOO(x) EffectiveFormat::x, #x, LOCAL_GL_ ## x
 
     // GLES 3.0.4, p130-132, table 3.13
@@ -444,6 +451,7 @@ InitFormatInfo()
 
 #undef SET_BY_SUFFIX
 
+
     //////
 
 #define SET_BY_SUFFIX(X) \
@@ -476,6 +484,8 @@ InitFormatInfo()
     SET_COPY_DECAY(R11F_G11F_B10F, R16F, RG16F, R11F_G11F_B10F, MAX, Luminance16F, MAX, MAX)
 
 #undef SET_COPY_DECAY
+
+    // clang-format on
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -722,9 +732,11 @@ AddLegacyFormats_LA8(FormatUsageAuthority* fua, gl::GLContext* gl)
         dui = {LOCAL_GL_RG8, LOCAL_GL_RG, LOCAL_GL_UNSIGNED_BYTE};
         fnAdd(EffectiveFormat::Luminance8Alpha8, FormatUsageInfo::kLumAlphaSwizzleRGBA);
     } else {
+        // clang-format off
         AddSimpleUnsized(fua, LOCAL_GL_LUMINANCE      , LOCAL_GL_UNSIGNED_BYTE, EffectiveFormat::Luminance8      );
         AddSimpleUnsized(fua, LOCAL_GL_ALPHA          , LOCAL_GL_UNSIGNED_BYTE, EffectiveFormat::Alpha8          );
         AddSimpleUnsized(fua, LOCAL_GL_LUMINANCE_ALPHA, LOCAL_GL_UNSIGNED_BYTE, EffectiveFormat::Luminance8Alpha8);
+        // clang-format on
     }
 
     return true;
@@ -733,6 +745,8 @@ AddLegacyFormats_LA8(FormatUsageAuthority* fua, gl::GLContext* gl)
 static bool
 AddUnsizedFormats(FormatUsageAuthority* fua, gl::GLContext* gl)
 {
+    // clang-format off
+
     // GLES 2.0.25, p63, Table 3.4
     AddSimpleUnsized(fua, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE         , EffectiveFormat::RGBA8  );
     AddSimpleUnsized(fua, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_SHORT_4_4_4_4, EffectiveFormat::RGBA4  );
@@ -742,6 +756,8 @@ AddUnsizedFormats(FormatUsageAuthority* fua, gl::GLContext* gl)
 
     // L, A, LA
     return AddLegacyFormats_LA8(fua, gl);
+
+    // clang-format on
 }
 
 void
@@ -849,6 +865,7 @@ FormatUsageAuthority::CreateForWebGL2(gl::GLContext* gl)
         ptr->AddTexUnpack(usage, pi, dui);
     };
 
+    // clang-format off
 #define FOO(x) EffectiveFormat::x, LOCAL_GL_ ## x
 
     // RGBA
@@ -939,6 +956,7 @@ FormatUsageAuthority::CreateForWebGL2(gl::GLContext* gl)
     fnAddSizedUnpack(FOO(DEPTH32F_STENCIL8), LOCAL_GL_DEPTH_STENCIL, LOCAL_GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 
 #undef FOO
+    // clang-format on
 
     ////////////////////////////////////////////////////////////////////////////
 

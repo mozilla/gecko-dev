@@ -53,6 +53,8 @@ class GLConstHeader:
             '#ifndef GLCONSTS_H_',
             '#define GLCONSTS_H_',
             '',
+            '// clang-format off',
+            '',
             '/**',
             ' * GENERATED FILE, DO NOT MODIFY DIRECTLY.',
             ' * This is a file generated directly from the official OpenGL registry',
@@ -90,6 +92,8 @@ class GLConstHeader:
 
     def formatFileEnd(self):
         self.write([
+                    '',
+                    '// clang-format on',
                     '',
                     '#endif // GLCONSTS_H_'
                    ])

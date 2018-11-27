@@ -8,6 +8,8 @@
 #include "GLTypes.h"
 #include "GLConsts.h"
 
+// clang-format off
+
 // TODO: use official constant names instead of followed ones.
 
 // IMG_texture_compression_pvrtc
@@ -80,5 +82,7 @@
 #define LOCAL_GL_CONTEXT_CORE_PROFILE_BIT_ARB           0x00000001
 #define LOCAL_GL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB  0x00000002
 #define LOCAL_GL_CONTEXT_ROBUST_ACCESS_BIT_ARB          0x00000004
+
+// clang-format on
 
 #endif

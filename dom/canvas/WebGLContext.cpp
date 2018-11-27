@@ -2176,6 +2176,7 @@ ScopedUnpackReset::ScopedUnpackReset(WebGLContext* webgl)
     : ScopedGLWrapper<ScopedUnpackReset>(webgl->gl)
     , mWebGL(webgl)
 {
+    // clang-format off
     if (mWebGL->mPixelStore_UnpackAlignment != 4) mGL->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
 
     if (mWebGL->IsWebGL2()) {
@@ -2187,11 +2188,13 @@ ScopedUnpackReset::ScopedUnpackReset(WebGLContext* webgl)
 
         if (mWebGL->mBoundPixelUnpackBuffer) mGL->fBindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, 0);
     }
+    // clang-format on
 }
 
 void
 ScopedUnpackReset::UnwrapImpl()
 {
+    // clang-format off
     mGL->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, mWebGL->mPixelStore_UnpackAlignment);
 
     if (mWebGL->IsWebGL2()) {
@@ -2208,6 +2211,7 @@ ScopedUnpackReset::UnwrapImpl()
 
         mGL->fBindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, pbo);
     }
+    // clang-format on
 }
 
 ////////////////////
