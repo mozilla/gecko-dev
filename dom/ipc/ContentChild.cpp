@@ -44,6 +44,7 @@
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/dom/PLoginReputationChild.h"
 #include "mozilla/dom/PushNotifier.h"
+#include "mozilla/dom/RemoteWorkerService.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/dom/TabGroup.h"
 #include "mozilla/dom/nsIContentChild.h"
@@ -1225,6 +1226,8 @@ ContentChild::InitXPCOM(const XPCOMInitData& aXPCOMInit,
 
   ClientManager::Startup();
 
+  RemoteWorkerService::Initialize();
+
   nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
   if (!svc) {
     NS_WARNING("Couldn't acquire console service");
@@ -1407,9 +1410,21 @@ mozilla::ipc::IPCResult
 ContentChild::RecvRequestPerformanceMetrics(const nsID& aID)
 {
   MOZ_ASSERT(mozilla::StaticPrefs::dom_performance_enable_scheduler_timing());
-  nsTArray<PerformanceInfo> info;
-  CollectPerformanceInfo(info);
-  SendAddPerformanceMetrics(aID, info);
+  RefPtr<ContentChild> self = this;
+  RefPtr<AbstractThread> mainThread = SystemGroup::AbstractMainThreadFor(
+    TaskCategory::Performance);
+  nsTArray<RefPtr<PerformanceInfoPromise>> promises = CollectPerformanceInfo();
+
+  PerformanceInfoPromise::All(mainThread, promises)
+    ->Then(mainThread,
+           __func__,
+           [self, aID](const nsTArray<mozilla::dom::PerformanceInfo>& aResult) {
+             self->SendAddPerformanceMetrics(aID, aResult);
+           },
+           []() {  /* silently fails -- the parent times out
+                      and proceeds when the data is not coming back */}
+          );
+
   return IPC_OK();
 }
 
@@ -3141,6 +3156,7 @@ ContentChild::RecvUpdateWindow(const uintptr_t& aChildId)
 PContentPermissionRequestChild*
 ContentChild::AllocPContentPermissionRequestChild(const InfallibleTArray<PermissionRequest>& aRequests,
                                                   const IPC::Principal& aPrincipal,
+                                                  const IPC::Principal& aTopLevelPrincipal,
                                                   const bool& aIsHandlingUserInput,
                                                   const TabId& aTabId)
 {

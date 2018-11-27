@@ -3088,9 +3088,11 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
     //      because IME may send a key event synchronously and consume the
     //      original event.
     bool IMEWasEnabled = false;
+    KeyHandlingState handlingState = KeyHandlingState::eNotHandled;
     if (mIMContext) {
         IMEWasEnabled = mIMContext->IsEnabled();
-        if (mIMContext->OnKeyEvent(this, aEvent)) {
+        handlingState = mIMContext->OnKeyEvent(this, aEvent);
+        if (handlingState == KeyHandlingState::eHandled) {
             return TRUE;
         }
     }
@@ -3109,9 +3111,12 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
     // KEYDOWN -> KEYPRESS -> KEYUP -> KEYDOWN -> KEYPRESS -> KEYUP...
 
     bool isKeyDownCancelled = false;
-    if (DispatchKeyDownOrKeyUpEvent(aEvent, false, &isKeyDownCancelled) &&
-        (MOZ_UNLIKELY(mIsDestroyed) || isKeyDownCancelled)) {
-        return TRUE;
+    if (handlingState == KeyHandlingState::eNotHandled) {
+        if (DispatchKeyDownOrKeyUpEvent(aEvent, false, &isKeyDownCancelled) &&
+            (MOZ_UNLIKELY(mIsDestroyed) || isKeyDownCancelled)) {
+            return TRUE;
+        }
+        handlingState = KeyHandlingState::eNotHandledButEventDispatched;
     }
 
     // If a keydown event handler causes to enable IME, i.e., it moves
@@ -3120,7 +3125,8 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
     if (!IMEWasEnabled && mIMContext && mIMContext->IsEnabled()) {
         // Notice our keydown event was already dispatched.  This prevents
         // unnecessary DOM keydown event in the editor.
-        if (mIMContext->OnKeyEvent(this, aEvent, true)) {
+        handlingState =  mIMContext->OnKeyEvent(this, aEvent, true);
+        if (handlingState == KeyHandlingState::eHandled) {
             return TRUE;
         }
     }
@@ -3246,8 +3252,11 @@ nsWindow::OnKeyReleaseEvent(GdkEventKey* aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
 
-    if (mIMContext && mIMContext->OnKeyEvent(this, aEvent)) {
-        return TRUE;
+    if (mIMContext) {
+        KeyHandlingState handlingState = mIMContext->OnKeyEvent(this, aEvent);
+        if (handlingState != KeyHandlingState::eNotHandled) {
+            return TRUE;
+        }
     }
 
     bool isCancelled = false;
@@ -3935,12 +3944,14 @@ nsWindow::Create(nsIWidget* aParent,
             gtk_style_context_has_class(style, "csd");
         eventWidget = (drawToContainer) ? container : mShell;
 
-        gtk_widget_add_events(eventWidget, kEvents);
-        if (drawToContainer)
-            gtk_widget_add_events(mShell, GDK_PROPERTY_CHANGE_MASK);
-
         // Prevent GtkWindow from painting a background to avoid flickering.
         gtk_widget_set_app_paintable(eventWidget, TRUE);
+
+        gtk_widget_add_events(eventWidget, kEvents);
+        if (drawToContainer) {
+            gtk_widget_add_events(mShell, GDK_PROPERTY_CHANGE_MASK);
+            gtk_widget_set_app_paintable(mShell, TRUE);
+        }
 
         // If we draw to mContainer window then configure it now because
         // gtk_container_add() realizes the child widget.
@@ -7301,19 +7312,6 @@ void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInit
 }
 
 #ifdef MOZ_WAYLAND
-wl_display*
-nsWindow::GetWaylandDisplay()
-{
-  // Available as of GTK 3.8+
-  static auto sGdkWaylandDisplayGetWlDisplay =
-      (wl_display *(*)(GdkDisplay *))
-      dlsym(RTLD_DEFAULT, "gdk_wayland_display_get_wl_display");
-
-  GdkDisplay* gdkDisplay = gdk_display_get_default();
-  return mIsX11Display ? nullptr :
-                         sGdkWaylandDisplayGetWlDisplay(gdkDisplay);
-}
-
 wl_surface*
 nsWindow::GetWaylandSurface()
 {
@@ -7322,6 +7320,17 @@ nsWindow::GetWaylandSurface()
 
   NS_WARNING("nsWindow::GetWaylandSurfaces(): We don't have any mContainer for drawing!");
   return nullptr;
+}
+
+bool
+nsWindow::WaylandSurfaceNeedsClear()
+{
+  if (mContainer) {
+    return moz_container_needs_clear(MOZ_CONTAINER(mContainer));
+  }
+
+  NS_WARNING("nsWindow::WaylandSurfaceNeedsClear(): We don't have any mContainer!");
+  return false;
 }
 #endif
 
@@ -7440,46 +7449,4 @@ nsIWidget::CreateChildWindow()
 {
   nsCOMPtr<nsIWidget> window = new nsWindow();
   return window.forget();
-}
-
-bool
-nsWindow::GetTopLevelWindowActiveState(nsIFrame *aFrame)
-{
-  // Used by window frame and button box rendering. We can end up in here in
-  // the content process when rendering one of these moz styles freely in a
-  // page. Fail in this case, there is no applicable window focus state.
-  if (!XRE_IsParentProcess()) {
-    return false;
-  }
-  // All headless windows are considered active so they are painted.
-  if (gfxPlatform::IsHeadless()) {
-    return true;
-  }
-  // Get the widget. nsIFrame's GetNearestWidget walks up the view chain
-  // until it finds a real window.
-  nsWindow* window = static_cast<nsWindow*>(aFrame->GetNearestWidget());
-  if (!window) {
-    return false;
-  }
-
-  // Get our toplevel nsWindow.
-  if (!window->mIsTopLevel) {
-      GtkWidget *widget = window->GetMozContainerWidget();
-      if (!widget) {
-        return false;
-      }
-
-      GtkWidget *toplevelWidget = gtk_widget_get_toplevel(widget);
-      window = get_window_for_gtk_widget(toplevelWidget);
-      if (!window) {
-        return false;
-      }
-  }
-
-  GtkWidget* widget = window->GetGtkWidget();
-  if (widget) {
-      return !(gtk_widget_get_state_flags(widget) & GTK_STATE_FLAG_BACKDROP);
-  }
-
-  return false;
 }

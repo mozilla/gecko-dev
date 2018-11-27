@@ -54,8 +54,13 @@ pref("devtools.inspector.showUserAgentShadowRoots", false);
 pref("devtools.inspector.shapesHighlighter.enabled", true);
 // Enable the font highlight-on-hover feature
 pref("devtools.inspector.fonthighlighter.enabled", true);
+
 // Enable tracking of style changes and the Changes panel in the Inspector
+#if defined(NIGHTLY_BUILD)
+pref("devtools.inspector.changes.enabled", true);
+#else
 pref("devtools.inspector.changes.enabled", false);
+#endif
 
 // Flexbox preferences
 // Enable the Flexbox highlighter and inspector panel in Nightly and DevEdition
@@ -348,6 +353,11 @@ pref("devtools.responsive.showUserAgentInput", false);
 
 // Enable new about:debugging.
 pref("devtools.aboutdebugging.new-enabled", false);
+// Enable the network location feature.
+pref("devtools.aboutdebugging.network", false);
+// Enable the wifi feature.
+pref("devtools.aboutdebugging.wifi", false);
+// Stringified array of network locations that users can connect to.
 pref("devtools.aboutdebugging.network-locations", "[]");
 // Debug target pane collapse/expand settings.
 pref("devtools.aboutdebugging.collapsibilities.installedExtension", false);

@@ -196,8 +196,7 @@ public:
   void MuteAudioContexts();
   void UnmuteAudioContexts();
 
-  bool GetAudioCaptured() const;
-  nsresult SetAudioCapture(bool aCapture);
+  void SetAudioCapture(bool aCapture);
 
   mozilla::dom::Performance* GetPerformance();
 
@@ -355,8 +354,6 @@ public:
 
   mozilla::dom::TabGroup* TabGroup();
 
-  virtual nsPIDOMWindowOuter* GetPrivateRoot() = 0;
-
   virtual mozilla::dom::CustomElementRegistry* CustomElements() = 0;
 
   // XXX: This is called on inner windows
@@ -373,8 +370,6 @@ public:
     mozilla::dom::MozIdleObserver& aIdleObserver) = 0;
   virtual nsresult UnregisterIdleObserver(
     mozilla::dom::MozIdleObserver& aIdleObserver) = 0;
-
-  virtual bool IsTopLevelWindowActive() = 0;
 
   mozilla::dom::EventTarget* GetParentTarget()
   {
@@ -432,16 +427,6 @@ public:
   virtual nsresult SetNewDocument(nsIDocument *aDocument,
                                   nsISupports *aState,
                                   bool aForceReuseInnerWindow) = 0;
-
-  /**
-   * Set the opener window.  aOriginalOpener is true if and only if this is the
-   * original opener for the window.  That is, it can only be true at most once
-   * during the life cycle of a window, and then only the first time
-   * SetOpenerWindow is called.  It might never be true, of course, if the
-   * window does not have an opener when it's created.
-   */
-  virtual void SetOpenerWindow(nsPIDOMWindowOuter* aOpener,
-                               bool aOriginalOpener) = 0;
 
   /**
    * Call this to indicate that some node (this window, its document,
@@ -579,13 +564,6 @@ public:
   virtual void SetHasGamepadEventListener(bool aHasGamepad = true) = 0;
 
   /**
-   * NOTE! This function *will* be called on multiple threads so the
-   * implementation must not do any AddRef/Release or other actions that will
-   * mutate internal state.
-   */
-  virtual uint32_t GetSerial() = 0;
-
-  /**
    * Return the window id of this window
    */
   uint64_t WindowID() const { return mWindowID; }
@@ -646,6 +624,12 @@ public:
   void
   NotifyReportingObservers();
 
+  void
+  SaveStorageAccessGranted(const nsACString& aPermissionKey);
+
+  bool
+  HasStorageAccessGranted(const nsACString& aPermissionKey);
+
 protected:
   void CreatePerformanceObjectIfNeeded();
 
@@ -692,8 +676,6 @@ protected:
   // Only for telemetry probe so that you can remove this after the
   // telemetry stops working.
   bool mMayHaveTextEventListenerInDefaultGroup;
-
-  bool mAudioCaptured;
 
   // Our inner window's outer window.
   nsCOMPtr<nsPIDOMWindowOuter> mOuterWindow;
@@ -744,6 +726,11 @@ protected:
   // List of Report objects for ReportingObservers.
   nsTArray<RefPtr<mozilla::dom::ReportingObserver>> mReportingObservers;
   nsTArray<RefPtr<mozilla::dom::Report>> mReportRecords;
+
+  // This is a list of storage access granted for the current window. These are
+  // also set as permissions, but it could happen that we need to access them
+  // synchronously in this context, and for this, we need a copy here.
+  nsTArray<nsCString> mStorageAccessGranted;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindowInner, NS_PIDOMWINDOWINNER_IID)
@@ -1097,13 +1084,6 @@ public:
    * DialogArgumentsHolder representing the JS value passed to showModalDialog.
    */
   virtual nsresult SetArguments(nsIArray *aArguments) = 0;
-
-  /**
-   * NOTE! This function *will* be called on multiple threads so the
-   * implementation must not do any AddRef/Release or other actions that will
-   * mutate internal state.
-   */
-  virtual uint32_t GetSerial() = 0;
 
   /**
    * Return the window id of this window

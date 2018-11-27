@@ -7,7 +7,7 @@ license = "MPL-2.0"
 [dependencies]
 rayon = "1"
 thread_profiler = "0.1.1"
-euclid = { version = "0.19", features = ["serde"] }
+euclid = { version = "0.19.3", features = ["serde"] }
 app_units = "0.7"
 gleam = "0.6.3"
 log = "0.4"
@@ -17,7 +17,7 @@ uuid = { version = "0.6", features = ["v4"] }
 fxhash = "0.2.1"
 
 [dependencies.webrender]
-path = "../webrender"
+path = "../wr/webrender"
 version = "0.57.2"
 default-features = false
 features = ["capture", "serialize_program"]

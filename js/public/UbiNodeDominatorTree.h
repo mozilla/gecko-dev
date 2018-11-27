@@ -66,7 +66,7 @@ namespace ubi {
  *
  * [0]: http://www.cs.rice.edu/~keith/EMBED/dom.pdf
  */
-class JS_PUBLIC_API(DominatorTree)
+class JS_PUBLIC_API DominatorTree
 {
   private:
     // Types.
@@ -149,7 +149,8 @@ class JS_PUBLIC_API(DominatorTree)
          *
          * Example usage:
          *
-         *     mozilla::Maybe<DominatedSetRange> range = myDominatorTree.getDominatedSet(myNode);
+         *     mozilla::Maybe<DominatedSetRange> range =
+         *         myDominatorTree.getDominatedSet(myNode);
          *     if (range.isNothing()) {
          *         // Handle unknown nodes however you see fit...
          *         return false;
@@ -640,7 +641,8 @@ class JS_PUBLIC_API(DominatorTree)
      *
      * Example usage:
      *
-     *     mozilla::Maybe<DominatedSetRange> range = myDominatorTree.getDominatedSet(myNode);
+     *     mozilla::Maybe<DominatedSetRange> range =
+     *         myDominatorTree.getDominatedSet(myNode);
      *     if (range.isNothing()) {
      *         // Handle unknown node however you see fit...
      *         return false;

@@ -5,14 +5,17 @@
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
+let gDefaultBranch = Services.prefs.getDefaultBranch("");
 let gPrefArray;
 
 function onLoad() {
   gPrefArray = Services.prefs.getChildList("").map(function(name) {
+    let hasUserValue = Services.prefs.prefHasUserValue(name);
     let pref = {
       name,
       value: Preferences.get(name),
-      hasUserValue: Services.prefs.prefHasUserValue(name),
+      hasUserValue,
+      hasDefaultValue: hasUserValue ? prefHasDefaultValue(name) : true,
     };
     // Try in case it's a localized string.
     // Throws an exception if there is no equivalent value in the localized files for the pref.
@@ -29,29 +32,105 @@ function onLoad() {
 
   gPrefArray.sort((a, b) => a.name > b.name);
 
+  document.getElementById("search").addEventListener("keypress", function(e) {
+    if (e.code == "Enter") {
+      filterPrefs();
+    }
+  });
+
+  document.getElementById("prefs").addEventListener("click", (event) => {
+    if (event.target.localName != "button") {
+      return;
+    }
+    let prefRow = event.target.closest("tr");
+    let prefName = prefRow.getAttribute("aria-label");
+    let button = event.target.closest("button");
+    if (button.classList.contains("button-reset")) {
+      // Reset pref and update gPrefArray.
+      Services.prefs.clearUserPref(prefName);
+      let pref = gPrefArray.find(p => p.name == prefName);
+      pref.value = Preferences.get(prefName);
+      pref.hasUserValue = false;
+      // Update UI.
+      prefRow.textContent = "";
+      prefRow.classList.remove("has-user-value");
+      prefRow.appendChild(getPrefRow(pref));
+    } else {
+      Services.prefs.clearUserPref(prefName);
+      gPrefArray.splice(gPrefArray.findIndex(pref => pref.name == prefName), 1);
+      prefRow.remove();
+    }
+  });
+
+  document.getElementById("prefs").appendChild(createPrefsFragment(gPrefArray));
+}
+
+function filterPrefs() {
+  let substring = document.getElementById("search").value.trim();
+  let fragment = createPrefsFragment(gPrefArray.filter(pref => pref.name.includes(substring)));
+  document.getElementById("prefs").textContent = "";
+  document.getElementById("prefs").appendChild(fragment);
+}
+
+function createPrefsFragment(prefArray) {
   let fragment = document.createDocumentFragment();
-  for (let pref of gPrefArray) {
+  for (let pref of prefArray) {
     let row = document.createElement("tr");
     if (pref.hasUserValue) {
       row.classList.add("has-user-value");
     }
     row.setAttribute("aria-label", pref.name);
 
-    let nameCell = document.createElement("td");
-    // Add <wbr> behind dots to prevent line breaking in random mid-word places.
-    let parts = pref.name.split(".");
-    for (let i = 0; i < parts.length - 1; i++) {
-      nameCell.append(parts[i] + ".", document.createElement("wbr"));
-    }
-    nameCell.append(parts[parts.length - 1]);
-    row.appendChild(nameCell);
-
-    let valueCell = document.createElement("td");
-    valueCell.classList.add("cell-value");
-    valueCell.textContent = pref.value;
-    row.appendChild(valueCell);
-
+    row.appendChild(getPrefRow(pref));
     fragment.appendChild(row);
   }
-  document.getElementById("prefs").appendChild(fragment);
+  return fragment;
+}
+
+function getPrefRow(pref) {
+  let rowFragment = document.createDocumentFragment();
+  let nameCell = document.createElement("td");
+  // Add <wbr> behind dots to prevent line breaking in random mid-word places.
+  let parts = pref.name.split(".");
+  for (let i = 0; i < parts.length - 1; i++) {
+    nameCell.append(parts[i] + ".", document.createElement("wbr"));
+  }
+  nameCell.append(parts[parts.length - 1]);
+  rowFragment.appendChild(nameCell);
+
+  let valueCell = document.createElement("td");
+  valueCell.classList.add("cell-value");
+  valueCell.textContent = pref.value;
+  rowFragment.appendChild(valueCell);
+
+  let buttonCell = document.createElement("td");
+  if (pref.hasUserValue) {
+    let button = document.createElement("button");
+    if (!pref.hasDefaultValue) {
+      document.l10n.setAttributes(button, "about-config-pref-delete");
+    } else {
+      document.l10n.setAttributes(button, "about-config-pref-reset");
+      button.className = "button-reset";
+    }
+    buttonCell.appendChild(button);
+  }
+  rowFragment.appendChild(buttonCell);
+  return rowFragment;
+}
+
+function prefHasDefaultValue(name) {
+  try {
+    switch (Services.prefs.getPrefType(name)) {
+      case Ci.nsIPrefBranch.PREF_STRING:
+        gDefaultBranch.getStringPref(name);
+        return true;
+      case Ci.nsIPrefBranch.PREF_INT:
+        gDefaultBranch.getIntPref(name);
+        return true;
+      case Ci.nsIPrefBranch.PREF_BOOL:
+        gDefaultBranch.getBoolPref(name);
+        return true;
+    }
+  } catch (ex) {}
+  return false;
 }

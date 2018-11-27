@@ -65,12 +65,11 @@ function sendStringAndCheckValidity(element, string, isValid) {
 
 add_task(async function test_initialState() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
 
   await form.requestStore.setState({
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
-    },
+    "test-page": {},
   });
 
   let {page} = form.requestStore.getState();
@@ -87,25 +86,70 @@ add_task(async function test_initialState() {
   form.remove();
 });
 
+add_task(async function test_pageTitle() {
+  let address1 = deepClone(PTU.Addresses.TimBL);
+  address1.guid = "9864798564";
+
+  // the element can have all the data attributes. We'll add them all up front
+  let form = new AddressForm();
+  let id = "shipping-address-page";
+  form.id = id;
+  form.dataset.titleAdd = `Add Title`;
+  form.dataset.titleEdit = `Edit Title`;
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
+
+  await form.promiseReady;
+  display.appendChild(form);
+
+  let newState = {
+    page: { id },
+    [id]: {},
+    savedAddresses: {
+      [address1.guid]: address1,
+    },
+    request: {
+      paymentDetails: {},
+      paymentOptions: { shippingOption: "shipping" },
+    },
+  };
+  await form.requestStore.setState(newState);
+  await asyncElementRendered();
+  is(form.pageTitleHeading.textContent, "Add Title", "Check 'add' title");
+
+  // test the 'edit' variation
+  newState = deepClone(newState);
+  newState[id].guid = address1.guid;
+  await form.requestStore.setState(newState);
+  await asyncElementRendered();
+  is(form.pageTitleHeading.textContent, "Edit Title", "Check 'edit' title");
+
+  form.remove();
+});
+
 add_task(async function test_backButton() {
   let form = new AddressForm();
+  form.id = "test-page";
+  form.dataset.titleAdd = "Sample add page title";
   form.dataset.backButtonLabel = "Back";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
+
   await form.promiseReady;
   display.appendChild(form);
 
   await form.requestStore.setState({
+    "test-page": {},
     page: {
-      id: "address-page",
+      id: "test-page",
     },
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
+    request: {
+      paymentDetails: {},
+      paymentOptions: {},
     },
   });
   await asyncElementRendered();
 
   let stateChangePromise = promiseStateChange(form.requestStore);
-  is(form.pageTitleHeading.textContent, "Sample page title", "Check title");
+  is(form.pageTitleHeading.textContent, "Sample add page title", "Check title");
 
   is(form.backButton.textContent, "Back", "Check label");
   form.backButton.scrollIntoView();
@@ -119,10 +163,18 @@ add_task(async function test_backButton() {
 
 add_task(async function test_saveButton() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   form.dataset.nextButtonLabel = "Next";
   form.dataset.errorGenericSave = "Generic error";
   await form.promiseReady;
   display.appendChild(form);
+  form.requestStore.setState({
+    page: {
+      id: "shipping-address-page",
+    },
+    "shipping-address-page": {},
+  });
   await asyncElementRendered();
 
   ok(form.saveButton.disabled, "Save button initially disabled");
@@ -174,6 +226,7 @@ add_task(async function test_saveButton() {
       "additional-name": "",
       "organization": "Allizom",
       "street-address": "404 Internet Super Highway",
+      "address-level3": "",
       "address-level2": "Firefoxity City",
       "address-level1": "CA",
       "postal-code": "00001",
@@ -186,6 +239,8 @@ add_task(async function test_saveButton() {
 
 add_task(async function test_genericError() {
   let form = new AddressForm();
+  form.id = "test-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.requestStore.setState({
     page: {
       id: "test-page",
@@ -203,7 +258,9 @@ add_task(async function test_genericError() {
 
 add_task(async function test_edit() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
   form.dataset.updateButtonLabel = "Update";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
   display.appendChild(form);
   await asyncElementRendered();
@@ -213,11 +270,10 @@ add_task(async function test_edit() {
 
   await form.requestStore.setState({
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
+    "shipping-address-page": {
       guid: address1.guid,
-      selectedStateKey: ["selectedShippingAddress"],
     },
     savedAddresses: {
       [address1.guid]: deepClone(address1),
@@ -237,11 +293,10 @@ add_task(async function test_edit() {
   };
   await form.requestStore.setState({
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
+    "shipping-address-page": {
       guid: minimalAddress.guid,
-      selectedStateKey: ["selectedShippingAddress"],
     },
     savedAddresses: {
       [minimalAddress.guid]: deepClone(minimalAddress),
@@ -259,11 +314,9 @@ add_task(async function test_edit() {
   info("change to no selected address");
   await form.requestStore.setState({
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-    },
+    "shipping-address-page": {},
   });
   await asyncElementRendered();
   is(form.querySelectorAll(":-moz-ui-invalid").length, 0,
@@ -278,15 +331,20 @@ add_task(async function test_edit() {
 
 add_task(async function test_restricted_address_fields() {
   let form = new AddressForm();
+  form.id = "payer-address-page";
+  form.setAttribute("selected-state-key", "selectedPayerAddress");
   form.dataset.errorGenericSave = "Generic error";
   form.dataset.fieldRequiredSymbol = "*";
   form.dataset.nextButtonLabel = "Next";
   await form.promiseReady;
+  form.form.dataset.extraRequiredFields = "name email tel";
   display.appendChild(form);
   await form.requestStore.setState({
-    "address-page": {
+    page: {
+      id: "payer-address-page",
+    },
+    "payer-address-page": {
       addressFields: "name email tel",
-      selectedStateKey: ["selectedPayerAddress"],
     },
   });
   await asyncElementRendered();
@@ -335,17 +393,22 @@ add_task(async function test_restricted_address_fields() {
 
   form.remove();
   await form.requestStore.setState({
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-    },
+    "payer-address-page": {},
   });
 });
 
 add_task(async function test_field_validation() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   form.dataset.fieldRequiredSymbol = "*";
   await form.promiseReady;
   display.appendChild(form);
+  await form.requestStore.setState({
+    page: {
+      id: "shipping-address-page",
+    },
+  });
   await asyncElementRendered();
 
   let postalCodeInput = form.form.querySelector("#postal-code");
@@ -407,6 +470,8 @@ add_task(async function test_field_validation() {
 
 add_task(async function test_merchantShippingAddressErrors() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
 
   // Merchant errors only make sense when editing a record so add one.
@@ -415,12 +480,10 @@ add_task(async function test_merchantShippingAddressErrors() {
 
   const state = {
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
+    "shipping-address-page": {
       guid: address1.guid,
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
     },
     request: {
       paymentDetails: {
@@ -437,13 +500,14 @@ add_task(async function test_merchantShippingAddressErrors() {
           regionCode: "Regions must be 1 to 3 characters in length (sometimes ;) )",
         },
       },
+      paymentOptions: {},
     },
     savedAddresses: {
       [address1.guid]: deepClone(address1),
     },
   };
-  await form.requestStore.setState(state);
   display.appendChild(form);
+  await form.requestStore.setState(state);
   await asyncElementRendered();
 
   function checkValidationMessage(selector, property) {
@@ -477,6 +541,8 @@ add_task(async function test_merchantShippingAddressErrors() {
 
 add_task(async function test_customMerchantValidity_reset() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
 
   // Merchant errors only make sense when editing a record so add one.
@@ -485,12 +551,10 @@ add_task(async function test_customMerchantValidity_reset() {
 
   const state = {
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
+    "shipping-address-page": {
       guid: address1.guid,
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
     },
     request: {
       paymentDetails: {
@@ -505,6 +569,7 @@ add_task(async function test_customMerchantValidity_reset() {
           region: "Region needs to start with a Y",
         },
       },
+      paymentOptions: {},
     },
     savedAddresses: {
       [address1.guid]: deepClone(address1),
@@ -521,6 +586,7 @@ add_task(async function test_customMerchantValidity_reset() {
       paymentDetails: {
         shippingAddressErrors: {},
       },
+      paymentOptions: {},
     },
   });
   await asyncElementRendered();
@@ -530,8 +596,10 @@ add_task(async function test_customMerchantValidity_reset() {
   form.remove();
 });
 
-add_task(async function test_customMerchantValidity_correctAddressForm() {
+add_task(async function test_customMerchantValidity_shippingAddressForm() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
 
   // Merchant errors only make sense when editing a record so add one.
@@ -540,12 +608,76 @@ add_task(async function test_customMerchantValidity_correctAddressForm() {
 
   const state = {
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
+    "shipping-address-page": {
       guid: address1.guid,
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Edit Shipping Address",
+    },
+    request: {
+      paymentDetails: {
+        billingAddressErrors: {
+          addressLine: "Billing Street address needs to start with a D",
+          city: "Billing City needs to start with a B",
+          country: "Billing Country needs to start with a C",
+          organization: "Billing organization needs to start with an A",
+          phone: "Billing Telephone needs to start with a 9",
+          postalCode: "Billing Postal code needs to start with a 0",
+          recipient: "Billing Name needs to start with a Z",
+          region: "Billing Region needs to start with a Y",
+        },
+      },
+      paymentOptions: {},
+    },
+    savedAddresses: {
+      [address1.guid]: deepClone(address1),
+    },
+  };
+  await form.requestStore.setState(state);
+  display.appendChild(form);
+  await asyncElementRendered();
+
+  is(form.querySelectorAll(":-moz-ui-invalid").length, 0,
+     "Check fields are visibly valid - billing errors are not relevant to a shipping address form");
+
+  // now switch in some shipping address errors
+  await form.requestStore.setState({
+    request: {
+      paymentDetails: {
+        shippingAddressErrors: {
+          addressLine: "Street address needs to start with a D",
+          city: "City needs to start with a B",
+          country: "Country needs to start with a C",
+          organization: "organization needs to start with an A",
+          phone: "Telephone needs to start with a 9",
+          postalCode: "Postal code needs to start with a 0",
+          recipient: "Name needs to start with a Z",
+          region: "Region needs to start with a Y",
+        },
+      },
+      paymentOptions: {},
+    },
+  });
+  await asyncElementRendered();
+
+  ok(form.querySelectorAll(":-moz-ui-invalid").length >= 8, "Check fields are visibly invalid");
+});
+
+add_task(async function test_customMerchantValidity_billingAddressForm() {
+  let form = new AddressForm();
+  form.id = "billing-address-page";
+  form.setAttribute("selected-state-key", "basic-card-page|billingAddressGUID");
+  await form.promiseReady;
+
+  // Merchant errors only make sense when editing a record so add one.
+  let address1 = deepClone(PTU.Addresses.TimBL);
+  address1.guid = "9864798564";
+
+  const state = {
+    page: {
+      id: "billing-address-page",
+    },
+    "billing-address-page": {
+      guid: address1.guid,
     },
     request: {
       paymentDetails: {
@@ -560,6 +692,7 @@ add_task(async function test_customMerchantValidity_correctAddressForm() {
           region: "Region needs to start with a Y",
         },
       },
+      paymentOptions: {},
     },
     savedAddresses: {
       [address1.guid]: deepClone(address1),
@@ -569,21 +702,9 @@ add_task(async function test_customMerchantValidity_correctAddressForm() {
   display.appendChild(form);
   await asyncElementRendered();
 
-  ok(form.querySelectorAll(":-moz-ui-invalid").length >= 8, "Check fields are visibly invalid");
-
-  info("change to a biling address form");
-  await form.requestStore.setState({
-    "address-page": {
-      guid: address1.guid,
-      selectedStateKey: ["basic-card-page", "billingAddressGUID"],
-      title: "Edit Billing Address",
-    },
-  });
-  await asyncElementRendered();
   is(form.querySelectorAll(":-moz-ui-invalid").length, 0,
      "Check fields are visibly valid - shipping errors are not relevant to a billing address form");
 
-  info("change errors to billing address errors");
   await form.requestStore.setState({
     request: {
       paymentDetails: {
@@ -600,30 +721,23 @@ add_task(async function test_customMerchantValidity_correctAddressForm() {
           },
         },
       },
+      paymentOptions: {},
     },
   });
   await asyncElementRendered();
   ok(form.querySelectorAll(":-moz-ui-invalid").length >= 8,
      "Check billing fields are visibly invalid");
 
-  info("change to an ADD shipping address form");
-  await form.requestStore.setState({
-    "address-page": {
-      guid: null,
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Edit Billing Address",
-    },
-  });
-  await asyncElementRendered();
-  is(form.querySelectorAll(":-moz-ui-invalid").length, 0,
-     "Check fields are visibly valid - merchant errors are not relevant to an 'add' form");
-
   form.remove();
 });
 
 add_task(async function test_merchantPayerAddressErrors() {
   let form = new AddressForm();
+  form.id = "payer-address-page";
+  form.setAttribute("selected-state-key", "selectedPayerAddress");
+
   await form.promiseReady;
+  form.form.dataset.extraRequiredFields = "name email tel";
 
   // Merchant errors only make sense when editing a record so add one.
   let address1 = deepClone(PTU.Addresses.TimBL);
@@ -631,13 +745,11 @@ add_task(async function test_merchantPayerAddressErrors() {
 
   const state = {
     page: {
-      id: "address-page",
+      id: "payer-address-page",
     },
-    "address-page": {
+    "payer-address-page": {
       addressFields: "name email tel",
       guid: address1.guid,
-      selectedStateKey: ["selectedPayerAddress"],
-      title: "Edit Payer Address",
     },
     request: {
       paymentDetails: {
@@ -647,6 +759,7 @@ add_task(async function test_merchantPayerAddressErrors() {
           phone: "Telephone needs to start with a 1",
         },
       },
+      paymentOptions: {},
     },
     savedAddresses: {
       [address1.guid]: deepClone(address1),
@@ -675,6 +788,7 @@ add_task(async function test_merchantPayerAddressErrors() {
       paymentDetails: {
         payer: {},
       },
+      paymentOptions: {},
     },
   });
   await asyncElementRendered();
@@ -699,19 +813,20 @@ add_task(async function test_field_validation() {
   });
 
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
   const state = {
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
+    "shipping-address-page": {
     },
     request: {
       paymentDetails: {
         shippingAddressErrors: {},
       },
+      paymentOptions: {},
     },
   };
   await form.requestStore.setState(state);
@@ -735,14 +850,14 @@ add_task(async function test_field_validation() {
 
 add_task(async function test_field_validation_dom_popup() {
   let form = new AddressForm();
+  form.id = "shipping-address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
   await form.promiseReady;
   const state = {
     page: {
-      id: "address-page",
+      id: "shipping-address-page",
     },
-    "address-page": {
-      selectedStateKey: ["selectedShippingAddress"],
-      title: "Sample page title",
+    "shipping-address-page": {
     },
   };
 
@@ -775,6 +890,62 @@ add_task(async function test_field_validation_dom_popup() {
   form.remove();
 });
 
+add_task(async function test_hiddenMailingAddressFieldsCleared() {
+  let form = new AddressForm();
+  form.id = "address-page";
+  form.setAttribute("selected-state-key", "selectedShippingAddress");
+  form.dataset.updateButtonLabel = "Update";
+  await form.promiseReady;
+  display.appendChild(form);
+  await asyncElementRendered();
+
+  let address1 = deepClone(PTU.Addresses.TimBL);
+  address1.guid = "9864798564";
+
+  await form.requestStore.setState({
+    page: {
+      id: "address-page",
+    },
+    "address-page": {
+      guid: address1.guid,
+    },
+    savedAddresses: {
+      [address1.guid]: deepClone(address1),
+    },
+  });
+  await asyncElementRendered();
+
+  info("Change the country to hide address-level1");
+  fillField(form.form.querySelector("#country"), "DE");
+
+  let expectedRecord = Object.assign({}, address1, {
+    country: "DE",
+    // address-level1 & 3 aren't used for Germany so should be blanked.
+    "address-level1": "",
+    "address-level3": "",
+  });
+  delete expectedRecord.guid;
+  // The following were not shown so shouldn't be part of the message:
+  delete expectedRecord.email;
+
+  let messagePromise = promiseContentToChromeMessage("updateAutofillRecord");
+  form.saveButton.scrollIntoView();
+  synthesizeMouseAtCenter(form.saveButton, {});
+
+  info("Waiting for messagePromise");
+  let details = await messagePromise;
+  info("/Waiting for messagePromise");
+  delete details.messageID;
+  is(details.collectionName, "addresses", "Check collectionName");
+  isDeeply(details, {
+    collectionName: "addresses",
+    guid: address1.guid,
+    messageType: "updateAutofillRecord",
+    record: expectedRecord,
+  }, "Check update event details for the message to chrome");
+
+  form.remove();
+});
 </script>
 
 </body>

@@ -69,8 +69,8 @@
 #include "nsPluginFrame.h"
 #include "nsSliderFrame.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
-#include <mozilla/layers/AxisPhysicsModel.h>
-#include <mozilla/layers/AxisPhysicsMSDModel.h>
+#include "mozilla/layers/AxisPhysicsModel.h"
+#include "mozilla/layers/AxisPhysicsMSDModel.h"
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/ScrollLinkedEffectDetector.h"
 #include "mozilla/Unused.h"
@@ -1163,10 +1163,6 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  if (mHelper.IsIgnoringViewportClipping()) {
-    aDesiredSize.mOverflowAreas.UnionWith(
-      state.mContentsOverflowAreas + mHelper.mScrolledFrame->GetPosition());
-  }
 
   mHelper.UpdateSticky();
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowInput, aStatus);
@@ -2529,15 +2525,6 @@ static void AdjustViews(nsIFrame* aFrame)
   }
 }
 
-bool ScrollFrameHelper::IsIgnoringViewportClipping() const
-{
-  if (!mIsRoot)
-    return false;
-  nsSubDocumentFrame* subdocFrame = static_cast<nsSubDocumentFrame*>
-    (nsLayoutUtils::GetCrossDocParentFrame(mOuter->PresShell()->GetRootFrame()));
-  return subdocFrame && !subdocFrame->ShouldClipSubdocument();
-}
-
 void ScrollFrameHelper::MarkScrollbarsDirtyForReflow() const
 {
   nsIPresShell* presShell = mOuter->PresShell();
@@ -3442,7 +3429,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // because that call cannot create a displayport for root scroll frames,
   // and hence it cannot create an ignore scroll frame.
   bool ignoringThisScrollFrame =
-    aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping();
+    aBuilder->GetIgnoreScrollFrame() == mOuter;
 
   // Overflow clipping can never clip frames outside our subtree, so there
   // is no need to worry about whether we are a moving frame that might clip
@@ -4589,8 +4576,8 @@ ScrollFrameHelper::GetPageLoadingState() -> LoadingState
   if (ds) {
     nsCOMPtr<nsIContentViewer> cv;
     ds->GetContentViewer(getter_AddRefs(cv));
-    cv->GetLoadCompleted(&loadCompleted);
-    cv->GetIsStopped(&stopped);
+    loadCompleted = cv->GetLoadCompleted();
+    stopped = cv->GetIsStopped();
   }
   return loadCompleted ? (stopped ? LoadingState::Stopped : LoadingState::Loaded)
                        : LoadingState::Loading;
@@ -6698,21 +6685,52 @@ ScrollFrameHelper::DragScroll(WidgetEvent* aEvent)
   return willScroll;
 }
 
-static void
-AsyncScrollbarDragRejected(nsIFrame* aScrollbar)
+static nsSliderFrame*
+GetSliderFrame(nsIFrame* aScrollbarFrame)
 {
-  if (!aScrollbar) {
-    return;
+  if (!aScrollbarFrame) {
+    return nullptr;
   }
 
-  for (nsIFrame::ChildListIterator childLists(aScrollbar);
+  for (nsIFrame::ChildListIterator childLists(aScrollbarFrame);
        !childLists.IsDone();
        childLists.Next()) {
     for (nsIFrame* frame : childLists.CurrentList()) {
       if (nsSliderFrame* sliderFrame = do_QueryFrame(frame)) {
-        sliderFrame->AsyncScrollbarDragRejected();
+        return sliderFrame;
       }
     }
+  }
+  return nullptr;
+}
+
+static void
+AsyncScrollbarDragInitiated(uint64_t aDragBlockId, nsIFrame* aScrollbar)
+{
+  if (nsSliderFrame* sliderFrame = GetSliderFrame(aScrollbar)) {
+    sliderFrame->AsyncScrollbarDragInitiated(aDragBlockId);
+  }
+}
+
+void
+ScrollFrameHelper::AsyncScrollbarDragInitiated(uint64_t aDragBlockId,
+                                               ScrollDirection aDirection)
+{
+  switch (aDirection) {
+    case ScrollDirection::eVertical:
+      ::AsyncScrollbarDragInitiated(aDragBlockId, mVScrollbarBox);
+      break;
+    case ScrollDirection::eHorizontal:
+      ::AsyncScrollbarDragInitiated(aDragBlockId, mHScrollbarBox);
+      break;
+  }
+}
+
+static void
+AsyncScrollbarDragRejected(nsIFrame* aScrollbar)
+{
+  if (nsSliderFrame* sliderFrame = GetSliderFrame(aScrollbar)) {
+    sliderFrame->AsyncScrollbarDragRejected();
   }
 }
 

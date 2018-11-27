@@ -18,14 +18,12 @@ using namespace mozilla::intl;
  */
 Locale::Locale(const nsACString& aLocale)
 {
-  MOZ_ASSERT(!aLocale.IsEmpty(), "Locale string cannot be empty");
-
-  int32_t position = 0;
-
-  if (!IsASCII(aLocale)) {
+  if (aLocale.IsEmpty() || !IsASCII(aLocale)) {
     mIsWellFormed = false;
     return;
   }
+
+  int32_t position = 0;
 
   nsAutoCString normLocale(aLocale);
   normLocale.ReplaceChar('_', '-');
@@ -134,19 +132,19 @@ Locale::AsString() const
   return tag;
 }
 
-const nsACString&
+const nsCString&
 Locale::GetLanguage() const
 {
   return mLanguage;
 }
 
-const nsACString&
+const nsCString&
 Locale::GetScript() const
 {
   return mScript;
 }
 
-const nsACString&
+const nsCString&
 Locale::GetRegion() const
 {
   return mRegion;

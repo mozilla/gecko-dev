@@ -7,8 +7,6 @@ import simplejson as json
 import time
 import zlib
 
-from multiprocessing import Process
-
 from firefox_puppeteer import PuppeteerMixin
 from marionette_driver.addons import Addons
 from marionette_driver.errors import MarionetteException
@@ -83,7 +81,7 @@ class TelemetryTestCase(PuppeteerMixin, MarionetteTestCase):
         # Wait 5 seconds to ensure that telemetry has reinitialized
         time.sleep(5)
 
-    def wait_for_pings(self, action_func, ping_filter_func, count):
+    def wait_for_pings(self, action_func, ping_filter, count):
         """Call the given action and wait for pings to come in and return
         the `count` number of pings, that match the given filter.
         """
@@ -98,7 +96,7 @@ class TelemetryTestCase(PuppeteerMixin, MarionetteTestCase):
             new_pings = self.pings[current_num_pings:]
 
             # Filter pings to make sure we wait for the correct ping type
-            filtered_pings[:] = [p for p in new_pings if ping_filter_func(p)]
+            filtered_pings[:] = [p for p in new_pings if ping_filter(p)]
 
             return len(filtered_pings) >= count
 
@@ -123,22 +121,21 @@ class TelemetryTestCase(PuppeteerMixin, MarionetteTestCase):
         self.restart(clean=False, in_app=True)
 
     def install_addon(self):
-        trigger = Process(target=self._install_addon)
-        trigger.start()
+        """Install a minimal addon."""
 
-    def _install_addon(self):
-        # The addon that gets installed here is the easyscreenshot addon taken from AMO.
-        # It has high compatibility with firefox and doesn't cause any adverse side affects that
-        # could affect our tests like tabs opening, etc.
-        # Developed by: MozillaOnline
-        # Addon URL: https://addons.mozilla.org/en-US/firefox/addon/easyscreenshot/
+        resources_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "resources"
+        )
+
+        addon_path = os.path.abspath(os.path.join(resources_dir, "helloworld"))
+
         try:
-            # TODO: Replace Resources_dir with default directory
-            addon_path = os.path.join('resources_dir', 'easyscreenshot.xpi')
             addons = Addons(self.marionette)
-            addons.install(addon_path)
+            addons.install(addon_path, temp=True)
         except MarionetteException as e:
-            self.fail('{} - Error installing addon: {} - '.format(e.cause, e.message))
+            self.fail(
+                "{} - Error installing addon: {} - ".format(e.cause, e.message)
+            )
 
     @property
     def client_id(self):

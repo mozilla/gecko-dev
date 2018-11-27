@@ -16,11 +16,6 @@ namespace mozilla {
 namespace a11y {
 
 /**
- * Used for XUL progressmeter element.
- */
-typedef ProgressMeterAccessible<100> XULProgressMeterAccessible;
-
-/**
  * Used for XUL button.
  *
  * @note  Don't inherit from LeafAccessible - it doesn't allow children
@@ -159,6 +154,9 @@ public:
 
   // nsXULToolbarButtonAccessible
   static bool IsSeparator(Accessible* aAccessible);
+
+  // Widgets
+  virtual bool IsAcceptableChild(nsIContent* aEl) const override;
 };
 
 /**

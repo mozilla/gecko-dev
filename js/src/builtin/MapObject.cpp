@@ -29,7 +29,7 @@ using mozilla::NumberEqualsInt32;
 using JS::DoubleNaNValue;
 
 
-/*** HashableValue *******************************************************************************/
+/*** HashableValue **********************************************************/
 
 bool
 HashableValue::setValue(JSContext* cx, HandleValue v)
@@ -138,7 +138,7 @@ HashableValue::trace(JSTracer* trc) const
 }
 
 
-/*** MapIterator *********************************************************************************/
+/*** MapIterator ************************************************************/
 
 namespace {
 
@@ -410,7 +410,7 @@ MapIteratorObject::createResultPair(JSContext* cx)
 }
 
 
-/*** Map *****************************************************************************************/
+/*** Map ********************************************************************/
 
 const ClassOps MapObject::classOps_ = {
     nullptr, // addProperty
@@ -1037,7 +1037,7 @@ MapObject::clear(JSContext* cx, HandleObject obj)
 }
 
 
-/*** SetIterator *********************************************************************************/
+/*** SetIterator ************************************************************/
 
 static const ClassOps SetIteratorObjectClassOps = {
     nullptr, /* addProperty */
@@ -1268,7 +1268,7 @@ SetIteratorObject::createResult(JSContext* cx)
 }
 
 
-/*** Set *****************************************************************************************/
+/*** Set ********************************************************************/
 
 const ClassOps SetObject::classOps_ = {
     nullptr, // addProperty
@@ -1749,7 +1749,7 @@ SetObject::clear(JSContext* cx, unsigned argc, Value* vp)
     return CallNonGenericMethod(cx, is, clear_impl, args);
 }
 
-/*** JS static utility functions *********************************************/
+/*** JS static utility functions ********************************************/
 
 static bool
 forEach(const char* funcName, JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisArg)
@@ -1840,21 +1840,21 @@ CallObjFunc(bool(*ObjFunc)(JSContext* cx, Iter kind,
     return true;
 }
 
-/*** JS public APIs **********************************************************/
+/*** JS public APIs *********************************************************/
 
-JS_PUBLIC_API(JSObject*)
+JS_PUBLIC_API JSObject*
 JS::NewMapObject(JSContext* cx)
 {
     return MapObject::create(cx);
 }
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API uint32_t
 JS::MapSize(JSContext* cx, HandleObject obj)
 {
     return CallObjFunc<uint32_t>(&MapObject::size, cx, obj);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key, MutableHandleValue rval)
 {
     CHECK_THREAD(cx);
@@ -1888,7 +1888,7 @@ JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key, MutableHandleValue 
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapSet(JSContext *cx, HandleObject obj, HandleValue key, HandleValue val)
 {
     CHECK_THREAD(cx);
@@ -1915,61 +1915,61 @@ JS::MapSet(JSContext *cx, HandleObject obj, HandleValue key, HandleValue val)
     }
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval)
 {
     return CallObjFunc(MapObject::has, cx, obj, key, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapDelete(JSContext *cx, HandleObject obj, HandleValue key, bool* rval)
 {
     return CallObjFunc(MapObject::delete_, cx, obj, key, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapClear(JSContext* cx, HandleObject obj)
 {
     return CallObjFunc(&MapObject::clear, cx, obj);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapKeys(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return CallObjFunc(&MapObject::iterator, cx, MapObject::Keys, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapValues(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return CallObjFunc(&MapObject::iterator, cx, MapObject::Values, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapEntries(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return CallObjFunc(&MapObject::iterator, cx, MapObject::Entries, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::MapForEach(JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisVal)
 {
     return forEach("MapForEach", cx, obj, callbackFn, thisVal);
 }
 
-JS_PUBLIC_API(JSObject *)
+JS_PUBLIC_API JSObject *
 JS::NewSetObject(JSContext *cx)
 {
     return SetObject::create(cx);
 }
 
-JS_PUBLIC_API(uint32_t)
+JS_PUBLIC_API uint32_t
 JS::SetSize(JSContext *cx, HandleObject obj)
 {
     return CallObjFunc<uint32_t>(&SetObject::size, cx, obj);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetAdd(JSContext *cx, HandleObject obj, HandleValue key)
 {
     CHECK_THREAD(cx);
@@ -1993,43 +1993,43 @@ JS::SetAdd(JSContext *cx, HandleObject obj, HandleValue key)
     }
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval)
 {
     return CallObjFunc(SetObject::has, cx, obj, key, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetDelete(JSContext *cx, HandleObject obj, HandleValue key, bool *rval)
 {
     return CallObjFunc(SetObject::delete_, cx, obj, key, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetClear(JSContext* cx, HandleObject obj)
 {
     return CallObjFunc(&SetObject::clear, cx, obj);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetKeys(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return SetValues(cx, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetValues(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return CallObjFunc(&SetObject::iterator, cx, SetObject::Values, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetEntries(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return CallObjFunc(&SetObject::iterator, cx, SetObject::Entries, obj, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::SetForEach(JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisVal)
 {
     return forEach("SetForEach", cx, obj, callbackFn, thisVal);

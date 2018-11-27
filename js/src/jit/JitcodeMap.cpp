@@ -1546,9 +1546,9 @@ JitcodeIonTable::findRegionEntry(uint32_t nativeOffset) const
             JitcodeRegionEntry nextEntry = regionEntry(i);
             MOZ_ASSERT(nextEntry.nativeOffset() >= previousEntry.nativeOffset());
 
-            // See note in binary-search code below about why we use '<=' here instead of
-            // '<'.  Short explanation: regions are closed at their ending addresses,
-            // and open at their starting addresses.
+            // See note in binary-search code below about why we use '<=' here
+            // instead of '<'.  Short explanation: regions are closed at their
+            // ending addresses, and open at their starting addresses.
             if (nativeOffset <= nextEntry.nativeOffset()) {
                 return i-1;
             }
@@ -1700,7 +1700,7 @@ JS::ProfiledFrameHandle::ProfiledFrameHandle(JSRuntime* rt, js::jit::JitcodeGlob
     }
 }
 
-JS_PUBLIC_API(JS::ProfilingFrameIterator::FrameKind)
+JS_PUBLIC_API JS::ProfilingFrameIterator::FrameKind
 JS::ProfiledFrameHandle::frameKind() const
 {
     if (entry_.isBaseline()) {
@@ -1709,7 +1709,7 @@ JS::ProfiledFrameHandle::frameKind() const
     return JS::ProfilingFrameIterator::Frame_Ion;
 }
 
-JS_PUBLIC_API(JS::ProfiledFrameRange)
+JS_PUBLIC_API JS::ProfiledFrameRange
 JS::GetProfiledFrames(JSContext* cx, void* addr)
 {
     JSRuntime* rt = cx->runtime();

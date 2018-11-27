@@ -539,10 +539,8 @@ nsObjectLoadingContent::MakePluginListener()
   }
   NS_ASSERTION(!mFinalListener, "overwriting a final listener");
   nsresult rv;
-  RefPtr<nsNPAPIPluginInstance> inst;
+  RefPtr<nsNPAPIPluginInstance> inst = mInstanceOwner->GetInstance();
   nsCOMPtr<nsIStreamListener> finalListener;
-  rv = mInstanceOwner->GetInstance(getter_AddRefs(inst));
-  NS_ENSURE_SUCCESS(rv, false);
   rv = pluginHost->NewPluginStreamListener(mURI, inst,
                                            getter_AddRefs(finalListener));
   NS_ENSURE_SUCCESS(rv, false);
@@ -607,6 +605,7 @@ nsObjectLoadingContent::BindToTree(nsIDocument* aDocument,
   if (aDocument) {
     aDocument->AddPlugin(this);
   }
+
   return NS_OK;
 }
 
@@ -636,6 +635,21 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
     ///             would keep the docshell around, but trash the frameloader
     UnloadObject();
   }
+
+  // Unattach plugin problem UIWidget if any.
+  if (thisElement->IsInComposedDoc() && thisElement->GetShadowRoot()) {
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+      "nsObjectLoadingContent::UnbindFromTree::UAWidgetUnbindFromTree",
+      [thisElement]() {
+        nsContentUtils::DispatchChromeEvent(
+          thisElement->OwnerDoc(), thisElement,
+          NS_LITERAL_STRING("UAWidgetUnbindFromTree"),
+          CanBubble::eYes, Cancelable::eNo);
+        thisElement->UnattachShadow();
+      })
+    );
+  }
+
   if (mType == eType_Plugin) {
     nsIDocument* doc = thisElement->GetComposedDoc();
     if (doc && doc->IsActive()) {
@@ -755,8 +769,7 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
     //             don't want to touch the protochain or delayed stop.
     //             (Bug 767635)
     if (newOwner) {
-      RefPtr<nsNPAPIPluginInstance> inst;
-      newOwner->GetInstance(getter_AddRefs(inst));
+      RefPtr<nsNPAPIPluginInstance> inst = newOwner->GetInstance();
       newOwner->SetFrame(nullptr);
       if (inst) {
         pluginHost->StopPluginInstance(inst);
@@ -769,11 +782,7 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   mInstanceOwner = newOwner;
 
   if (mInstanceOwner) {
-    RefPtr<nsNPAPIPluginInstance> inst;
-    rv = mInstanceOwner->GetInstance(getter_AddRefs(inst));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    RefPtr<nsNPAPIPluginInstance> inst = mInstanceOwner->GetInstance();
 
     rv = inst->GetRunID(&mRunID);
     mHasRunID = NS_SUCCEEDED(rv);
@@ -794,8 +803,7 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   // Set up scripting interfaces.
   NotifyContentObjectWrapper();
 
-  RefPtr<nsNPAPIPluginInstance> pluginInstance;
-  GetPluginInstance(getter_AddRefs(pluginInstance));
+  RefPtr<nsNPAPIPluginInstance> pluginInstance = GetPluginInstance();
   if (pluginInstance) {
     nsCOMPtr<nsIPluginTag> pluginTag;
     pluginHost->GetPluginTagForInstance(pluginInstance,
@@ -1189,16 +1197,14 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsObjectLoadingContent::GetPluginInstance(nsNPAPIPluginInstance** aInstance)
+nsNPAPIPluginInstance*
+nsObjectLoadingContent::GetPluginInstance()
 {
-  *aInstance = nullptr;
-
   if (!mInstanceOwner) {
-    return NS_OK;
+    return nullptr;
   }
 
-  return mInstanceOwner->GetInstance(aInstance);
+  return mInstanceOwner->GetInstance();
 }
 
 NS_IMETHODIMP
@@ -1206,13 +1212,6 @@ nsObjectLoadingContent::GetContentTypeForMIMEType(const nsACString& aMIMEType,
                                                   uint32_t* aType)
 {
   *aType = GetTypeOfContent(PromiseFlatCString(aMIMEType), false);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsObjectLoadingContent::GetBaseURI(nsIURI **aResult)
-{
-  NS_IF_ADDREF(*aResult = mBaseURI);
   return NS_OK;
 }
 
@@ -2649,25 +2648,23 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
        " (sync %i, notify %i)", this, aOldType, aOldState.GetInternalValue(),
        mType, ObjectState().GetInternalValue(), aSync, aNotify));
 
-  nsCOMPtr<nsIContent> thisContent =
+  nsCOMPtr<dom::Element> thisEl =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  NS_ASSERTION(thisContent, "must be a content");
-
-  NS_ASSERTION(thisContent->IsElement(), "Not an element?");
+  MOZ_ASSERT(thisEl, "must be an element");
 
   // XXX(johns): A good bit of the code below replicates UpdateState(true)
 
   // Unfortunately, we do some state changes without notifying
   // (e.g. in Fallback when canceling image requests), so we have to
   // manually notify object state changes.
-  thisContent->AsElement()->UpdateState(false);
+  thisEl->UpdateState(false);
 
   if (!aNotify) {
     // We're done here
     return;
   }
 
-  nsIDocument* doc = thisContent->GetComposedDoc();
+  nsIDocument* doc = thisEl->GetComposedDoc();
   if (!doc) {
     return; // Nothing to do
   }
@@ -2679,24 +2676,59 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
   }
 
   if (newState != aOldState) {
-    NS_ASSERTION(thisContent->IsInComposedDoc(), "Something is confused");
+    MOZ_ASSERT(thisEl->IsInComposedDoc(), "Something is confused");
     // This will trigger frame construction
     EventStates changedBits = aOldState ^ newState;
     {
       nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(thisContent, changedBits);
+      doc->ContentStateChanged(thisEl, changedBits);
+    }
+
+    // Create/destroy plugin problem UAWidget if needed.
+    if (nsContentUtils::IsUAWidgetEnabled()) {
+      const EventStates pluginProblemState =
+        NS_EVENT_STATE_HANDLER_BLOCKED |
+        NS_EVENT_STATE_HANDLER_CRASHED |
+        NS_EVENT_STATE_TYPE_CLICK_TO_PLAY |
+        NS_EVENT_STATE_VULNERABLE_UPDATABLE |
+        NS_EVENT_STATE_VULNERABLE_NO_UPDATE;
+
+      bool hadProblemState = !(aOldState & pluginProblemState).IsEmpty();
+      bool hasProblemState = !(newState & pluginProblemState).IsEmpty();
+
+      if (hadProblemState && !hasProblemState) {
+        nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+          "nsObjectLoadingContent::UnbindFromTree::UAWidgetUnbindFromTree",
+          [thisEl]() {
+            nsContentUtils::DispatchChromeEvent(
+              thisEl->OwnerDoc(), thisEl,
+              NS_LITERAL_STRING("UAWidgetUnbindFromTree"),
+              CanBubble::eYes, Cancelable::eNo);
+            thisEl->UnattachShadow();
+          })
+        );
+      } else if (!hadProblemState && hasProblemState) {
+        nsGenericHTMLElement::FromNode(thisEl)->AttachAndSetUAShadowRoot();
+
+        AsyncEventDispatcher* dispatcher =
+          new AsyncEventDispatcher(thisEl,
+                                   NS_LITERAL_STRING("UAWidgetBindToTree"),
+                                   CanBubble::eYes,
+                                   ChromeOnlyDispatch::eYes);
+        dispatcher->RunDOMEventWhenSafe();
+      }
     }
   } else if (aOldType != mType) {
     // If our state changed, then we already recreated frames
     // Otherwise, need to do that here
     nsCOMPtr<nsIPresShell> shell = doc->GetShell();
     if (shell) {
-      shell->PostRecreateFramesFor(thisContent->AsElement());
+      shell->PostRecreateFramesFor(thisEl);
     }
   }
 
   if (aSync) {
-    NS_ASSERTION(InActiveDocument(thisContent), "Something is confused");
+    MOZ_ASSERT(InActiveDocument(thisEl), "Something is confused");
     // Make sure that frames are actually constructed immediately.
     doc->FlushPendingNotifications(FlushType::Frames);
   }
@@ -2828,9 +2860,8 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   return NS_OK;
 }
 
-nsresult
-nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx,
-                                                    nsNPAPIPluginInstance **aResult)
+nsNPAPIPluginInstance*
+nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx)
 {
   // The below methods pull the cx off the stack, so make sure they match.
   //
@@ -2849,8 +2880,6 @@ nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx,
 
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-
-  *aResult = nullptr;
 
   // The first time content script attempts to access placeholder content, fire
   // an event.  Fallback types >= eFallbackClickToPlay are plugin-replacement
@@ -2875,11 +2904,11 @@ nsObjectLoadingContent::ScriptRequestPluginInstance(JSContext* aCx,
   }
 
   if (mInstanceOwner) {
-    return mInstanceOwner->GetInstance(aResult);
+    return mInstanceOwner->GetInstance();
   }
 
   // Note that returning a null plugin is expected (and happens often)
-  return NS_OK;
+  return nullptr;
 }
 
 NS_IMETHODIMP
@@ -3027,8 +3056,7 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner)
       mFrameLoader = nullptr;
     }
   } else {
-    RefPtr<nsNPAPIPluginInstance> inst;
-    aInstanceOwner->GetInstance(getter_AddRefs(inst));
+    RefPtr<nsNPAPIPluginInstance> inst = aInstanceOwner->GetInstance();
     if (inst) {
 #if defined(XP_MACOSX)
       aInstanceOwner->HidePluginWindow();
@@ -3577,11 +3605,7 @@ nsObjectLoadingContent::SetupProtoChain(JSContext* aCx,
   MOZ_ASSERT(IsDOMObject(aObject));
   JSAutoRealm ar(aCx, aObject);
 
-  RefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
-  if (NS_FAILED(rv)) {
-    return;
-  }
+  RefPtr<nsNPAPIPluginInstance> pi = ScriptRequestPluginInstance(aCx);
 
   if (!pi) {
     // No plugin around for this object.
@@ -3591,7 +3615,7 @@ nsObjectLoadingContent::SetupProtoChain(JSContext* aCx,
   JS::Rooted<JSObject*> pi_obj(aCx); // XPConnect-wrapped peer object, when we get it.
   JS::Rooted<JSObject*> pi_proto(aCx); // 'pi.__proto__'
 
-  rv = GetPluginJSObject(aCx, pi, &pi_obj, &pi_proto);
+  nsresult rv = GetPluginJSObject(aCx, pi, &pi_obj, &pi_proto);
   if (NS_FAILED(rv)) {
     return;
   }
@@ -3746,12 +3770,7 @@ nsObjectLoadingContent::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
 {
   // We don't resolve anything; we just try to make sure we're instantiated.
   // This purposefully does not fire for chrome/xray resolves, see bug 967694
-
-  RefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
-  if (NS_FAILED(rv)) {
-    return mozilla::dom::Throw(aCx, rv);
-  }
+  Unused << ScriptRequestPluginInstance(aCx);
   return true;
 }
 
@@ -3772,8 +3791,7 @@ nsObjectLoadingContent::GetOwnPropertyNames(JSContext* aCx,
   // Just like DoResolve, just make sure we're instantiated.  That will do
   // the work our Enumerate hook needs to do.  This purposefully does not fire
   // for xray resolves, see bug 967694
-  RefPtr<nsNPAPIPluginInstance> pi;
-  aRv = ScriptRequestPluginInstance(aCx, getter_AddRefs(pi));
+  Unused << ScriptRequestPluginInstance(aCx);
 }
 
 void

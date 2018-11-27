@@ -228,8 +228,7 @@ pref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_i
 // can limit the path.  E.g., "example.com/foo" means "example.com/foo*".  So,
 // if you need to limit under a directory, the path should end with "/" like
 // "example.com/foo/".  Note that this cannot limit port number for now.
-pref("dom.keyboardevent.keypress.hack.dispatch_non_printable_keys",
-     "medium.com/p/");
+pref("dom.keyboardevent.keypress.hack.dispatch_non_printable_keys", "");
 #else
 pref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_in_content", false);
 #endif
@@ -464,6 +463,16 @@ pref("media.navigator.video.max_fr", 60);
 pref("media.navigator.video.h264.level", 31); // 0x42E01f - level 3.1
 pref("media.navigator.video.h264.max_br", 0);
 pref("media.navigator.video.h264.max_mbps", 0);
+#if defined(NIGHTLY_BUILD) && !defined(ANDROID)
+pref("media.navigator.mediadatadecoder_vpx_enabled", true);
+#else
+pref("media.navigator.mediadatadecoder_vpx_enabled", false);
+#endif
+#if defined(ANDROID)
+pref("media.navigator.mediadatadecoder_h264_enabled", false); // bug 1509316
+#else
+pref("media.navigator.mediadatadecoder_h264_enabled", true);
+#endif
 pref("media.peerconnection.video.vp9_enabled", true);
 pref("media.peerconnection.video.vp9_preferred", false);
 pref("media.getusermedia.browser.enabled", false);
@@ -519,7 +528,7 @@ pref("media.getusermedia.use_aec_mobile", false);
 pref("media.getusermedia.aec", 1); // kModerateSuppression
 pref("media.getusermedia.aec_extended_filter", true);
 pref("media.getusermedia.noise", 1); // kModerate
-pref("media.getusermedia.agc_enabled", false);
+pref("media.getusermedia.agc_enabled", true);
 pref("media.getusermedia.agc", 1); // kAdaptiveDigital
 // capture_delay: Adjustments for OS-specific input delay (lower bound)
 // playout_delay: Adjustments for OS-specific AudioStream+cubeb+output delay (lower bound)
@@ -743,9 +752,7 @@ pref("apz.pinch_lock.scoll_lock_threshold", "0.03125");  // 1/32 inches
 pref("apz.pinch_lock.span_breakout_threshold", "0.03125");  // 1/32 inches
 pref("apz.pinch_lock.span_lock_threshold", "0.03125");  // 1/32 inches
 pref("apz.popups.enabled", false);
-#ifdef NIGHTLY_BUILD
 pref("apz.relative-update.enabled", true);
-#endif
 
 // Whether to print the APZC tree for debugging
 pref("apz.printtree", false);
@@ -939,6 +946,7 @@ pref("gfx.webrender.blob.paint-flashing", false);
 
 // WebRender debugging utilities.
 pref("gfx.webrender.debug.texture-cache", false);
+pref("gfx.webrender.debug.texture-cache.clear-evicted", true);
 pref("gfx.webrender.debug.render-targets", false);
 pref("gfx.webrender.debug.alpha-primitives", false);
 pref("gfx.webrender.debug.profiler", false);
@@ -1374,6 +1382,10 @@ pref("privacy.popups.disable_from_plugins", 3);
 // Enable Paritioned LocalStorage for a list of hosts.
 pref("privacy.restrict3rdpartystorage.partitionedHosts", "accounts.google.com/o/oauth2/");
 
+// If a host is contained in this pref list, user-interaction is required
+// before granting the storage access permission.
+pref("privacy.restrict3rdpartystorage.userInteractionRequiredForHosts", "");
+
 // Excessive reporting of blocked popups can be a DOS vector,
 // by overloading the main process as popups get blocked and when
 // users try to restore all popups, which is the most visible
@@ -1623,7 +1635,7 @@ pref("network.tickle-wifi.duration", 400);
 pref("network.tickle-wifi.delay", 16);
 
 // Turn off interprocess security checks. Needed to run xpcshell tests.
-pref("network.disable.ipc.security", false);
+pref("network.disable.ipc.security", true);
 
 // Default action for unlisted external protocol handlers
 pref("network.protocol-handler.external-default", true);      // OK to load
@@ -1735,7 +1747,7 @@ pref("network.http.request.max-start-delay", 10);
 pref("network.http.request.max-attempts", 10);
 
 // Headers
-pref("network.http.accept.default", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+pref("network.http.accept.default", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
 
 // Prefs allowing granular control of referers
 // 0=don't send any, 1=send only on clicks, 2=send on image requests as well
@@ -2121,12 +2133,21 @@ pref("network.IDN.whitelist.xn--jxalpdlp", true);
 pref("network.IDN.whitelist.xn--kgbechtv", true);
 pref("network.IDN.whitelist.xn--zckzah", true);
 
-// If a domain includes any of the following characters, it may be a spoof
+// If a domain includes any of the blocklist characters, it may be a spoof
 // attempt and so we always display the domain name as punycode. This would
 // override the settings "network.IDN_show_punycode" and
-// "network.IDN.whitelist.*".  (please keep this value in sync with the
-// built-in fallback in intl/uconv/nsTextToSubURI.cpp)
-pref("network.IDN.blacklist_chars", "\u0020\u00A0\u00BC\u00BD\u00BE\u01C3\u02D0\u0337\u0338\u0589\u058A\u05C3\u05F4\u0609\u060A\u066A\u06D4\u0701\u0702\u0703\u0704\u115F\u1160\u1735\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u200B\u200E\u200F\u2010\u2019\u2024\u2027\u2028\u2029\u202A\u202B\u202C\u202D\u202E\u202F\u2039\u203A\u2041\u2044\u2052\u205F\u2153\u2154\u2155\u2156\u2157\u2158\u2159\u215A\u215B\u215C\u215D\u215E\u215F\u2215\u2236\u23AE\u2571\u29F6\u29F8\u2AFB\u2AFD\u2FF0\u2FF1\u2FF2\u2FF3\u2FF4\u2FF5\u2FF6\u2FF7\u2FF8\u2FF9\u2FFA\u2FFB\u3000\u3002\u3014\u3015\u3033\u30A0\u3164\u321D\u321E\u33AE\u33AF\u33C6\u33DF\uA789\uFE14\uFE15\uFE3F\uFE5D\uFE5E\uFEFF\uFF0E\uFF0F\uFF61\uFFA0\uFFF9\uFFFA\uFFFB\uFFFC\uFFFD");
+// "network.IDN.whitelist.*".
+// For a complete list of the blocked IDN characters see:
+//   netwerk/dns/IDNCharacterBlocklist.inc
+
+// This pref may contain characters that will override the hardcoded blocklist,
+// so their presence in a domain name will not cause it to be displayed as
+// punycode.
+// Note that this only removes the characters from the blocklist, but there may
+// be other rules in place that cause it to be displayed as punycode.
+pref("network.IDN.extra_allowed_chars", "");
+// This pref may contain additional blocklist characters
+pref("network.IDN.extra_blocked_chars", "");
 
 // This preference specifies a list of domains for which DNS lookups will be
 // IPv4 only. Works around broken DNS servers which can't handle IPv6 lookups
@@ -3306,6 +3327,14 @@ pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 pref("dom.ipc.plugins.hangUITimeoutSecs", 0);
 pref("dom.ipc.plugins.hangUIMinDisplaySecs", 0);
 #endif
+#endif
+
+// Whether or not to collect a paired minidump when force-killing a
+// content process.
+#ifdef RELEASE_OR_BETA
+pref("dom.ipc.tabs.createKillHardCrashReports", false);
+#else
+pref("dom.ipc.tabs.createKillHardCrashReports", true);
 #endif
 
 pref("dom.ipc.plugins.flash.disable-protected-mode", false);
@@ -4681,7 +4710,7 @@ pref("image.animated.decode-on-demand.recycle", true);
 
 // Whether we should generate full frames at decode time or partial frames which
 // are combined at display time (historical behavior and default).
-pref("image.animated.generate-full-frames", false);
+pref("image.animated.generate-full-frames", true);
 
 // Resume an animated image from the last displayed frame rather than
 // advancing when out of view.
@@ -5294,16 +5323,6 @@ pref("dom.idle-observers-api.fuzz_time.disabled", true);
 
 // Activates the activity monitor
 pref("io.activity.enabled", false);
-
-// Minimum delay in milliseconds between I/O activity notifications (0 means
-// no notifications). I/O activity includes socket and disk files.
-//
-// The delay is the same for both read and write, though
-// they are handled separately. This pref is only read once at startup:
-// a restart is required to enable a new value.
-//
-// io.activity.enabled needs to be set to true
-pref("io.activity.intervalMilliseconds", 0);
 
 // If true, reuse the same global for (almost) everything loaded by the component
 // loader (JS components, JSMs, etc). This saves memory, but makes it possible

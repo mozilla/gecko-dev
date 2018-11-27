@@ -411,11 +411,6 @@ public class GeckoSession implements Parcelable {
                 }
             }
 
-            // The flags are already matched with nsIDocShell.idl.
-            private int filterFlags(int flags) {
-                return flags & NavigationDelegate.LOAD_REQUEST_IS_USER_TRIGGERED;
-            }
-
             @Override
             public void handleMessage(final NavigationDelegate delegate,
                                       final String event,
@@ -1384,6 +1379,11 @@ public class GeckoSession implements Parcelable {
      * Popup blocking will be disabled for this load
      */
     public static final int LOAD_FLAGS_ALLOW_POPUPS = 1 << 3;
+
+    /**
+     * Bypass the URI classifier (content blocking and Safe Browsing).
+     */
+    public static final int LOAD_FLAGS_BYPASS_CLASSIFIER = 1 << 4;
 
     /**
      * Load the given URI.
@@ -2593,6 +2593,14 @@ public class GeckoSession implements Parcelable {
          * @param session The GeckoSession that crashed.
          */
         void onCrash(GeckoSession session);
+
+        /**
+         * Notification that the first content composition has occurred.
+         * This callback is invoked for the first content composite after either
+         * a start or a restart of the compositor.
+         * @param session The GeckoSession that had a first paint event.
+         */
+        void onFirstComposite(GeckoSession session);
     }
 
     public interface SelectionActionDelegate {
@@ -2804,15 +2812,11 @@ public class GeckoSession implements Parcelable {
         public static final int TARGET_WINDOW_CURRENT = 1;
         public static final int TARGET_WINDOW_NEW = 2;
 
-        @IntDef(flag = true,
-                value = {LOAD_REQUEST_IS_USER_TRIGGERED})
-                /* package */ @interface LoadRequestFlags {}
-
-        // Match with nsIDocShell.idl.
+        // Match with nsIWebNavigation.idl.
         /**
-         * The load request was triggered by user input.
+         * The load request was triggered by an HTTP redirect.
          */
-        public static final int LOAD_REQUEST_IS_USER_TRIGGERED = 0x1000;
+        static final int LOAD_REQUEST_IS_REDIRECT = 0x800000;
 
         /**
          * Load request details.
@@ -2825,9 +2829,7 @@ public class GeckoSession implements Parcelable {
                 this.uri = uri;
                 this.triggerUri = triggerUri;
                 this.target = convertGeckoTarget(geckoTarget);
-
-                // Match with nsIDocShell.idl.
-                this.isUserTriggered = (flags & 0x1000) != 0;
+                this.isRedirect = (flags & LOAD_REQUEST_IS_REDIRECT) != 0;
             }
 
             // This needs to match nsIBrowserDOMWindow.idl
@@ -2861,7 +2863,7 @@ public class GeckoSession implements Parcelable {
             /**
              * True if and only if the request was triggered by user interaction.
              */
-            public final boolean isUserTriggered;
+            public final boolean isRedirect;
         }
 
         /**
@@ -4114,6 +4116,10 @@ public class GeckoSession implements Parcelable {
             case FIRST_PAINT: {
                 if (mController != null) {
                     mController.onFirstPaint();
+                }
+                ContentDelegate delegate = mContentHandler.getDelegate();
+                if (delegate != null) {
+                    delegate.onFirstComposite(this);
                 }
                 break;
             }

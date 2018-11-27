@@ -329,29 +329,25 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
   OptionalPrincipalInfo sandboxedLoadingPrincipalInfo = mozilla::void_t();
   if (aLoadInfo->GetLoadingSandboxed()) {
     PrincipalInfo sandboxedLoadingPrincipalInfoTemp;
-    nsCOMPtr<nsIPrincipal> sandboxedLoadingPrincipal;
-    rv = aLoadInfo->GetSandboxedLoadingPrincipal(
-        getter_AddRefs(sandboxedLoadingPrincipal));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = PrincipalToPrincipalInfo(sandboxedLoadingPrincipal,
+    rv = PrincipalToPrincipalInfo(aLoadInfo->GetSandboxedLoadingPrincipal(),
                                   &sandboxedLoadingPrincipalInfoTemp);
     NS_ENSURE_SUCCESS(rv, rv);
     sandboxedLoadingPrincipalInfo = sandboxedLoadingPrincipalInfoTemp;
   }
 
   OptionalPrincipalInfo topLevelPrincipalInfo = mozilla::void_t();
-  if (aLoadInfo->TopLevelPrincipal()) {
+  if (aLoadInfo->GetTopLevelPrincipal()) {
     PrincipalInfo topLevelPrincipalInfoTemp;
-    rv = PrincipalToPrincipalInfo(aLoadInfo->TopLevelPrincipal(),
+    rv = PrincipalToPrincipalInfo(aLoadInfo->GetTopLevelPrincipal(),
                                   &topLevelPrincipalInfoTemp);
     NS_ENSURE_SUCCESS(rv, rv);
     topLevelPrincipalInfo = topLevelPrincipalInfoTemp;
   }
 
   OptionalPrincipalInfo topLevelStorageAreaPrincipalInfo = mozilla::void_t();
-  if (aLoadInfo->TopLevelStorageAreaPrincipal()) {
+  if (aLoadInfo->GetTopLevelStorageAreaPrincipal()) {
     PrincipalInfo topLevelStorageAreaPrincipalInfoTemp;
-    rv = PrincipalToPrincipalInfo(aLoadInfo->TopLevelStorageAreaPrincipal(),
+    rv = PrincipalToPrincipalInfo(aLoadInfo->GetTopLevelStorageAreaPrincipal(),
                                   &topLevelStorageAreaPrincipalInfoTemp);
     NS_ENSURE_SUCCESS(rv, rv);
     topLevelStorageAreaPrincipalInfo = topLevelStorageAreaPrincipalInfoTemp;
@@ -457,7 +453,8 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
       aLoadInfo->GetLoadTriggeredFromExternal(),
       aLoadInfo->GetServiceWorkerTaintingSynthesized(),
       aLoadInfo->GetDocumentHasUserInteracted(),
-      aLoadInfo->GetDocumentHasLoaded()
+      aLoadInfo->GetDocumentHasLoaded(),
+      aLoadInfo->GetIsFromProcessingFrameAttributes()
       );
 
   return NS_OK;
@@ -575,7 +572,7 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
       loadInfoArgs.controller().get_IPCServiceWorkerDescriptor()));
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo =
+  RefPtr<mozilla::LoadInfo> loadInfo =
     new mozilla::LoadInfo(loadingPrincipal,
                           triggeringPrincipal,
                           principalToInherit,
@@ -622,6 +619,10 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
                           loadInfoArgs.documentHasUserInteracted(),
                           loadInfoArgs.documentHasLoaded()
                           );
+
+  if (loadInfoArgs.isFromProcessingFrameAttributes()) {
+    loadInfo->SetIsFromProcessingFrameAttributes();
+  }
 
    loadInfo.forget(outLoadInfo);
    return NS_OK;

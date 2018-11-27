@@ -96,8 +96,7 @@ WebRenderBridgeChild::BeginTransaction()
 }
 
 void
-WebRenderBridgeChild::UpdateResources(wr::IpcResourceUpdateQueue& aResources,
-                                      bool aScheduleComposite /* = false */)
+WebRenderBridgeChild::UpdateResources(wr::IpcResourceUpdateQueue& aResources)
 {
   if (!IPCOpen()) {
     aResources.Clear();
@@ -114,7 +113,7 @@ WebRenderBridgeChild::UpdateResources(wr::IpcResourceUpdateQueue& aResources,
   aResources.Flush(resourceUpdates, smallShmems, largeShmems);
 
   this->SendUpdateResources(resourceUpdates, smallShmems,
-                            largeShmems, aScheduleComposite);
+                            largeShmems);
 }
 
 void
@@ -126,7 +125,8 @@ WebRenderBridgeChild::EndTransaction(const wr::LayoutSize& aContentSize,
                                      const WebRenderScrollData& aScrollData,
                                      bool aContainsSVGGroup,
                                      const mozilla::TimeStamp& aRefreshStartTime,
-                                     const mozilla::TimeStamp& aTxnStartTime)
+                                     const mozilla::TimeStamp& aTxnStartTime,
+                                     const nsCString& aTxnURL)
 {
   MOZ_ASSERT(!mDestroyed);
   MOZ_ASSERT(mIsInTransaction);
@@ -135,10 +135,7 @@ WebRenderBridgeChild::EndTransaction(const wr::LayoutSize& aContentSize,
   aDL.dl.inner.capacity = 0;
   aDL.dl.inner.data = nullptr;
 
-  TimeStamp fwdTime;
-#if defined(ENABLE_FRAME_LATENCY_LOG)
-  fwdTime = TimeStamp::Now();
-#endif
+  TimeStamp fwdTime = TimeStamp::Now();
 
   nsTArray<OpUpdateResource> resourceUpdates;
   nsTArray<RefCountedShmem> smallShmems;
@@ -149,7 +146,7 @@ WebRenderBridgeChild::EndTransaction(const wr::LayoutSize& aContentSize,
                            GetFwdTransactionId(), aTransactionId,
                            aContentSize, dlData, aDL.dl_desc, aScrollData,
                            resourceUpdates, smallShmems, largeShmems,
-                           mIdNamespace, aContainsSVGGroup, aRefreshStartTime, aTxnStartTime, fwdTime);
+                           mIdNamespace, aContainsSVGGroup, aRefreshStartTime, aTxnStartTime, aTxnURL, fwdTime);
 
   mParentCommands.Clear();
   mDestroyedActors.Clear();
@@ -163,15 +160,13 @@ WebRenderBridgeChild::EndEmptyTransaction(const FocusTarget& aFocusTarget,
                                           uint32_t aPaintSequenceNumber,
                                           TransactionId aTransactionId,
                                           const mozilla::TimeStamp& aRefreshStartTime,
-                                          const mozilla::TimeStamp& aTxnStartTime)
+                                          const mozilla::TimeStamp& aTxnStartTime,
+                                          const nsCString& aTxnURL)
 {
   MOZ_ASSERT(!mDestroyed);
   MOZ_ASSERT(mIsInTransaction);
 
-  TimeStamp fwdTime;
-#if defined(ENABLE_FRAME_LATENCY_LOG)
-  fwdTime = TimeStamp::Now();
-#endif
+  TimeStamp fwdTime = TimeStamp::Now();
 
   nsTArray<OpUpdateResource> resourceUpdates;
   nsTArray<RefCountedShmem> smallShmems;
@@ -185,7 +180,7 @@ WebRenderBridgeChild::EndEmptyTransaction(const FocusTarget& aFocusTarget,
                              mParentCommands, mDestroyedActors,
                              GetFwdTransactionId(), aTransactionId,
                              resourceUpdates, smallShmems, largeShmems,
-                             mIdNamespace, aRefreshStartTime, aTxnStartTime, fwdTime);
+                             mIdNamespace, aRefreshStartTime, aTxnStartTime, aTxnURL, fwdTime);
   mParentCommands.Clear();
   mDestroyedActors.Clear();
   mIsInTransaction = false;
@@ -572,6 +567,15 @@ WebRenderBridgeChild::RecvWrUpdated(const wr::IdNamespace& aNewIdNamespace,
   // Just clear FontInstaceKeys/FontKeys, they are removed during WebRenderAPI destruction.
   mFontInstanceKeys.Clear();
   mFontKeys.Clear();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+WebRenderBridgeChild::RecvWrReleasedImages(nsTArray<wr::ExternalImageKeyPair>&& aPairs)
+{
+  if (mManager) {
+    mManager->WrReleasedImages(aPairs);
+  }
   return IPC_OK();
 }
 

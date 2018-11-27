@@ -239,6 +239,7 @@
 #include "mozilla/dom/InstallTriggerBinding.h"
 #include "mozilla/dom/Report.h"
 #include "mozilla/dom/ReportingObserver.h"
+#include "mozilla/dom/SharedWorker.h"
 #include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerRegistration.h"
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
@@ -917,8 +918,10 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter *aOuterWindow)
     mHasSeenGamepadInput(false),
     mSuspendDepth(0),
     mFreezeDepth(0),
-    mFocusMethod(0),
+#ifdef DEBUG
     mSerial(0),
+#endif
+    mFocusMethod(0),
     mIdleRequestCallbackCounter(1),
     mIdleRequestExecutor(nullptr),
     mDialogAbuseCount(0),
@@ -976,8 +979,6 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter *aOuterWindow)
   // to create the entropy collector, so we should
   // try to get one until we succeed.
 
-  mSerial = nsContentUtils::InnerOrOuterWindowCreated();
-
   static bool sFirstTime = true;
   if (sFirstTime) {
     sFirstTime = false;
@@ -999,6 +1000,8 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter *aOuterWindow)
   }
 
 #ifdef DEBUG
+  mSerial = nsContentUtils::InnerOrOuterWindowCreated();
+
   if (!PR_GetEnv("MOZ_QUIET")) {
     printf_stderr("++DOMWINDOW == %d (%p) [pid = %d] [serial = %d] [outer = %p]\n",
                   nsContentUtils::GetCurrentInnerOrOuterWindowCount(),
@@ -1176,6 +1179,12 @@ nsGlobalWindowInner::FreeInnerObjects(bool aForDocumentOpen)
   // Kill all of the workers for this window.
   CancelWorkersForWindow(this);
 
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>>::ForwardIterator
+    iter(mSharedWorkers);
+  while (iter.HasMore()) {
+    iter.GetNext()->Close();
+  }
+
   if (mTimeoutManager) {
     mTimeoutManager->ClearAllTimeouts();
   }
@@ -1324,6 +1333,8 @@ nsGlobalWindowInner::FreeInnerObjects(bool aForDocumentOpen)
 
   mPerformance = nullptr;
 
+  mSharedWorkers.Clear();
+
 #ifdef MOZ_WEBSPEECH
   mSpeechSynthesis = nullptr;
 #endif
@@ -1434,7 +1445,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocation)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHistory)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCustomElements)
-
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSharedWorkers)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocalStorage)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStorage)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mApplicationCache)
@@ -1528,6 +1539,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHistory)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCustomElements)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSharedWorkers)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocalStorage)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStorage)
   if (tmp->mApplicationCache) {
@@ -1921,13 +1933,6 @@ nsGlobalWindowInner::ExecutionReady()
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
-}
-
-void
-nsGlobalWindowInner::SetOpenerWindow(nsPIDOMWindowOuter* aOpener,
-                                     bool aOriginalOpener)
-{
-  FORWARD_TO_OUTER_VOID(SetOpenerWindow, (aOpener, aOriginalOpener));
 }
 
 void
@@ -2420,6 +2425,12 @@ nsGlobalWindowInner::GetWindowUtils(ErrorResult& aRv)
   FORWARD_TO_OUTER_OR_THROW(WindowUtils, (), aRv, nullptr);
 }
 
+bool
+nsGlobalWindowInner::HasOpenerForInitialContentBrowser()
+{
+  FORWARD_TO_OUTER(HasOpenerForInitialContentBrowser, (), false);
+}
+
 nsGlobalWindowInner::CallState
 nsGlobalWindowInner::ShouldReportForServiceWorkerScopeInternal(const nsACString& aScope,
                                                                bool* aResultOut)
@@ -2702,23 +2713,13 @@ nsPIDOMWindowInner::HasOpenWebSockets() const
          (mTopInnerWindow && mTopInnerWindow->mNumOfOpenWebSockets);
 }
 
-bool
-nsPIDOMWindowInner::GetAudioCaptured() const
-{
-  return mAudioCaptured;
-}
-
-nsresult
+void
 nsPIDOMWindowInner::SetAudioCapture(bool aCapture)
 {
-  mAudioCaptured = aCapture;
-
   RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
   if (service) {
     service->SetWindowAudioCaptured(GetOuterWindow(), mWindowID, aCapture);
   }
-
-  return NS_OK;
 }
 
 // nsISpeechSynthesisGetter
@@ -3245,7 +3246,7 @@ nsGlobalWindowInner::SetOpener(JSContext* aCx, JS::Handle<JS::Value> aOpener,
                                ErrorResult& aError)
 {
   if (aOpener.isNull()) {
-    SetOpenerWindow(nullptr, false);
+    FORWARD_TO_OUTER_VOID(SetOpenerWindow, (nullptr, false));
     return;
   }
 
@@ -4389,17 +4390,6 @@ nsGlobalWindowInner::GetExistingListenerManager() const
 // nsGlobalWindowInner::nsPIDOMWindow
 //*****************************************************************************
 
-nsPIDOMWindowOuter*
-nsGlobalWindowInner::GetPrivateRoot()
-{
-  nsGlobalWindowOuter* outer = GetOuterWindowInternal();
-  if (!outer) {
-    NS_WARNING("No outer window available!");
-    return nullptr;
-  }
-  return outer->GetPrivateRoot();
-}
-
 Location*
 nsGlobalWindowInner::GetLocation()
 {
@@ -4408,15 +4398,6 @@ nsGlobalWindowInner::GetLocation()
   }
 
   return mLocation;
-}
-
-bool
-nsGlobalWindowInner::IsTopLevelWindowActive()
-{
-  if (GetOuterWindowInternal()) {
-    return GetOuterWindowInternal()->IsTopLevelWindowActive();
-  }
-  return false;
 }
 
 void
@@ -5949,6 +5930,12 @@ nsGlobalWindowInner::Suspend()
 
   SuspendWorkersForWindow(this);
 
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>>::ForwardIterator
+    iter(mSharedWorkers);
+  while (iter.HasMore()) {
+    iter.GetNext()->Suspend();
+  }
+
   SuspendIdleRequests();
 
   mTimeoutManager->Suspend();
@@ -6010,6 +5997,12 @@ nsGlobalWindowInner::Resume()
   // after timeouts since workers may have queued events that can trigger
   // a setTimeout().
   ResumeWorkersForWindow(this);
+
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>>::ForwardIterator
+    iter(mSharedWorkers);
+  while (iter.HasMore()) {
+    iter.GetNext()->Resume();
+  }
 }
 
 bool
@@ -6043,6 +6036,12 @@ nsGlobalWindowInner::FreezeInternal()
   }
 
   FreezeWorkersForWindow(this);
+
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>>::ForwardIterator
+    iter(mSharedWorkers);
+  while (iter.HasMore()) {
+    iter.GetNext()->Freeze();
+  }
 
   mTimeoutManager->Freeze();
   if (mClientSource) {
@@ -6082,6 +6081,12 @@ nsGlobalWindowInner::ThawInternal()
   mTimeoutManager->Thaw();
 
   ThawWorkersForWindow(this);
+
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>>::ForwardIterator
+    iter(mSharedWorkers);
+  while (iter.HasMore()) {
+    iter.GetNext()->Thaw();
+  }
 
   NotifyDOMWindowThawed(this);
 }
@@ -7928,6 +7933,43 @@ nsGlobalWindowInner::GetIntlUtils(ErrorResult& aError)
   return mIntlUtils;
 }
 
+void
+nsGlobalWindowInner::StoreSharedWorker(SharedWorker* aSharedWorker)
+{
+  MOZ_ASSERT(aSharedWorker);
+  MOZ_ASSERT(!mSharedWorkers.Contains(aSharedWorker));
+
+  mSharedWorkers.AppendElement(aSharedWorker);
+}
+
+void
+nsGlobalWindowInner::ForgetSharedWorker(SharedWorker* aSharedWorker)
+{
+  MOZ_ASSERT(aSharedWorker);
+  MOZ_ASSERT(mSharedWorkers.Contains(aSharedWorker));
+
+  mSharedWorkers.RemoveElement(aSharedWorker);
+}
+
+void
+nsGlobalWindowInner::StorageAccessGranted()
+{
+  // If we have a partitioned localStorage, it's time to replace it with a real
+  // one in order to receive notifications.
+
+  if (mLocalStorage &&
+      mLocalStorage->Type() == Storage::ePartitionedLocalStorage) {
+    IgnoredErrorResult error;
+    GetLocalStorage(error);
+    if (NS_WARN_IF(error.Failed())) {
+      return;
+    }
+
+    MOZ_ASSERT(mLocalStorage &&
+               mLocalStorage->Type() == Storage::eLocalStorage);
+  }
+}
+
 mozilla::dom::TabGroup*
 nsPIDOMWindowInner::TabGroup()
 {
@@ -8067,6 +8109,20 @@ nsPIDOMWindowInner::GetAutoplayPermissionManager()
   return manager.forget();
 }
 
+void
+nsPIDOMWindowInner::SaveStorageAccessGranted(const nsACString& aPermissionKey)
+{
+  if (!HasStorageAccessGranted(aPermissionKey)) {
+    mStorageAccessGranted.AppendElement(aPermissionKey);
+  }
+}
+
+bool
+nsPIDOMWindowInner::HasStorageAccessGranted(const nsACString& aPermissionKey)
+{
+  return mStorageAccessGranted.Contains(aPermissionKey);
+}
+
 // XXX: Can we define this in a header instead of here?
 namespace mozilla {
 namespace dom {
@@ -8083,7 +8139,6 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter *aOuterWindow)
   mMayHaveMouseEnterLeaveEventListener(false),
   mMayHavePointerEnterLeaveEventListener(false),
   mMayHaveTextEventListenerInDefaultGroup(false),
-  mAudioCaptured(false),
   mOuterWindow(aOuterWindow),
   // Make sure no actual window ends up with mWindowID == 0
   mWindowID(NextWindowID()), mHasNotifiedGlobalCreated(false),

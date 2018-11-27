@@ -59,6 +59,10 @@ extern mozilla::Atomic<bool> fuzzingSafe;
 bool
 wasm::HasCompilerSupport(JSContext* cx)
 {
+#if !MOZ_LITTLE_ENDIAN || defined(JS_CODEGEN_NONE)
+    return false;
+#endif
+
     if (gc::SystemPageSize() > wasm::PageSize) {
         return false;
     }
@@ -75,16 +79,10 @@ wasm::HasCompilerSupport(JSContext* cx)
         return false;
     }
 
-#if !MOZ_LITTLE_ENDIAN
-    return false;
-#endif
-
-#ifdef ENABLE_WASM_THREAD_OPS
     // Wasm threads require 8-byte lock-free atomics.
     if (!jit::AtomicOperations::isLockfree8()) {
         return false;
     }
-#endif
 
 #ifdef JS_SIMULATOR
     if (!Simulator::supportsAtomics()) {
@@ -92,11 +90,7 @@ wasm::HasCompilerSupport(JSContext* cx)
     }
 #endif
 
-#if defined(JS_CODEGEN_NONE)
-    return false;
-#else
     return BaselineCanCompile() || IonCanCompile();
-#endif
 }
 
 // Return whether wasm compilation is allowed by prefs.  This check
@@ -166,18 +160,19 @@ ToWebAssemblyValue(JSContext* cx, ValType targetType, HandleValue v, MutableHand
       }
       case ValType::AnyRef: {
         if (v.isNull()) {
-            val.set(Val(nullptr));
+            val.set(Val(targetType, nullptr));
         } else {
             JSObject* obj = ToObject(cx, v);
             if (!obj) {
                 return false;
             }
             MOZ_ASSERT(obj->compartment() == cx->compartment());
-            val.set(Val(obj));
+            val.set(Val(targetType, obj));
         }
         return true;
       }
       case ValType::Ref:
+      case ValType::NullRef:
       case ValType::I64: {
         break;
       }
@@ -201,6 +196,7 @@ ToJSValue(const Val& val)
         }
         return ObjectValue(*(JSObject*)val.ptr());
       case ValType::Ref:
+      case ValType::NullRef:
       case ValType::I64:
         break;
     }
@@ -342,7 +338,7 @@ GetImports(JSContext* cx,
                         return ThrowBadImportType(cx, import.field.get(), "Number");
                     }
                 } else {
-                    MOZ_ASSERT(global.type().isRefOrAnyRef());
+                    MOZ_ASSERT(global.type().isReference());
                     if (!v.isNull() && !v.isObject()) {
                         return ThrowBadImportType(cx, import.field.get(), "Object-or-null");
                     }
@@ -589,7 +585,6 @@ GetLimits(JSContext* cx, HandleObject obj, uint32_t maxInitial, uint32_t maxMaxi
 
     limits->shared = Shareable::False;
 
-#ifdef ENABLE_WASM_THREAD_OPS
     if (allowShared == Shareable::True) {
         JSAtom* sharedAtom = Atomize(cx, "shared", strlen("shared"));
         if (!sharedAtom) {
@@ -621,7 +616,6 @@ GetLimits(JSContext* cx, HandleObject obj, uint32_t maxInitial, uint32_t maxMaxi
             }
         }
     }
-#endif
 
     return true;
 }
@@ -2442,6 +2436,8 @@ WasmGlobalObject::trace(JSTracer* trc, JSObject* obj)
         break;
       case ValType::Ref:
         MOZ_CRASH("Ref NYI");
+      case ValType::NullRef:
+        MOZ_CRASH("NullRef not expressible");
     }
 }
 
@@ -2490,6 +2486,9 @@ WasmGlobalObject::create(JSContext* cx, HandleVal hval, bool isMutable)
         break;
       case ValType::F64:
         cell->f64 = val.f64();
+        break;
+      case ValType::NullRef:
+        MOZ_ASSERT(!cell->ptr, "value should be null already");
         break;
       case ValType::AnyRef:
         MOZ_ASSERT(!cell->ptr, "no prebarriers needed");
@@ -2584,8 +2583,9 @@ WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp)
       case ValType::I64:    globalVal = Val(uint64_t(0)); break;
       case ValType::F32:    globalVal = Val(float(0.0));  break;
       case ValType::F64:    globalVal = Val(double(0.0)); break;
-      case ValType::AnyRef: globalVal = Val(nullptr);     break;
+      case ValType::AnyRef: globalVal = Val(ValType::AnyRef, nullptr); break;
       case ValType::Ref:    MOZ_CRASH("Ref NYI");
+      case ValType::NullRef:MOZ_CRASH("NullRef not expressible");
     }
 
     // Override with non-undefined value, if provided.
@@ -2626,6 +2626,8 @@ WasmGlobalObject::valueGetterImpl(JSContext* cx, const CallArgs& args)
         return false;
       case ValType::Ref:
         MOZ_CRASH("Ref NYI");
+      case ValType::NullRef:
+        MOZ_CRASH("NullRef not expressible");
     }
     MOZ_CRASH();
 }
@@ -2684,6 +2686,8 @@ WasmGlobalObject::valueSetterImpl(JSContext* cx, const CallArgs& args)
         MOZ_CRASH("unexpected i64 when setting global's value");
       case ValType::Ref:
         MOZ_CRASH("Ref NYI");
+      case ValType::NullRef:
+        MOZ_CRASH("NullRef not expressible");
     }
 
     args.rval().setUndefined();
@@ -2734,8 +2738,9 @@ WasmGlobalObject::val(MutableHandleVal outval) const
       case ValType::I64:    outval.set(Val(uint64_t(cell->i64))); return;
       case ValType::F32:    outval.set(Val(cell->f32));           return;
       case ValType::F64:    outval.set(Val(cell->f64));           return;
-      case ValType::AnyRef: outval.set(Val(cell->ptr));           return;
+      case ValType::AnyRef: outval.set(Val(ValType::AnyRef, cell->ptr)); return;
       case ValType::Ref:    MOZ_CRASH("Ref NYI");
+      case ValType::NullRef:MOZ_CRASH("NullRef not expressible");
     }
     MOZ_CRASH("unexpected Global type");
 }

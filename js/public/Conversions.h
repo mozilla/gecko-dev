@@ -26,51 +26,51 @@
 namespace js {
 
 /* DO NOT CALL THIS. Use JS::ToBoolean. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToBooleanSlow(JS::HandleValue v);
 
 /* DO NOT CALL THIS.  Use JS::ToNumber. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToNumberSlow(JSContext* cx, JS::HandleValue v, double* dp);
 
 /* DO NOT CALL THIS. Use JS::ToInt8. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToInt8Slow(JSContext *cx, JS::HandleValue v, int8_t *out);
 
 /* DO NOT CALL THIS. Use JS::ToUint8. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToUint8Slow(JSContext *cx, JS::HandleValue v, uint8_t *out);
 
 /* DO NOT CALL THIS. Use JS::ToInt16. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToInt16Slow(JSContext *cx, JS::HandleValue v, int16_t *out);
 
 /* DO NOT CALL THIS. Use JS::ToInt32. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToInt32Slow(JSContext* cx, JS::HandleValue v, int32_t* out);
 
 /* DO NOT CALL THIS. Use JS::ToUint32. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToUint32Slow(JSContext* cx, JS::HandleValue v, uint32_t* out);
 
 /* DO NOT CALL THIS. Use JS::ToUint16. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToUint16Slow(JSContext* cx, JS::HandleValue v, uint16_t* out);
 
 /* DO NOT CALL THIS. Use JS::ToInt64. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToInt64Slow(JSContext* cx, JS::HandleValue v, int64_t* out);
 
 /* DO NOT CALL THIS. Use JS::ToUint64. */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 ToUint64Slow(JSContext* cx, JS::HandleValue v, uint64_t* out);
 
 /* DO NOT CALL THIS. Use JS::ToString. */
-extern JS_PUBLIC_API(JSString*)
+extern JS_PUBLIC_API JSString*
 ToStringSlow(JSContext* cx, JS::HandleValue v);
 
 /* DO NOT CALL THIS. Use JS::ToObject. */
-extern JS_PUBLIC_API(JSObject*)
+extern JS_PUBLIC_API JSObject*
 ToObjectSlow(JSContext* cx, JS::HandleValue v, bool reportScanStack);
 
 } // namespace js
@@ -85,7 +85,7 @@ namespace detail {
  * needed, and that the compartments for cx and v are correct.
  * Also check that GC would be safe at this point.
  */
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API void
 AssertArgumentsAreSane(JSContext* cx, HandleValue v);
 #else
 inline void AssertArgumentsAreSane(JSContext* cx, HandleValue v)
@@ -102,7 +102,7 @@ inline void AssertArgumentsAreSane(JSContext* cx, HandleValue v)
  * wish to fall back to the ES6 default conversion behavior shared by most
  * objects in JS, codified as OrdinaryToPrimitive.
  */
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 OrdinaryToPrimitive(JSContext* cx, HandleObject obj, JSType type, MutableHandleValue vp);
 
 /* ES6 draft 20141224, 7.1.2. */
@@ -418,7 +418,8 @@ ToSignedInteger<int32_t>(double d)
     // hybrid solution is faster on A9, but this pure integer solution is
     // notably faster for A8.
 
-    // %0 is the result register, and may alias either of the %[QR]1 registers.
+    // %0 is the result register, and may alias either of the %[QR]1
+    //    registers.
     // %Q4 holds the lower part of the mantissa.
     // %R4 holds the sign, exponent, and the upper part of the mantissa.
     // %1, %2 and %3 are used as temporary values.
@@ -435,8 +436,9 @@ ToSignedInteger<int32_t>(double d)
     //   We should return zero in the following special cases:
     //    - Exponent is 0x000 - 1023: +/-0 or subnormal.
     //    - Exponent is 0x7ff - 1023: +/-INFINITY or NaN
-    //      - This case is implicitly handled by the standard code path anyway,
-    //        as shifting the mantissa up by the exponent will result in '0'.
+    //      - This case is implicitly handled by the standard code path
+    //        anyway, as shifting the mantissa up by the exponent will
+    //        result in '0'.
     //
     // The result is composed of the mantissa, prepended with '1' and
     // bit-shifted left by the (decoded) exponent. Note that because the r1[20]

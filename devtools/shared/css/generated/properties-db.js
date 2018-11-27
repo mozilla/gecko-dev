@@ -296,6 +296,7 @@ exports.CSS_PROPERTIES = {
       "tab-scroll-arrow-forward",
       "tabpanel",
       "tabpanels",
+      "textarea",
       "textfield",
       "textfield-multiline",
       "toolbar",
@@ -1357,7 +1358,6 @@ exports.CSS_PROPERTIES = {
     "supports": [],
     "values": [
       "-moz-none",
-      "-moz-text",
       "all",
       "auto",
       "inherit",
@@ -1743,6 +1743,7 @@ exports.CSS_PROPERTIES = {
       "tab-scroll-arrow-forward",
       "tabpanel",
       "tabpanels",
+      "textarea",
       "textfield",
       "textfield-multiline",
       "toolbar",
@@ -2748,7 +2749,6 @@ exports.CSS_PROPERTIES = {
     "supports": [],
     "values": [
       "-moz-none",
-      "-moz-text",
       "all",
       "auto",
       "inherit",

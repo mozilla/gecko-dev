@@ -45,8 +45,6 @@ const GEO_PREF = "browser.search.region";
 const SPOCS_GEOS = ["US"];
 const IS_NIGHTLY_OR_UNBRANDED_BUILD = ["nightly", "default"].includes(UpdateUtils.getUpdateChannel(true));
 
-const ONE_HOUR_IN_MS = 60 * 60 * 1000;
-
 // Determine if spocs should be shown for a geo/locale
 function showSpocs({geo}) {
   return SPOCS_GEOS.includes(geo);
@@ -211,26 +209,7 @@ const PREFS_CONFIG = new Map([
       enabled: true,
     }),
   }],
-  ["asrouter.providers.snippets", {
-    title: "Configuration for snippets provider",
-    value: JSON.stringify({
-      id: "snippets",
-      type: "remote",
-      url: "https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/",
-      updateCycleInMs: ONE_HOUR_IN_MS * 4,
-      enabled: UpdateUtils.getUpdateChannel(true) === "nightly",
-    }),
-  }],
-  ["asrouter.providers.cfr", {
-    title: "Configuration for CFR provider",
-    value: JSON.stringify({
-      id: "cfr",
-      type: "local",
-      localProvider: "CFRMessageProvider",
-      frequency: {custom: [{period: "daily", cap: 1}]},
-      enabled: true,
-    }),
-  }],
+  // See browser/app/profile/firefox.js for other ASR preferences. They must be defined there to enable roll-outs.
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG

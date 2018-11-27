@@ -3,11 +3,27 @@
   flex: 1 1 100%;
   width: 100%;
 
+  .disclaimerText {
+    margin: 20px 0 0;
+    font-size: 12px;
+    color: var(--newtab-text-secondary-color);
+  }
+
+  p {
+    margin: 0;
+  }
+
   &.send_to_device_snippet {
     text-align: center;
 
     .message {
       font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    .scene2Title {
+      font-size: 24px;
+      display: block;
     }
   }
 
@@ -19,6 +35,7 @@
 
   .scene2Icon {
     width: 100%;
+    margin-bottom: 20px;
 
     img {
       width: 98px;
@@ -28,7 +45,7 @@
 
   .scene2Title {
     font-size: inherit;
-    margin: 0;
+    margin: 0 0 10px;
     font-weight: bold;
     display: inline;
   }
@@ -43,19 +60,14 @@
     font-size: 14px;
     align-self: stretch;
     flex: 0 0 100%;
-
-    p {
-      margin-top: 0;
-    }
+    margin-bottom: 10px;
   }
 
   .privacyNotice {
+    font-size: 12px;
     color: var(--newtab-text-secondary-color);
+    margin-top: 10px;
     flex: 0 0 100%;
-
-    p {
-      margin-bottom: 0;
-    }
   }
 
   .innerWrapper {
@@ -78,18 +90,29 @@
       max-width: 768px;
       width: 100%;
       text-align: right;
+
+      [dir='rtl'] & {
+        text-align: left;
+      }
     }
   }
 
   input {
     &.mainInput {
-      border-radius: 3px;
+      border-radius: 2px;
       background-color: var(--newtab-textbox-background-color);
       border: $input-border;
       padding: 0 8px;
       height: 100%;
-      font-size: 15px;
+      font-size: 14px;
       width: 50%;
+
+      &.clean {
+        &:invalid,
+        &:required {
+          box-shadow: none;
+        }
+      }
 
       &:focus {
         border: $input-border-active;

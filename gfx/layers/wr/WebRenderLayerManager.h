@@ -8,6 +8,7 @@
 #define GFX_WEBRENDERLAYERMANAGER_H
 
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include "gfxPrefs.h"
@@ -17,6 +18,7 @@
 #include "mozilla/layers/APZTestData.h"
 #include "mozilla/layers/FocusTarget.h"
 #include "mozilla/layers/IpcResourceUpdateQueue.h"
+#include "mozilla/layers/SharedSurfacesChild.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/TransactionIdAllocator.h"
 #include "mozilla/layers/WebRenderCommandBuilder.h"
@@ -68,8 +70,8 @@ public:
   // WebRender can handle images larger than the max texture size via tiling.
   virtual int32_t GetMaxTextureSize() const override { return INT32_MAX; }
 
-  virtual bool BeginTransactionWithTarget(gfxContext* aTarget) override;
-  virtual bool BeginTransaction() override;
+  virtual bool BeginTransactionWithTarget(gfxContext* aTarget, const nsCString &aURL) override;
+  virtual bool BeginTransaction(const nsCString &aURL) override;
   virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) override;
   void EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
                                   nsDisplayListBuilder* aDisplayListBuilder,
@@ -132,11 +134,18 @@ public:
   // adds an imagekey to a list of keys that will be discarded on the next
   // transaction or destruction
   void AddImageKeyForDiscard(wr::ImageKey);
+  void AddBlobImageKeyForDiscard(wr::BlobImageKey);
   void DiscardImages();
+  void DiscardImagesInTransaction(wr::IpcResourceUpdateQueue& aResourceUpdates);
   void DiscardLocalImages();
 
   wr::IpcResourceUpdateQueue& AsyncResourceUpdates();
   void FlushAsyncResourceUpdates();
+
+  void RegisterAsyncAnimation(const wr::ImageKey& aKey, SharedSurfacesAnimation* aAnimation);
+  void DeregisterAsyncAnimation(const wr::ImageKey& aKey);
+  void ClearAsyncAnimations();
+  void WrReleasedImages(const nsTArray<wr::ExternalImageKeyPair>& aPairs);
 
   // Methods to manage the compositor animation ids. Active animations are still
   // going, and when they end we discard them and remove them from the active
@@ -182,6 +191,7 @@ private:
 private:
   nsIWidget* MOZ_NON_OWNING_REF mWidget;
   nsTArray<wr::ImageKey> mImageKeysToDelete;
+  nsTArray<wr::BlobImageKey> mBlobImageKeysToDelete;
 
   // Set of compositor animation ids for which there are active animations (as
   // of the last transaction) on the compositor side.
@@ -221,11 +231,13 @@ private:
   APZTestData mApzTestData;
 
   TimeStamp mTransactionStart;
+  nsCString mURL;
   WebRenderCommandBuilder mWebRenderCommandBuilder;
 
   size_t mLastDisplayListSize;
 
   Maybe<wr::IpcResourceUpdateQueue> mAsyncResourceUpdates;
+  std::unordered_map<uint64_t, RefPtr<SharedSurfacesAnimation>> mAsyncAnimations;
 };
 
 } // namespace layers

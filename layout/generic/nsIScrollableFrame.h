@@ -438,11 +438,6 @@ public:
                                       const ContainerLayerParameters& aParameters) const = 0;
 
   /**
-   * If this scroll frame is ignoring viewporting clipping
-   */
-  virtual bool IsIgnoringViewportClipping() const = 0;
-
-  /**
    * Mark the scrollbar frames for reflow.
    */
   virtual void MarkScrollbarsDirtyForReflow() const = 0;
@@ -541,6 +536,8 @@ public:
    */
   virtual bool DragScroll(mozilla::WidgetEvent* aEvent) = 0;
 
+  virtual void AsyncScrollbarDragInitiated(uint64_t aDragBlockId,
+                                           mozilla::layers::ScrollDirection aDirection) = 0;
   virtual void AsyncScrollbarDragRejected() = 0;
 
   /**

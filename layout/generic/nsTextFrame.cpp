@@ -2040,6 +2040,22 @@ GetFontGroupForFrame(const nsIFrame* aFrame, float aFontSizeInflation,
   return fontGroup;
 }
 
+static gfxFontGroup*
+GetInflatedFontGroupForFrame(nsTextFrame* aFrame)
+{
+  gfxTextRun* textRun = aFrame->GetTextRun(nsTextFrame::eInflated);
+  if (textRun) {
+    return textRun->GetFontGroup();
+  }
+  if (!aFrame->InflatedFontMetrics()) {
+    float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
+    RefPtr<nsFontMetrics> metrics =
+      nsLayoutUtils::GetFontMetricsForFrame(aFrame, inflation);
+    aFrame->SetInflatedFontMetrics(metrics);
+  }
+  return aFrame->InflatedFontMetrics()->GetThebesFontGroup();
+}
+
 static already_AddRefed<DrawTarget>
 CreateReferenceDrawTarget(const nsTextFrame* aTextFrame)
 {
@@ -2284,13 +2300,15 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   // Now build the textrun
   nsTextFrame* firstFrame = mMappedFlows[0].mStartFrame;
   float fontInflation;
+  gfxFontGroup* fontGroup;
   if (mWhichTextRun == nsTextFrame::eNotInflated) {
     fontInflation = 1.0f;
+    fontGroup = GetFontGroupForFrame(firstFrame, fontInflation);
   } else {
     fontInflation = nsLayoutUtils::FontSizeInflationFor(firstFrame);
+    fontGroup = GetInflatedFontGroupForFrame(firstFrame);
   }
 
-  gfxFontGroup* fontGroup = GetFontGroupForFrame(firstFrame, fontInflation);
   if (!fontGroup) {
     DestroyUserData(userDataToDestroy);
     return nullptr;
@@ -3126,8 +3144,10 @@ public:
    * *must* be called before this!!!
    */
   PropertyProvider(nsTextFrame* aFrame, const gfxSkipCharsIterator& aStart,
-                   nsTextFrame::TextRunType aWhichTextRun)
+                   nsTextFrame::TextRunType aWhichTextRun,
+                   nsFontMetrics* aFontMetrics)
     : mTextRun(aFrame->GetTextRun(aWhichTextRun)), mFontGroup(nullptr),
+      mFontMetrics(aFontMetrics),
       mTextStyle(aFrame->StyleText()),
       mFrag(aFrame->GetContent()->GetText()),
       mLineContainer(nullptr),
@@ -3189,7 +3209,7 @@ public:
 
   gfxFontGroup* GetFontGroup() const {
     if (!mFontGroup) {
-      InitFontGroupAndFontMetrics();
+      mFontGroup = GetFontMetrics()->GetThebesFontGroup();
     }
     return mFontGroup;
   }
@@ -3216,10 +3236,21 @@ protected:
   void SetupJustificationSpacing(bool aPostReflow);
 
   void InitFontGroupAndFontMetrics() const {
-    float inflation = (mWhichTextRun == nsTextFrame::eInflated)
-      ? mFrame->GetFontSizeInflation() : 1.0f;
-    mFontGroup = GetFontGroupForFrame(mFrame, inflation,
-                                      getter_AddRefs(mFontMetrics));
+    if (!mFontMetrics) {
+      if (mWhichTextRun == nsTextFrame::eInflated) {
+        if (!mFrame->InflatedFontMetrics()) {
+          float inflation = mFrame->GetFontSizeInflation();
+          mFontMetrics =
+            nsLayoutUtils::GetFontMetricsForFrame(mFrame, inflation);
+          mFrame->SetInflatedFontMetrics(mFontMetrics);
+        } else {
+          mFontMetrics = mFrame->InflatedFontMetrics();
+        }
+      } else {
+        mFontMetrics = nsLayoutUtils::GetFontMetricsForFrame(mFrame, 1.0f);
+      }
+    }
+    mFontGroup = mFontMetrics->GetThebesFontGroup();
   }
 
   const RefPtr<gfxTextRun>        mTextRun;
@@ -4760,6 +4791,7 @@ nsTextFrame::RemoveTextRun(gfxTextRun* aTextRun)
 {
   if (aTextRun == mTextRun) {
     mTextRun = nullptr;
+    mFontMetrics = nullptr;
     return true;
   }
   if ((GetStateBits() & TEXT_HAS_FONT_INFLATION) &&
@@ -4777,6 +4809,10 @@ nsTextFrame::ClearTextRun(nsTextFrame* aStartContinuation,
   RefPtr<gfxTextRun> textRun = GetTextRun(aWhichTextRun);
   if (!textRun) {
     return;
+  }
+
+  if (aWhichTextRun == nsTextFrame::eInflated) {
+    mFontMetrics = nullptr;
   }
 
   DebugOnly<bool> checkmTextrun = textRun == mTextRun;
@@ -4986,11 +5022,11 @@ public:
 
   bool CanApplyOpacity() const final
   {
-    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
-    if (f->IsSelected()) {
+    if (IsSelected()) {
       return false;
     }
 
+    nsTextFrame* f = static_cast<nsTextFrame*>(mFrame);
     const nsStyleText* textStyle = f->StyleText();
     if (textStyle->mTextShadow) {
       return false;
@@ -5129,12 +5165,11 @@ nsDisplayText::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder
   gfx::Point deviceOffset = LayoutDevicePoint::FromAppUnits(
       mBounds.TopLeft(), appUnitsPerDevPixel).ToUnknownPoint();
 
-  RefPtr<TextDrawTarget> textDrawer = new TextDrawTarget(aBuilder, aResources, aSc, aManager, this, mBounds);
-  RefPtr<gfxContext> captureCtx = gfxContext::CreateOrNull(textDrawer, deviceOffset);
+  RefPtr<gfxContext> textDrawer = aBuilder.GetTextContext(aResources, aSc, aManager, this, mBounds, deviceOffset);
 
-  RenderToContext(captureCtx, aDisplayListBuilder, true);
+  RenderToContext(textDrawer, aDisplayListBuilder, true);
 
-  return !textDrawer->HasUnsupportedFeatures();
+  return textDrawer->GetTextDrawer()->Finish();
 }
 
 void
@@ -5539,7 +5574,7 @@ NS_DECLARE_FRAME_PROPERTY_DELETABLE(EmphasisMarkProperty, EmphasisMarkInfo)
 
 static already_AddRefed<gfxTextRun>
 GenerateTextRunForEmphasisMarks(nsTextFrame* aFrame,
-                                nsFontMetrics* aFontMetrics,
+                                gfxFontGroup* aFontGroup,
                                 ComputedStyle* aComputedStyle,
                                 const nsStyleText* aStyleText)
 {
@@ -5551,7 +5586,7 @@ GenerateTextRunForEmphasisMarks(nsTextFrame* aFrame,
     // The emphasis marks should always be rendered upright per spec.
     flags = gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_UPRIGHT;
   }
-  return aFontMetrics->GetThebesFontGroup()->
+  return aFontGroup->
     MakeTextRun<char16_t>(emphasisString.get(), emphasisString.Length(),
                           dt, appUnitsPerDevUnit, flags,
                           nsTextFrameUtils::Flags(), nullptr);
@@ -5591,7 +5626,8 @@ nsTextFrame::UpdateTextEmphasis(WritingMode aWM, PropertyProvider& aProvider)
                                                  GetFontSizeInflation());
   EmphasisMarkInfo* info = new EmphasisMarkInfo;
   info->textRun =
-    GenerateTextRunForEmphasisMarks(this, fm, computedStyle, styleText);
+    GenerateTextRunForEmphasisMarks(this, fm->GetThebesFontGroup(),
+                                    computedStyle, styleText);
   info->advance = info->textRun->GetAdvanceWidth();
 
   // Calculate the baseline offset
@@ -6726,7 +6762,7 @@ nsTextFrame::GetCaretColorAt(int32_t aOffset)
 
   nscolor result = nsFrame::GetCaretColorAt(aOffset);
   gfxSkipCharsIterator iter = EnsureTextRun(nsTextFrame::eInflated);
-  PropertyProvider provider(this, iter, nsTextFrame::eInflated);
+  PropertyProvider provider(this, iter, nsTextFrame::eInflated, mFontMetrics);
   int32_t contentOffset = provider.GetStart().GetOriginalOffset();
   int32_t contentLength = provider.GetOriginalLength();
   MOZ_ASSERT(aOffset >= contentOffset &&
@@ -6797,7 +6833,7 @@ nsTextFrame::MeasureCharClippedText(nscoord aVisIStartEdge,
   if (!mTextRun)
     return false;
 
-  PropertyProvider provider(this, iter, nsTextFrame::eInflated);
+  PropertyProvider provider(this, iter, nsTextFrame::eInflated, mFontMetrics);
   // Trim trailing whitespace
   provider.InitializeForDisplay(true);
 
@@ -6983,13 +7019,13 @@ nsTextFrame::PaintText(const PaintTextParams& aParams,
   if (!mTextRun)
     return;
 
-  PropertyProvider provider(this, iter, nsTextFrame::eInflated);
-  if (aItem.mIsFrameSelected.isNothing()) {
-    aItem.mIsFrameSelected.emplace(IsSelected());
-  }
+  PropertyProvider provider(this, iter, nsTextFrame::eInflated, mFontMetrics);
+
+  const bool isSelected = aItem.IsSelected();
+
   // Trim trailing whitespace, unless we're painting a selection highlight,
   // which should include trailing spaces if present (bug 1146754).
-  provider.InitializeForDisplay(!aItem.mIsFrameSelected.value());
+  provider.InitializeForDisplay(!isSelected);
 
   const bool reversed = mTextRun->IsInlineReversed();
   const bool verticalRun = mTextRun->IsVertical();
@@ -7033,7 +7069,7 @@ nsTextFrame::PaintText(const PaintTextParams& aParams,
   textPaintStyle.SetResolveColors(!aParams.callbacks);
 
   // Fork off to the (slower) paint-with-selection path if necessary.
-  if (aItem.mIsFrameSelected.value() &&
+  if (isSelected &&
       (aParams.IsPaintBGColor() || ShouldDrawSelection(this->GetParent()))) {
     MOZ_ASSERT(aOpacity == 1.0f, "We don't support opacity with selections!");
     gfxSkipCharsIterator tmp(provider.GetStart());
@@ -7502,7 +7538,7 @@ nsTextFrame::GetCharacterOffsetAtFramePointInternal(const nsPoint& aPoint,
   if (!mTextRun)
     return offsets;
 
-  PropertyProvider provider(this, iter, nsTextFrame::eInflated);
+  PropertyProvider provider(this, iter, nsTextFrame::eInflated, mFontMetrics);
   // Trim leading but not trailing whitespace if possible
   provider.InitializeForDisplay(false);
   gfxFloat width = mTextRun->IsVertical()
@@ -7594,9 +7630,7 @@ nsTextFrame::CombineSelectionUnderlineRect(nsPresContext* aPresContext,
 
   nsRect givenRect = aRect;
 
-  RefPtr<nsFontMetrics> fm =
-    nsLayoutUtils::GetFontMetricsForFrame(this, GetFontSizeInflation());
-  gfxFontGroup* fontGroup = fm->GetThebesFontGroup();
+  gfxFontGroup* fontGroup = GetInflatedFontGroupForFrame(this);
   gfxFont* firstFont = fontGroup->GetFirstValidFont();
   WritingMode wm = GetWritingMode();
   bool verticalRun = wm.IsVertical();
@@ -7796,7 +7830,7 @@ nsTextFrame::GetPointFromOffset(int32_t inOffset,
   if (!mTextRun)
     return NS_ERROR_FAILURE;
 
-  PropertyProvider properties(this, iter, nsTextFrame::eInflated);
+  PropertyProvider properties(this, iter, nsTextFrame::eInflated, mFontMetrics);
   // Don't trim trailing whitespace, we want the caret to appear in the right
   // place if it's positioned there
   properties.InitializeForDisplay(false);
@@ -7827,7 +7861,7 @@ nsTextFrame::GetCharacterRectsInRange(int32_t aInOffset,
   }
 
   gfxSkipCharsIterator iter = EnsureTextRun(nsTextFrame::eInflated);
-  PropertyProvider properties(this, iter, nsTextFrame::eInflated);
+  PropertyProvider properties(this, iter, nsTextFrame::eInflated, mFontMetrics);
   // Don't trim trailing whitespace, we want the caret to appear in the right
   // place if it's positioned there
   properties.InitializeForDisplay(false);
@@ -8725,6 +8759,7 @@ nsTextFrame::AddInlineMinISize(gfxContext *aRenderingContext,
     // FIXME: Ideally, if we already have a text run, we'd move it to be
     // the uninflated text run.
     ClearTextRun(nullptr, nsTextFrame::eInflated);
+    mFontMetrics = nullptr;
   }
 
   nsTextFrame* f;
@@ -8877,6 +8912,7 @@ nsTextFrame::AddInlinePrefISize(gfxContext *aRenderingContext,
     // FIXME: Ideally, if we already have a text run, we'd move it to be
     // the uninflated text run.
     ClearTextRun(nullptr, nsTextFrame::eInflated);
+    mFontMetrics = nullptr;
   }
 
   nsTextFrame* f;
@@ -8945,7 +8981,7 @@ nsTextFrame::ComputeTightBounds(DrawTarget* aDrawTarget) const
     return nsRect(0, 0, 0, 0);
 
   PropertyProvider provider(const_cast<nsTextFrame*>(this), iter,
-                            nsTextFrame::eInflated);
+                            nsTextFrame::eInflated, mFontMetrics);
   // Trim trailing whitespace
   provider.InitializeForDisplay(true);
 
@@ -8979,7 +9015,7 @@ nsTextFrame::GetPrefWidthTightBounds(gfxContext* aContext,
     return NS_ERROR_FAILURE;
 
   PropertyProvider provider(const_cast<nsTextFrame*>(this), iter,
-                            nsTextFrame::eInflated);
+                            nsTextFrame::eInflated, mFontMetrics);
   provider.InitializeForMeasure();
 
   gfxTextRun::Metrics metrics =
@@ -9457,6 +9493,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     // FIXME: Ideally, if we already have a text run, we'd move it to be
     // the uninflated text run.
     ClearTextRun(nullptr, nsTextFrame::eInflated);
+    mFontMetrics = nullptr;
   }
 
   gfxSkipCharsIterator iter =
@@ -9972,7 +10009,7 @@ nsTextFrame::RecomputeOverflow(nsIFrame* aBlockFrame)
   if (!mTextRun)
     return result;
 
-  PropertyProvider provider(this, iter, nsTextFrame::eInflated);
+  PropertyProvider provider(this, iter, nsTextFrame::eInflated, mFontMetrics);
   // Don't trim trailing space, in case we need to paint it as selected.
   provider.InitializeForDisplay(false);
 

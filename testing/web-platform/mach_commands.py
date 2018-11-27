@@ -34,14 +34,14 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
             sys.path.append(build_path)
 
         if kwargs["product"] == "fennec":
-            # Note that this import may fail in non-fennec trees
-            from mozrunner.devices.android_device import verify_android_device, grant_runtime_permissions
-            verify_android_device(self, install=True, verbose=False, xre=True)
-
             # package_name may be non-fennec in the future
             package_name = kwargs["package_name"]
             if not package_name:
                 package_name = self.substs["ANDROID_PACKAGE_NAME"]
+
+            # Note that this import may fail in non-fennec trees
+            from mozrunner.devices.android_device import verify_android_device, grant_runtime_permissions
+            verify_android_device(self, install=True, verbose=False, xre=True, app=package_name)
 
             grant_runtime_permissions(self, package_name, kwargs["device_serial"])
             if kwargs["certutil_binary"] is None:
@@ -166,9 +166,18 @@ class WebPlatformTestsUpdater(MozbuildObject):
         import update
         return update.setup_logging(kwargs, {"mach": sys.stdout})
 
+    def update_manifest(self, logger, **kwargs):
+        import manifestupdate
+        return manifestupdate.run(logger=logger,
+                                  src_root=self.topsrcdir,
+                                  obj_root=self.topobjdir,
+                                  **kwargs)
+
     def run_update(self, logger, **kwargs):
         import update
         from update import updatecommandline
+
+        self.update_manifest(logger, **kwargs)
 
         if kwargs["config"] is None:
             kwargs["config"] = os.path.join(self.topobjdir, '_tests', 'web-platform', 'wptrunner.local.ini')

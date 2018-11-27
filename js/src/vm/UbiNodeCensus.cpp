@@ -21,7 +21,7 @@ using namespace js;
 namespace JS {
 namespace ubi {
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 CountDeleter::operator()(CountBase* ptr)
 {
     if (!ptr) {
@@ -34,7 +34,7 @@ CountDeleter::operator()(CountBase* ptr)
     js_free(ptr);
 }
 
-/*** Count Types ***********************************************************************************/
+/*** Count Types ************************************************************/
 
 // The simplest type: just count everything.
 class SimpleCount : public CountType {
@@ -1134,9 +1134,9 @@ ByFilename::report(JSContext* cx, CountBase& countBase, MutableHandleValue repor
 }
 
 
-/*** Census Handler *******************************************************************************/
+/*** Census Handler *********************************************************/
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 CensusHandler::operator() (BreadthFirst<CensusHandler>& traversal,
                            Node origin, const Edge& edge,
                            NodeData* referentData, bool first)
@@ -1170,7 +1170,7 @@ CensusHandler::operator() (BreadthFirst<CensusHandler>& traversal,
 }
 
 
-/*** Parsing Breakdowns ***************************************************************************/
+/*** Parsing Breakdowns *****************************************************/
 
 static CountTypePtr
 ParseChildBreakdown(JSContext* cx, HandleObject breakdown, PropertyName* prop)
@@ -1182,7 +1182,7 @@ ParseChildBreakdown(JSContext* cx, HandleObject breakdown, PropertyName* prop)
     return ParseBreakdown(cx, v);
 }
 
-JS_PUBLIC_API(CountTypePtr)
+JS_PUBLIC_API CountTypePtr
 ParseBreakdown(JSContext* cx, HandleValue breakdownValue)
 {
     if (breakdownValue.isUndefined()) {
@@ -1422,7 +1422,7 @@ GetDefaultBreakdown(JSContext* cx)
                                                domNode));
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 ParseCensusOptions(JSContext* cx, Census& census, HandleObject options, CountTypePtr& outResult)
 {
     RootedValue breakdown(cx, UndefinedValue());

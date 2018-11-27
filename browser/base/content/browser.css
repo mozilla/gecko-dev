@@ -283,7 +283,7 @@ window:not([chromehidden~="toolbar"]) #nav-bar[nonemptyoverflow] > .overflow-but
 
 
 %ifdef MENUBAR_CAN_AUTOHIDE
-#toolbar-menubar:not([autohide=true]) + #TabsToolbar > .titlebar-item,
+#toolbar-menubar:not([autohide=true]) + #TabsToolbar > .titlebar-buttonbox-container,
 #toolbar-menubar:not([autohide=true]) + #TabsToolbar .titlebar-spacer,
 %endif
 %ifndef MOZ_WIDGET_COCOA
@@ -325,6 +325,7 @@ window:not([chromehidden~="toolbar"]) #nav-bar[nonemptyoverflow] > .overflow-but
 
 toolbarpaletteitem {
   -moz-window-dragging: no-drag;
+  -moz-box-pack: start;
 }
 
 .titlebar-buttonbox-container {
@@ -363,10 +364,10 @@ toolbarpaletteitem {
 }
 %endif
 
-#main-window[inFullscreen][inDOMFullscreen] #navigator-toolbox,
-#main-window[inFullscreen][inDOMFullscreen] #fullscr-toggler,
-#main-window[inFullscreen][inDOMFullscreen] #sidebar-box,
-#main-window[inFullscreen][inDOMFullscreen] #sidebar-splitter,
+#main-window[inDOMFullscreen] #navigator-toolbox,
+#main-window[inDOMFullscreen] #fullscr-toggler,
+#main-window[inDOMFullscreen] #sidebar-box,
+#main-window[inDOMFullscreen] #sidebar-splitter,
 #main-window[inFullscreen]:not([OSXLionFullscreen]) toolbar:not([fullscreentoolbar=true]),
 #main-window[inFullscreen] .global-notificationbox {
   visibility: collapse;
@@ -558,13 +559,17 @@ html|input.urlbar-input:-moz-locale-dir(rtl) {
   direction: ltr !important;
   text-align: right !important;
 }
-
 /* Make sure that the location bar's alignment in RTL mode changes according
    to the input box direction if the user switches the text direction using
    cmd_switchTextDirection (which applies a dir attribute to the <input>). */
 html|input.urlbar-input[dir=ltr]:-moz-locale-dir(rtl) {
   text-align: left !important;
 }
+/* Show placeholder text in URL bar using correct direction */
+html|input.urlbar-input:-moz-locale-dir(rtl):placeholder-shown {
+  direction: rtl !important;
+}
+
 
 /*
  * Display visual cue that browser is under remote control by Marionette.
@@ -1260,13 +1265,10 @@ toolbarpaletteitem[dragover] {
   display: -moz-box;
 }
 
-toolbarpaletteitem {
-  -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbarpaletteitem");
-}
-
 toolbarpaletteitem[place="palette"] {
   -moz-box-orient: vertical;
   width: 7em;
+  max-width: 7em;
   /* icon (16) + margin (9 + 12) + 3 lines of text: */
   height: calc(39px + 3em);
   margin-bottom: 5px;
@@ -1276,24 +1278,14 @@ toolbarpaletteitem[place="palette"] {
   vertical-align: top;
 }
 
-toolbarpaletteitem:not([place="palette"]) > .toolbarpaletteitem-label,
 toolbarpaletteitem[place="palette"][hidden] {
   display: none;
 }
 
-.toolbarpaletteitem-box {
+toolbarpaletteitem > toolbarbutton,
+toolbarpaletteitem > toolbaritem {
   /* Prevent children from getting events */
   pointer-events: none;
-}
-
-toolbarpaletteitem[place="palette"] > .toolbarpaletteitem-box {
-  -moz-box-pack: center;
-  width: 7em;
-  max-width: 7em;
-}
-
-toolbarpaletteitem:not([place="palette"]) > .toolbarpaletteitem-box {
-  -moz-box-flex: 1;
 }
 
 #main-window[customizing=true] .addon-banner-item,

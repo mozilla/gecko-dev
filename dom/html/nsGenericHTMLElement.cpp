@@ -407,14 +407,6 @@ nsGenericHTMLElement::IntrinsicState() const
   return state;
 }
 
-uint32_t
-nsGenericHTMLElement::EditableInclusiveDescendantCount()
-{
-  bool isEditable = IsInComposedDoc() && HasFlag(NODE_IS_EDITABLE) &&
-    GetContentEditableValue() == eTrue;
-  return EditableDescendantCount() + isEditable;
-}
-
 nsresult
 nsGenericHTMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                  nsIContent* aBindingParent)
@@ -1442,13 +1434,13 @@ nsGenericHTMLElement::MapImageBorderAttributeInto(const nsMappedAttributes* aAtt
   aDecls.SetPixelValueIfUnset(eCSSProperty_border_left_width, (float)val);
 
   aDecls.SetKeywordValueIfUnset(eCSSProperty_border_top_style,
-                                NS_STYLE_BORDER_STYLE_SOLID);
+                                StyleBorderStyle::Solid);
   aDecls.SetKeywordValueIfUnset(eCSSProperty_border_right_style,
-                                NS_STYLE_BORDER_STYLE_SOLID);
+                                StyleBorderStyle::Solid);
   aDecls.SetKeywordValueIfUnset(eCSSProperty_border_bottom_style,
-                                NS_STYLE_BORDER_STYLE_SOLID);
+                                StyleBorderStyle::Solid);
   aDecls.SetKeywordValueIfUnset(eCSSProperty_border_left_style,
-                                NS_STYLE_BORDER_STYLE_SOLID);
+                                StyleBorderStyle::Solid);
 
   aDecls.SetCurrentColorIfUnset(eCSSProperty_border_top_color);
   aDecls.SetCurrentColorIfUnset(eCSSProperty_border_right_color);
@@ -2679,7 +2671,7 @@ MakeContentDescendantsEditable(nsIContent *aContent, nsIDocument *aDocument)
     return;
   }
 
-  Element *element = aContent->AsElement();
+  Element* element = aContent->AsElement();
 
   element->UpdateEditableState(true);
 
@@ -2703,17 +2695,8 @@ nsGenericHTMLElement::ChangeEditableState(int32_t aChange)
   }
 
   if (aChange != 0) {
-    nsCOMPtr<nsIHTMLDocument> htmlDocument =
-      do_QueryInterface(document);
-    if (htmlDocument) {
+    if (nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(document)) {
       htmlDocument->ChangeContentEditableCount(this, aChange);
-    }
-
-    nsIContent* parent = GetParent();
-    // Don't update across Shadow DOM boundary.
-    while (parent && parent->IsElement()) {
-      parent->ChangeEditableDescendantCount(aChange);
-      parent = parent->GetParent();
     }
   }
 

@@ -4712,7 +4712,7 @@ PresShell::RenderDocument(const nsRect& aRect, uint32_t aFlags,
             nsPresContext::AppUnitsToFloatCSSPixels(aRect.height));
   aThebesContext->NewPath();
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
-  aThebesContext->Rectangle(r, true);
+  aThebesContext->SnappedRectangle(r);
 #else
   aThebesContext->Rectangle(r);
 #endif
@@ -6243,15 +6243,16 @@ PresShell::Paint(nsView*         aViewToPaint,
                  const nsRegion& aDirtyRegion,
                  uint32_t        aFlags)
 {
-#ifdef MOZ_GECKO_PROFILER
+  nsCString url;
   nsIURI* uri = mDocument->GetDocumentURI();
   nsIDocument* contentRoot = GetPrimaryContentDocument();
   if (contentRoot) {
     uri = contentRoot->GetDocumentURI();
   }
+  url = uri ? uri->GetSpecOrDefault() : NS_LITERAL_CSTRING("N/A");
+#ifdef MOZ_GECKO_PROFILER
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
-    "PresShell::Paint", GRAPHICS,
-    uri ? uri->GetSpecOrDefault() : NS_LITERAL_CSTRING("N/A"));
+    "PresShell::Paint", GRAPHICS, url);
 #endif
 
   Maybe<js::AutoAssertNoContentJS> nojs;
@@ -6304,7 +6305,7 @@ PresShell::Paint(nsView*         aViewToPaint,
     mIsFirstPaint = false;
   }
 
-  if (!layerManager->BeginTransaction()) {
+  if (!layerManager->BeginTransaction(url)) {
     return;
   }
 

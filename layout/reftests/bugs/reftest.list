@@ -305,7 +305,7 @@ fuzzy-if(Android,0-3,0-50) fuzzy-if(skiaContent,0-1,0-133) == 273681-1.html 2736
 == 283686-2.html 283686-2-ref.html
 == 283686-3.html about:blank
 == 289384-1.xhtml 289384-ref.xhtml
-fails-if(webrender&&!winWidget) random-if(d2d) fuzzy-if(Android,0-8,0-1439) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the d2d failures
+fails-if(webrender&&gtkWidget) random-if(d2d) fuzzy-if(Android,0-8,0-1439) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the d2d failures
 == 290129-1.html 290129-1-ref.html
 == 291078-1.html 291078-1-ref.html
 == 291078-2.html 291078-2-ref.html
@@ -1260,7 +1260,6 @@ fails == 472020-2.xul 472020-2-ref.xul
 == 472769-2.html 472769-2-ref.html
 == 472769-3.html 472769-3-ref.html
 == 473847-1.xul 473847-1-ref.xul
-fuzzy-if(skiaContent,0-1,0-16) == 474336-1.xul 474336-1-ref.xul
 == 474417-1.html 474417-1-ref.html
 fuzzy-if(skiaContent,0-1,0-5) == 474472-1.html 474472-1-ref.html
 == 475986-1a.html 475986-1-ref.html
@@ -2003,8 +2002,8 @@ fuzzy(0-8,0-1900) fails-if(webrender) == 1291528.html 1291528-ref.html
 fuzzy(0-255,0-1000) skip-if(!cocoaWidget) == 1294102-1.html 1294102-1-ref.html
 random-if(Android) fuzzy-if(skiaContent,0-15,0-50) == 1295466-1.xhtml 1295466-1-ref.xhtml #bug 982547
 fuzzy-if(Android,0-27,0-874) fuzzy-if(!Android,0-14,0-43) == 1313772.xhtml 1313772-ref.xhtml # Bug 1128229, Bug 1389319
-fuzzy(0-2,0-320000) == 1315113-1.html 1315113-1-ref.html
-fuzzy(0-2,0-20000) == 1315113-2.html 1315113-2-ref.html
+fuzzy(0-3,0-320000) == 1315113-1.html 1315113-1-ref.html
+fuzzy(0-3,0-20000) == 1315113-2.html 1315113-2-ref.html
 == 1315632-1.html 1315632-1-ref.html
 fuzzy(0-2,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) == 1316719-1a.html 1316719-1-ref.html
 fuzzy(0-13,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) == 1316719-1b.html 1316719-1-ref.html

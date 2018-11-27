@@ -104,9 +104,11 @@ class thashtable_printer(object):
             return
 
         # The table capacity is tracked "cleverly" in terms of how many bits
-        # the hash needs to be shifted.  CapacityFromHashShift calculates the
-        # actual entry capacity via ((uint32_t)1 << (kHashBits - mHashShift));
-        capacity = 1 << (table['kHashBits'] - table['mHashShift'])
+        # the hash needs to be shifted.  CapacityFromHashShift calculates this
+        # quantity, but may be inlined, so we replicate the calculation here.
+        hashType = gdb.lookup_type('mozilla::HashNumber')
+        hashBits = hashType.sizeof * 8
+        capacity = 1 << (hashBits - table['mHashShift'])
 
         # Pierce generation-tracking EntryStore class to get at buffer.  The
         # class instance always exists, but this char* may be null.
@@ -114,15 +116,20 @@ class thashtable_printer(object):
 
         key_field_name = self.key_field_name
 
+        # The entry store is laid out with hashes for all possible entries
+        # first, followed by all the entries.
+        pHashes = store.cast(hashType.pointer())
+        pEntries = pHashes + capacity
+        pEntries = pEntries.cast(self.entry_type.pointer())
         seenCount = 0
-        pEntry = store.cast(self.entry_type.pointer())
         for i in range(0, int(capacity)):
-            entry = (pEntry + i).dereference()
-            # An mKeyHash of 0 means empty, 1 means deleted sentinel, so skip
+            entryHash = (pHashes + i).dereference()
+            # An entry hash of 0 means empty, 1 means deleted sentinel, so skip
             # if that's the case.
-            if entry['mKeyHash'] <= 1:
+            if entryHash <= 1:
                 continue
 
+            entry = (pEntries + i).dereference()
             yield ('%d' % i, entry[key_field_name])
             if self.is_table:
                 yield ('%d' % i, entry['mData'])

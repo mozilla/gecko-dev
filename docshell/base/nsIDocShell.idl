@@ -137,6 +137,9 @@ interface nsIDocShell : nsIDocShellTreeItem
    * @param aLoadReplace         - If set LOAD_REPLACE flag will be set on the
    *                               channel. aOriginalURI is null, this argument is
    *                               ignored.
+   * @param aIsFromProcessingFrameAttributes
+   *          - If this is a load triggered by changing frame attributes.
+   *            See nsILoadInfo.isFromProcessingFrameAttributes
    * @param aReferrer            - Referring URI
    * @param aReferrerPolicy      - Referrer policy
    * @param aTriggeringPrincipal - A non-null principal that initiated that load.
@@ -184,6 +187,7 @@ interface nsIDocShell : nsIDocShellTreeItem
                               [const] in MaybeURI aResultPrincipalURI,
                               in bool aKeepResultPrincipalURIIfSet,
                               in boolean aLoadReplace,
+                              in boolean aIsFromProcessingFrameAttributes,
                               in nsIURI aReferrer,
                               in unsigned long aReferrerPolicy,
                               in nsIPrincipal aTriggeringPrincipal,
@@ -238,18 +242,18 @@ interface nsIDocShell : nsIDocShellTreeItem
   /**
    * Presentation context for the currently loaded document.  This may be null.
    */
-  [noscript] readonly attribute nsPresContext presContext;
+  [notxpcom,nostdcall] readonly attribute nsPresContext presContext;
 
   /**
    * Presentation shell for the currently loaded document.  This may be null.
    */
-  [noscript,notxpcom] nsIPresShell GetPresShell();
+  [notxpcom,nostdcall] readonly attribute nsIPresShell presShell;
 
   /**
    * Presentation shell for the oldest document, if this docshell is
    * currently transitioning between documents.
    */
-  [noscript] readonly attribute nsIPresShell eldestPresShell;
+  [notxpcom,nostdcall] readonly attribute nsIPresShell eldestPresShell;
 
   /**
    * Content Viewer that is currently loaded for this DocShell.  This may
@@ -559,7 +563,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    * The original offset of this child in its container. This property is -1 for
    * dynamically added docShells.
    */
-  [noscript] attribute long childOffset;
+  [notxpcom,nostdcall] attribute long childOffset;
 
   /**
    * Find out whether the docshell is currently in the middle of a page
@@ -649,6 +653,12 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
    [infallible] readonly attribute boolean hasForeignCookiesBeenBlocked;
 
+   /**
+   * This attribute determines whether a document seen cookies or storage
+   * attempts ever whether they've been allowed or blocked.
+   */
+   [infallible] readonly attribute boolean hasCookiesLoaded;
+
   /**
    * Disconnects this docshell's editor from its window, and stores the
    * editor data in the open document's session history entry.  This
@@ -712,13 +722,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    * @param aPrincipal the principal to use for the new document.
    */
   void createAboutBlankContentViewer(in nsIPrincipal aPrincipal);
-
-  /**
-   * Like createAboutBlankContentViewer, but don't check for permit unload.
-   * Only used by special session history operation.
-   * @param aPrincipal the principal to use for the new document.
-   */
-  [noscript] void forceCreateAboutBlankContentViewer(in nsIPrincipal aPrincipal);
 
   /**
    * Upon getting, returns the canonical encoding label of the document

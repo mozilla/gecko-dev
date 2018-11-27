@@ -707,9 +707,9 @@ BytecodeParser::simulateOp(JSOp op, uint32_t offset, OffsetAndDefIndex* offsetSt
         break;
 
       case JSOP_INITHOMEOBJECT:
-        // Keep the top 2 values.
+        // Pop the top value, keep the other value.
         MOZ_ASSERT(nuses == 2);
-        MOZ_ASSERT(ndefs == 2);
+        MOZ_ASSERT(ndefs == 1);
         break;
 
       case JSOP_SETGNAME:
@@ -1130,7 +1130,7 @@ js::Disassemble(JSContext* cx, HandleScript script, bool lines, Sprinter* sp)
     return DisassembleAtPC(cx, script, lines, nullptr, false, sp);
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::DumpPC(JSContext* cx, FILE* fp)
 {
     gc::AutoSuppressGC suppressGC(cx);
@@ -1149,7 +1149,7 @@ js::DumpPC(JSContext* cx, FILE* fp)
     return ok;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::DumpScript(JSContext* cx, JSScript* scriptArg, FILE* fp)
 {
     gc::AutoSuppressGC suppressGC(cx);
@@ -2526,7 +2526,8 @@ js::DecompileArgument(JSContext* cx, int formalIndex, HandleValue v)
 extern bool
 js::IsValidBytecodeOffset(JSContext* cx, JSScript* script, size_t offset)
 {
-    // This could be faster (by following jump instructions if the target is <= offset).
+    // This could be faster (by following jump instructions if the target
+    // is <= offset).
     for (BytecodeRange r(cx, script); !r.empty(); r.popFront()) {
         size_t here = r.frontOffset();
         if (here >= offset) {
@@ -2570,7 +2571,7 @@ ReleaseScriptCounts(FreeOp* fop)
     rt->scriptAndCountsVector = nullptr;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::StartPCCountProfiling(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2588,7 +2589,7 @@ js::StartPCCountProfiling(JSContext* cx)
     rt->profilingScripts = true;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::StopPCCountProfiling(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2621,7 +2622,7 @@ js::StopPCCountProfiling(JSContext* cx)
     rt->scriptAndCountsVector = vec;
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::PurgePCCounts(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2634,7 +2635,7 @@ js::PurgePCCounts(JSContext* cx)
     ReleaseScriptCounts(rt->defaultFreeOp());
 }
 
-JS_FRIEND_API(size_t)
+JS_FRIEND_API size_t
 js::GetPCCountScriptCount(JSContext* cx)
 {
     JSRuntime* rt = cx->runtime();
@@ -2656,7 +2657,7 @@ JSONStringProperty(Sprinter& sp, JSONPrinter& json, const char* name, JSString* 
     return true;
 }
 
-JS_FRIEND_API(JSString*)
+JS_FRIEND_API JSString*
 js::GetPCCountScriptSummary(JSContext* cx, size_t index)
 {
     JSRuntime* rt = cx->runtime();
@@ -2863,7 +2864,7 @@ GetPCCountJSON(JSContext* cx, const ScriptAndCounts& sac, Sprinter& sp)
     return true;
 }
 
-JS_FRIEND_API(JSString*)
+JS_FRIEND_API JSString*
 js::GetPCCountScriptContents(JSContext* cx, size_t index)
 {
     JSRuntime* rt = cx->runtime();
@@ -2985,7 +2986,7 @@ GenerateLcovInfo(JSContext* cx, JS::Realm* realm, GenericPrinter& out)
     return true;
 }
 
-JS_FRIEND_API(char*)
+JS_FRIEND_API char*
 js::GetCodeCoverageSummary(JSContext* cx, size_t* length)
 {
     Sprinter out(cx);

@@ -165,14 +165,11 @@ async function getImageSizeFromClipboard() {
 
   clip.getData(trans, clipid.kGlobalClipboard);
   const data = {};
-  const dataLength = {};
-  trans.getTransferData(flavor, data, dataLength);
+  trans.getTransferData(flavor, data);
 
   ok(data.value, "screenshot exists");
-  ok(dataLength.value > 0, "screenshot has length");
 
   let image = data.value;
-  let dataURI = `data:${flavor};base64,`;
 
   // Due to the differences in how images could be stored in the clipboard the
   // checks below are needed. The clipboard could already provide the image as
@@ -185,15 +182,16 @@ async function getImageSizeFromClipboard() {
               .encodeImage(image, flavor);
   }
 
+  let url;
   if (image instanceof Ci.nsIInputStream) {
     const binaryStream = Cc["@mozilla.org/binaryinputstream;1"]
                          .createInstance(Ci.nsIBinaryInputStream);
     binaryStream.setInputStream(image);
-    const rawData = binaryStream.readBytes(binaryStream.available());
-    const charCodes = Array.from(rawData, c => c.charCodeAt(0) & 0xff);
-    let encodedData = String.fromCharCode(...charCodes);
-    encodedData = btoa(encodedData);
-    dataURI = dataURI + encodedData;
+    const available = binaryStream.available();
+    const buffer = new ArrayBuffer(available);
+    is(binaryStream.readArrayBuffer(available, buffer), available,
+       "Read expected amount of data");
+    url = URL.createObjectURL(new Blob([buffer], {type: flavor}));
   } else {
     throw new Error("Unable to read image data");
   }
@@ -202,10 +200,11 @@ async function getImageSizeFromClipboard() {
 
   const loaded =  once(img, "load");
 
-  img.src = dataURI;
+  img.src = url;
   document.documentElement.appendChild(img);
   await loaded;
   img.remove();
+  URL.revokeObjectURL(url);
 
   return {
     width: img.width,

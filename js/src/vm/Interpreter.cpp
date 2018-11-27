@@ -620,7 +620,8 @@ js::CallFromStack(JSContext* cx, const CallArgs& args)
     return InternalCall(cx, static_cast<const AnyInvokeArgs&>(args));
 }
 
-// ES7 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93 7.3.12 Call.
+// ES7 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93
+// 7.3.12 Call.
 bool
 js::Call(JSContext* cx, HandleValue fval, HandleValue thisv, const AnyInvokeArgs& args,
          MutableHandleValue rval)
@@ -1852,8 +1853,9 @@ SetObjectElementOperation(JSContext* cx, HandleObject obj, HandleId id, HandleVa
                           HandleValue receiver, bool strict,
                           JSScript* script = nullptr, jsbytecode* pc = nullptr)
 {
-    // receiver != obj happens only at super[expr], where we expect to find the property
-    // People probably aren't building hashtables with |super| anyway.
+    // receiver != obj happens only at super[expr], where we expect to find the
+    // property. People probably aren't building hashtables with |super|
+    // anyway.
     TypeScript::MonitorAssign(cx, obj, id);
 
     if (obj->isNative() && JSID_IS_INT(id)) {
@@ -2319,6 +2321,7 @@ CASE(JSOP_LABEL)
 END_CASE(JSOP_LABEL)
 
 CASE(JSOP_LOOPENTRY)
+{
     COUNT_COVERAGE();
     // Attempt on-stack replacement with Baseline code.
     if (jit::IsBaselineEnabled(cx)) {
@@ -2358,6 +2361,7 @@ CASE(JSOP_LOOPENTRY)
     if (script->trackRecordReplayProgress()) {
         mozilla::recordreplay::AdvanceExecutionProgressCounter();
     }
+}
 END_CASE(JSOP_LOOPENTRY)
 
 CASE(JSOP_LINENO)
@@ -2367,17 +2371,24 @@ CASE(JSOP_FORCEINTERPRETER)
 END_CASE(JSOP_FORCEINTERPRETER)
 
 CASE(JSOP_UNDEFINED)
+{
     // If this ever changes, change what JSOP_GIMPLICITTHIS does too.
     PUSH_UNDEFINED();
+}
 END_CASE(JSOP_UNDEFINED)
 
 CASE(JSOP_POP)
+{
     REGS.sp--;
+}
 END_CASE(JSOP_POP)
 
 CASE(JSOP_POPN)
+{
     MOZ_ASSERT(GET_UINT16(REGS.pc) <= REGS.stackDepth());
     REGS.sp -= GET_UINT16(REGS.pc);
+
+}
 END_CASE(JSOP_POPN)
 
 CASE(JSOP_DUPAT)
@@ -2390,11 +2401,15 @@ CASE(JSOP_DUPAT)
 END_CASE(JSOP_DUPAT)
 
 CASE(JSOP_SETRVAL)
+{
     POP_RETURN_VALUE();
+}
 END_CASE(JSOP_SETRVAL)
 
 CASE(JSOP_GETRVAL)
+{
     PUSH_COPY(REGS.fp()->returnValue());
+}
 END_CASE(JSOP_GETRVAL)
 
 CASE(JSOP_ENTERWITH)
@@ -2410,13 +2425,16 @@ CASE(JSOP_ENTERWITH)
 END_CASE(JSOP_ENTERWITH)
 
 CASE(JSOP_LEAVEWITH)
+{
     REGS.fp()->popOffEnvironmentChain<WithEnvironmentObject>();
+}
 END_CASE(JSOP_LEAVEWITH)
 
 CASE(JSOP_RETURN)
+{
     POP_RETURN_VALUE();
     /* FALL THROUGH */
-
+}
 CASE(JSOP_RETRVAL)
 {
     /*
@@ -2476,8 +2494,10 @@ CASE(JSOP_RETRVAL)
 }
 
 CASE(JSOP_DEFAULT)
+{
     REGS.sp--;
     /* FALL THROUGH */
+}
 CASE(JSOP_GOTO)
 {
     BRANCH(GET_JUMP_OFFSET(REGS.pc));
@@ -2692,7 +2712,7 @@ CASE(JSOP_BINDNAME)
     }
     ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
 
-    /* Assigning to an undeclared name adds a property to the global object. */
+    // Assigning to an undeclared name adds a property to the global object.
     ReservedRooted<JSObject*> env(&rootObject1);
     if (!LookupNameUnqualified(cx, name, envChain, &env)) {
         goto error;
@@ -2748,15 +2768,19 @@ CASE(JSOP_BITAND)
 END_CASE(JSOP_BITAND)
 
 CASE(JSOP_EQ)
+{
     if (!LooseEqualityOp<true>(cx, REGS)) {
         goto error;
     }
+}
 END_CASE(JSOP_EQ)
 
 CASE(JSOP_NE)
+{
     if (!LooseEqualityOp<false>(cx, REGS)) {
         goto error;
     }
+}
 END_CASE(JSOP_NE)
 
 #define STRICT_EQUALITY_OP(OP, COND)                                          \
@@ -2992,9 +3016,11 @@ CASE(JSOP_NEG)
 END_CASE(JSOP_NEG)
 
 CASE(JSOP_POS)
+{
     if (!ToNumber(cx, REGS.stackHandleAt(-1))) {
         goto error;
     }
+}
 END_CASE(JSOP_POS)
 
 CASE(JSOP_DELNAME)
@@ -3084,14 +3110,18 @@ CASE(JSOP_TYPEOF)
 END_CASE(JSOP_TYPEOF)
 
 CASE(JSOP_VOID)
+{
     REGS.sp[-1].setUndefined();
+}
 END_CASE(JSOP_VOID)
 
 CASE(JSOP_FUNCTIONTHIS)
+{
     PUSH_NULL();
     if (!GetFunctionThis(cx, REGS.fp(), REGS.stackHandleAt(-1))) {
         goto error;
     }
+}
 END_CASE(JSOP_FUNCTIONTHIS)
 
 CASE(JSOP_GLOBALTHIS)
@@ -3379,10 +3409,12 @@ END_CASE(JSOP_EVAL)
 CASE(JSOP_SPREADNEW)
 CASE(JSOP_SPREADCALL)
 CASE(JSOP_SPREADSUPERCALL)
+{
     if (REGS.fp()->hasPushedGeckoProfilerFrame()) {
         cx->geckoProfiler().updatePC(cx, script, REGS.pc);
     }
     /* FALL THROUGH */
+}
 
 CASE(JSOP_SPREADEVAL)
 CASE(JSOP_STRICTSPREADEVAL)
@@ -3642,20 +3674,28 @@ CASE(JSOP_GETINTRINSIC)
 END_CASE(JSOP_GETINTRINSIC)
 
 CASE(JSOP_UINT16)
+{
     PUSH_INT32((int32_t) GET_UINT16(REGS.pc));
+}
 END_CASE(JSOP_UINT16)
 
 CASE(JSOP_UINT24)
 CASE(JSOP_RESUMEINDEX)
+{
     PUSH_INT32((int32_t) GET_UINT24(REGS.pc));
+}
 END_CASE(JSOP_UINT24)
 
 CASE(JSOP_INT8)
+{
     PUSH_INT32(GET_INT8(REGS.pc));
+}
 END_CASE(JSOP_INT8)
 
 CASE(JSOP_INT32)
+{
     PUSH_INT32(GET_INT32(REGS.pc));
+}
 END_CASE(JSOP_INT32)
 
 CASE(JSOP_DOUBLE)
@@ -3667,7 +3707,9 @@ CASE(JSOP_DOUBLE)
 END_CASE(JSOP_DOUBLE)
 
 CASE(JSOP_STRING)
+{
     PUSH_STRING(script->getAtom(REGS.pc));
+}
 END_CASE(JSOP_STRING)
 
 CASE(JSOP_TOSTRING)
@@ -3685,7 +3727,9 @@ CASE(JSOP_TOSTRING)
 END_CASE(JSOP_TOSTRING)
 
 CASE(JSOP_SYMBOL)
+{
     PUSH_SYMBOL(cx->wellKnownSymbols().get(GET_UINT8(REGS.pc)));
+}
 END_CASE(JSOP_SYMBOL)
 
 CASE(JSOP_OBJECT)
@@ -3733,23 +3777,33 @@ CASE(JSOP_REGEXP)
 END_CASE(JSOP_REGEXP)
 
 CASE(JSOP_ZERO)
+{
     PUSH_INT32(0);
+}
 END_CASE(JSOP_ZERO)
 
 CASE(JSOP_ONE)
+{
     PUSH_INT32(1);
+}
 END_CASE(JSOP_ONE)
 
 CASE(JSOP_NULL)
+{
     PUSH_NULL();
+}
 END_CASE(JSOP_NULL)
 
 CASE(JSOP_FALSE)
+{
     PUSH_BOOLEAN(false);
+}
 END_CASE(JSOP_FALSE)
 
 CASE(JSOP_TRUE)
+{
     PUSH_BOOLEAN(true);
+}
 END_CASE(JSOP_TRUE)
 
 CASE(JSOP_TABLESWITCH)
@@ -3786,6 +3840,7 @@ CASE(JSOP_TABLESWITCH)
 }
 
 CASE(JSOP_ARGUMENTS)
+{
     if (!script->ensureHasAnalyzedArgsUsage(cx)) {
         goto error;
     }
@@ -3798,6 +3853,7 @@ CASE(JSOP_ARGUMENTS)
     } else {
         PUSH_COPY(MagicValue(JS_OPTIMIZED_ARGUMENTS));
     }
+}
 END_CASE(JSOP_ARGUMENTS)
 
 CASE(JSOP_RUNONCE)
@@ -3903,7 +3959,9 @@ CASE(JSOP_INITGLEXICAL)
 END_CASE(JSOP_INITGLEXICAL)
 
 CASE(JSOP_UNINITIALIZED)
+{
     PUSH_MAGIC(JS_UNINITIALIZED_LEXICAL);
+}
 END_CASE(JSOP_UNINITIALIZED)
 
 CASE(JSOP_GETARG)
@@ -4120,8 +4178,10 @@ CASE(JSOP_SETFUNNAME)
 END_CASE(JSOP_SETFUNNAME)
 
 CASE(JSOP_CALLEE)
+{
     MOZ_ASSERT(REGS.fp()->isFunctionFrame());
     PUSH_COPY(REGS.fp()->calleev());
+}
 END_CASE(JSOP_CALLEE)
 
 CASE(JSOP_INITPROP_GETTER)
@@ -4163,7 +4223,9 @@ CASE(JSOP_INITHIDDENELEM_SETTER)
 END_CASE(JSOP_INITELEM_GETTER)
 
 CASE(JSOP_HOLE)
+{
     PUSH_MAGIC(JS_ELEMENTS_HOLE);
+}
 END_CASE(JSOP_HOLE)
 
 CASE(JSOP_NEWINIT)
@@ -4350,7 +4412,9 @@ CASE(JSOP_EXCEPTION)
 END_CASE(JSOP_EXCEPTION)
 
 CASE(JSOP_FINALLY)
+{
     CHECK_BRANCH();
+}
 END_CASE(JSOP_FINALLY)
 
 CASE(JSOP_THROW)
@@ -4660,19 +4724,18 @@ END_CASE(JSOP_OBJWITHPROTO)
 
 CASE(JSOP_INITHOMEOBJECT)
 {
-    unsigned skipOver = GET_UINT8(REGS.pc);
-    MOZ_ASSERT(REGS.stackDepth() >= skipOver + 2);
+    MOZ_ASSERT(REGS.stackDepth() >= 2);
 
     /* Load the function to be initialized */
-    ReservedRooted<JSFunction*> func(&rootFunction0, &REGS.sp[-1].toObject().as<JSFunction>());
+    ReservedRooted<JSFunction*> func(&rootFunction0, &REGS.sp[-2].toObject().as<JSFunction>());
     MOZ_ASSERT(func->allowSuperProperty());
 
     /* Load the home object */
-    ReservedRooted<JSObject*> obj(&rootObject0);
-    obj = &REGS.sp[int(-2 - skipOver)].toObject();
+    ReservedRooted<JSObject*> obj(&rootObject0, &REGS.sp[-1].toObject());
     MOZ_ASSERT(obj->is<PlainObject>() || obj->is<UnboxedPlainObject>() || obj->is<JSFunction>());
 
     func->setExtendedSlot(FunctionExtended::METHOD_HOMEOBJECT_SLOT, ObjectValue(*obj));
+    REGS.sp--;
 }
 END_CASE(JSOP_INITHOMEOBJECT)
 
@@ -4695,8 +4758,10 @@ CASE(JSOP_SUPERBASE)
 END_CASE(JSOP_SUPERBASE)
 
 CASE(JSOP_NEWTARGET)
+{
     PUSH_COPY(REGS.fp()->newTarget());
     MOZ_ASSERT(REGS.sp[-1].isObject() || REGS.sp[-1].isUndefined());
+}
 END_CASE(JSOP_NEWTARGET)
 
 CASE(JSOP_IMPORTMETA)
@@ -4787,7 +4852,9 @@ CASE(JSOP_DEBUGCHECKSELFHOSTED)
 END_CASE(JSOP_DEBUGCHECKSELFHOSTED)
 
 CASE(JSOP_IS_CONSTRUCTING)
+{
     PUSH_MAGIC(JS_IS_CONSTRUCTING);
+}
 END_CASE(JSOP_IS_CONSTRUCTING)
 
 #ifdef ENABLE_BIGINT

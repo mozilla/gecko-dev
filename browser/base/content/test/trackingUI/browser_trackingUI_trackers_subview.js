@@ -1,3 +1,4 @@
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -18,17 +19,16 @@ function openIdentityPopup() {
   return viewShown;
 }
 
-function waitForSecurityChange(blocked) {
+function waitForSecurityChange(counter) {
   return new Promise(resolve => {
     let webProgressListener = {
       onStateChange: () => {},
       onStatusChange: () => {},
       onLocationChange: () => {},
       onSecurityChange: (webProgress, request, oldState, state) => {
-        if ((!blocked && state & Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT) ||
-            (blocked && state & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT)) {
+        if (--counter == 0) {
           gBrowser.removeProgressListener(webProgressListener);
-          resolve();
+          resolve(counter);
         }
       },
       onProgressChange: () => {},
@@ -68,13 +68,15 @@ async function assertSitesListed(blocked) {
 
     ok(true, "Main view was shown");
 
-    let change = waitForSecurityChange(blocked);
+    let change = waitForSecurityChange(1);
+    let timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
 
     await ContentTask.spawn(browser, {}, function() {
       content.postMessage("more-tracking", "*");
     });
 
-    await change;
+    let result = await Promise.race([change, timeoutPromise]);
+    is(result, undefined, "No securityChange events should be received");
 
     viewShown = BrowserTestUtils.waitForEvent(trackersView, "ViewShown");
     categoryItem.click();

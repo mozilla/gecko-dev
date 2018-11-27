@@ -193,6 +193,7 @@ HttpChannelChild::HttpChannelChild()
   , mSuspendParentAfterSynthesizeResponse(false)
   , mCacheNeedToReportBytesReadInitialized(false)
   , mNeedToReportBytesRead(true)
+  , mSentAsyncOpen(false)
 {
   LOG(("Creating HttpChannelChild @%p\n", this));
 
@@ -266,7 +267,7 @@ NS_IMETHODIMP_(MozExternalRefCountType) HttpChannelChild::Release()
   // remote channel for security info IPDL itself holds 1 reference, so we
   // Send_delete when refCnt==1.  But if !mIPCOpen, then there's nobody to send
   // to, so we fall through.
-  if (mKeptAlive && count == 1 && mIPCOpen) {
+  if ((mKeptAlive || !mSentAsyncOpen) && count == 1 && mIPCOpen) {
     mKeptAlive = false;
     // We send a message to the parent, which calls SendDelete, and then the
     // child calling Send__delete__() to finally drop the refcount to 0.
@@ -514,6 +515,7 @@ HttpChannelChild::RecvOnStartRequest(const nsresult& channelStatus,
                                      const bool& aApplyConversion,
                                      const ResourceTimingStruct& aTiming)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::RecvOnStartRequest", NETWORK);
   LOG(("HttpChannelChild::RecvOnStartRequest [this=%p]\n", this));
   // mFlushedForDiversion and mDivertingToParent should NEVER be set at this
   // stage, as they are set in the listener's OnStartRequest.
@@ -1093,6 +1095,7 @@ HttpChannelChild::DoOnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
                                     nsIInputStream* aStream,
                                     uint64_t offset, uint32_t count)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::DoOnDataAvailable", NETWORK);
   LOG(("HttpChannelChild::DoOnDataAvailable [this=%p]\n", this));
   if (mCanceled)
     return;
@@ -1292,6 +1295,7 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
 void
 HttpChannelChild::DoPreOnStopRequest(nsresult aStatus)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::DoPreOnStopRequest", NETWORK);
   LOG(("HttpChannelChild::DoPreOnStopRequest [this=%p status=%" PRIx32 "]\n",
        this, static_cast<uint32_t>(aStatus)));
   mIsPending = false;
@@ -1331,6 +1335,7 @@ HttpChannelChild::CollectOMTTelemetry()
 void
 HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest, nsresult aChannelStatus, nsISupports* aContext)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::DoOnStopRequest", NETWORK);
   LOG(("HttpChannelChild::DoOnStopRequest [this=%p]\n", this));
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mIsPending);
@@ -1414,6 +1419,7 @@ void
 HttpChannelChild::OnProgress(const int64_t& progress,
                              const int64_t& progressMax)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::OnProgress", NETWORK);
   LOG(("HttpChannelChild::OnProgress [this=%p progress=%" PRId64 "/%" PRId64 "]\n",
        this, progress, progressMax));
 
@@ -1461,6 +1467,7 @@ HttpChannelChild::ProcessOnStatus(const nsresult& aStatus)
 void
 HttpChannelChild::OnStatus(const nsresult& status)
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::OnStatus", NETWORK);
   LOG(("HttpChannelChild::OnStatus [this=%p status=%" PRIx32 "]\n",
        this, static_cast<uint32_t>(status)));
 
@@ -1547,6 +1554,7 @@ HttpChannelChild::CleanupBackgroundChannel()
 {
   MutexAutoLock lock(mBgChildMutex);
 
+  AUTO_PROFILER_LABEL("HttpChannelChild::CleanupBackgroundChannel", NETWORK);
   LOG(("HttpChannelChild::CleanupBackgroundChannel [this=%p bgChild=%p]\n",
        this, mBgChild.get()));
 
@@ -1700,7 +1708,8 @@ HttpChannelChild::DeleteSelf()
 
 void HttpChannelChild::FinishInterceptedRedirect()
 {
-  nsresult rv;
+  nsresult rv = InitIPCChannel(); // reinitializes IPC channel
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (mLoadInfo && mLoadInfo->GetEnforceSecurity()) {
     MOZ_ASSERT(!mInterceptedRedirectContext, "the context should be null!");
     rv = AsyncOpen2(mInterceptedRedirectListener);
@@ -2051,6 +2060,25 @@ HttpChannelChild::ProcessNotifyTrackingProtectionDisabled()
 }
 
 void
+HttpChannelChild::ProcessNotifyCookieAllowed()
+{
+  LOG(("HttpChannelChild::ProcessNotifyCookieAllowed [this=%p]\n", this));
+  MOZ_ASSERT(OnSocketThread());
+
+  RefPtr<HttpChannelChild> self = this;
+  nsCOMPtr<nsIEventTarget> neckoTarget = GetNeckoTarget();
+  neckoTarget->Dispatch(
+    NS_NewRunnableFunction(
+      "nsChannelClassifier::NotifyBlockingDecision",
+      [self]() {
+        AntiTrackingCommon::NotifyBlockingDecision(self,
+                                                   AntiTrackingCommon::BlockingDecision::eAllow,
+                                                   0);
+      }),
+    NS_DISPATCH_NORMAL);
+}
+
+void
 HttpChannelChild::ProcessNotifyTrackingCookieBlocked(uint32_t aRejectedReason)
 {
   LOG(("HttpChannelChild::ProcessNotifyTrackingCookieBlocked [this=%p]\n", this));
@@ -2062,7 +2090,9 @@ HttpChannelChild::ProcessNotifyTrackingCookieBlocked(uint32_t aRejectedReason)
     NS_NewRunnableFunction(
       "nsChannelClassifier::NotifyTrackingCookieBlocked",
       [self, aRejectedReason]() {
-        AntiTrackingCommon::NotifyRejection(self, aRejectedReason);
+        AntiTrackingCommon::NotifyBlockingDecision(self,
+                                                   AntiTrackingCommon::BlockingDecision::eBlock,
+                                                   aRejectedReason);
       }),
     NS_DISPATCH_NORMAL);
 }
@@ -2236,24 +2266,13 @@ HttpChannelChild::ConnectParent(uint32_t registrarId)
 
   HttpBaseChannel::SetDocshellUserAgentOverride();
 
-  // The socket transport in the chrome process now holds a logical ref to us
-  // until OnStopRequest, or we do a redirect, or we hit an IPDL error.
-  AddIPDLReference();
-
-  // This must happen before the constructor message is sent. Otherwise messages
-  // from the parent could arrive quickly and be delivered to the wrong event
-  // target.
-  SetEventTarget();
-
   HttpChannelConnectArgs connectArgs(registrarId, mShouldParentIntercept);
   PBrowserOrId browser = static_cast<ContentChild*>(gNeckoChild->Manager())
                          ->GetBrowserOrId(tabChild);
-  if (!gNeckoChild->
-        SendPHttpChannelConstructor(this, browser,
-                                    IPC::SerializedLoadContext(this),
-                                    connectArgs)) {
+  if (!SendAsyncOpen(browser, IPC::SerializedLoadContext(this), connectArgs)) {
     return NS_ERROR_FAILURE;
   }
+  mSentAsyncOpen = true;
 
   {
     MutexAutoLock lock(mBgChildMutex);
@@ -2760,6 +2779,42 @@ HttpChannelChild::AsyncOpen2(nsIStreamListener *aListener)
   return AsyncOpen(listener, nullptr);
 }
 
+NS_IMETHODIMP
+HttpChannelChild::SetLoadInfo(nsILoadInfo* aLoadInfo)
+{
+  LOG(("HttpChannelChild::SetLoadInfo [this=%p, aLoadInfo=%p]",
+       this, aLoadInfo));
+  MOZ_ALWAYS_SUCCEEDS(HttpBaseChannel::SetLoadInfo(aLoadInfo));
+
+  // IPC channel already open
+  if (NS_WARN_IF(mIPCOpen)) {
+    return NS_OK;
+  }
+
+  return InitIPCChannel();
+}
+
+nsresult
+HttpChannelChild::InitIPCChannel()
+{
+  MOZ_ASSERT(!mIPCOpen);
+
+  // This must happen before the constructor message is sent. Otherwise messages
+  // from the parent could arrive quickly and be delivered to the wrong event
+  // target.
+  SetEventTarget();
+
+  LOG(("  Calling SendPHttpChannelConstructor"));
+  if (!gNeckoChild->SendPHttpChannelConstructor(this)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // The socket transport in the chrome process now holds a logical ref to us
+  // until OnStopRequest, or we do a redirect, or we hit an IPDL error.
+  AddIPDLReference();
+  return NS_OK;
+}
+
 // Assigns an nsIEventTarget to our IPDL actor so that IPC messages are sent to
 // the correct DocGroup/TabGroup.
 void
@@ -2973,21 +3028,12 @@ HttpChannelChild::ContinueAsyncOpen()
 
   openArgs.navigationStartTimeStamp() = navigationStartTimeStamp;
 
-  // This must happen before the constructor message is sent. Otherwise messages
-  // from the parent could arrive quickly and be delivered to the wrong event
-  // target.
-  SetEventTarget();
-
-  // The socket transport in the chrome process now holds a logical ref to us
-  // until OnStopRequest, or we do a redirect, or we hit an IPDL error.
-  AddIPDLReference();
-
+  LOG(("HttpChannelChild::ContinueAsyncOpen - SendAsyncOpen [this=%p]", this));
   PBrowserOrId browser = cc->GetBrowserOrId(tabChild);
-  if (!gNeckoChild->SendPHttpChannelConstructor(this, browser,
-                                                IPC::SerializedLoadContext(this),
-                                                openArgs)) {
+  if (!SendAsyncOpen(browser, IPC::SerializedLoadContext(this), openArgs)) {
     return NS_ERROR_FAILURE;
   }
+  mSentAsyncOpen = true;
 
   {
     MutexAutoLock lock(mBgChildMutex);
@@ -3764,6 +3810,14 @@ HttpChannelChild::ResetInterception()
     return;
   }
 
+  if (!mIPCOpen) {
+    // The IPC channel was closed. See RecvFinishInterceptedRedirect.
+    // We now want to reuse it, so we call InitIPCChannel again.
+    DebugOnly<nsresult> rv = InitIPCChannel();
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+  }
+  MOZ_ASSERT(mLoadInfo && mIPCOpen);
+
   // Continue with the original cross-process request
   nsresult rv = ContinueAsyncOpen();
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -3774,6 +3828,7 @@ HttpChannelChild::ResetInterception()
 void
 HttpChannelChild::TrySendDeletingChannel()
 {
+  AUTO_PROFILER_LABEL("HttpChannelChild::TrySendDeletingChannel", NETWORK);
   if (!mDeletingChannelSent.compareExchange(false, true)) {
     // SendDeletingChannel is already sent.
     return;

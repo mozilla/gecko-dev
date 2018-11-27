@@ -125,9 +125,8 @@ GeckoProfilerRuntime::enable(bool enabled)
      */
     jit::ToggleBaselineProfiling(rt, enabled);
 
-    /* Update lastProfilingFrame to point to the top-most JS jit-frame currently on
-     * stack.
-     */
+    // Update lastProfilingFrame to point to the top-most JS jit-frame currently
+    // on stack.
     if (cx->jitActivation) {
         // Walk through all activations, and set their lastProfilingFrame appropriately.
         if (enabled) {
@@ -424,7 +423,7 @@ GeckoProfilerBaselineOSRMarker::~GeckoProfilerBaselineOSRMarker()
     frame.setIsOSRFrame(false);
 }
 
-JS_PUBLIC_API(JSScript*)
+JS_PUBLIC_API JSScript*
 ProfilingStackFrame::script() const
 {
     MOZ_ASSERT(isJsFrame());
@@ -445,7 +444,7 @@ ProfilingStackFrame::script() const
     return script;
 }
 
-JS_FRIEND_API(jsbytecode*)
+JS_FRIEND_API jsbytecode*
 ProfilingStackFrame::pc() const
 {
     MOZ_ASSERT(isJsFrame());
@@ -471,21 +470,21 @@ ProfilingStackFrame::setPC(jsbytecode* pc)
     pcOffsetIfJS_ = pcToOffset(script, pc);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::SetContextProfilingStack(JSContext* cx, ProfilingStack* profilingStack)
 {
     cx->geckoProfiler().setProfilingStack(profilingStack,
         cx->runtime()->geckoProfiler().enabled());
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::EnableContextProfilingStack(JSContext* cx, bool enabled)
 {
     cx->geckoProfiler().enable(enabled);
     cx->runtime()->geckoProfiler().enable(enabled);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*))
 {
     MOZ_ASSERT(cx->runtime()->geckoProfiler().enabled());

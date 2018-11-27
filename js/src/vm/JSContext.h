@@ -803,7 +803,7 @@ struct JSContext : public JS::RootingContext,
      */
     inline bool runningWithTrustedPrincipals();
 
-    JS_FRIEND_API(size_t) sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+    JS_FRIEND_API size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
     void trace(JSTracer* trc);
 
@@ -816,7 +816,7 @@ struct JSContext : public JS::RootingContext,
      * threshold when p is not null. The function takes the pointer and not
      * a boolean flag to minimize the amount of code in its inlined callers.
      */
-    JS_FRIEND_API(void) checkMallocGCPressure(void* p);
+    JS_FRIEND_API void checkMallocGCPressure(void* p);
 
   public:
     using InterruptCallbackVector = js::Vector<JSInterruptCallback, 2, js::SystemAllocPolicy>;
@@ -873,7 +873,8 @@ struct JSContext : public JS::RootingContext,
         return &jitStackLimitNoInterrupt;
     }
 
-    /* Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics object */
+    // Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics
+    // object.
     js::FutexThread fx;
 
     // Buffer for OSR from baseline to Ion. To avoid holding on to this for

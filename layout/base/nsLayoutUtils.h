@@ -1389,7 +1389,7 @@ public:
    * If aFrame is an out of flow frame, return its placeholder, otherwise
    * return its parent.
    */
-  static nsIFrame* GetParentOrPlaceholderFor(nsIFrame* aFrame);
+  static nsIFrame* GetParentOrPlaceholderFor(const nsIFrame* aFrame);
 
   /**
    * If aFrame is an out of flow frame, return its placeholder, otherwise
@@ -1771,12 +1771,12 @@ public:
   static SamplingFilter GetSamplingFilterForFrame(nsIFrame* aFrame);
 
   static inline void InitDashPattern(StrokeOptions& aStrokeOptions,
-                                     uint8_t aBorderStyle) {
-    if (aBorderStyle == NS_STYLE_BORDER_STYLE_DOTTED) {
+                                     mozilla::StyleBorderStyle aBorderStyle) {
+    if (aBorderStyle == mozilla::StyleBorderStyle::Dotted) {
       static Float dot[] = { 1.f, 1.f };
       aStrokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dot);
       aStrokeOptions.mDashPattern = dot;
-    } else if (aBorderStyle == NS_STYLE_BORDER_STYLE_DASHED) {
+    } else if (aBorderStyle == mozilla::StyleBorderStyle::Dashed) {
       static Float dash[] = { 5.f, 5.f };
       aStrokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dash);
       aStrokeOptions.mDashPattern = dash;

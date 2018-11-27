@@ -19,7 +19,7 @@ class SourceMediaStream;
 
 namespace layers {
 class Image;
-} // namespace layers
+}  // namespace layers
 
 namespace dom {
 class CanvasCaptureMediaStream;
@@ -46,11 +46,11 @@ class OutputStreamFrameListener;
  *                                                  |
  *                                                  | SetImage()
  *                                                  v
- *                                         ___________________
- *                                        |   StreamListener  |
- * ---------------------------------------| (All image access |----------------
- *     === MediaStreamGraph Thread ===    |   Mutex Guarded)  |
- *                                        |___________________|
+ *                                         ____________________
+ *                                        |Stream/TrackListener|
+ * ---------------------------------------| (All image access  |---------------
+ *     === MediaStreamGraph Thread ===    |   Mutex Guarded)   |
+ *                                        |____________________|
  *                                              ^       |
  *                                 NotifyPull() |       | AppendToTrack()
  *                                              |       v
@@ -66,11 +66,9 @@ class OutputStreamFrameListener;
  * It is up to each sub class to implement the NewFrame() callback of
  * FrameCaptureListener.
  */
-class OutputStreamDriver : public FrameCaptureListener
-{
-public:
-  OutputStreamDriver(SourceMediaStream* aSourceStream,
-                     const TrackID& aTrackId,
+class OutputStreamDriver : public FrameCaptureListener {
+ public:
+  OutputStreamDriver(SourceMediaStream* aSourceStream, const TrackID& aTrackId,
                      const PrincipalHandle& aPrincipalHandle);
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(OutputStreamDriver);
@@ -82,32 +80,41 @@ public:
   void SetImage(const RefPtr<layers::Image>& aImage, const TimeStamp& aTime);
 
   /*
+   * Ends the track in mSourceStream when we know there won't be any more images
+   * requested for it.
+   */
+  void EndTrack();
+
+  /*
    * Makes sure any internal resources this driver is holding that may create
    * reference cycles are released.
    */
   virtual void Forget() {}
 
-protected:
+ protected:
   virtual ~OutputStreamDriver();
   class StreamListener;
+  class TrackListener;
 
-private:
-  RefPtr<SourceMediaStream> mSourceStream;
-  RefPtr<StreamListener> mStreamListener;
+ private:
+  const RefPtr<SourceMediaStream> mSourceStream;
+  const RefPtr<TrackListener> mTrackListener;
 };
 
-class CanvasCaptureMediaStream : public DOMMediaStream
-{
-public:
-  CanvasCaptureMediaStream(nsPIDOMWindowInner* aWindow, HTMLCanvasElement* aCanvas);
+class CanvasCaptureMediaStream : public DOMMediaStream {
+ public:
+  CanvasCaptureMediaStream(nsPIDOMWindowInner* aWindow,
+                           HTMLCanvasElement* aCanvas);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CanvasCaptureMediaStream, DOMMediaStream)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CanvasCaptureMediaStream,
+                                           DOMMediaStream)
 
   nsresult Init(const dom::Optional<double>& aFPS, const TrackID& aTrackId,
                 nsIPrincipal* aPrincipal);
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
   HTMLCanvasElement* Canvas() const { return mCanvas; }
@@ -121,21 +128,21 @@ public:
   void StopCapture();
 
   /**
-   * Create a CanvasCaptureMediaStream whose underlying stream is a SourceMediaStream.
+   * Create a CanvasCaptureMediaStream whose underlying stream is a
+   * SourceMediaStream.
    */
-  static already_AddRefed<CanvasCaptureMediaStream>
-  CreateSourceStream(nsPIDOMWindowInner* aWindow,
-                     HTMLCanvasElement* aCanvas);
+  static already_AddRefed<CanvasCaptureMediaStream> CreateSourceStream(
+      nsPIDOMWindowInner* aWindow, HTMLCanvasElement* aCanvas);
 
-protected:
+ protected:
   ~CanvasCaptureMediaStream();
 
-private:
+ private:
   RefPtr<HTMLCanvasElement> mCanvas;
   RefPtr<OutputStreamDriver> mOutputStreamDriver;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_CanvasCaptureMediaStream_h_ */

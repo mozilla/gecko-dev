@@ -394,13 +394,10 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetDOMElement(Element** result)
   return CallQueryReferent(mContent.get(), result);
 }
 
-nsresult nsPluginInstanceOwner::GetInstance(nsNPAPIPluginInstance **aInstance)
+nsNPAPIPluginInstance*
+nsPluginInstanceOwner::GetInstance()
 {
-  NS_ENSURE_ARG_POINTER(aInstance);
-
-  *aInstance = mInstance;
-  NS_IF_ADDREF(*aInstance);
-  return NS_OK;
+  return mInstance;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
@@ -487,7 +484,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
     triggeringPrincipal = NullPrincipal::CreateWithInheritedAttributes(content->NodePrincipal());
   }
 
-  rv = lh->OnLinkClick(content, uri, unitarget.get(), VoidString(),
+  rv = lh->OnLinkClick(content, uri, unitarget, VoidString(),
                        aPostStream, headersDataStream,
                        /* isUserTriggered */ false,
                        /* isTrusted */ true, triggeringPrincipal);

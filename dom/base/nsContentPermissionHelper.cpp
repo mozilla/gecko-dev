@@ -129,12 +129,14 @@ class ContentPermissionRequestParent : public PContentPermissionRequestParent
   ContentPermissionRequestParent(const nsTArray<PermissionRequest>& aRequests,
                                  Element* aElement,
                                  const IPC::Principal& aPrincipal,
+                                 const IPC::Principal& aTopLevelPrincipal,
                                  const bool aIsHandlingUserInput);
   virtual ~ContentPermissionRequestParent();
 
   bool IsBeingDestroyed();
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIPrincipal> mTopLevelPrincipal;
   nsCOMPtr<Element> mElement;
   bool mIsHandlingUserInput;
   RefPtr<nsContentPermissionRequestProxy> mProxy;
@@ -150,11 +152,13 @@ class ContentPermissionRequestParent : public PContentPermissionRequestParent
 ContentPermissionRequestParent::ContentPermissionRequestParent(const nsTArray<PermissionRequest>& aRequests,
                                                                Element* aElement,
                                                                const IPC::Principal& aPrincipal,
+                                                               const IPC::Principal& aTopLevelPrincipal,
                                                                const bool aIsHandlingUserInput)
 {
   MOZ_COUNT_CTOR(ContentPermissionRequestParent);
 
   mPrincipal = aPrincipal;
+  mTopLevelPrincipal = aTopLevelPrincipal;
   mElement   = aElement;
   mRequests  = aRequests;
   mIsHandlingUserInput = aIsHandlingUserInput;
@@ -340,11 +344,13 @@ nsContentPermissionUtils::CreatePermissionArray(const nsACString& aType,
 nsContentPermissionUtils::CreateContentPermissionRequestParent(const nsTArray<PermissionRequest>& aRequests,
                                                                Element* aElement,
                                                                const IPC::Principal& aPrincipal,
+                                                               const IPC::Principal& aTopLevelPrincipal,
                                                                const bool aIsHandlingUserInput,
                                                                const TabId& aTabId)
 {
   PContentPermissionRequestParent* parent =
-    new ContentPermissionRequestParent(aRequests, aElement, aPrincipal, aIsHandlingUserInput);
+    new ContentPermissionRequestParent(aRequests, aElement, aPrincipal, aTopLevelPrincipal,
+                                       aIsHandlingUserInput);
   ContentPermissionRequestParentMap()[parent] = aTabId;
 
   return parent;
@@ -378,6 +384,10 @@ nsContentPermissionUtils::AskPermission(nsIContentPermissionRequest* aRequest,
     rv = aRequest->GetPrincipal(getter_AddRefs(principal));
     NS_ENSURE_SUCCESS(rv, rv);
 
+    nsCOMPtr<nsIPrincipal> topLevelPrincipal;
+    rv = aRequest->GetTopLevelPrincipal(getter_AddRefs(topLevelPrincipal));
+    NS_ENSURE_SUCCESS(rv, rv);
+
     bool isHandlingUserInput;
     rv = aRequest->GetIsHandlingUserInput(&isHandlingUserInput);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -390,6 +400,7 @@ nsContentPermissionUtils::AskPermission(nsIContentPermissionRequest* aRequest,
       req,
       permArray,
       IPC::Principal(principal),
+      IPC::Principal(topLevelPrincipal),
       isHandlingUserInput,
       child->GetTabId());
     ContentPermissionRequestChildMap()[req.get()] = child->GetTabId();
@@ -512,7 +523,27 @@ nsContentPermissionRequester::GetOnVisibilityChange(nsIContentPermissionRequestC
   return NS_OK;
 }
 
-NS_IMPL_CYCLE_COLLECTION(ContentPermissionRequestBase, mPrincipal, mWindow)
+static
+nsIPrincipal*
+GetTopLevelPrincipal(nsPIDOMWindowInner* aWindow)
+{
+  MOZ_ASSERT(aWindow);
+
+  nsPIDOMWindowOuter* top = aWindow->GetScriptableTop();
+  if (!top) {
+    return nullptr;
+  }
+
+  nsPIDOMWindowInner* inner = top->GetCurrentInnerWindow();
+  if (!inner) {
+    return nullptr;
+  }
+
+  return nsGlobalWindowInner::Cast(inner)->GetPrincipal();
+}
+
+NS_IMPL_CYCLE_COLLECTION(ContentPermissionRequestBase, mPrincipal,
+                         mTopLevelPrincipal, mWindow)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ContentPermissionRequestBase)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(nsISupports)
@@ -528,6 +559,9 @@ ContentPermissionRequestBase::ContentPermissionRequestBase(nsIPrincipal* aPrinci
                                                            const nsACString& aPrefName,
                                                            const nsACString& aType)
   : mPrincipal(aPrincipal)
+  , mTopLevelPrincipal(aWindow ?
+                         ::GetTopLevelPrincipal(aWindow) :
+                         nullptr)
   , mWindow(aWindow)
   , mRequester(aWindow ?
                  new nsContentPermissionRequester(aWindow) :
@@ -542,6 +576,13 @@ NS_IMETHODIMP
 ContentPermissionRequestBase::GetPrincipal(nsIPrincipal** aRequestingPrincipal)
 {
   NS_ADDREF(*aRequestingPrincipal = mPrincipal);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentPermissionRequestBase::GetTopLevelPrincipal(nsIPrincipal** aRequestingPrincipal)
+{
+  NS_ADDREF(*aRequestingPrincipal = mTopLevelPrincipal);
   return NS_OK;
 }
 
@@ -683,6 +724,53 @@ ContentPermissionRequestBase::RequestDelayedTask(nsIEventTarget* aTarget,
   aTarget->Dispatch(r.forget());
 }
 
+nsresult
+TranslateChoices(JS::HandleValue aChoices,
+                 const nsTArray<PermissionRequest>& aPermissionRequests,
+                 nsTArray<PermissionChoice>& aTranslatedChoices)
+{
+  if (aChoices.isNullOrUndefined()) {
+    // No choice is specified.
+  } else if (aChoices.isObject()) {
+    // Iterate through all permission types.
+    for (uint32_t i = 0; i < aPermissionRequests.Length(); ++i) {
+      nsCString type = aPermissionRequests[i].type();
+
+      JS::Rooted<JSObject*> obj(RootingCx(), &aChoices.toObject());
+      obj = CheckedUnwrap(obj);
+      if (!obj) {
+        return NS_ERROR_FAILURE;
+      }
+
+      AutoJSAPI jsapi;
+      jsapi.Init();
+
+      JSContext* cx = jsapi.cx();
+      JSAutoRealm ar(cx, obj);
+
+      JS::Rooted<JS::Value> val(cx);
+
+      if (!JS_GetProperty(cx, obj, type.BeginReading(), &val) ||
+          !val.isString()) {
+        // no setting for the permission type, clear exception and skip it
+        jsapi.ClearException();
+      } else {
+        nsAutoJSString choice;
+        if (!choice.init(cx, val)) {
+          jsapi.ClearException();
+          return NS_ERROR_FAILURE;
+        }
+        aTranslatedChoices.AppendElement(PermissionChoice(type, choice));
+      }
+    }
+  } else {
+    MOZ_ASSERT(false, "SelectedChoices should be undefined or an JS object");
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
 } // namespace dom
 } // namespace mozilla
 
@@ -742,9 +830,7 @@ nsContentPermissionRequestProxy::nsContentPermissionRequestProxy(ContentPermissi
     NS_ASSERTION(mParent, "null parent");
 }
 
-nsContentPermissionRequestProxy::~nsContentPermissionRequestProxy()
-{
-}
+nsContentPermissionRequestProxy::~nsContentPermissionRequestProxy() = default;
 
 nsresult
 nsContentPermissionRequestProxy::Init(const nsTArray<PermissionRequest>& requests)
@@ -802,6 +888,18 @@ nsContentPermissionRequestProxy::GetPrincipal(nsIPrincipal * *aRequestingPrincip
 }
 
 NS_IMETHODIMP
+nsContentPermissionRequestProxy::GetTopLevelPrincipal(nsIPrincipal * *aRequestingPrincipal)
+{
+  NS_ENSURE_ARG_POINTER(aRequestingPrincipal);
+  if (mParent == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  NS_ADDREF(*aRequestingPrincipal = mParent->mTopLevelPrincipal);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsContentPermissionRequestProxy::GetElement(Element** aRequestingElement)
 {
   NS_ENSURE_ARG_POINTER(aRequestingElement);
@@ -841,7 +939,6 @@ nsContentPermissionRequestProxy::Cancel()
   nsTArray<PermissionChoice> emptyChoices;
 
   Unused << mParent->SendNotifyResult(false, emptyChoices);
-  mParent = nullptr;
   return NS_OK;
 }
 
@@ -859,47 +956,12 @@ nsContentPermissionRequestProxy::Allow(JS::HandleValue aChoices)
   }
 
   nsTArray<PermissionChoice> choices;
-  if (aChoices.isNullOrUndefined()) {
-    // No choice is specified.
-  } else if (aChoices.isObject()) {
-    // Iterate through all permission types.
-    for (uint32_t i = 0; i < mPermissionRequests.Length(); ++i) {
-      nsCString type = mPermissionRequests[i].type();
-
-      JS::Rooted<JSObject*> obj(RootingCx(), &aChoices.toObject());
-      obj = CheckedUnwrap(obj);
-      if (!obj) {
-        return NS_ERROR_FAILURE;
-      }
-
-      AutoJSAPI jsapi;
-      jsapi.Init();
-
-      JSContext* cx = jsapi.cx();
-      JSAutoRealm ar(cx, obj);
-
-      JS::Rooted<JS::Value> val(cx);
-
-      if (!JS_GetProperty(cx, obj, type.BeginReading(), &val) ||
-          !val.isString()) {
-        // no setting for the permission type, clear exception and skip it
-        jsapi.ClearException();
-      } else {
-        nsAutoJSString choice;
-        if (!choice.init(cx, val)) {
-          jsapi.ClearException();
-          return NS_ERROR_FAILURE;
-        }
-        choices.AppendElement(PermissionChoice(type, choice));
-      }
-    }
-  } else {
-    MOZ_ASSERT(false, "SelectedChoices should be undefined or an JS object");
-    return NS_ERROR_FAILURE;
+  nsresult rv = TranslateChoices(aChoices, mPermissionRequests, choices);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   Unused << mParent->SendNotifyResult(true, choices);
-  mParent = nullptr;
   return NS_OK;
 }
 

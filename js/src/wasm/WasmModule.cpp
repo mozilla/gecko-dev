@@ -1285,7 +1285,7 @@ Module::instantiate(JSContext* cx,
                     HandleObject instanceProto,
                     MutableHandleWasmInstanceObject instance) const
 {
-    MOZ_RELEASE_ASSERT(metadata().isAsmJS() || cx->wasmHaveSignalHandlers);
+    MOZ_RELEASE_ASSERT(cx->wasmHaveSignalHandlers);
 
     if (!instantiateFunctions(cx, funcImports)) {
         return false;
@@ -1324,8 +1324,7 @@ Module::instantiate(JSContext* cx,
             return false;
         }
 
-        bool binarySource = cx->realm()->debuggerObservesBinarySource();
-        maybeDebug = cx->make_unique<DebugState>(*code, *this, binarySource);
+        maybeDebug = cx->make_unique<DebugState>(*code, *this);
         if (!maybeDebug) {
             return false;
         }

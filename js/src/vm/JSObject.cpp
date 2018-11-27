@@ -114,7 +114,7 @@ js::ReportNotObjectWithName(JSContext* cx, const char* name, HandleValue v)
     }
 }
 
-JS_PUBLIC_API(const char*)
+JS_PUBLIC_API const char*
 JS::InformalValueTypeName(const Value& v)
 {
     if (v.isObject()) {
@@ -142,7 +142,7 @@ JS::InformalValueTypeName(const Value& v)
 }
 
 // ES6 draft rev37 6.2.4.4 FromPropertyDescriptor
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::FromPropertyDescriptor(JSContext* cx, Handle<PropertyDescriptor> desc, MutableHandleValue vp)
 {
     AssertHeapIsIdle();
@@ -291,7 +291,7 @@ js::Throw(JSContext* cx, HandleId id, unsigned errorNumber, const char* details)
 }
 
 
-/*** PropertyDescriptor operations and DefineProperties ******************************************/
+/*** PropertyDescriptor operations and DefineProperties *********************/
 
 static const char js_getter_str[] = "getter";
 static const char js_setter_str[] = "setter";
@@ -496,12 +496,13 @@ js::ReadPropertyDescriptors(JSContext* cx, HandleObject props, bool checkAccesso
     return true;
 }
 
-/*** Seal and freeze *****************************************************************************/
+/*** Seal and freeze ********************************************************/
 
 static unsigned
 GetSealedOrFrozenAttributes(unsigned attrs, IntegrityLevel level)
 {
-    /* Make all attributes permanent; if freezing, make data attributes read-only. */
+    // Make all attributes permanent; if freezing, make data attributes
+    // read-only.
     if (level == IntegrityLevel::Frozen && !(attrs & (JSPROP_GETTER | JSPROP_SETTER))) {
         return JSPROP_PERMANENT | JSPROP_READONLY;
     }
@@ -1223,7 +1224,7 @@ JSObject::nonNativeSetElement(JSContext* cx, HandleObject obj, uint32_t index, H
     return nonNativeSetProperty(cx, obj, id, v, receiver, result);
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_CopyPropertyFrom(JSContext* cx, HandleId id, HandleObject target,
                     HandleObject obj, PropertyCopyBehavior copyBehavior)
 {
@@ -1263,7 +1264,7 @@ JS_CopyPropertyFrom(JSContext* cx, HandleId id, HandleObject target,
     return DefineProperty(cx, target, wrappedId, desc);
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_CopyPropertiesFrom(JSContext* cx, HandleObject target, HandleObject obj)
 {
     // Both |obj| and |target| must not be CCWs because we need to enter their
@@ -1556,7 +1557,7 @@ InitializePropertiesFromCompatibleNativeObject(JSContext* cx,
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS_InitializePropertiesFromCompatibleNativeObject(JSContext* cx,
                                                   HandleObject dst,
                                                   HandleObject src)
@@ -2873,7 +2874,7 @@ js::GetPrototypeIfOrdinary(JSContext* cx, HandleObject obj, bool* isOrdinary,
     return true;
 }
 
-/*** ES6 standard internal methods ***************************************************************/
+/*** ES6 standard internal methods ******************************************/
 
 bool
 js::SetPrototype(JSContext* cx, HandleObject obj, HandleObject proto, JS::ObjectOpResult& result)
@@ -3155,7 +3156,7 @@ js::DefineDataElement(JSContext* cx, HandleObject obj, uint32_t index, HandleVal
     return DefineDataProperty(cx, obj, id, value, attrs);
 }
 
-/*** SpiderMonkey nonstandard internal methods ***************************************************/
+/*** SpiderMonkey nonstandard internal methods ******************************/
 
 // Mark an object as having an immutable prototype
 //
@@ -3249,7 +3250,7 @@ js::DefineFunctions(JSContext* cx, HandleObject obj, const JSFunctionSpec* fs,
 }
 
 
-/*** ToPrimitive *************************************************************/
+/*** ToPrimitive ************************************************************/
 
 /*
  * Gets |obj[id]|.  If that value's not callable, returns true and stores an
@@ -3667,7 +3668,7 @@ GetObjectSlotNameFunctor::operator()(JS::CallbackTracer* trc, char* buf, size_t 
     }
 }
 
-/*** Debugging routines **************************************************************************/
+/*** Debugging routines *****************************************************/
 
 #if defined(DEBUG) || defined(JS_JITSPEW)
 
@@ -3740,25 +3741,25 @@ namespace js {
 // We don't want jsfriendapi.h to depend on GenericPrinter,
 // so these functions are declared directly in the cpp.
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 DumpValue(const JS::Value& val, js::GenericPrinter& out);
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 DumpId(jsid id, js::GenericPrinter& out);
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 DumpInterpreterFrame(JSContext* cx, js::GenericPrinter& out, InterpreterFrame* start = nullptr);
 
 } // namespace js
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpValue(const Value& val, js::GenericPrinter& out)
 {
     dumpValue(val, out);
     out.putChar('\n');
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpId(jsid id, js::GenericPrinter& out)
 {
     out.printf("jsid %p = ", (void*) JSID_BITS(id));
@@ -3960,7 +3961,7 @@ MaybeDumpValue(const char* name, const Value& v, js::GenericPrinter& out)
     }
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpInterpreterFrame(JSContext* cx, js::GenericPrinter& out, InterpreterFrame* start)
 {
     /* This should only called during live debugging. */
@@ -4042,19 +4043,19 @@ namespace js {
 // We don't want jsfriendapi.h to depend on GenericPrinter,
 // so these functions are declared directly in the cpp.
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 DumpBacktrace(JSContext* cx, js::GenericPrinter& out);
 
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpBacktrace(JSContext* cx, FILE* fp)
 {
     Fprinter out(fp);
     js::DumpBacktrace(cx, out);
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpBacktrace(JSContext* cx, js::GenericPrinter& out)
 {
     size_t depth = 0;
@@ -4088,7 +4089,7 @@ js::DumpBacktrace(JSContext* cx, js::GenericPrinter& out)
 
 }
 
-JS_FRIEND_API(void)
+JS_FRIEND_API void
 js::DumpBacktrace(JSContext* cx)
 {
     DumpBacktrace(cx, stdout);

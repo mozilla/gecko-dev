@@ -2634,16 +2634,16 @@ ScriptSource::performXDR(XDRState<mode>* xdr)
                 if (!units.get()) {
                     return xdr->fail(JS::TranscodeResult_Throw);
                 }
-                mozilla::recordreplay::NoteContentParse8(this, filename(), "application/javascript",
-                                                         units.get(), length());
+                mozilla::recordreplay::NoteContentParse(this, filename(), "application/javascript",
+                                                        units.get(), length());
             } else {
                 // UTF-16 source text.
                 ScriptSource::PinnedUnits<char16_t> units(xdr->cx(), this, holder, 0, length());
                 if (!units.get()) {
                     return xdr->fail(JS::TranscodeResult_Throw);
                 }
-                mozilla::recordreplay::NoteContentParse16(this, filename(), "application/javascript",
-                                                          units.get(), length());
+                mozilla::recordreplay::NoteContentParse(this, filename(), "application/javascript",
+                                                        units.get(), length());
             }
         }
     }
@@ -3172,10 +3172,6 @@ JSScript::JSScript(JS::Realm* realm, uint8_t* stubEntry, HandleObject sourceObje
     MOZ_ASSERT(sourceStart <= sourceEnd);
     MOZ_ASSERT(sourceEnd <= toStringEnd);
 
-#ifdef MOZ_VTUNE
-    vtuneMethodId_ = vtune::GenerateUniqueMethodID();
-#endif
-
     setSourceObject(sourceObject);
 }
 
@@ -3224,6 +3220,33 @@ JSScript::Create(JSContext* cx, const ReadOnlyCompileOptions& options,
 
     return script;
 }
+
+#ifdef MOZ_VTUNE
+uint32_t
+JSScript::vtuneMethodID()
+{
+    if (!realm()->scriptVTuneIdMap) {
+        auto map = MakeUnique<ScriptVTuneIdMap>();
+        if (!map) {
+            MOZ_CRASH("Failed to allocate ScriptVTuneIdMap");
+        }
+
+        realm()->scriptVTuneIdMap = std::move(map);
+    }
+
+    ScriptVTuneIdMap::AddPtr p = realm()->scriptVTuneIdMap->lookupForAdd(this);
+    if (p) {
+        return p->value();
+    }
+
+    uint32_t id = vtune::GenerateUniqueMethodID();
+    if (!realm()->scriptVTuneIdMap->add(p, this, id)) {
+        MOZ_CRASH("Failed to add vtune method id");
+    }
+
+    return id;
+}
+#endif
 
 bool
 JSScript::initScriptName(JSContext* cx)
@@ -3614,6 +3637,13 @@ JSScript::finalize(FreeOp* fop)
     destroyScriptCounts();
     destroyDebugScript(fop);
 
+#ifdef MOZ_VTUNE
+    if (realm()->scriptVTuneIdMap) {
+        // Note: we should only get here if the VTune JIT profiler is running.
+        realm()->scriptVTuneIdMap->remove(this);
+    }
+#endif
+
     if (data_) {
         JS_POISON(data_, 0xdb, computedSizeOfData(), MemCheckKind::MakeNoAccess);
         fop->free_(data_);
@@ -3790,7 +3820,7 @@ out:
     return script->offsetToPC(offset);
 }
 
-JS_FRIEND_API(unsigned)
+JS_FRIEND_API unsigned
 js::GetScriptLineExtent(JSScript* script)
 {
     unsigned lineno = script->lineno();

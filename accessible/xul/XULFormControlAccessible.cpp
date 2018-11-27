@@ -100,11 +100,13 @@ XULButtonAccessible::NativeState() const
     xulButtonElement->GetType(type);
     if (type.EqualsLiteral("checkbox") || type.EqualsLiteral("radio")) {
       state |= states::CHECKABLE;
-      bool checked = false;
-      xulButtonElement->GetChecked(&checked);
-      if (checked) {
-        state |= states::PRESSED;
-      }
+    }
+    // Some buttons can have their checked state set without being of type
+    // checkbox or radio. Expose the pressed state unconditionally.
+    bool checked = false;
+    xulButtonElement->GetChecked(&checked);
+    if (checked) {
+      state |= states::PRESSED;
     }
   }
 
@@ -286,24 +288,13 @@ Relation
 XULGroupboxAccessible::RelationByType(RelationType aType) const
 {
   Relation rel = AccessibleWrap::RelationByType(aType);
-  if (aType != RelationType::LABELLED_BY)
-    return rel;
 
-  // The label for xul:groupbox is generated from xul:label that is
-  // inside the anonymous content of the xul:caption.
-  // The xul:label has an accessible object but the xul:caption does not
-  uint32_t childCount = ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* childAcc = GetChildAt(childIdx);
-    if (childAcc->Role() == roles::LABEL) {
-      // Ensure that it's our label
-      Relation reverseRel = childAcc->RelationByType(RelationType::LABEL_FOR);
-      Accessible* testGroupbox = nullptr;
-      while ((testGroupbox = reverseRel.Next()))
-        if (testGroupbox == this) {
-          // The <label> points back to this groupbox
-          rel.AppendTarget(childAcc);
-        }
+  // The label for xul:groupbox is generated from the first xul:label
+  if (aType == RelationType::LABELLED_BY && ChildCount() > 0) {
+    Accessible* childAcc = GetChildAt(0);
+    if (childAcc->Role() == roles::LABEL &&
+        childAcc->GetContent()->IsXULElement(nsGkAtoms::label)) {
+      rel.AppendTarget(childAcc);
     }
   }
 
@@ -477,6 +468,20 @@ XULToolbarButtonAccessible::IsSeparator(Accessible* aAccessible)
   return content && content->IsAnyOfXULElements(nsGkAtoms::toolbarseparator,
                                                 nsGkAtoms::toolbarspacer,
                                                 nsGkAtoms::toolbarspring);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// XULToolbarButtonAccessible: Widgets
+
+bool
+XULToolbarButtonAccessible::IsAcceptableChild(nsIContent* aEl) const
+{
+  // In general XUL button has not accessible children. Nevertheless menu
+  // buttons can have popup accessibles (@type="menu" or columnpicker).
+  // Also: Toolbar buttons can have labels as children.
+  return aEl->IsXULElement(nsGkAtoms::menupopup) ||
+         aEl->IsXULElement(nsGkAtoms::popup) ||
+         aEl->IsXULElement(nsGkAtoms::label);
 }
 
 

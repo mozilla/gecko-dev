@@ -322,14 +322,6 @@ nsIFrame*
 NS_NewImageFrameForGeneratedContentIndex(nsIPresShell*, ComputedStyle*);
 
 
-#ifdef NOISY_FINDFRAME
-static int32_t FFWC_totalCount=0;
-static int32_t FFWC_doLoop=0;
-static int32_t FFWC_doSibling=0;
-static int32_t FFWC_recursions=0;
-static int32_t FFWC_nextInFlows=0;
-#endif
-
 // Returns true if aFrame is an anonymous flex/grid item.
 static inline bool
 IsAnonymousFlexOrGridItem(const nsIFrame* aFrame)
@@ -337,15 +329,6 @@ IsAnonymousFlexOrGridItem(const nsIFrame* aFrame)
   const nsAtom* pseudoType = aFrame->Style()->GetPseudo();
   return pseudoType == nsCSSAnonBoxes::anonymousFlexItem() ||
          pseudoType == nsCSSAnonBoxes::anonymousGridItem();
-}
-
-// Returns true if aFrame is a flex/grid container.
-static inline bool
-IsFlexOrGridContainer(const nsIFrame* aFrame)
-{
-  const LayoutFrameType t = aFrame->Type();
-  return t == LayoutFrameType::FlexContainer ||
-         t == LayoutFrameType::GridContainer;
 }
 
 // Returns true IFF the given nsIFrame is a nsFlexContainerFrame and
@@ -448,9 +431,9 @@ IsFrameForSVG(const nsIFrame* aFrame)
 static bool
 ShouldSuppressFloatingOfDescendants(nsIFrame* aFrame)
 {
-  return aFrame->IsFrameOfType(nsIFrame::eMathML) ||
+  return aFrame->IsFlexOrGridContainer() ||
     aFrame->IsXULBoxFrame() ||
-    ::IsFlexOrGridContainer(aFrame);
+    aFrame->IsFrameOfType(nsIFrame::eMathML);
 }
 
 /**
@@ -8739,19 +8722,19 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame)
              "placeholder for primary frame has previous continuations?");
   nsIFrame* parent = inFlowFrame->GetParent();
 
-  if (aFrame->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
+  if (inFlowFrame->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
     nsIFrame* grandparent = parent->GetParent();
     MOZ_ASSERT(grandparent);
 
     bool needsReframe =
       // 1. Removing a column-span may lead to an empty
       // ::-moz-column-span-wrapper.
-      aFrame->IsColumnSpan() ||
+      inFlowFrame->IsColumnSpan() ||
       // 2. Removing a frame which has any column-span siblings may also
       // lead to an empty ::-moz-column-span-wrapper subtree. The
       // column-span siblings were the frame's children, but later become
       // the frame's siblings after CreateColumnSpanSiblings().
-      aFrame->GetProperty(nsIFrame::HasColumnSpanSiblings()) ||
+      inFlowFrame->GetProperty(nsIFrame::HasColumnSpanSiblings()) ||
       // 3. Removing the only child of a ::-moz-column-content, whose
       // ColumnSet grandparent has a previous column-span sibling, requires
       // reframing since we might connect the ColumnSet's next column-span
@@ -8762,7 +8745,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame)
       (parent->Style()->GetPseudo() == nsCSSAnonBoxes::columnContent() &&
        // The only child in ::-moz-column-content (might be tall enough to
        // split across columns)
-       !aFrame->GetPrevSibling() && !aFrame->GetNextSibling() &&
+       !inFlowFrame->GetPrevSibling() && !inFlowFrame->GetNextSibling() &&
        // That ::-moz-column-content is the first column.
        !parent->GetPrevInFlow() &&
        // The ColumnSet grandparent has a previous sibling that is a
@@ -8770,11 +8753,11 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame)
        grandparent->GetPrevSibling());
 
     if (needsReframe) {
-      nsIFrame* containingBlock = GetMultiColumnContainingBlockFor(aFrame);
+      nsIFrame* containingBlock = GetMultiColumnContainingBlockFor(inFlowFrame);
 
 #ifdef DEBUG
-      if (IsFramePartOfIBSplit(aFrame)) {
-        nsIFrame* ibContainingBlock = GetIBContainingBlockFor(aFrame);
+      if (IsFramePartOfIBSplit(inFlowFrame)) {
+        nsIFrame* ibContainingBlock = GetIBContainingBlockFor(inFlowFrame);
         MOZ_ASSERT(containingBlock == ibContainingBlock ||
                    nsLayoutUtils::IsProperAncestorFrame(containingBlock,
                                                         ibContainingBlock),
@@ -9296,7 +9279,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
   FrameConstructionItemList& aItems,
   nsIFrame* aParentFrame)
 {
-  if (aItems.IsEmpty() || !::IsFlexOrGridContainer(aParentFrame)) {
+  if (aItems.IsEmpty() || !aParentFrame->IsFlexOrGridContainer()) {
     return;
   }
 
@@ -9966,7 +9949,7 @@ static bool
 FrameWantsToBeInAnonymousItem(const nsIFrame* aContainerFrame,
                               const nsIFrame* aFrame)
 {
-  MOZ_ASSERT(::IsFlexOrGridContainer(aContainerFrame));
+  MOZ_ASSERT(aContainerFrame->IsFlexOrGridContainer());
 
   // Any line-participant frames (e.g. text) definitely want to be wrapped in
   // an anonymous flex/grid item.
@@ -9990,7 +9973,7 @@ VerifyGridFlexContainerChildren(nsIFrame* aParentFrame,
                                 const nsFrameList& aChildren)
 {
 #ifdef DEBUG
-  if (!::IsFlexOrGridContainer(aParentFrame)) {
+  if (!aParentFrame->IsFlexOrGridContainer()) {
     return;
   }
 
@@ -10120,13 +10103,9 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                 &haveFirstLineStyle);
   }
 
-  const bool isFlexOrGridContainer = ::IsFlexOrGridContainer(aFrame);
   // The logic here needs to match the logic in GetFloatContainingBlock()
-  // (Since we already have isFlexOrGridContainer, we check that eagerly instead
-  // of letting ShouldSuppressFloatingOfDescendants look it up redundantly.)
   nsFrameConstructorSaveState floatSaveState;
-  if (isFlexOrGridContainer ||
-      ShouldSuppressFloatingOfDescendants(aFrame)) {
+  if (ShouldSuppressFloatingOfDescendants(aFrame)) {
     aState.PushFloatContainingBlock(nullptr, floatSaveState);
   } else if (aFrame->IsFloatContainingBlock()) {
     aState.PushFloatContainingBlock(aFrame, floatSaveState);
@@ -11174,14 +11153,17 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   }
 
   // Ensure all the children in the multi-column subtree are tagged with
-  // NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR, except for those children in the
-  // column-span subtree. InitAndRestoreFrame() will add
+  // NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR, except for those children in a new
+  // block formatting context. InitAndRestoreFrame() will add
   // mAdditionalStateBits for us.
   AutoRestore<nsFrameState> savedStateBits(aState.mAdditionalStateBits);
   if (StaticPrefs::layout_css_column_span_enabled()) {
+    // Multi-column container creates new block formatting context, so check
+    // needsColumn first to make sure we have the bit set when creating frames
+    // for the elements having style like "columns:3; column-span:all;".
     if (needsColumn) {
       aState.mAdditionalStateBits |= NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR;
-    } else if (blockFrame->IsColumnSpan()) {
+    } else if (blockFrame->HasAllStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS)) {
       aState.mAdditionalStateBits &= ~NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR;
     }
   }
@@ -11392,14 +11374,22 @@ nsCSSFrameConstructor::MayNeedToCreateColumnSpanSiblings(
   MOZ_ASSERT(StaticPrefs::layout_css_column_span_enabled(),
              "Call this only when layout.css.column-span.enabled is true!");
 
-  if (aBlockFrame->IsColumnSpan() ||
-      !aBlockFrame->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
-    // The children of a column-span never need to be further processed even
-    // if there is a nested column-span child. Because a column-span always
-    // creates its own block formatting context, a nested column-span child
-    // won't be in the same block formatting context with the nearest
-    // multi-column ancestor. This is the same case as if the column-span is
-    // outside of a multi-column hierarchy.
+  if (!aBlockFrame->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
+    // The block frame isn't in a multi-column block formatting context.
+    return false;
+  }
+
+  if (aBlockFrame->HasAllStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS) &&
+      aBlockFrame->Style()->GetPseudo() != nsCSSAnonBoxes::columnContent()) {
+    // The block creates its own block formatting context, and is not the block
+    // representing actual column contents.
+    //
+    // For example, the children of a column-span never need to be further
+    // processed even if there is a nested column-span child. Because a
+    // column-span always creates its own block formatting context, a nested
+    // column-span child won't be in the same block formatting context with the
+    // nearest multi-column ancestor. This is the same case as if the
+    // column-span is outside of a multi-column hierarchy.
     return false;
   }
 
@@ -11419,7 +11409,7 @@ nsCSSFrameConstructor::MayNeedToCreateColumnSpanSiblings(
     return false;
   }
 
-  // Need to actually look into the child items.
+  // Need to actually look into the child list.
   return true;
 }
 

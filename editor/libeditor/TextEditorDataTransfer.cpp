@@ -74,7 +74,7 @@ TextEditor::PrepareToInsertContent(const EditorDOMPoint& aPointToInsert,
 
   EditorDOMPoint pointToInsert(aPointToInsert);
   if (aDoDeleteSelection) {
-    AutoTrackDOMPoint tracker(mRangeUpdater, &pointToInsert);
+    AutoTrackDOMPoint tracker(RangeUpdaterRef(), &pointToInsert);
     nsresult rv = DeleteSelectionAsSubAction(eNone, eStrip);
     if (NS_WARN_IF(Destroyed())) {
       return NS_ERROR_EDITOR_DESTROYED;
@@ -465,10 +465,8 @@ TextEditor::CanPasteTransferable(nsITransferable* aTransferable)
   }
 
   nsCOMPtr<nsISupports> data;
-  uint32_t dataLen;
   nsresult rv = aTransferable->GetTransferData(kUnicodeMime,
-                                               getter_AddRefs(data),
-                                               &dataLen);
+                                               getter_AddRefs(data));
   if (NS_SUCCEEDED(rv) && data) {
     return true;
   }

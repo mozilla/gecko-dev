@@ -48,16 +48,29 @@ class EditAutofillForm {
   }
 
   /**
-   * Get inputs from the form.
+   * Get a record from the form suitable for a save/update in storage.
    * @returns {object}
    */
   buildFormObject() {
+    let initialObject = {};
+    if (this.hasMailingAddressFields) {
+      // Start with an empty string for each mailing-address field so that any
+      // fields hidden for the current country are blanked in the return value.
+      initialObject = {
+        "street-address": "",
+        "address-level3": "",
+        "address-level2": "",
+        "address-level1": "",
+        "postal-code": "",
+      };
+    }
+
     return Array.from(this._elements.form.elements).reduce((obj, input) => {
       if (!input.disabled) {
         obj[input.id] = input.value;
       }
       return obj;
-    }, {});
+    }, initialObject);
   }
 
   /**
@@ -158,6 +171,11 @@ class EditAddress extends EditAutofillForm {
     this.formatForm(record.country);
   }
 
+  get hasMailingAddressFields() {
+    let {addressFields} = this._elements.form.dataset;
+    return !addressFields || addressFields.trim().split(/\s+/).includes("mailing-address");
+  }
+
   /**
    * `mailing-address` is a special attribute token to indicate mailing fields + country.
    *
@@ -239,7 +257,11 @@ class EditAddress extends EditAutofillForm {
    * @param {Set} requiredFields Set of `fieldId` strings that mark which fields are required
    */
   arrangeFields(fieldsOrder, requiredFields) {
+    /**
+     * @see FormAutofillStorage.VALID_ADDRESS_FIELDS
+     */
     let fields = [
+      // `name` is a wrapper for the 3 name fields.
       "name",
       "organization",
       "street-address",
@@ -358,6 +380,8 @@ class EditCreditCard extends EditAutofillForm {
     if (!preserveFieldValues) {
       // Re-populating the networks will reset the selected option.
       this.populateNetworks();
+      // Re-generating the months will reset the selected option.
+      this.generateMonths();
       // Re-generating the years will reset the selected option.
       this.generateYears();
       super.loadRecord(record);
@@ -366,6 +390,28 @@ class EditCreditCard extends EditAutofillForm {
       // state so reset it here. Since the cc-number field is disabled upon editing
       // we don't need to recaclulate its validity here.
       this._elements.ccNumber.setCustomValidity("");
+    }
+  }
+
+  generateMonths() {
+    const count = 12;
+
+    // Clear the list
+    this._elements.month.textContent = "";
+
+    // Empty month option
+    this._elements.month.appendChild(new Option());
+
+    // Populate month list. Format: "month number - month name"
+    let dateFormat = new Intl.DateTimeFormat(navigator.language, {month: "long"}).format;
+    for (let i = 0; i < count; i++) {
+      let monthNumber = (i + 1).toString();
+      let monthName = dateFormat(new Date(Date.UTC(1970, i, 1)));
+      let option = new Option();
+      option.value = monthNumber;
+      // XXX: Bug 1446164 - Localize this string.
+      option.textContent = `${monthNumber.padStart(2, "0")} - ${monthName}`;
+      this._elements.month.appendChild(option);
     }
   }
 

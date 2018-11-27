@@ -8,11 +8,11 @@ DIRS += [
     'middleware',
     'modules',
     'reducers',
+    'types',
 ]
 
 DevToolsModules(
     'base.css',
     'constants.js',
     'create-store.js',
-    'types.js',
 )
