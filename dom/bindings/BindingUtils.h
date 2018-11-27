@@ -708,6 +708,7 @@ struct NamedConstructor
   unsigned mNargs;
 };
 
+// clang-format off
 /*
  * Create a DOM interface object (if constructorClass is non-null) and/or a
  * DOM interface prototype object (if protoClass is non-null).
@@ -758,6 +759,7 @@ struct NamedConstructor
  * interface object will be defined on the given global with property name
  * |name|, which must also be non-null.
  */
+// clang-format on
 void
 CreateInterfaceObjects(JSContext* cx, JS::Handle<JSObject*> global,
                        JS::Handle<JSObject*> protoProto,
