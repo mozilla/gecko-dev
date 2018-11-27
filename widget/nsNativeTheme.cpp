@@ -108,7 +108,7 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, StyleAppearance aAppearance)
   if (aAppearance == StyleAppearance::MenulistTextfield ||
       aAppearance == StyleAppearance::NumberInput ||
       aAppearance == StyleAppearance::Textfield ||
-      aAppearance == StyleAppearance::TextfieldMultiline ||
+      aAppearance == StyleAppearance::Textarea ||
       aAppearance == StyleAppearance::Searchfield ||
       aAppearance == StyleAppearance::Listbox) {
     return flags;
@@ -176,26 +176,22 @@ nsNativeTheme::CheckIntAttr(nsIFrame* aFrame, nsAtom* aAtom, int32_t defaultValu
 double
 nsNativeTheme::GetProgressValue(nsIFrame* aFrame)
 {
-  // When we are using the HTML progress element,
-  // we can get the value from the IDL property.
-  if (aFrame && aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
-    return static_cast<HTMLProgressElement*>(aFrame->GetContent())->Value();
+  if (!aFrame || !aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
+    return 0;
   }
 
-  return (double)nsNativeTheme::CheckIntAttr(aFrame, nsGkAtoms::value, 0);
+  return static_cast<HTMLProgressElement*>(aFrame->GetContent())->Value();
 }
 
 /* static */
 double
 nsNativeTheme::GetProgressMaxValue(nsIFrame* aFrame)
 {
-  // When we are using the HTML progress element,
-  // we can get the max from the IDL property.
-  if (aFrame && aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
-    return static_cast<HTMLProgressElement*>(aFrame->GetContent())->Max();
+  if (!aFrame || !aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
+    return 100;
   }
 
-  return (double)std::max(nsNativeTheme::CheckIntAttr(aFrame, nsGkAtoms::max, 100), 1);
+  return static_cast<HTMLProgressElement*>(aFrame->GetContent())->Max();
 }
 
 bool
@@ -352,7 +348,7 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
           aAppearance == StyleAppearance::Button ||
           aAppearance == StyleAppearance::MenulistTextfield ||
           aAppearance == StyleAppearance::Textfield ||
-          aAppearance == StyleAppearance::TextfieldMultiline ||
+          aAppearance == StyleAppearance::Textarea ||
           aAppearance == StyleAppearance::Listbox ||
           aAppearance == StyleAppearance::Menulist ||
           (aAppearance == StyleAppearance::MenulistButton &&
@@ -565,22 +561,16 @@ nsNativeTheme::IsNextToSelectedTab(nsIFrame* aFrame, int32_t aOffset)
   return (thisTabIndex - selectedTabIndex == aOffset);
 }
 
-// progressbar:
 bool
 nsNativeTheme::IsIndeterminateProgress(nsIFrame* aFrame,
                                        EventStates aEventStates)
 {
-  if (!aFrame || !aFrame->GetContent()|| !aFrame->GetContent()->IsElement())
+  if (!aFrame || !aFrame->GetContent() ||
+      !aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
     return false;
-
-  if (aFrame->GetContent()->IsHTMLElement(nsGkAtoms::progress)) {
-    return aEventStates.HasState(NS_EVENT_STATE_INDETERMINATE);
   }
 
-  return aFrame->GetContent()->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                                        nsGkAtoms::mode,
-                                                        NS_LITERAL_STRING("undetermined"),
-                                                        eCaseMatters);
+  return aEventStates.HasState(NS_EVENT_STATE_INDETERMINATE);
 }
 
 bool

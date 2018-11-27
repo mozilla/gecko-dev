@@ -79,6 +79,10 @@ talos:
 raptor-firefox:
     - raptor-tp6-1-firefox
     - raptor-tp6-2-firefox
+    - raptor-tp6-3-firefox
+    - raptor-tp6-4-firefox
+    - raptor-tp6-5-firefox
+    - raptor-tp6-6-firefox
     - raptor-speedometer-firefox
     - raptor-stylebench-firefox
     - raptor-motionmark-htmlsuite-firefox
@@ -90,6 +94,10 @@ raptor-firefox:
 raptor-chrome:
     - raptor-tp6-1-chrome
     - raptor-tp6-2-chrome
+    - raptor-tp6-3-chrome
+    - raptor-tp6-4-chrome
+    - raptor-tp6-5-chrome
+    - raptor-tp6-6-chrome
     - raptor-speedometer-chrome
     - raptor-stylebench-chrome
     - raptor-motionmark-htmlsuite-chrome
@@ -215,6 +223,9 @@ windows-talos:
     - talos-tps
     # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
 
+marionette-gpu-tests:
+    - marionette-gpu
+
 macosx64-tests:
     - cppunit
     - crashtest
@@ -325,10 +336,6 @@ android-common-tests:
 android-opt-tests:
     # Robocop tests often fail on Debug builds
     - robocop
-
-android-x86-tests:
-    - mochitest-chrome
-    - xpcshell
 
 android-x86-kvm-tests:
     - crashtest

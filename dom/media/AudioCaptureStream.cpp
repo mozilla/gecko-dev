@@ -24,69 +24,45 @@ using namespace mozilla::layers;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
-namespace mozilla
-{
+namespace mozilla {
 
 // We are mixing to mono until PeerConnection can accept stereo
 static const uint32_t MONO = 1;
 
 AudioCaptureStream::AudioCaptureStream(TrackID aTrackId)
-  : ProcessedMediaStream()
-  , mTrackId(aTrackId)
-  , mStarted(false)
-  , mTrackCreated(false)
-{
+    : ProcessedMediaStream(), mTrackId(aTrackId), mStarted(false) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(AudioCaptureStream);
   mMixer.AddCallback(this);
 }
 
-AudioCaptureStream::~AudioCaptureStream()
-{
+AudioCaptureStream::~AudioCaptureStream() {
   MOZ_COUNT_DTOR(AudioCaptureStream);
   mMixer.RemoveCallback(this);
 }
 
-void
-AudioCaptureStream::Start()
-{
+void AudioCaptureStream::Start() {
   class Message : public ControlMessage {
-  public:
+   public:
     explicit Message(AudioCaptureStream* aStream)
-      : ControlMessage(aStream), mStream(aStream) {}
+        : ControlMessage(aStream), mStream(aStream) {}
 
-    virtual void Run()
-    {
-      mStream->mStarted = true;
-    }
+    virtual void Run() { mStream->mStarted = true; }
 
-  protected:
+   protected:
     AudioCaptureStream* mStream;
   };
   GraphImpl()->AppendMessage(MakeUnique<Message>(this));
 }
 
-void
-AudioCaptureStream::ProcessInput(GraphTime aFrom, GraphTime aTo,
-                                 uint32_t aFlags)
-{
+void AudioCaptureStream::ProcessInput(GraphTime aFrom, GraphTime aTo,
+                                      uint32_t aFlags) {
   if (!mStarted) {
     return;
   }
 
   uint32_t inputCount = mInputs.Length();
   StreamTracks::Track* track = EnsureTrack(mTrackId);
-  // Notify the DOM everything is in order.
-  if (!mTrackCreated) {
-    for (uint32_t i = 0; i < mListeners.Length(); i++) {
-      MediaStreamListener* l = mListeners[i];
-      AudioSegment tmp;
-      l->NotifyQueuedTrackChanges(
-        Graph(), mTrackId, 0, TrackEventCommand::TRACK_EVENT_CREATED, tmp);
-      l->NotifyFinishedTrackCreation(Graph());
-    }
-    mTrackCreated = true;
-  }
 
   if (IsFinishedOnGraphThread()) {
     return;
@@ -137,11 +113,10 @@ AudioCaptureStream::ProcessInput(GraphTime aFrom, GraphTime aTo,
   mTracks.AdvanceKnownTracksTime(GraphTimeToStreamTimeWithBlocking((aTo)));
 }
 
-void
-AudioCaptureStream::MixerCallback(AudioDataValue* aMixedBuffer,
-                                  AudioSampleFormat aFormat, uint32_t aChannels,
-                                  uint32_t aFrames, uint32_t aSampleRate)
-{
+void AudioCaptureStream::MixerCallback(AudioDataValue* aMixedBuffer,
+                                       AudioSampleFormat aFormat,
+                                       uint32_t aChannels, uint32_t aFrames,
+                                       uint32_t aSampleRate) {
   AutoTArray<nsTArray<AudioDataValue>, MONO> output;
   AutoTArray<const AudioDataValue*, MONO> bufferPtrs;
   output.SetLength(MONO);
@@ -157,7 +132,8 @@ AudioCaptureStream::MixerCallback(AudioDataValue* aMixedBuffer,
     written += aFrames;
   }
   AudioChunk chunk;
-  chunk.mBuffer = new mozilla::SharedChannelArrayBuffer<AudioDataValue>(&output);
+  chunk.mBuffer =
+      new mozilla::SharedChannelArrayBuffer<AudioDataValue>(&output);
   chunk.mDuration = aFrames;
   chunk.mBufferFormat = aFormat;
   chunk.mChannelData.SetLength(MONO);
@@ -168,4 +144,4 @@ AudioCaptureStream::MixerCallback(AudioDataValue* aMixedBuffer,
   // Now we have mixed data, simply append it to out track.
   EnsureTrack(mTrackId)->Get<AudioSegment>()->AppendAndConsumeChunk(&chunk);
 }
-}
+}  // namespace mozilla

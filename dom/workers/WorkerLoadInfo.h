@@ -37,7 +37,7 @@ namespace dom {
 
 class WorkerPrivate;
 
-struct WorkerLoadInfo
+struct WorkerLoadInfoData
 {
   // All of these should be released in WorkerPrivateParent::ForgetMainThreadObjects.
   nsCOMPtr<nsIURI> mBaseURI;
@@ -64,6 +64,13 @@ struct WorkerLoadInfo
     InterfaceRequestor(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
     void MaybeAddTabChild(nsILoadGroup* aLoadGroup);
     NS_IMETHOD GetInterface(const nsIID& aIID, void** aSink) override;
+
+    void SetOuterRequestor(nsIInterfaceRequestor* aOuterRequestor)
+    {
+      MOZ_ASSERT(!mOuterRequestor);
+      MOZ_ASSERT(aOuterRequestor);
+      mOuterRequestor = aOuterRequestor;
+    }
 
   private:
     ~InterfaceRequestor() { }
@@ -107,10 +114,27 @@ struct WorkerLoadInfo
   bool mServiceWorkersTestingInWindow;
   OriginAttributes mOriginAttributes;
 
+  enum {
+    eNotSet,
+    eInsecureContext,
+    eSecureContext,
+  } mSecureContext;
+
+  WorkerLoadInfoData();
+  WorkerLoadInfoData(WorkerLoadInfoData&& aOther) = default;
+
+  WorkerLoadInfoData&
+  operator=(WorkerLoadInfoData&& aOther) = default;
+};
+
+struct WorkerLoadInfo : WorkerLoadInfoData
+{
   WorkerLoadInfo();
+  WorkerLoadInfo(WorkerLoadInfo&& aOther) noexcept;
   ~WorkerLoadInfo();
 
-  void StealFrom(WorkerLoadInfo& aOther);
+  WorkerLoadInfo&
+  operator=(WorkerLoadInfo&& aOther) = default;
 
   nsresult
   SetPrincipalOnMainThread(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);

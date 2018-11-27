@@ -829,11 +829,14 @@
   },
   "GEOLOCATION_ACCURACY_EXPONENTIAL": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "default",
+    "expires_in_version": "never",
     "kind": "exponential",
+    "releaseChannelCollection": "opt-out",
+    "bug_numbers": [1507925],
     "high": 100000,
     "n_buckets": 50,
-    "description": "Location accuracy"
+    "description": "Geolocation results' accuracy radius in meters. Smaller radius is more accurate.",
+    "alert_emails": ["shong@mozilla.com"]
   },
   "GEOLOCATION_ERROR": {
     "record_in_processes": ["main", "content"],
@@ -7801,6 +7804,32 @@
     "description": "a testing histogram; not meant to be touched",
     "record_into_store": ["main", "sync"]
   },
+  "TELEMETRY_TEST_KEYED_SYNC_ONLY": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["telemetry-client-dev@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "keyed": true,
+    "low": 1,
+    "high": 2147483646,
+    "n_buckets": 10,
+    "bug_numbers": [1498164],
+    "description": "a testing histogram; not meant to be touched",
+    "record_into_store": ["sync"]
+  },
+  "TELEMETRY_TEST_KEYED_MULTIPLE_STORES": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["telemetry-client-dev@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "keyed": true,
+    "low": 1,
+    "high": 2147483646,
+    "n_buckets": 10,
+    "bug_numbers": [1498164],
+    "description": "a testing histogram; not meant to be touched",
+    "record_into_store": ["main", "sync"]
+  },
   "STARTUP_CRASH_DETECTED": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "never",
@@ -10385,6 +10414,16 @@
     "releaseChannelCollection": "opt-out",
     "kind": "categorical",
     "labels": ["variable", "nonvariable"]
+  },
+  "DEVTOOLS_FLEXINSPECTOR_ELEMENT_TYPE_DISPLAYED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "mbalfanz@mozilla.com"],
+    "expires_in_version": "68",
+    "bug_numbers": [1503197],
+    "description": "Records the type of flex element displayed in the flex inspector (container, item, or both)",
+    "releaseChannelCollection": "opt-out",
+    "kind": "categorical",
+    "labels": ["container", "item", "both"]
   },
   "BROWSER_IS_USER_DEFAULT": {
     "record_in_processes": ["main"],

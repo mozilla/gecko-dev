@@ -5,6 +5,8 @@
 
 /* eslint-env mozilla/browser-window */
 
+{ // start private scope for gBrowser
+
 /**
  * A set of known icons to use for internal pages. These are hardcoded so we can
  * start loading them faster than ContentLinkHandler would normally find them.
@@ -280,10 +282,48 @@ window._gBrowser = {
 
   _setupInitialBrowserAndTab() {
     // See browser.js for the meaning of window.arguments.
+    // Bug 1485961 covers making this more sane.
     let userContextId = window.arguments && window.arguments[6];
-    let browser = this._createBrowser({uriIsAboutBlank: false, userContextId});
+
+    // We default to a remote content browser, except if:
+    // - e10s is disabled.
+    // - there's a parent process opener (e.g. parent process about: page) for
+    //   the content tab.
+    let remoteType;
+    if (gMultiProcessBrowser && !window.hasOpenerForInitialContentBrowser) {
+      remoteType = E10SUtils.DEFAULT_REMOTE_TYPE;
+    } else {
+      remoteType = E10SUtils.NOT_REMOTE;
+    }
+
+    // We only need sameProcessAsFrameLoader in the case where we're passed a tab
+    let sameProcessAsFrameLoader;
+    let tabArgument = gBrowserInit.getTabToAdopt();
+    if (tabArgument) {
+      // The window's first argument is a tab if and only if we are swapping tabs.
+      // We must set the browser's usercontextid so that the newly created remote
+      // tab child has the correct usercontextid.
+      if (tabArgument.hasAttribute("usercontextid")) {
+        userContextId = parseInt(tabArgument.getAttribute("usercontextid"), 10);
+      }
+
+      let linkedBrowser = tabArgument.linkedBrowser;
+      if (linkedBrowser) {
+        remoteType = linkedBrowser.remoteType;
+        sameProcessAsFrameLoader = linkedBrowser.frameLoader;
+      }
+    }
+    let createOptions = {
+      uriIsAboutBlank: false,
+      userContextId,
+      sameProcessAsFrameLoader,
+      remoteType,
+    };
+    let browser = this._createBrowser(createOptions);
     browser.setAttribute("primary", "true");
-    browser.setAttribute("blank", "true");
+    if (!tabArgument) {
+      browser.setAttribute("blank", "true");
+    }
     if (gBrowserAllowScriptsToCloseInitialTabs) {
       browser.setAttribute("allowscriptstoclose", "true");
     }
@@ -313,6 +353,8 @@ window._gBrowser = {
 
     this._appendStatusPanel();
 
+    // Only necessary because of pageloader talos tests which access this.
+    // Bug 1508171 covers removing this.
     this.initialBrowser = browser;
 
     let autoScrollPopup = browser._createAutoScrollPopup();
@@ -2382,7 +2424,12 @@ window._gBrowser = {
              Services.prefs.getBoolPref("browser.tabs.insertAfterCurrent"))) {
 
           let lastRelatedTab = openerTab && this._lastRelatedTabMap.get(openerTab);
-          index = (lastRelatedTab || openerTab || this.selectedTab)._tPos + 1;
+          let previousTab = (lastRelatedTab || openerTab || this.selectedTab);
+          if (previousTab.multiselected) {
+            index = this.selectedTabs[this.selectedTabs.length - 1]._tPos + 1;
+          } else {
+            index = previousTab._tPos + 1;
+          }
 
           if (lastRelatedTab) {
             lastRelatedTab.owner = null;
@@ -3818,9 +3865,8 @@ window._gBrowser = {
   },
 
   moveTabOver(aEvent) {
-    let direction = window.getComputedStyle(document.documentElement).direction;
-    if ((direction == "ltr" && aEvent.keyCode == KeyEvent.DOM_VK_RIGHT) ||
-        (direction == "rtl" && aEvent.keyCode == KeyEvent.DOM_VK_LEFT)) {
+    if ((!RTL_UI && aEvent.keyCode == KeyEvent.DOM_VK_RIGHT) ||
+        (RTL_UI && aEvent.keyCode == KeyEvent.DOM_VK_LEFT)) {
       this.moveTabForward();
     } else {
       this.moveTabBackward();
@@ -4197,7 +4243,7 @@ window._gBrowser = {
         case "}".charCodeAt(0):
           offset = -1;
         case "{".charCodeAt(0):
-          if (window.getComputedStyle(document.documentElement).direction == "ltr")
+          if (!RTL_UI)
             offset *= -1;
           this.tabContainer.advanceSelectedTab(offset, true);
           aEvent.preventDefault();
@@ -5207,10 +5253,10 @@ TabProgressListener.prototype.QueryInterface = ChromeUtils.generateQI(
    "nsIWebProgressListener2",
    "nsISupportsWeakReference"]);
 
+} // end private scope for gBrowser
+
 var StatusPanel = {
   get panel() {
-    window.addEventListener("resize", this);
-
     delete this.panel;
     return this.panel = document.getElementById("statuspanel");
   },
@@ -5268,12 +5314,9 @@ var StatusPanel = {
     }
 
     if (val) {
-      this._mouseTargetRect = null;
       this._labelElement.value = val;
+      this.panel.removeAttribute("inactive");
       MousePosTracker.addListener(this);
-      // The inactive state for the panel will be removed in onTrackingStarted,
-      // once the initial position of the mouse relative to the StatusPanel
-      // is figured out (to avoid both flicker and sync flushing).
     } else {
       this.panel.setAttribute("inactive", "true");
       MousePosTracker.removeListener(this);
@@ -5282,15 +5325,17 @@ var StatusPanel = {
     return val;
   },
 
-  onTrackingStarted() {
-    this.panel.removeAttribute("inactive");
-  },
-
   getMouseTargetRect() {
-    if (!this._mouseTargetRect) {
-      this._calcMouseTargetRect();
-    }
-    return this._mouseTargetRect;
+    let container = this.panel.parentNode;
+    let panelRect = window.windowUtils.getBoundsWithoutFlushing(this.panel);
+    let containerRect = window.windowUtils.getBoundsWithoutFlushing(container);
+
+    return {
+      top:    panelRect.top,
+      bottom: panelRect.bottom,
+      left:   RTL_UI ? containerRect.right - panelRect.width : containerRect.left,
+      right:  RTL_UI ? containerRect.right : containerRect.left + panelRect.width,
+    };
   },
 
   onMouseEnter() {
@@ -5299,31 +5344,6 @@ var StatusPanel = {
 
   onMouseLeave() {
     this._mirror();
-  },
-
-  handleEvent(event) {
-    if (!this.isVisible) {
-      return;
-    }
-    switch (event.type) {
-      case "resize":
-        this._mouseTargetRect = null;
-        break;
-    }
-  },
-
-  _calcMouseTargetRect() {
-    let container = this.panel.parentNode;
-    let alignRight = (getComputedStyle(container).direction == "rtl");
-    let panelRect = this.panel.getBoundingClientRect();
-    let containerRect = container.getBoundingClientRect();
-
-    this._mouseTargetRect = {
-      top:    panelRect.top,
-      bottom: panelRect.bottom,
-      left:   alignRight ? containerRect.right - panelRect.width : containerRect.left,
-      right:  alignRight ? containerRect.right : containerRect.left + panelRect.width,
-    };
   },
 
   _mirror() {
@@ -5335,7 +5355,6 @@ var StatusPanel = {
 
     if (!this.panel.hasAttribute("sizelimit")) {
       this.panel.setAttribute("sizelimit", "true");
-      this._mouseTargetRect = null;
     }
   },
 };
@@ -5434,10 +5453,19 @@ var TabContextMenu = {
     let allSelectedTabsAdjacent = selectedTabs.every((element, index, array) => {
       return array.length > index + 1 ? element._tPos + 1 == array[index + 1]._tPos : true;
     });
-    contextMoveTabToEnd.disabled = selectedTabs[selectedTabs.length - 1]._tPos == gBrowser.visibleTabs.length - 1 &&
+    let contextTabIsSelected = this.contextTab.multiselected;
+    let visibleTabs = gBrowser.visibleTabs;
+    let lastVisibleTab = visibleTabs[visibleTabs.length - 1];
+    let tabsToMove = contextTabIsSelected ? selectedTabs : [this.contextTab];
+    let lastTabToMove = tabsToMove[tabsToMove.length - 1];
+    let isLastPinnedTab = lastTabToMove.pinned &&
+      (!lastTabToMove.nextElementSibling || !lastTabToMove.nextElementSibling.pinned);
+    contextMoveTabToEnd.disabled = (lastTabToMove == lastVisibleTab || isLastPinnedTab) &&
                                    allSelectedTabsAdjacent;
     let contextMoveTabToStart = document.getElementById("context_moveToStart");
-    contextMoveTabToStart.disabled = selectedTabs[0]._tPos == 0 && allSelectedTabsAdjacent;
+    let isFirstTab = tabsToMove[0] == visibleTabs[0] ||
+                     tabsToMove[0] == visibleTabs[gBrowser._numPinnedTabs];
+    contextMoveTabToStart.disabled = isFirstTab && allSelectedTabsAdjacent;
 
     // Only one of "Duplicate Tab"/"Duplicate Tabs" should be visible.
     document.getElementById("context_duplicateTab").hidden = multiselectionContext;

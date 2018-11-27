@@ -5,8 +5,10 @@
 package org.mozilla.geckoview.test
 
 import android.app.assist.AssistStructure
+import android.graphics.SurfaceTexture
 import android.os.Build
 import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoDisplay
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
@@ -24,6 +26,7 @@ import android.support.test.filters.SdkSuppress
 import android.support.test.runner.AndroidJUnit4
 import android.text.InputType
 import android.util.SparseArray
+import android.view.Surface
 import android.view.View
 import android.view.ViewStructure
 import android.widget.EditText
@@ -84,7 +87,7 @@ class ContentDelegateTest : BaseSessionTest() {
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
         // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
         // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.cpuArch == "x86",
+        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
                    equalTo(false))
 
         mainSession.loadUri(CONTENT_CRASH_URL)
@@ -115,7 +118,7 @@ class ContentDelegateTest : BaseSessionTest() {
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
         // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
         // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.cpuArch == "x86",
+        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
                    equalTo(false))
 
         mainSession.delegateUntilTestEnd(object : Callbacks.ContentDelegate {
@@ -141,7 +144,7 @@ class ContentDelegateTest : BaseSessionTest() {
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
         // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
         // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.cpuArch == "x86",
+        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
                    equalTo(false))
 
         // XXX we need to make sure all sessions in a given content process receive onCrash().
@@ -266,8 +269,13 @@ class ContentDelegateTest : BaseSessionTest() {
             arrayOf("document", "$('#iframe').contentDocument").map { doc ->
                 mainSession.evaluateJS("""new Promise(resolve =>
                 $doc.querySelector('${entry.key}').addEventListener(
-                    'input', event => resolve([event.target.value, '${entry.value}']),
-                    { once: true }))""").asJSPromise()
+                    'input', event => {
+                      let eventInterface =
+                        event instanceof InputEvent ? "InputEvent" :
+                        event instanceof UIEvent ? "UIEvent" :
+                        event instanceof Event ? "Event" : "Unknown";
+                      resolve([event.target.value, '${entry.value}', eventInterface]);
+                    }, { once: true }))""").asJSPromise()
             }
         }
 
@@ -345,8 +353,9 @@ class ContentDelegateTest : BaseSessionTest() {
         mainSession.textInput.autofill(autoFillValues)
 
         // Wait on the promises and check for correct values.
-        for ((actual, expected) in promises.map { it.value.asJSList<String>() }) {
+        for ((actual, expected, eventInterface) in promises.map { it.value.asJSList<String>() }) {
             assertThat("Auto-filled value must match", actual, equalTo(expected))
+            assertThat("input event should be dispatched with InputEvent interface", eventInterface, equalTo("InputEvent"))
         }
     }
 
@@ -478,5 +487,28 @@ class ContentDelegateTest : BaseSessionTest() {
         goFullscreen()
         mainSession.exitFullScreen()
         waitForFullscreenExit()
+    }
+
+    @Test fun firstComposite() {
+        val display = mainSession.acquireDisplay()
+        val texture = SurfaceTexture(0)
+        texture.setDefaultBufferSize(100, 100)
+        val surface = Surface(texture)
+        display.surfaceChanged(surface, 100, 100)
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onFirstComposite(session: GeckoSession) {
+            }
+        })
+        display.surfaceDestroyed()
+        display.surfaceChanged(surface, 100, 100)
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onFirstComposite(session: GeckoSession) {
+            }
+        })
+        display.surfaceDestroyed()
+        mainSession.releaseDisplay(display)
     }
 }

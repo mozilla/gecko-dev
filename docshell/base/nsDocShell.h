@@ -196,7 +196,7 @@ public:
   // nsILinkHandler
   NS_IMETHOD OnLinkClick(nsIContent* aContent,
                          nsIURI* aURI,
-                         const char16_t* aTargetSpec,
+                         const nsAString& aTargetSpec,
                          const nsAString& aFileName,
                          nsIInputStream* aPostDataStream,
                          nsIInputStream* aHeadersDataStream,
@@ -205,7 +205,7 @@ public:
                          nsIPrincipal* aTriggeringPrincipal) override;
   NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
                              nsIURI* aURI,
-                             const char16_t* aTargetSpec,
+                             const nsAString& aTargetSpec,
                              const nsAString& aFileName,
                              nsIInputStream* aPostDataStream = 0,
                              nsIInputStream* aHeadersDataStream = 0,
@@ -216,7 +216,7 @@ public:
                              nsIPrincipal* aTriggeringPrincipal = nullptr) override;
   NS_IMETHOD OnOverLink(nsIContent* aContent,
                         nsIURI* aURI,
-                        const char16_t* aTargetSpec) override;
+                        const nsAString& aTargetSpec) override;
   NS_IMETHOD OnLeaveLink() override;
 
   // Don't use NS_DECL_NSILOADCONTEXT because some of nsILoadContext's methods
@@ -532,6 +532,7 @@ private: // member functions
                      mozilla::Maybe<nsCOMPtr<nsIURI>> const& aResultPrincipalURI,
                      bool aKeepResultPrincipalURIIfSet,
                      bool aLoadReplace,
+                     bool aIsFromProcessingFrameAttributes,
                      bool aLoadFromExternal,
                      bool aForceAllowDataURI,
                      bool aOriginalFrameSrc,
@@ -631,9 +632,6 @@ private: // member functions
   // resulting principal. If aConsiderCurrentDocument is false, we just look
   // at the parent.
   nsIPrincipal* GetInheritedPrincipal(bool aConsiderCurrentDocument);
-
-  nsresult CreatePrincipalFromReferrer(nsIURI* aReferrer,
-                                       nsIPrincipal** aResult);
 
   /**
    * Helper function that determines if channel is an HTTP POST.
@@ -886,7 +884,7 @@ private: // member functions
   nsresult RefreshURIFromQueue();
   nsresult Embed(nsIContentViewer* aContentViewer,
                  const char* aCommand, nsISupports* aExtraInfo);
-  nsresult GetEldestPresContext(nsPresContext** aPresContext);
+  nsPresContext* GetEldestPresContext();
   nsresult CheckLoadingPermissions();
   nsresult PersistLayoutHistoryState();
   nsresult LoadHistoryEntry(nsISHEntry* aEntry, uint32_t aLoadType);

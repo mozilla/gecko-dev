@@ -289,6 +289,7 @@ nsCSPContext::~nsCSPContext()
 NS_IMETHODIMP
 nsCSPContext::GetPolicyString(uint32_t aIndex, nsAString& outStr)
 {
+  outStr.Truncate();
   if (aIndex >= mPolicies.Length()) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
@@ -1758,6 +1759,10 @@ nsCSPContext::Read(nsIObjectInputStream* aStream)
     rv = aStream->ReadBoolean(&reportOnly);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    bool deliveredViaMetaTag = false;
+    rv = aStream->ReadBoolean(&deliveredViaMetaTag);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     // @param deliveredViaMetaTag:
     // when parsing the CSP policy string initially we already remove directives
     // that should not be processed when delivered via the meta tag. Such directives
@@ -1766,7 +1771,7 @@ nsCSPContext::Read(nsIObjectInputStream* aStream)
                                                                   mSelfURI,
                                                                   reportOnly,
                                                                   this,
-                                                                  false);
+                                                                  deliveredViaMetaTag);
     if (policy) {
       mPolicies.AppendElement(policy);
     }
@@ -1793,6 +1798,7 @@ nsCSPContext::Write(nsIObjectOutputStream* aStream)
     mPolicies[p]->toString(polStr);
     aStream->WriteWStringZ(polStr.get());
     aStream->WriteBoolean(mPolicies[p]->getReportOnlyFlag());
+    aStream->WriteBoolean(mPolicies[p]->getDeliveredViaMetaTagFlag());
   }
   return NS_OK;
 }

@@ -17,11 +17,14 @@ const paymentSrv = Cc["@mozilla.org/dom/payments/payment-request-service;1"]
 const paymentUISrv = Cc["@mozilla.org/dom/payments/payment-ui-service;1"]
                      .getService(Ci.nsIPaymentUIService);
 
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 ChromeUtils.defineModuleGetter(this, "BrowserWindowTracker",
                                "resource:///modules/BrowserWindowTracker.jsm");
+ChromeUtils.defineModuleGetter(this, "FormAutofillUtils",
+                               "resource://formautofill/FormAutofillUtils.jsm");
 ChromeUtils.defineModuleGetter(this, "OSKeyStore",
                                "resource://formautofill/OSKeyStore.jsm");
 ChromeUtils.defineModuleGetter(this, "PrivateBrowsingUtils",
@@ -39,6 +42,12 @@ XPCOMUtils.defineLazyGetter(this, "formAutofillStorage", () => {
   }
 
   return storage;
+});
+
+XPCOMUtils.defineLazyGetter(this, "reauthPasswordPromptMessage", () => {
+  const brandShortName = FormAutofillUtils.brandBundle.GetStringFromName("brandShortName");
+  return FormAutofillUtils.stringBundle.formatStringFromName(
+    `useCreditCardPasswordPrompt.${AppConstants.platform}`, [brandShortName], 1);
 });
 
 /**
@@ -178,7 +187,8 @@ var paymentDialogWrapper = {
 
     let cardNumber;
     try {
-      cardNumber = await OSKeyStore.decrypt(cardData["cc-number-encrypted"], true);
+      cardNumber = await OSKeyStore.decrypt(
+        cardData["cc-number-encrypted"], reauthPasswordPromptMessage);
     } catch (ex) {
       if (ex.result != Cr.NS_ERROR_ABORT) {
         throw ex;
@@ -652,10 +662,12 @@ var paymentDialogWrapper = {
                                      formAutofillStorage[collectionName];
 
       if (guid) {
-        // We only care to preserve old properties for credit cards,
-        // because credit cards don't get their full record sent to the
-        // unprivileged frame (the cc-number is excluded).
-        let preserveOldProperties = collectionName == "creditCards";
+        // We want to preserve old properties since the edit forms are often
+        // shown without all fields visible/enabled and we don't want those
+        // fields to be blanked upon saving. Examples of hidden/disabled fields:
+        // email, cc-number, mailing-address on the payer forms, and payer fields
+        // not requested in the payer form.
+        let preserveOldProperties = true;
         await collection.update(guid, record, preserveOldProperties);
       } else {
         responseMessage.guid = await collection.add(record);

@@ -50,6 +50,12 @@ typedef Maybe<ExternalImageId> MaybeExternalImageId;
 typedef Maybe<FontInstanceOptions> MaybeFontInstanceOptions;
 typedef Maybe<FontInstancePlatformOptions> MaybeFontInstancePlatformOptions;
 
+struct ExternalImageKeyPair
+{
+  ImageKey key;
+  ExternalImageId id;
+};
+
 /* Generate a brand new window id and return it. */
 WindowId NewWindowId();
 
@@ -357,6 +363,17 @@ static inline wr::DeviceIntRect ToDeviceIntRect(const mozilla::ImageIntRect& rec
   return r;
 }
 
+// TODO: should be const LayoutDeviceIntRect instead of ImageIntRect
+static inline wr::LayoutIntRect ToLayoutIntRect(const mozilla::ImageIntRect& rect)
+{
+  wr::LayoutIntRect r;
+  r.origin.x = rect.X();
+  r.origin.y = rect.Y();
+  r.size.width = rect.Width();
+  r.size.height = rect.Height();
+  return r;
+}
+
 static inline wr::LayoutRect ToLayoutRect(const mozilla::LayoutDeviceIntRect& rect)
 {
   return ToLayoutRect(IntRectToRect(rect));
@@ -446,28 +463,28 @@ static inline wr::LayoutTransform ToLayoutTransform(const gfx::Matrix4x4Typed<S,
   return transform;
 }
 
-static inline wr::BorderStyle ToBorderStyle(const uint8_t& style)
+static inline wr::BorderStyle ToBorderStyle(const StyleBorderStyle& style)
 {
   switch (style) {
-  case NS_STYLE_BORDER_STYLE_NONE:
+  case StyleBorderStyle::None:
     return wr::BorderStyle::None;
-  case NS_STYLE_BORDER_STYLE_SOLID:
+  case StyleBorderStyle::Solid:
     return wr::BorderStyle::Solid;
-  case NS_STYLE_BORDER_STYLE_DOUBLE:
+  case StyleBorderStyle::Double:
     return wr::BorderStyle::Double;
-  case NS_STYLE_BORDER_STYLE_DOTTED:
+  case StyleBorderStyle::Dotted:
     return wr::BorderStyle::Dotted;
-  case NS_STYLE_BORDER_STYLE_DASHED:
+  case StyleBorderStyle::Dashed:
     return wr::BorderStyle::Dashed;
-  case NS_STYLE_BORDER_STYLE_HIDDEN:
+  case StyleBorderStyle::Hidden:
     return wr::BorderStyle::Hidden;
-  case NS_STYLE_BORDER_STYLE_GROOVE:
+  case StyleBorderStyle::Groove:
     return wr::BorderStyle::Groove;
-  case NS_STYLE_BORDER_STYLE_RIDGE:
+  case StyleBorderStyle::Ridge:
     return wr::BorderStyle::Ridge;
-  case NS_STYLE_BORDER_STYLE_INSET:
+  case StyleBorderStyle::Inset:
     return wr::BorderStyle::Inset;
-  case NS_STYLE_BORDER_STYLE_OUTSET:
+  case StyleBorderStyle::Outset:
     return wr::BorderStyle::Outset;
   default:
     MOZ_ASSERT(false);
@@ -475,7 +492,7 @@ static inline wr::BorderStyle ToBorderStyle(const uint8_t& style)
   return wr::BorderStyle::None;
 }
 
-static inline wr::BorderSide ToBorderSide(const gfx::Color& color, const uint8_t& style)
+static inline wr::BorderSide ToBorderSide(const gfx::Color& color, const StyleBorderStyle& style)
 {
   wr::BorderSide bs;
   bs.color = ToColorF(color);
@@ -822,34 +839,7 @@ static inline wr::WrFilterOpType ToWrFilterOpType(uint32_t type) {
   return wr::WrFilterOpType::Grayscale;
 }
 
-// Corresponds to an "internal" webrender clip id. That is, a
-// ClipId::Clip(x,pipeline_id) maps to a WrClipId{x}. We use a struct wrapper
-// instead of a typedef so that this is a distinct type from ids generated
-// by scroll and position:sticky nodes and the compiler will catch accidental
-// conversions between them.
-struct WrClipId {
-  size_t id;
-
-  bool operator==(const WrClipId& other) const {
-    return id == other.id;
-  }
-
-  bool operator!=(const WrClipId& other) const {
-    return !(*this == other);
-  }
-
-  static WrClipId RootScrollNode();
-
-  // Helper struct that allows this class to be used as a key in
-  // std::unordered_map like so:
-  //   std::unordered_map<WrClipId, ValueType, WrClipId::HashFn> myMap;
-  struct HashFn {
-    std::size_t operator()(const WrClipId& aKey) const
-    {
-      return std::hash<size_t>{}(aKey.id);
-    }
-  };
-};
+extern WrClipId RootScrollNode();
 
 // Corresponds to a clip id for a clip chain in webrender. Similar to
 // WrClipId but a separate struct so we don't get them mixed up in C++.
@@ -905,5 +895,15 @@ static inline wr::SyntheticItalics DegreesToSyntheticItalics(float aDegrees) {
 
 } // namespace wr
 } // namespace mozilla
+
+namespace std
+{
+    template<> struct hash<mozilla::wr::WrClipId>
+    {
+        std::size_t operator()(mozilla::wr::WrClipId const& aKey) const noexcept {
+          return std::hash<size_t>{}(aKey.id);
+        }
+    };
+}
 
 #endif /* GFX_WEBRENDERTYPES_H */

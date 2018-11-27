@@ -762,6 +762,13 @@ case "$target" in
         # From https://github.com/android-ndk/ndk/issues/133#issuecomment-308549264
         # -Oz is smaller than -Os on clang.
         MOZ_OPTIMIZE_FLAGS="-Oz"
+        # Disable the outliner, which causes performance regressions, and is
+        # enabled on some platforms at -Oz.
+        DISABLE_OUTLINER="-mno-outline"
+        _SAVE_CFLAGS=$CFLAGS
+        CFLAGS="$CFLAGS $DISABLE_OUTLINER"
+        AC_TRY_COMPILE(,,[MOZ_OPTIMIZE_FLAGS="$MOZ_OPTIMIZE_FLAGS $DISABLE_OUTLINER"])
+        CFLAGS="$_SAVE_CFLAGS"
     fi
     ;;
 
@@ -4380,7 +4387,7 @@ ac_configure_args="$_SUBDIR_CONFIG_ARGS"
 
 # --with-system-nspr will have been converted into the relevant $NSPR_CFLAGS
 # and $NSPR_LIBS.
-ac_configure_args="`echo $ac_configure_args | sed -e 's/--with-system-nspr\S* *//'`"
+ac_configure_args="`echo $ac_configure_args | sed -e 's/--with-system-nspr[[^[:space:]]]* *//'`"
 
 if test "$_INTL_API" = no; then
     ac_configure_args="$ac_configure_args --without-intl-api"

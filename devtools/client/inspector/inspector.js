@@ -10,7 +10,6 @@
 
 const Services = require("Services");
 const promise = require("promise");
-const flags = require("devtools/shared/flags");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {executeSoon} = require("devtools/shared/DevToolsUtils");
 const {Toolbox} = require("devtools/client/framework/toolbox");
@@ -165,6 +164,7 @@ Inspector.prototype = {
       this._getCssProperties(),
       this._getPageStyle(),
       this._getDefaultSelection(),
+      this._getAccessibilityFront(),
     ]);
 
     return this._deferredOpen();
@@ -247,6 +247,17 @@ Inspector.prototype = {
   },
 
   /**
+   * Check if the changes panel is enabled and supported by the server.
+   */
+  _supportsChangesPanel() {
+    // The changes actor was introduced in Fx65, we are checking this for backward
+    // compatibility when connecting to an older server. Can be removed once Fx65 hit the
+    // release channel.
+    return this._target.hasActor("changes") &&
+      Services.prefs.getBoolPref(TRACK_CHANGES_PREF);
+  },
+
+  /**
    * Handle promise rejections for various asynchronous actions, and only log errors if
    * the inspector panel still exists.
    * This is useful to silence useless errors that happen when the inspector is closed
@@ -268,11 +279,11 @@ Inspector.prototype = {
       this.selection.setNodeFront(this._defaultNode, { reason: "inspector-open" });
     }
 
-    if (Services.prefs.getBoolPref(TRACK_CHANGES_PREF)) {
+    if (this._supportsChangesPanel()) {
       // Get the Changes front, then call a method on it, which will instantiate
       // the ChangesActor. We want the ChangesActor to be guaranteed available before
       // the user makes any changes.
-      this.changesFront = this.toolbox.target.getFront("changes");
+      this.changesFront = await this.toolbox.target.getFront("changes");
       this.changesFront.start();
     }
 
@@ -287,10 +298,7 @@ Inspector.prototype = {
     // Setup the sidebar panels.
     this.setupSidebar();
 
-    if (flags.testing) {
-      await this.once("markuploaded");
-    }
-
+    await this.once("markuploaded");
     this.isReady = true;
 
     // All the components are initialized. Take care of the remaining initialization
@@ -334,6 +342,11 @@ Inspector.prototype = {
     return initCssProperties(this.toolbox).then(cssProperties => {
       this._cssProperties = cssProperties;
     }, this._handleRejectionIfNotDestroyed);
+  },
+
+  _getAccessibilityFront: async function() {
+    this.accessibilityFront = await this.target.getFront("accessibility");
+    return this.accessibilityFront;
   },
 
   _getDefaultSelection: function() {
@@ -935,7 +948,7 @@ Inspector.prototype = {
       },
     ];
 
-    if (Services.prefs.getBoolPref(TRACK_CHANGES_PREF)) {
+    if (this._supportsChangesPanel()) {
       // Insert Changes as third tab, right after Computed.
       // TODO: move this inline to `sidebarPanels` above when addressing Bug 1491887.
       sidebarPanels.splice(2, 0, {
@@ -1680,10 +1693,9 @@ Inspector.prototype = {
       click: () => this.showAccessibilityProperties(),
       disabled: true,
     });
-    // Only attempt to determine if a11y props menu item needs to be enabled iff
+    // Only attempt to determine if a11y props menu item needs to be enabled if
     // AccessibilityFront is enabled.
-    const accessibilityFront = this.target.getFront("accessibility");
-    if (accessibilityFront.enabled) {
+    if (this.accessibilityFront.enabled) {
       this._updateA11YMenuItem(showA11YPropsItem);
     }
 
@@ -2294,10 +2306,10 @@ Inspector.prototype = {
       .getBoolPref("devtools.screenshot.clipboard.enabled");
     const args = {
       file: true,
-      selector: this.selectionCssSelector,
+      nodeActorID: this.selection.nodeFront.actorID,
       clipboard: clipboardEnabled,
     };
-    const screenshotFront = this.target.getFront("screenshot");
+    const screenshotFront = await this.target.getFront("screenshot");
     const screenshot = await screenshotFront.capture(args);
     await saveScreenshot(this.panelWin, args, screenshot);
   },
@@ -2478,7 +2490,7 @@ Inspector.prototype = {
    */
   onShowBoxModelHighlighterForNode(nodeFront, options) {
     const toolbox = this.toolbox;
-    toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
+    toolbox.highlighter.highlight(nodeFront, options);
   },
 
   /**
@@ -2494,7 +2506,7 @@ Inspector.prototype = {
   },
 
   async inspectNodeActor(nodeActor, inspectFromAnnotation) {
-    const nodeFront = await this.walker.getNodeActorFromObjectActor(nodeActor);
+    const nodeFront = await this.walker.gripToNodeFront({ actor: nodeActor });
     if (!nodeFront) {
       console.error("The object cannot be linked to the inspector, the " +
                     "corresponding nodeFront could not be found.");

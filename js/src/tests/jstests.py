@@ -203,6 +203,8 @@ def parse_args():
                          type='choice', choices=['automation', 'none'],
                          help='Output format. Either automation or none'
                          ' (default %default).')
+    output_og.add_option('--log-wptreport', dest='wptreport', action='store',
+                         help='Path to write a Web Platform Tests report (wptreport)')
     op.add_option_group(output_og)
 
     special_og = OptionGroup(op, "Special",
@@ -321,6 +323,7 @@ def load_wpt_tests(xul_tester, requested_paths, excluded_paths):
         "testing/web-platform/tests/tools/third_party/webencodings",
         "testing/web-platform/tests/tools/wptrunner",
         "testing/web-platform/tests/tools/wptserve",
+        "third_party/python/requests",
     ]
     abs_sys_paths = [os.path.join(repo_root, path) for path in sys_paths]
 

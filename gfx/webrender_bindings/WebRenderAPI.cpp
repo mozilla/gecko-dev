@@ -14,6 +14,7 @@
 #include "mozilla/webrender/RenderCompositor.h"
 #include "mozilla/widget/CompositorWidget.h"
 #include "mozilla/layers/SynchronousTask.h"
+#include "TextDrawTarget.h"
 
 #define WRDL_LOG(...)
 //#define WRDL_LOG(...) printf_stderr("WRDL(%p): " __VA_ARGS__)
@@ -236,6 +237,12 @@ TransactionBuilder::IsEmpty() const
   return wr_transaction_is_empty(mTxn);
 }
 
+bool
+TransactionBuilder::IsResourceUpdatesEmpty() const
+{
+  return wr_transaction_resource_updates_is_empty(mTxn);
+}
+
 void
 TransactionBuilder::SetWindowParameters(const LayoutDeviceIntSize& aWindowSize,
                                         const LayoutDeviceIntRect& aDocumentRect)
@@ -381,8 +388,18 @@ WebRenderAPI::~WebRenderAPI()
 }
 
 void
+WebRenderAPI::UpdateDebugFlags(uint32_t aFlags)
+{
+  if (mDebugFlags.mBits != aFlags) {
+    mDebugFlags.mBits = aFlags;
+    wr_api_set_debug_flags(mDocHandle, mDebugFlags);
+  }
+}
+
+void
 WebRenderAPI::SendTransaction(TransactionBuilder& aTxn)
 {
+  UpdateDebugFlags(gfx::gfxVars::WebRenderDebugFlags());
   wr_api_send_transaction(mDocHandle, aTxn.Raw(), aTxn.UseSceneBuilderThread());
 }
 
@@ -441,6 +458,9 @@ WebRenderAPI::Readback(const TimeStamp& aStartTime,
             const Range<uint8_t>& mBuffer;
     };
 
+    // Disable debug flags during readback. See bug 1436020.
+    UpdateDebugFlags(0);
+
     layers::SynchronousTask task("Readback");
     auto event = MakeUnique<Readback>(&task, aStartTime, size, buffer);
     // This event will be passed from wr_backend thread to renderer thread. That
@@ -450,6 +470,8 @@ WebRenderAPI::Readback(const TimeStamp& aStartTime,
     RunOnRenderThread(std::move(event));
 
     task.Wait();
+
+    UpdateDebugFlags(gfx::gfxVars::WebRenderDebugFlags());
 }
 
 void
@@ -621,7 +643,7 @@ TransactionBuilder::AddImage(ImageKey key, const ImageDescriptor& aDescriptor,
 }
 
 void
-TransactionBuilder::AddBlobImage(ImageKey key, const ImageDescriptor& aDescriptor,
+TransactionBuilder::AddBlobImage(BlobImageKey key, const ImageDescriptor& aDescriptor,
                                  wr::Vec<uint8_t>& aBytes)
 {
   wr_resource_updates_add_blob_image(mTxn,
@@ -668,10 +690,10 @@ TransactionBuilder::UpdateImageBuffer(ImageKey aKey,
 }
 
 void
-TransactionBuilder::UpdateBlobImage(ImageKey aKey,
+TransactionBuilder::UpdateBlobImage(BlobImageKey aKey,
                                     const ImageDescriptor& aDescriptor,
                                     wr::Vec<uint8_t>& aBytes,
-                                    const wr::DeviceIntRect& aDirtyRect)
+                                    const wr::LayoutIntRect& aDirtyRect)
 {
   wr_resource_updates_update_blob_image(mTxn,
                                         aKey,
@@ -713,16 +735,22 @@ TransactionBuilder::UpdateExternalImageWithDirtyRect(ImageKey aKey,
 }
 
 void
-TransactionBuilder::SetImageVisibleArea(ImageKey aKey,
+TransactionBuilder::SetImageVisibleArea(BlobImageKey aKey,
                                         const wr::DeviceIntRect& aArea)
 {
-  wr_resource_updates_set_image_visible_area(mTxn, aKey, &aArea);
+  wr_resource_updates_set_blob_image_visible_area(mTxn, aKey, &aArea);
 }
 
 void
 TransactionBuilder::DeleteImage(ImageKey aKey)
 {
   wr_resource_updates_delete_image(mTxn, aKey);
+}
+
+void
+TransactionBuilder::DeleteBlobImage(BlobImageKey aKey)
+{
+  wr_resource_updates_delete_blob_image(mTxn, aKey);
 }
 
 void
@@ -865,13 +893,12 @@ DisplayListBuilder::PushStackingContext(const wr::LayoutRect& aBounds,
   }
 
   const wr::LayoutTransform* maybePerspective = aPerspective ? &perspective : nullptr;
-  const size_t* maybeClipNodeId = aClipNodeId ? &aClipNodeId->id : nullptr;
   WRDL_LOG("PushStackingContext b=%s t=%s\n", mWrState, Stringify(aBounds).c_str(),
       aTransform ? Stringify(*aTransform).c_str() : "none");
 
   bool outIsReferenceFrame = false;
   uintptr_t outReferenceFrameId = 0;
-  wr_dp_push_stacking_context(mWrState, aBounds, maybeClipNodeId, aAnimation,
+  wr_dp_push_stacking_context(mWrState, aBounds, aClipNodeId, aAnimation,
                               aOpacity, maybeTransform, aTransformStyle,
                               maybePerspective, aMixBlendMode,
                               aFilters.Elements(), aFilters.Length(),
@@ -891,17 +918,13 @@ wr::WrClipChainId
 DisplayListBuilder::DefineClipChain(const Maybe<wr::WrClipChainId>& aParent,
                                     const nsTArray<wr::WrClipId>& aClips)
 {
-  nsTArray<size_t> clipIds;
-  for (wr::WrClipId id : aClips) {
-    clipIds.AppendElement(id.id);
-  }
   uint64_t clipchainId = wr_dp_define_clipchain(mWrState,
       aParent ? &(aParent->id) : nullptr,
-      clipIds.Elements(), clipIds.Length());
+      aClips.Elements(), aClips.Length());
   WRDL_LOG("DefineClipChain id=%" PRIu64 " p=%s clips=%zu\n", mWrState,
       clipchainId,
       aParent ? Stringify(aParent->id).c_str() : "(nil)",
-      clipIds.Length());
+      aClips.Length());
   return wr::WrClipChainId{ clipchainId };
 }
 
@@ -912,7 +935,7 @@ DisplayListBuilder::DefineClip(const Maybe<wr::WrClipId>& aParentId,
                                const wr::WrImageMask* aMask)
 {
   size_t clip_id = wr_dp_define_clip(mWrState,
-      aParentId ? &(aParentId->id) : nullptr,
+      aParentId.ptrOr(nullptr),
       aClipRect,
       aComplex ? aComplex->Elements() : nullptr,
       aComplex ? aComplex->Length() : 0,
@@ -929,7 +952,7 @@ void
 DisplayListBuilder::PushClip(const wr::WrClipId& aClipId)
 {
   WRDL_LOG("PushClip id=%zu\n", mWrState, aClipId.id);
-  wr_dp_push_clip(mWrState, aClipId.id);
+  wr_dp_push_clip(mWrState, aClipId);
 }
 
 void
@@ -969,7 +992,7 @@ Maybe<wr::WrClipId>
 DisplayListBuilder::GetScrollIdForDefinedScrollLayer(layers::ScrollableLayerGuid::ViewID aViewId) const
 {
   if (aViewId == layers::ScrollableLayerGuid::NULL_SCROLL_ID) {
-    return Some(wr::WrClipId::RootScrollNode());
+    return Some(wr::RootScrollNode());
   }
 
   auto it = mScrollIds.find(aViewId);
@@ -995,7 +1018,7 @@ DisplayListBuilder::DefineScrollLayer(const layers::ScrollableLayerGuid::ViewID&
   size_t numericScrollId = wr_dp_define_scroll_layer(
       mWrState,
       aViewId,
-      aParentId ? &(aParentId->id) : nullptr,
+      aParentId.ptrOr(nullptr),
       aContentRect,
       aClipRect);
 
@@ -1017,7 +1040,7 @@ DisplayListBuilder::PushClipAndScrollInfo(const wr::WrClipId* aScrollId,
   if (aScrollId) {
     WRDL_LOG("PushClipAndScroll s=%zu c=%s\n", mWrState, aScrollId->id,
         aClipChainId ? Stringify(aClipChainId->id).c_str() : "none");
-    wr_dp_push_clip_and_scroll_info(mWrState, aScrollId->id,
+    wr_dp_push_clip_and_scroll_info(mWrState, *aScrollId,
         aClipChainId ? &(aClipChainId->id) : nullptr);
   }
   mClipChainLeaf = aClipChainLeaf;
@@ -1388,6 +1411,27 @@ Maybe<layers::ScrollableLayerGuid::ViewID>
 DisplayListBuilder::FixedPosScrollTargetTracker::GetScrollTargetForASR(const ActiveScrolledRoot* aAsr)
 {
   return aAsr == mAsr ? Some(mScrollId) : Nothing();
+}
+
+already_AddRefed<gfxContext>
+DisplayListBuilder::GetTextContext(wr::IpcResourceUpdateQueue& aResources,
+                                   const layers::StackingContextHelper& aSc,
+                                   layers::WebRenderLayerManager* aManager,
+                                   nsDisplayItem* aItem,
+                                   nsRect& aBounds,
+                                   const gfx::Point& aDeviceOffset)
+{
+  if (!mCachedTextDT) {
+    mCachedTextDT = new layout::TextDrawTarget(*this, aResources, aSc, aManager, aItem, aBounds);
+    mCachedContext = gfxContext::CreateOrNull(mCachedTextDT, aDeviceOffset);
+  } else {
+    mCachedTextDT->Reinitialize(aResources, aSc, aManager, aItem, aBounds);
+    mCachedContext->SetDeviceOffset(aDeviceOffset);
+    mCachedContext->SetMatrix(Matrix());
+  }
+
+  RefPtr<gfxContext> tmp = mCachedContext;
+  return tmp.forget();
 }
 
 } // namespace wr

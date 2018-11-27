@@ -79,6 +79,7 @@ using mozilla::PodCopy;
 // The following is a rough outline of the general struture of the tracing
 // internals.
 //
+/* clang-format off */
 //                                                                                              //
 //   .---------.    .---------.    .--------------------------.       .----------.              //
 //   |TraceEdge|    |TraceRoot|    |TraceManuallyBarrieredEdge|  ...  |TraceRange|   ... etc.   //
@@ -119,9 +120,10 @@ using mozilla::PodCopy;
 //     . . .   Static dispatch                                                                  //
 //     ======  Dispatch through a manual stack.                                                 //
 //                                                                                              //
+/* clang-format on */
 
 
-/*** Tracing Invariants **************************************************************************/
+/*** Tracing Invariants *****************************************************/
 
 #if defined(DEBUG)
 template<typename T>
@@ -306,23 +308,19 @@ JS_FOR_EACH_TRACEKIND(IMPL_CHECK_TRACED_THING);
 
 static bool UnmarkGrayGCThing(JSRuntime* rt, JS::GCCellPtr thing);
 
-static bool
-ShouldTraceCrossCompartment(JSTracer* trc, JSObject* src, Cell* cell)
+static inline bool
+ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src, Cell* dstCell)
 {
-    if (!trc->isMarkingTracer()) {
-        return true;
-    }
+    MarkColor color = marker->markColor();
 
-    MarkColor color = GCMarker::fromTracer(trc)->markColor();
-
-    if (!cell->isTenured()) {
+    if (!dstCell->isTenured()) {
         MOZ_ASSERT(color == MarkColor::Black);
         return false;
     }
-    TenuredCell& tenured = cell->asTenured();
+    TenuredCell& dst = dstCell->asTenured();
 
-    JS::Zone* zone = tenured.zone();
-    if (!src->zone()->isGCMarking() && !zone->isGCMarking()) {
+    JS::Zone* dstZone = dst.zone();
+    if (!src->zone()->isGCMarking() && !dstZone->isGCMarking()) {
         return false;
     }
 
@@ -334,25 +332,35 @@ ShouldTraceCrossCompartment(JSTracer* trc, JSObject* src, Cell* cell)
          * source and destination of the cross-compartment edge should be gray,
          * but the source was marked black by the write barrier.
          */
-        if (tenured.isMarkedGray()) {
-            MOZ_ASSERT(!zone->isCollecting());
-            UnmarkGrayGCThing(trc->runtime(), JS::GCCellPtr(cell, cell->getTraceKind()));
+        if (dst.isMarkedGray()) {
+            MOZ_ASSERT(!dstZone->isCollecting());
+            UnmarkGrayGCThing(marker->runtime(), JS::GCCellPtr(&dst, dst.getTraceKind()));
         }
-        return zone->isGCMarking();
+        return dstZone->isGCMarking();
     } else {
-        if (zone->isGCMarkingBlack()) {
+        if (dstZone->isGCMarkingBlack()) {
             /*
              * The destination compartment is being not being marked gray now,
              * but it will be later, so record the cell so it can be marked gray
              * at the appropriate time.
              */
-            if (!tenured.isMarkedAny()) {
+            if (!dst.isMarkedAny()) {
                 DelayCrossCompartmentGrayMarking(src);
             }
             return false;
         }
-        return zone->isGCMarkingGray();
+        return dstZone->isGCMarkingGray();
     }
+}
+
+static bool
+ShouldTraceCrossCompartment(JSTracer* trc, JSObject* src, Cell* dstCell)
+{
+    if (!trc->isMarkingTracer()) {
+        return true;
+    }
+
+    return ShouldMarkCrossCompartment(GCMarker::fromTracer(trc), src, dstCell);
 }
 
 static bool
@@ -396,7 +404,7 @@ js::gc::AssertRootMarkingPhase(JSTracer* trc)
 #endif
 
 
-/*** Tracing Interface ***************************************************************************/
+/*** Tracing Interface ******************************************************/
 
 template <typename T> T DoCallback(JS::CallbackTracer* trc, T* thingp, const char* name);
 template <typename T> void DoMarking(GCMarker* gcmarker, T* thing);
@@ -405,7 +413,7 @@ template <typename T> void NoteWeakEdge(GCMarker* gcmarker, T** thingp);
 template <typename T> void NoteWeakEdge(GCMarker* gcmarker, T* thingp);
 
 template <typename T>
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 js::gc::TraceExternalEdge(JSTracer* trc, T* thingp, const char* name)
 {
     MOZ_ASSERT(InternalBarrierMethods<T>::isMarkable(*thingp));
@@ -413,14 +421,14 @@ js::gc::TraceExternalEdge(JSTracer* trc, T* thingp, const char* name)
 }
 
 template <typename T>
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 js::UnsafeTraceManuallyBarrieredEdge(JSTracer* trc, T* thingp, const char* name)
 {
     TraceEdgeInternal(trc, ConvertToBase(thingp), name);
 }
 
 template <typename T>
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::UnsafeTraceRoot(JSTracer* trc, T* thingp, const char* name)
 {
     MOZ_ASSERT(thingp);
@@ -429,10 +437,10 @@ JS::UnsafeTraceRoot(JSTracer* trc, T* thingp, const char* name)
 
 // Instantiate a copy of the Tracing templates for each public GC pointer type.
 #define INSTANTIATE_PUBLIC_TRACE_FUNCTIONS(type) \
-    template JS_PUBLIC_API(void) JS::UnsafeTraceRoot<type>(JSTracer*, type*, const char*); \
-    template JS_PUBLIC_API(void) js::UnsafeTraceManuallyBarrieredEdge<type>(JSTracer*, type*, \
-                                                                            const char*); \
-    template JS_PUBLIC_API(void) js::gc::TraceExternalEdge<type>(JSTracer*, type*, const char*);
+    template JS_PUBLIC_API void JS::UnsafeTraceRoot<type>(JSTracer*, type*, const char*); \
+    template JS_PUBLIC_API void js::UnsafeTraceManuallyBarrieredEdge<type>(JSTracer*, type*, \
+                                                                           const char*); \
+    template JS_PUBLIC_API void js::gc::TraceExternalEdge<type>(JSTracer*, type*, const char*);
 FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_PUBLIC_TRACE_FUNCTIONS)
 FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_PUBLIC_TRACE_FUNCTIONS)
 #undef INSTANTIATE_PUBLIC_TRACE_FUNCTIONS
@@ -597,7 +605,7 @@ js::gc::TraceRangeInternal(JSTracer* trc, size_t len, T* vec, const char* name)
 }
 
 
-/*** GC Marking Interface *************************************************************************/
+/*** GC Marking Interface ***************************************************/
 
 namespace js {
 
@@ -960,7 +968,7 @@ js::GCMarker::mark(T* thing)
 }
 
 
-/*** Inline, Eager GC Marking *********************************************************************/
+/*** Inline, Eager GC Marking ***********************************************/
 
 // Each of the eager, inline marking paths is directly preceeded by the
 // out-of-line, generic tracing code for comparison. Both paths must end up
@@ -1620,7 +1628,7 @@ VisitTraceList(F f, const int32_t* traceList, uint8_t* memory, Args&&... args)
 }
 
 
-/*** Mark-stack Marking ***************************************************************************/
+/*** Mark-stack Marking *****************************************************/
 
 bool
 GCMarker::markUntilBudgetExhaused(SliceBudget& budget)
@@ -2012,7 +2020,7 @@ GCMarker::restoreValueArray(const MarkStack::SavedValueArray& savedArray)
 }
 
 
-/*** Mark Stack ***********************************************************************************/
+/*** Mark Stack *************************************************************/
 
 static_assert(sizeof(MarkStack::TaggedPtr) == sizeof(uintptr_t),
               "A TaggedPtr should be the same size as a pointer");
@@ -2464,7 +2472,7 @@ MarkStackIter::saveValueArray(const MarkStack::SavedValueArray& savedArray)
 }
 
 
-/*** GCMarker *************************************************************************************/
+/*** GCMarker ***************************************************************/
 
 /*
  * ExpandWeakMaps: the GC is recomputing the liveness of WeakMap entries by
@@ -2542,7 +2550,6 @@ GCMarker::reset()
         MOZ_ASSERT(markLaterArenas);
         unmarkedArenaStackTop = arena->getNextDelayedMarking();
         arena->unsetDelayedMarking();
-        arena->markOverflow = 0;
 
 #ifdef DEBUG
         markLaterArenas--;
@@ -2552,6 +2559,38 @@ GCMarker::reset()
     MOZ_ASSERT(!markLaterArenas);
 }
 
+void
+GCMarker::setMarkColor(gc::MarkColor newColor)
+{
+    if (color == newColor) {
+        return;
+    }
+    if (newColor == gc::MarkColor::Black) {
+        setMarkColorBlack();
+    } else {
+        setMarkColorGray();
+    }
+}
+
+void
+GCMarker::setMarkColorGray()
+{
+    MOZ_ASSERT(isDrained());
+    MOZ_ASSERT(color == gc::MarkColor::Black);
+    MOZ_ASSERT(runtime()->gc.state() == State::Sweep);
+
+    color = gc::MarkColor::Gray;
+}
+
+void
+GCMarker::setMarkColorBlack()
+{
+    MOZ_ASSERT(isDrained());
+    MOZ_ASSERT(color == gc::MarkColor::Gray);
+    MOZ_ASSERT(runtime()->gc.state() == State::Sweep);
+
+    color = gc::MarkColor::Black;
+}
 
 template <typename T>
 void
@@ -2632,9 +2671,6 @@ GCMarker::leaveWeakMarkingMode()
 void
 GCMarker::markDelayedChildren(Arena* arena)
 {
-    MOZ_ASSERT(arena->markOverflow);
-    arena->markOverflow = 0;
-
     JS::TraceKind kind = MapAllocToTraceKind(arena->getAllocKind());
 
     // Whether we need to mark children of gray or black cells in the arena
@@ -2727,7 +2763,7 @@ GCMarker::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 }
 
 
-/*** Tenuring Tracer *****************************************************************************/
+/*** Tenuring Tracer ********************************************************/
 
 namespace js {
 template <typename T>
@@ -2824,9 +2860,7 @@ js::gc::StoreBuffer::SlotsEdge::trace(TenuringTracer& mover) const
         return;
     }
 
-    if (IsInsideNursery(obj)) {
-        return;
-    }
+    MOZ_ASSERT(!IsInsideNursery(obj), "obj shouldn't live in nursery.");
 
     if (kind() == ElementKind) {
         uint32_t initLen = obj->getDenseInitializedLength();
@@ -3322,7 +3356,7 @@ js::TenuringTracer::moveStringToTenured(JSString* dst, JSString* src, AllocKind 
 }
 
 
-/*** IsMarked / IsAboutToBeFinalized **************************************************************/
+/*** IsMarked / IsAboutToBeFinalized ****************************************/
 
 template <typename T>
 static inline void
@@ -3465,14 +3499,14 @@ namespace js {
 namespace gc {
 
 template <typename T>
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 EdgeNeedsSweep(JS::Heap<T>* thingp)
 {
     return IsAboutToBeFinalizedInternal(ConvertToBase(thingp->unsafeGet()));
 }
 
 template <typename T>
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 EdgeNeedsSweepUnbarrieredSlow(T* thingp)
 {
     return IsAboutToBeFinalizedInternal(ConvertToBase(thingp));
@@ -3480,8 +3514,8 @@ EdgeNeedsSweepUnbarrieredSlow(T* thingp)
 
 // Instantiate a copy of the Tracing templates for each public GC type.
 #define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type) \
-    template JS_PUBLIC_API(bool) EdgeNeedsSweep<type>(JS::Heap<type>*); \
-    template JS_PUBLIC_API(bool) EdgeNeedsSweepUnbarrieredSlow<type>(type*);
+    template JS_PUBLIC_API bool EdgeNeedsSweep<type>(JS::Heap<type>*); \
+    template JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow<type>(type*);
 FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 
@@ -3502,7 +3536,7 @@ FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_INTERNAL_MARKING_FUNCTIONS)
 } /* namespace js */
 
 
-/*** Cycle Collector Barrier Implementation *******************************************************/
+/*** Cycle Collector Barrier Implementation *********************************/
 
 /*
  * The GC and CC are run independently. Consequently, the following sequence of
@@ -3648,7 +3682,7 @@ UnmarkGrayGCThing(JSRuntime* rt, JS::GCCellPtr thing)
     return unmarker.unmarkedAny;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr thing)
 {
     MOZ_ASSERT(!JS::RuntimeHeapIsCollecting());

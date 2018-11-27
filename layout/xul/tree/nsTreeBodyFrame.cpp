@@ -1880,14 +1880,6 @@ nsTreeBodyFrame::PrefillPropertyArray(int32_t aRowIndex, nsTreeColumn* aCol)
       selection->GetCurrentIndex(&currentIndex);
       if (aRowIndex == currentIndex)
         mScratchArray.AppendElement((nsStaticAtom*)nsGkAtoms::current);
-
-      // active
-      if (aCol) {
-        RefPtr<nsTreeColumn> currentColumn;
-        selection->GetCurrentColumn(getter_AddRefs(currentColumn));
-        if (aCol == currentColumn)
-          mScratchArray.AppendElement((nsStaticAtom*)nsGkAtoms::active);
-      }
     }
 
     // container or leaf
@@ -3227,7 +3219,7 @@ nsTreeBodyFrame::PaintCell(int32_t               aRowIndex,
       nscolor color = borderStyle->mBorderLeftColor.CalcColor(lineContext);
       ColorPattern colorPatt(ToDeviceColor(color));
 
-      uint8_t style = borderStyle->GetBorderStyle(eSideLeft);
+      StyleBorderStyle style = borderStyle->GetBorderStyle(eSideLeft);
       StrokeOptions strokeOptions;
       nsLayoutUtils::InitDashPattern(strokeOptions, style);
 

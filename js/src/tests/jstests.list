@@ -425,6 +425,10 @@ skip script test262/language/expressions/prefix-decrement/target-newtarget.js
 skip script test262/language/expressions/prefix-decrement/target-cover-newtarget.js
 skip script test262/language/expressions/prefix-decrement/non-simple.js
 skip script test262/language/asi/S7.9_A5.7_T1.js
+skip script test262/language/expressions/dynamic-import/syntax/invalid/invalid-asssignmenttargettype-reference-error-1-update-expression.js
+skip script test262/language/expressions/dynamic-import/syntax/invalid/invalid-asssignmenttargettype-reference-error-2-update-expression.js
+skip script test262/language/expressions/dynamic-import/syntax/invalid/invalid-asssignmenttargettype-reference-error-3-update-expression.js
+skip script test262/language/expressions/dynamic-import/syntax/invalid/invalid-asssignmenttargettype-reference-error-4-update-expression.js
 
 # Dependent on evalInWorker, setSharedArrayBuffer, and
 # getSharedArrayBuffer, plus the test cases can't actually run in the
@@ -477,14 +481,16 @@ skip script test262/built-ins/Reflect/ownKeys/return-on-corresponding-order-larg
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1473229
 skip include test262/intl402/RelativeTimeFormat/prototype/formatToParts/jstests.list
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1483545
-skip script test262/intl402/RelativeTimeFormat/prototype/format/en-us-numeric-always.js
-skip script test262/intl402/RelativeTimeFormat/prototype/format/en-us-numeric-auto.js
-skip script test262/intl402/RelativeTimeFormat/prototype/format/en-us-style-short.js
-skip script test262/intl402/RelativeTimeFormat/prototype/format/pl-pl-style-long.js
-skip script test262/intl402/RelativeTimeFormat/prototype/format/pl-pl-style-narrow.js
-skip script test262/intl402/RelativeTimeFormat/prototype/format/pl-pl-style-short.js
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1508684
+skip script test262/built-ins/RegExp/prototype/multiline/cross-realm.js
+skip script test262/built-ins/RegExp/prototype/global/cross-realm.js
+skip script test262/built-ins/RegExp/prototype/sticky/cross-realm.js
+skip script test262/built-ins/RegExp/prototype/ignoreCase/cross-realm.js
+skip script test262/built-ins/RegExp/prototype/unicode/cross-realm.js
+skip script test262/built-ins/RegExp/prototype/source/cross-realm.js
 
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1508684
+skip script test262/language/expressions/import.meta/syntax/invalid-assignment-target-update-expr.js
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #

@@ -42,6 +42,30 @@ MARKUPMAP(blockquote,
           New_HyperText,
           roles::BLOCKQUOTE)
 
+MARKUPMAP(
+  button,
+  [](Element* aElement, Accessible* aContext) -> Accessible* {
+     return new HTMLButtonAccessible(aElement, aContext->Document());
+  },
+  0
+)
+
+MARKUPMAP(
+  caption,
+  [](Element* aElement, Accessible* aContext) -> Accessible* {
+     if (aContext->IsTable()) {
+       dom::HTMLTableElement* tableEl =
+         dom::HTMLTableElement::FromNode(aContext->GetContent());
+       if (tableEl && tableEl == aElement->GetParent() &&
+           tableEl->GetCaption() == aElement) {
+         return new HTMLCaptionAccessible(aElement, aContext->Document());
+       }
+     }
+     return nullptr;
+  },
+  0
+)
+
 MARKUPMAP(dd,
           New_HTMLDtOrDd<HyperTextAccessibleWrap>,
           roles::DEFINITION)
@@ -85,6 +109,14 @@ MARKUPMAP(
   },
   roles::FIGURE,
   Attr(xmlroles, figure)
+)
+
+MARKUPMAP(
+  fieldset,
+  [](Element* aElement, Accessible* aContext) -> Accessible* {
+     return new HTMLGroupboxAccessible(aElement, aContext->Document());
+  },
+  0
 )
 
 MARKUPMAP(
@@ -134,6 +166,14 @@ MARKUPMAP(h5,
 MARKUPMAP(h6,
           New_HyperText,
           roles::HEADING)
+
+MARKUPMAP(
+  hr,
+  [](Element* aElement, Accessible* aContext) -> Accessible* {
+     return new HTMLHRAccessible(aElement, aContext->Document());
+  },
+  0
+)
 
 MARKUPMAP(
   input,
@@ -430,7 +470,7 @@ MARKUPMAP(p,
 MARKUPMAP(
   progress,
   [](Element* aElement, Accessible* aContext) -> Accessible* {
-     return new HTMLProgressMeterAccessible(aElement, aContext->Document());
+     return new HTMLProgressAccessible(aElement, aContext->Document());
   },
   0
 )

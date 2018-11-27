@@ -69,6 +69,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/dom/HTMLTableElement.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsDeckFrame.h"
@@ -427,9 +428,8 @@ nsAccessibilityService::CreatePluginAccessible(nsPluginFrame* aFrame,
     return nullptr;
 
 #if defined(XP_WIN) || defined(MOZ_ACCESSIBILITY_ATK)
-  RefPtr<nsNPAPIPluginInstance> pluginInstance;
-  if (NS_SUCCEEDED(aFrame->GetPluginInstance(getter_AddRefs(pluginInstance))) &&
-      pluginInstance) {
+  RefPtr<nsNPAPIPluginInstance> pluginInstance = aFrame->GetPluginInstance();
+  if (pluginInstance) {
 #ifdef XP_WIN
     if (!sPendingPlugins->Contains(aContent) &&
         (Preferences::GetBool("accessibility.delay_plugins") ||

@@ -6393,6 +6393,7 @@ ValidateGlobalVariable(JSContext* cx, const AsmJSGlobal& global, HandleValue imp
             return true;
           }
           case ValType::Ref:
+          case ValType::NullRef:
           case ValType::AnyRef: {
             MOZ_CRASH("not available in asm.js");
           }
@@ -6634,6 +6635,12 @@ TryInstantiate(JSContext* cx, CallArgs args, const Module& module, const AsmJSMe
     HandleValue globalVal = args.get(0);
     HandleValue importVal = args.get(1);
     HandleValue bufferVal = args.get(2);
+
+    // Re-check HasCompilerSupport(cx) since this varies per-thread and
+    // 'module' may have been produced on a parser thread.
+    if (!HasCompilerSupport(cx)) {
+        return LinkFail(cx, "no compiler support");
+    }
 
     RootedArrayBufferObjectMaybeShared buffer(cx);
     RootedWasmMemoryObject memory(cx);

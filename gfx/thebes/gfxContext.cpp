@@ -301,6 +301,25 @@ gfxContext::Rectangle(const gfxRect& rect, bool snapToPixels)
   mPathBuilder->Close();
 }
 
+void
+gfxContext::SnappedClip(const gfxRect& rect)
+{
+  Rect rec = ToRect(rect);
+
+  gfxRect newRect(rect);
+  if (UserToDevicePixelSnapped(newRect, true)) {
+    gfxMatrix mat = ThebesMatrix(mTransform);
+    if (mat.Invert()) {
+      // We need the user space rect.
+      rec = ToRect(mat.TransformBounds(newRect));
+    } else {
+      rec = Rect();
+    }
+  }
+
+  Clip(rec);
+}
+
 // transform stuff
 void
 gfxContext::Multiply(const gfxMatrix& matrix)
@@ -484,12 +503,6 @@ gfxContext::CurrentDash(FallibleTArray<Float>& dashes, Float* offset) const
   *offset = state.strokeOptions.mDashOffset;
 
   return true;
-}
-
-Float
-gfxContext::CurrentDashOffset() const
-{
-  return CurrentState().strokeOptions.mDashOffset;
 }
 
 void
@@ -1000,6 +1013,12 @@ Point
 gfxContext::GetDeviceOffset() const
 {
   return CurrentState().deviceOffset;
+}
+
+void
+gfxContext::SetDeviceOffset(const Point& aOffset)
+{
+  CurrentState().deviceOffset = aOffset;
 }
 
 Matrix

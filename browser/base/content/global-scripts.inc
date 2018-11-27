@@ -16,7 +16,6 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 for (let script of [
   "chrome://browser/content/browser.js",
-  "chrome://browser/content/search/searchbar.js",
 
   "chrome://browser/content/browser-captivePortal.js",
   "chrome://browser/content/browser-compacttheme.js",
@@ -26,7 +25,6 @@ for (let script of [
   "chrome://browser/content/browser-places.js",
   "chrome://browser/content/browser-plugins.js",
   "chrome://browser/content/browser-sidebar.js",
-  "chrome://browser/content/browser-siteIdentity.js",
   "chrome://browser/content/browser-tabsintitlebar.js",
 
   "chrome://global/content/globalOverlay.js",

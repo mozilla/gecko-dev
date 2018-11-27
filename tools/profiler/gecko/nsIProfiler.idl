@@ -6,6 +6,7 @@
 #include "nsISupports.idl"
 
 %{C++
+#include "mozilla/Maybe.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsStringFwd.h"
 %}
@@ -22,6 +23,7 @@
 interface nsIProfilerStartParams : nsISupports
 {
   readonly attribute uint32_t entries;
+  readonly attribute double duration;
   readonly attribute double interval;
   readonly attribute uint32_t features;
 
@@ -36,7 +38,8 @@ interface nsIProfiler : nsISupports
                       [array, size_is(aFeatureCount)] in string aFeatures,
                       in uint32_t aFeatureCount,
                       [array, size_is(aFilterCount), optional] in string aFilters,
-                      [optional] in uint32_t aFilterCount);
+                      [optional] in uint32_t aFilterCount,
+                      [optional] in double aDuration);
   void StopProfiler();
   boolean IsPaused();
   void PauseSampling();
@@ -81,12 +84,6 @@ interface nsIProfiler : nsISupports
    * The array may contain features that are not supported in this build.
    */
   void GetAllFeatures(out uint32_t aCount, [retval, array, size_is(aCount)] out string aFeatures);
-
-  /**
-   * The starting parameters that were sent to the profiler for sampling.
-   * If the profiler is not currently sampling, this will return null.
-   */
-  [noscript] readonly attribute nsIProfilerStartParams startParams;
 
   void GetBufferInfo(out uint32_t aCurrentPosition, out uint32_t aTotalSize,
                      out uint32_t aGeneration);

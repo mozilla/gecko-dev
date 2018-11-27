@@ -339,8 +339,15 @@ nsLayoutUtils::GetAnimationPropertiesForCompositor(const nsIFrame* aFrame)
     return properties;
   }
 
+  AnimationPerformanceWarning::Type warning;
+  if (!EffectCompositor::AllowCompositorAnimationsOnFrame(aFrame,
+                                                          *effects,
+                                                          warning)) {
+    return properties;
+  }
+
   for (const KeyframeEffect* effect : *effects) {
-    properties |= effect->GetPropertiesForCompositor(*effects);
+    properties |= effect->GetPropertiesForCompositor(*effects, aFrame);
   }
 
   return properties;
@@ -4771,7 +4778,7 @@ nsLayoutUtils::GetNonGeneratedAncestor(nsIFrame* aFrame)
 }
 
 nsIFrame*
-nsLayoutUtils::GetParentOrPlaceholderFor(nsIFrame* aFrame)
+nsLayoutUtils::GetParentOrPlaceholderFor(const nsIFrame* aFrame)
 {
   if ((aFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
       && !aFrame->GetPrevInFlow()) {
@@ -7647,8 +7654,7 @@ nsLayoutUtils::GetDeviceContextForScreenInfo(nsPIDOMWindowOuter* aWindow)
 
     win->EnsureSizeAndPositionUpToDate();
 
-    RefPtr<nsPresContext> presContext;
-    docShell->GetPresContext(getter_AddRefs(presContext));
+    RefPtr<nsPresContext> presContext = docShell->GetPresContext();
     if (presContext) {
       nsDeviceContext* context = presContext->DeviceContext();
       if (context) {
@@ -9215,9 +9221,8 @@ MaybeReflowForInflationScreenSizeChange(nsPresContext *aPresContext)
           nsTArray<nsCOMPtr<nsIContentViewer> > array;
           cv->AppendSubtree(array);
           for (uint32_t i = 0, iEnd = array.Length(); i < iEnd; ++i) {
-            nsCOMPtr<nsIPresShell> shell;
             nsCOMPtr<nsIContentViewer> cv = array[i];
-            cv->GetPresShell(getter_AddRefs(shell));
+            nsCOMPtr<nsIPresShell> shell = cv->GetPresShell();
             if (shell) {
               nsIFrame *rootFrame = shell->GetRootFrame();
               if (rootFrame) {

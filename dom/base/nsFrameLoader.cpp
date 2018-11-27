@@ -179,7 +179,6 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, nsPIDOMWindowOuter* aOpener,
   , mLoadingOriginalSrc(false)
   , mRemoteBrowserShown(false)
   , mRemoteFrame(false)
-  , mClipSubdocument(true)
   , mClampScrollPosition(true)
   , mObservingOwnerContent(false)
 {
@@ -463,6 +462,8 @@ nsFrameLoader::ReallyStartLoadingInternal()
     flags = nsIWebNavigation::LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP |
             nsIWebNavigation::LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL;
   }
+
+  loadState->SetIsFromProcessingFrameAttributes();
 
   // Kick off the load...
   bool tmpState = mNeedsAsyncDestroy;
@@ -818,8 +819,7 @@ nsFrameLoader::MarginsChanged(uint32_t aMarginWidth,
 
   // Trigger a restyle if there's a prescontext
   // FIXME: This could do something much less expensive.
-  RefPtr<nsPresContext> presContext;
-  mDocShell->GetPresContext(getter_AddRefs(presContext));
+  RefPtr<nsPresContext> presContext = mDocShell->GetPresContext();
   if (presContext)
     // rebuild, because now the same nsMappedAttributes* will produce
     // a different style
@@ -2419,30 +2419,6 @@ nsFrameLoader::LazyHeight() const
   }
 
   return lazyHeight;
-}
-
-void
-nsFrameLoader::SetClipSubdocument(bool aClip)
-{
-  mClipSubdocument = aClip;
-  nsIFrame* frame = GetPrimaryFrameOfOwningContent();
-  if (frame) {
-    frame->InvalidateFrame();
-    frame->PresShell()->
-      FrameNeedsReflow(frame, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
-    nsSubDocumentFrame* subdocFrame = do_QueryFrame(frame);
-    if (subdocFrame) {
-      nsIFrame* subdocRootFrame = subdocFrame->GetSubdocumentRootFrame();
-      if (subdocRootFrame) {
-        nsIFrame* subdocRootScrollFrame = subdocRootFrame->PresShell()->
-          GetRootScrollFrame();
-        if (subdocRootScrollFrame) {
-          frame->PresShell()->
-            FrameNeedsReflow(frame, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
-        }
-      }
-    }
-  }
 }
 
 void

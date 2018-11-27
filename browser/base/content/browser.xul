@@ -89,7 +89,7 @@ xmlns="http://www.w3.org/1999/xhtml"
 >
   Services.scriptloader.loadSubScript("chrome://global/content/contentAreaUtils.js", this);
   Services.scriptloader.loadSubScript("chrome://browser/content/tabbrowser.js", this);
-  Services.scriptloader.loadSubScript("chrome://browser/content/search/search-one-offs.js", this);
+  Services.scriptloader.loadSubScript("chrome://browser/content/search/searchbar.js", this);
 
   window.onload = gBrowserInit.onLoad.bind(gBrowserInit);
   window.onunload = gBrowserInit.onUnload.bind(gBrowserInit);
@@ -730,12 +730,11 @@ xmlns="http://www.w3.org/1999/xhtml"
                autohide="true"
 #endif
                context="toolbar-context-menu">
-        <toolbaritem id="menubar-items" align="center">
+        <toolbaritem id="menubar-items" align="start" flex="1">
 # The entire main menubar is placed into browser-menubar.inc, so that it can be
 # shared with other top level windows in macWindow.inc.xul.
 #include browser-menubar.inc
         </toolbaritem>
-        <spacer flex="1" />
 #include titlebar-items.inc.xul
       </toolbar>
 
@@ -790,10 +789,10 @@ xmlns="http://www.w3.org/1999/xhtml"
         </vbox>
 
 #ifndef XP_MACOSX
-        <button class="accessibility-indicator titlebar-item"  tooltiptext="&accessibilityIndicator.tooltip;"
+        <button class="accessibility-indicator" tooltiptext="&accessibilityIndicator.tooltip;"
                 ordinal="1000"
                 aria-live="polite" skipintoolbarset="true"/>
-        <hbox class="private-browsing-indicator titlebar-item" skipintoolbarset="true"
+        <hbox class="private-browsing-indicator" skipintoolbarset="true"
               ordinal="1000"/>
 #endif
 

@@ -14,7 +14,6 @@ from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.partials import (get_balrog_platform_name,
                                      get_partials_artifacts,
                                      get_partials_artifact_map)
-from taskgraph.util.schema import validate_schema
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
                                          get_worker_type_for_scope)
@@ -130,8 +129,6 @@ UPSTREAM_ARTIFACT_REPACKAGE_PATHS = [
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_SIGNED_REPACKAGE_PATHS = [
-    'target.complete.mar',
-    'target.bz2.complete.mar',
     'target.installer.exe',
     'target.stub-installer.exe',
 ]
@@ -140,11 +137,14 @@ UPSTREAM_ARTIFACT_SIGNED_MSI_PATHS = [
     'target.installer.msi',
 ]
 
+UPSTREAM_ARTIFACT_SIGNED_MAR_PATHS = [
+    'target.complete.mar',
+    'target.bz2.complete.mar',
+]
+
 # Voluptuous uses marker objects as dictionary *keys*, but they are not
 # comparable, so we cast all of the keys back to regular strings
 task_description_schema = {str(k): v for k, v in task_description_schema.schema.iteritems()}
-
-transforms = TransformSequence()
 
 # shortcut for a string where task references are allowed
 taskref_or_string = Any(
@@ -163,6 +163,8 @@ beetmover_description_schema = schema.extend({
     # below transforms for defaults of various values.
     Optional('treeherder'): task_description_schema['treeherder'],
 
+    Optional('attributes'): task_description_schema['attributes'],
+
     # locale is passed only for l10n beetmoving
     Optional('locale'): basestring,
     Required('shipping-phase'): task_description_schema['shipping-phase'],
@@ -170,15 +172,8 @@ beetmover_description_schema = schema.extend({
     Optional('shipping-product'): task_description_schema['shipping-product'],
 })
 
-
-@transforms.add
-def validate(config, jobs):
-    for job in jobs:
-        label = job.get('primary-dependency', object).__dict__.get('label', '?no-label?')
-        validate_schema(
-            beetmover_description_schema, job,
-            "In beetmover ({!r} kind) task for {!r}:".format(config.kind, label))
-        yield job
+transforms = TransformSequence()
+transforms.add_validate(beetmover_description_schema)
 
 
 @transforms.add
@@ -207,29 +202,33 @@ def make_task_description(config, jobs):
 
         upstream_deps = job['dependent-tasks']
 
-        # TODO fix the upstreamArtifact generation to not need this?
         signing_name = "build-signing"
         build_name = "build"
         repackage_name = "repackage"
         repackage_signing_name = "repackage-signing"
         msi_signing_name = "repackage-signing-msi"
+        mar_signing_name = "mar-signing"
         if job.get('locale'):
             signing_name = "nightly-l10n-signing"
             build_name = "nightly-l10n"
             repackage_name = "repackage-l10n"
             repackage_signing_name = "repackage-signing-l10n"
+            mar_signing_name = "mar-signing-l10n"
         dependencies = {
             "build": upstream_deps[build_name],
             "repackage": upstream_deps[repackage_name],
-            "repackage-signing": upstream_deps[repackage_signing_name],
             "signing": upstream_deps[signing_name],
+            "mar-signing": upstream_deps[mar_signing_name],
         }
         if 'partials-signing' in upstream_deps:
             dependencies['partials-signing'] = upstream_deps['partials-signing']
         if msi_signing_name in upstream_deps:
             dependencies[msi_signing_name] = upstream_deps[msi_signing_name]
+        if repackage_signing_name in upstream_deps:
+            dependencies["repackage-signing"] = upstream_deps[repackage_signing_name]
 
         attributes = copy_attributes_from_dependent_job(dep_job)
+        attributes.update(job.get('attributes', {}))
         if job.get('locale'):
             attributes['locale'] = job['locale']
 
@@ -259,6 +258,7 @@ def generate_upstream_artifacts(job, dependencies, platform, locale=None, projec
     repackage_mapping = UPSTREAM_ARTIFACT_REPACKAGE_PATHS
     repackage_signing_mapping = UPSTREAM_ARTIFACT_SIGNED_REPACKAGE_PATHS
     msi_signing_mapping = UPSTREAM_ARTIFACT_SIGNED_MSI_PATHS
+    mar_signing_mapping = UPSTREAM_ARTIFACT_SIGNED_MAR_PATHS
 
     artifact_prefix = get_artifact_prefix(job)
     if locale:
@@ -302,6 +302,7 @@ def generate_upstream_artifacts(job, dependencies, platform, locale=None, projec
         ('repackage', 'repackage', repackage_mapping),
         ('repackage-signing', 'repackage', repackage_signing_mapping),
         ('repackage-signing-msi', 'repackage', msi_signing_mapping),
+        ('mar-signing', 'signing', mar_signing_mapping),
     ]:
         if task_type not in dependencies:
             continue

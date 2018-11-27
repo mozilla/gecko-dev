@@ -1274,6 +1274,16 @@ pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", 
 pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
 #endif
 
+// ASRouter provider configuration
+#if defined(NIGHTLY_BUILD)
+pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":true,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
+pref("browser.newtabpage.activity-stream.asrouter.providers.cfr", "{\"id\":\"cfr\",\"enabled\":true,\"type\":\"local\",\"localProvider\":\"CFRMessageProvider\",\"frequency\":{\"custom\":[{\"period\":\"daily\",\"cap\":1}]}}");
+#else
+pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "{\"id\":\"snippets\",\"enabled\":false,\"type\":\"remote\",\"url\":\"https://snippets.cdn.mozilla.net/%STARTPAGE_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/\",\"updateCycleInMs\":14400000}");
+pref("browser.newtabpage.activity-stream.asrouter.providers.cfr", "{\"id\":\"cfr\",\"enabled\":false,\"type\":\"local\",\"localProvider\":\"CFRMessageProvider\",\"frequency\":{\"custom\":[{\"period\":\"daily\",\"cap\":1}]}}");
+#endif
+
+
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);
 
@@ -1384,10 +1394,6 @@ pref("geo.provider.use_gpsd", true);
 #endif
 
 #endif
-
-// Necko IPC security checks only needed for app isolation for cookies/cache/etc:
-// currently irrelevant for desktop e10s
-pref("network.disable.ipc.security", true);
 
 // CustomizableUI debug logging.
 pref("browser.uiCustomization.debug", false);
@@ -1522,11 +1528,8 @@ pref("browser.ping-centre.production.endpoint", "https://tiles.services.mozilla.
 // Enable GMP support in the addon manager.
 pref("media.gmp-provider.enabled", true);
 
-// Enable blocking access to storage from tracking resources by default on
-// Nightly and Beta
-#ifdef EARLY_BETA_OR_EARLIER
+// Enable blocking access to storage from tracking resources by default
 pref("network.cookie.cookieBehavior", 4 /* BEHAVIOR_REJECT_TRACKER */);
-#endif
 
 pref("browser.contentblocking.allowlist.storage.enabled", true);
 
@@ -1536,9 +1539,7 @@ pref("dom.storage_access.enabled", true);
 #endif
 
 // Define a set of default features for the Content Blocking UI.
-pref("browser.contentblocking.trackingprotection.ui.enabled", true);
 pref("browser.contentblocking.trackingprotection.control-center.ui.enabled", true);
-pref("browser.contentblocking.rejecttrackers.ui.enabled", true);
 pref("browser.contentblocking.rejecttrackers.control-center.ui.enabled", true);
 
 // Enable the Report Breakage UI on Nightly and Beta but not on Release yet.
@@ -1555,6 +1556,9 @@ pref("browser.contentblocking.reportBreakage.url", "https://tracking-protection-
 pref("browser.contentblocking.introCount", 0);
 
 pref("privacy.trackingprotection.introURL", "https://www.mozilla.org/%LOCALE%/firefox/%VERSION%/tracking-protection/start/");
+
+// Workaround for Google Recaptcha
+pref("urlclassifier.trackingAnnotationSkipURLs", "google.com/recaptcha/,*.google.com/recaptcha/");
 
 // Always enable newtab segregation using containers
 pref("privacy.usercontext.about_newtab_segregation.enabled", true);
@@ -1790,3 +1794,8 @@ pref("toolkit.coverage.endpoint.base", "https://coverage.mozilla.org");
 #if defined(NIGHTLY_BUILD) && defined(MOZ_LIBPRIO)
 pref("prio.enabled", true);
 #endif
+
+// Discovery prefs
+pref("browser.discovery.enabled", false);
+pref("browser.discovery.containers.enabled", true);
+pref("browser.discovery.sites", "addons.mozilla.org");

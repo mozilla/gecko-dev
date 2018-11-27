@@ -108,7 +108,8 @@ nsProfiler::CanProfile(bool *aCanProfile)
 NS_IMETHODIMP
 nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
                           const char** aFeatures, uint32_t aFeatureCount,
-                          const char** aFilters, uint32_t aFilterCount)
+                          const char** aFilters, uint32_t aFilterCount,
+                          double aDuration)
 {
   if (mLockedForPrivateBrowsing) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -117,7 +118,8 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
   ResetGathering();
 
   uint32_t features = ParseFeaturesFromStringArray(aFeatures, aFeatureCount);
-  profiler_start(aEntries, aInterval, features, aFilters, aFilterCount);
+  Maybe<double> duration = aDuration > 0.0 ? Some(aDuration) : Nothing();
+  profiler_start(aEntries, aInterval, features, aFilters, aFilterCount, duration);
 
   return NS_OK;
 }
@@ -534,31 +536,6 @@ NS_IMETHODIMP
 nsProfiler::GetAllFeatures(uint32_t* aCount, char*** aFeatureList)
 {
   GetArrayOfStringsForFeatures((uint32_t)-1, aCount, aFeatureList);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsProfiler::GetStartParams(nsIProfilerStartParams** aRetVal)
-{
-  if (!profiler_is_active()) {
-    *aRetVal = nullptr;
-  } else {
-    int entries = 0;
-    double interval = 0;
-    uint32_t features = 0;
-    mozilla::Vector<const char*> filters;
-    profiler_get_start_params(&entries, &interval, &features, &filters);
-
-    nsTArray<nsCString> filtersArray;
-    for (uint32_t i = 0; i < filters.length(); ++i) {
-      filtersArray.AppendElement(filters[i]);
-    }
-
-    nsCOMPtr<nsIProfilerStartParams> startParams =
-      new nsProfilerStartParams(entries, interval, features, filtersArray);
-
-    startParams.forget(aRetVal);
-  }
   return NS_OK;
 }
 

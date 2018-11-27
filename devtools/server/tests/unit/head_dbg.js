@@ -83,7 +83,7 @@ async function createTabMemoryFront() {
   };
   const target = await TargetFactory.forRemoteTab(options);
 
-  const memoryFront = target.getFront("memory");
+  const memoryFront = await target.getFront("memory");
   await memoryFront.attach();
 
   return { client, memoryFront };
@@ -109,7 +109,7 @@ async function createFullRuntimeMemoryFront() {
   };
   const target = await TargetFactory.forRemoteTab(options);
 
-  const memoryFront = target.getFront("memory");
+  const memoryFront = await target.getFront("memory");
   await memoryFront.attach();
 
   return { client, memoryFront };
@@ -828,4 +828,75 @@ async function setupTestFromUrl(url) {
 
   const sourceClient = threadClient.source(source);
   return { global, debuggerClient, threadClient, sourceClient };
+}
+
+/**
+ * Run the given test function twice, one with a regular DebuggerServer,
+ * testing against a fake tab. And another one against a WorkerDebuggerServer,
+ * testing the worker codepath.
+ *
+ * @param Function test
+ *        Test function to run twice.
+ *        This test function is called with a dictionary:
+ *        - Sandbox debuggee
+ *          The custom JS debuggee created for this test. This is a Sandbox using system
+ *           principals by default.
+ *        - ThreadClient threadClient
+ *          A reference to a ThreadClient instance that is attached to the debuggee.
+ *        - DebuggerClient client
+ *          A reference to the DebuggerClient used to communicated with the RDP server.
+ * @param Object options
+ *        Optional arguments to tweak test environment
+ *        - JSPrincipal principal
+ *          Principal to use for the debuggee.
+ *        - boolean doNotRunWorker
+ *          If true, do not run this tests in worker debugger context.
+ */
+function threadClientTest(test, options = {}) {
+  let { principal, doNotRunWorker } = options;
+  if (!principal) {
+    principal = systemPrincipal;
+  }
+
+  async function runThreadClientTestWithServer(server, test) {
+    // Setup a server and connect a client to it.
+    initTestDebuggerServer(server);
+
+    // Create a custom debuggee and register it to the server.
+    // We are using a custom Sandbox as debuggee.
+    const debuggee = Cu.Sandbox(principal);
+    const scriptName = "debuggee.js";
+    debuggee.__name = scriptName;
+    server.addTestGlobal(debuggee);
+
+    const client = new DebuggerClient(server.connectPipe());
+    await client.connect();
+
+    // Attach to the fake tab target and retrieve the ThreadClient instance.
+    // Automatically resume as the thread is paused by default after attach.
+    const [, , threadClient] =
+      await attachTestTabAndResume(client, scriptName);
+
+    // Run the test function
+    await test({ threadClient, debuggee, client });
+
+    // Cleanup the client after the test ran
+    await client.close();
+
+    server.removeTestGlobal(debuggee);
+
+    // Also cleanup the created server
+    server.destroy();
+  }
+
+  return async () => {
+    dump(">>> Run thread client test against a regular DebuggerServer\n");
+    await runThreadClientTestWithServer(DebuggerServer, test);
+
+    // Skip tests that fail in the worker context
+    if (!doNotRunWorker) {
+      dump(">>> Run thread client test against a worker DebuggerServer\n");
+      await runThreadClientTestWithServer(WorkerDebuggerServer, test);
+    }
+  };
 }

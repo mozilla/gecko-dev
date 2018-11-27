@@ -7712,7 +7712,6 @@ public:
   void RestoreState() override
   {
     nsDisplayItem::RestoreState();
-    mIsFrameSelected.reset();
   }
 
   nsDisplayItemGeometry* AllocateGeometry(
@@ -7766,6 +7765,15 @@ public:
             t == DisplayItemType::TYPE_SVG_CHAR_CLIP)
              ? static_cast<nsCharClipDisplayItem*>(aItem)
              : nullptr;
+  }
+
+  bool IsSelected() const
+  {
+    if (mIsFrameSelected.isNothing()) {
+      mIsFrameSelected.emplace(mFrame->IsSelected());
+    }
+
+    return mIsFrameSelected.value();
   }
 
   // Lengths measured from the visual inline start and end sides

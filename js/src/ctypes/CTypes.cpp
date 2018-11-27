@@ -2037,7 +2037,7 @@ InitCDataClass(JSContext* cx, HandleObject parent, HandleObject CTypeProto)
       !JS_DefineFunctions(cx, prototype, sCDataFunctions))
     return nullptr;
 
-  if (//!JS_FreezeObject(cx, prototype) || // XXX fixme - see bug 541212!
+  if (// !JS_FreezeObject(cx, prototype) || // XXX fixme - see bug 541212!
       !JS_FreezeObject(cx, ctor))
     return nullptr;
 
@@ -2142,7 +2142,7 @@ InitTypeConstructor(JSContext* cx,
   JS_SetReservedSlot(typeProto, SLOT_OURDATAPROTO, ObjectValue(*dataProto));
 
   if (!JS_FreezeObject(cx, obj) ||
-      //!JS_FreezeObject(cx, dataProto) || // XXX fixme - see bug 541212!
+      // !JS_FreezeObject(cx, dataProto) || // XXX fixme - see bug 541212!
       !JS_FreezeObject(cx, typeProto))
     return false;
 
@@ -2301,7 +2301,8 @@ InitTypeClasses(JSContext* cx, HandleObject ctypesObj)
   // Each of these has, respectively:
   //   * [[Class]] "Function"
   //   * __proto__ === Function.prototype
-  //   * A constructor that creates a ctypes.{Int64,UInt64} object, respectively.
+  //   * A constructor that creates a ctypes.{Int64,UInt64} object,
+  //     respectively.
   //   * 'prototype' property:
   //     * [[Class]] {"Int64Proto","UInt64Proto"}
   //     * 'constructor' property === ctypes.{Int64,UInt64}
@@ -2449,7 +2450,7 @@ static bool GetObjectProperty(JSContext* cx, HandleObject obj,
 using namespace js;
 using namespace js::ctypes;
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_InitCTypesClass(JSContext* cx, HandleObject global)
 {
   // attach ctypes property to global object
@@ -2500,7 +2501,7 @@ JS_InitCTypesClass(JSContext* cx, HandleObject global)
   return JS_FreezeObject(cx, ctypes);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_SetCTypesCallbacks(JSObject* ctypesObj, const JSCTypesCallbacks* callbacks)
 {
   MOZ_ASSERT(callbacks);
@@ -2513,7 +2514,7 @@ JS_SetCTypesCallbacks(JSObject* ctypesObj, const JSCTypesCallbacks* callbacks)
 
 namespace js {
 
-JS_FRIEND_API(size_t)
+JS_FRIEND_API size_t
 SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf, JSObject* obj)
 {
     if (!CData::IsCData(obj)) {

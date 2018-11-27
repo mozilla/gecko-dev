@@ -134,10 +134,15 @@ describe("Top Stories Feed", () => {
     });
     it("should report error for invalid configuration", () => {
       globals.sandbox.spy(global.Cu, "reportError");
-      sectionsManagerStub.sections.set("topstories", {options: {api_key_pref: "invalid"}});
+      sectionsManagerStub.sections.set("topstories", {
+        options: {
+          api_key_pref: "invalid",
+          stories_endpoint: "https://invalid.com/?apiKey=$apiKey",
+        },
+      });
       instance.init();
 
-      assert.called(Cu.reportError);
+      assert.calledWith(Cu.reportError, "Problem initializing top stories feed: An API key was specified but none configured: https://invalid.com/?apiKey=$apiKey");
     });
     it("should report error for missing api key", () => {
       globals.sandbox.spy(global.Cu, "reportError");
@@ -702,6 +707,39 @@ describe("Top Stories Feed", () => {
     });
   });
   describe("#spocs", async () => {
+    it("should not display expired or untimestamped spocs", async () => {
+      clock.tick(441792000000); // 01/01/1984
+
+      instance.spocsPerNewTabs = 1;
+      instance.show_spocs = true;
+      instance.isBelowFrequencyCap = () => true;
+
+      // NOTE: `expiration_timestamp` is seconds since UNIX epoch
+      instance.spocs = [
+        // No timestamp stays visible
+        {
+          id: "spoc1",
+        },
+        // Expired spoc gets filtered out
+        {
+          id: "spoc2",
+          expiration_timestamp: 1,
+        },
+        // Far future expiration spoc stays visible
+        {
+          id: "spoc3",
+          expiration_timestamp: 32503708800, // 01/01/3000
+        },
+      ];
+
+      sinon.spy(instance, "filterSpocs");
+
+      instance.filterSpocs();
+
+      assert.equal(instance.filterSpocs.firstCall.returnValue.length, 2);
+      assert.equal(instance.filterSpocs.firstCall.returnValue[0].id, "spoc1");
+      assert.equal(instance.filterSpocs.firstCall.returnValue[1].id, "spoc3");
+    });
     it("should insert spoc with provided probability", async () => {
       let fetchStub = globals.sandbox.stub();
       globals.set("fetch", fetchStub);
@@ -711,7 +749,11 @@ describe("Top Stories Feed", () => {
       const response = {
         "settings": {"spocsPerNewTabs": 0.5},
         "recommendations": [{"guid": "rec1"}, {"guid": "rec2"}, {"guid": "rec3"}],
-        "spocs": [{"id": "spoc1"}, {"id": "spoc2"}],
+        // Include spocs with a expiration in the very distant future
+        "spocs": [
+          {"id": "spoc1", "expiration_timestamp": 9999999999999},
+          {"id": "spoc2", "expiration_timestamp": 9999999999999},
+        ],
       };
 
       instance.personalized = true;
@@ -781,6 +823,7 @@ describe("Top Stories Feed", () => {
       globals.set("Math", {
         random: () => 0.4,
         min: Math.min,
+        floor: Math.floor,
       });
       instance.getPocketState = () => {};
       instance.dispatchPocketCta = () => {};
@@ -788,7 +831,8 @@ describe("Top Stories Feed", () => {
       const response = {
         "settings": {"spocsPerNewTabs": 0.5},
         "recommendations": [{"id": "rec1"}, {"id": "rec2"}, {"id": "rec3"}],
-        "spocs": [{"id": "spoc1"}, {"id": "spoc2"}],
+        // Include one spoc with a expiration in the very distant future
+        "spocs": [{"id": "spoc1", "expiration_timestamp": 9999999999999}, {"id": "spoc2"}],
       };
 
       instance.onAction({type: at.NEW_TAB_REHYDRATED, meta: {fromTarget: {}}});
@@ -914,6 +958,7 @@ describe("Top Stories Feed", () => {
       globals.set("Math", {
         random: () => 0.4,
         min: Math.min,
+        floor: Math.floor,
       });
 
       const response = {
@@ -1027,8 +1072,9 @@ describe("Top Stories Feed", () => {
         "settings": {"spocsPerNewTabs": 1},
         "recommendations": [{"guid": "rec1"}, {"guid": "rec2"}, {"guid": "rec3"}],
         "spocs": [
-          {"id": "spoc1", "campaign_id": 1, "caps": {"lifetime": 3, "campaign": {"count": 2, "period": 3600}}},
-          {"id": "spoc2", "campaign_id": 2, "caps": {"lifetime": 1}},
+          // Set spoc `expiration_timestamp`s in the very distant future to ensure they show up
+          {"id": "spoc1", "campaign_id": 1, "caps": {"lifetime": 3, "campaign": {"count": 2, "period": 3600}}, "expiration_timestamp": 999999999999},
+          {"id": "spoc2", "campaign_id": 2, "caps": {"lifetime": 1}, "expiration_timestamp": 999999999999},
         ],
       };
 

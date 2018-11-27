@@ -409,8 +409,6 @@ public:
                         const nsRect& aContentArea,
                         const nsRect& aOldScrollArea);
 
-  bool IsIgnoringViewportClipping() const;
-
   void MarkScrollbarsDirtyForReflow() const;
 
   bool ShouldClampScrollPosition() const;
@@ -510,6 +508,8 @@ public:
 
   bool DragScroll(WidgetEvent* aEvent);
 
+  void AsyncScrollbarDragInitiated(uint64_t aDragBlockId,
+                                   mozilla::layers::ScrollDirection aDirection);
   void AsyncScrollbarDragRejected();
 
   bool IsRootScrollFrameOfDocument() const { return mIsRoot; }
@@ -1016,9 +1016,6 @@ public:
   {
     mHelper.ClipLayerToDisplayPort(aLayer, aClip, aParameters);
   }
-  virtual bool IsIgnoringViewportClipping() const override {
-    return mHelper.IsIgnoringViewportClipping();
-  }
   virtual void MarkScrollbarsDirtyForReflow() const override {
     mHelper.MarkScrollbarsDirtyForReflow();
   }
@@ -1118,6 +1115,11 @@ public:
 
   virtual bool DragScroll(mozilla::WidgetEvent* aEvent) override {
     return mHelper.DragScroll(aEvent);
+  }
+
+  virtual void AsyncScrollbarDragInitiated(uint64_t aDragBlockId,
+                                           mozilla::layers::ScrollDirection aDirection) override {
+    return mHelper.AsyncScrollbarDragInitiated(aDragBlockId, aDirection);
   }
 
   virtual void AsyncScrollbarDragRejected() override {
@@ -1475,9 +1477,6 @@ public:
                                       const ContainerLayerParameters& aParameters) const override {
     mHelper.ClipLayerToDisplayPort(aLayer, aClip, aParameters);
   }
-  virtual bool IsIgnoringViewportClipping() const override {
-    return mHelper.IsIgnoringViewportClipping();
-  }
   virtual void MarkScrollbarsDirtyForReflow() const override {
     mHelper.MarkScrollbarsDirtyForReflow();
   }
@@ -1585,6 +1584,11 @@ public:
 
   virtual bool DragScroll(mozilla::WidgetEvent* aEvent) override {
     return mHelper.DragScroll(aEvent);
+  }
+
+  virtual void AsyncScrollbarDragInitiated(uint64_t aDragBlockId,
+                                           mozilla::layers::ScrollDirection aDirection) override {
+    return mHelper.AsyncScrollbarDragInitiated(aDragBlockId, aDirection);
   }
 
   virtual void AsyncScrollbarDragRejected() override {

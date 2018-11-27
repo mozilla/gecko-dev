@@ -40,7 +40,7 @@ CheckTracedThing(JSTracer* trc, T thing);
 } // namespace js
 
 
-/*** Callback Tracer Dispatch ********************************************************************/
+/*** Callback Tracer Dispatch ***********************************************/
 
 template <typename T>
 T
@@ -115,9 +115,9 @@ JS::CallbackTracer::getTracingEdgeName(char* buffer, size_t bufferSize)
 }
 
 
-/*** Public Tracing API **************************************************************************/
+/*** Public Tracing API *****************************************************/
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::TraceChildren(JSTracer* trc, GCCellPtr thing)
 {
     js::TraceChildren(trc, thing.asCell(), thing.kind());
@@ -164,7 +164,7 @@ struct TraceIncomingFunctor {
 };
 } // namespace (anonymous)
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::TraceIncomingCCWs(JSTracer* trc, const JS::CompartmentSet& compartments)
 {
     for (js::CompartmentsIter comp(trc->runtime()); !comp.done(); comp.next()) {
@@ -181,7 +181,7 @@ JS::TraceIncomingCCWs(JSTracer* trc, const JS::CompartmentSet& compartments)
 }
 
 
-/*** Cycle Collector Helpers **********************************************************************/
+/*** Cycle Collector Helpers ************************************************/
 
 // This function is used by the Cycle Collector (CC) to trace through -- or in
 // CC parlance, traverse -- a Shape tree. The CC does not care about Shapes or
@@ -298,7 +298,7 @@ gc::TraceCycleCollectorChildren(JS::CallbackTracer* trc, ObjectGroup* group)
 }
 
 
-/*** Traced Edge Printer *************************************************************************/
+/*** Traced Edge Printer ****************************************************/
 
 static size_t
 CountDecimalDigits(size_t num)
@@ -349,7 +349,7 @@ StringKindHeader(JSString* str)
     return "linear: ";
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc, void* thing,
                      JS::TraceKind kind, bool details)
 {

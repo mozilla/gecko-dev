@@ -39,7 +39,7 @@ namespace js {}
 #define JS_STATIC_ASSERT(cond)           static_assert(cond, "JS_STATIC_ASSERT")
 #define JS_STATIC_ASSERT_IF(cond, expr)  MOZ_STATIC_ASSERT_IF(cond, expr, "JS_STATIC_ASSERT_IF")
 
-extern MOZ_NORETURN MOZ_COLD JS_PUBLIC_API(void)
+extern MOZ_NORETURN MOZ_COLD JS_PUBLIC_API void
 JS_Assert(const char* s, const char* file, int ln);
 
 /*
@@ -95,7 +95,7 @@ const ThreadType LastThreadTypeToTest = THREAD_TYPE_WASM_TIER2;
 
 extern bool InitThreadType(void);
 extern void SetThreadType(ThreadType);
-extern JS_FRIEND_API(uint32_t) GetThreadType(void);
+extern JS_FRIEND_API uint32_t GetThreadType(void);
 
 # else
 
@@ -142,22 +142,24 @@ class FailureSimulator
     uint64_t maxChecks_ = UINT64_MAX;
     uint64_t counter_ = 0;
     bool failAlways_ = true;
+    bool inUnsafeRegion_ = false;
 
   public:
     uint64_t maxChecks() const {
         return maxChecks_;
     }
-    void setMaxChecks(uint64_t value) {
-        maxChecks_ = value;
-    }
     uint64_t counter() const {
         return counter_;
+    }
+    void setInUnsafeRegion(bool b) {
+        MOZ_ASSERT(inUnsafeRegion_ != b);
+        inUnsafeRegion_ = b;
     }
     uint32_t targetThread() const {
         return targetThread_;
     }
     bool isThreadSimulatingAny() const {
-        return targetThread_ && targetThread_ == js::oom::GetThreadType();
+        return targetThread_ && targetThread_ == js::oom::GetThreadType() && !inUnsafeRegion_;
     }
     bool isThreadSimulating(Kind kind) const {
         return kind_ == kind && isThreadSimulatingAny();
@@ -186,7 +188,7 @@ class FailureSimulator
     void simulateFailureAfter(Kind kind, uint64_t checks, uint32_t thread, bool always);
     void reset();
 };
-extern JS_PUBLIC_DATA(FailureSimulator) simulator;
+extern JS_PUBLIC_DATA FailureSimulator simulator;
 
 inline bool
 IsSimulatedOOMAllocation()
@@ -306,7 +308,7 @@ static inline bool ShouldFailWithOOM() { return false; }
 namespace js {
 
 /* Disable OOM testing in sections which are not OOM safe. */
-struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
+struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion
 {
     MOZ_NORETURN MOZ_COLD void crash(const char* reason);
     MOZ_NORETURN MOZ_COLD void crash(size_t size, const char* reason);
@@ -319,25 +321,17 @@ struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
 
 #if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
     AutoEnterOOMUnsafeRegion()
-      : oomEnabled_(oom::simulator.isThreadSimulatingAny() &&
-                    oom::simulator.maxChecks() != UINT64_MAX),
-        oomAfter_(0)
+      : oomEnabled_(oom::simulator.isThreadSimulatingAny())
     {
         if (oomEnabled_) {
             MOZ_ALWAYS_TRUE(owner_.compareExchange(nullptr, this));
-            oomAfter_ = (int64_t(oom::simulator.maxChecks()) -
-                         int64_t(oom::simulator.counter()));
-            oom::simulator.setMaxChecks(UINT64_MAX);
+            oom::simulator.setInUnsafeRegion(true);
         }
     }
 
     ~AutoEnterOOMUnsafeRegion() {
         if (oomEnabled_) {
-            MOZ_ASSERT(oom::simulator.maxChecks() == UINT64_MAX);
-            int64_t maxChecks = int64_t(oom::simulator.counter()) + oomAfter_;
-            MOZ_ASSERT(maxChecks >= 0,
-                       "alloc count + oom limit exceeds range, your oom limit is probably too large");
-            oom::simulator.setMaxChecks(maxChecks);
+            oom::simulator.setInUnsafeRegion(false);
             MOZ_ALWAYS_TRUE(owner_.compareExchange(this, nullptr));
         }
     }
@@ -347,7 +341,6 @@ struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
     static mozilla::Atomic<AutoEnterOOMUnsafeRegion*> owner_;
 
     bool oomEnabled_;
-    int64_t oomAfter_;
 #endif
 };
 
@@ -357,8 +350,8 @@ struct MOZ_RAII JS_PUBLIC_DATA(AutoEnterOOMUnsafeRegion)
 
 namespace js {
 
-extern JS_PUBLIC_DATA(arena_id_t) MallocArena;
-extern JS_PUBLIC_DATA(arena_id_t) ArrayBufferContentsArena;
+extern JS_PUBLIC_DATA arena_id_t MallocArena;
+extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 
 extern void InitMallocAllocator();
 extern void ShutDownMallocAllocator();

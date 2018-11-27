@@ -263,7 +263,7 @@ class MOZ_STACK_CLASS ParserBase
     /* Root atoms and objects allocated for the parsed tree. */
     AutoKeepAtoms       keepAtoms;
 
-    /* Perform constant-folding; must be true when interfacing with the emitter. */
+    // Perform constant-folding; must be true when interfacing with the emitter.
     const bool          foldConstants:1;
 
   protected:
@@ -1181,7 +1181,7 @@ FOR_EACH_PARSENODE_SUBCLASS(DECLARE_TYPE)
 
     bool tryNewTarget(BinaryNodeType* newTarget);
 
-    BinaryNodeType importExpr(YieldHandling yieldHandling);
+    BinaryNodeType importExpr(YieldHandling yieldHandling, bool allowCallSyntax);
 
     CodeNodeType methodDefinition(uint32_t toStringStart, PropertyType propType,
                                   HandleAtom funName);

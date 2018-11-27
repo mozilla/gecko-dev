@@ -649,24 +649,6 @@ pub unsafe extern "C" fn wr_renderer_readback(renderer: &mut Renderer,
                               &mut slice);
 }
 
-/// cbindgen:field-names=[mBits]
-#[repr(C)]
-pub struct WrDebugFlags {
-    bits: u32,
-}
-
-#[no_mangle]
-pub extern "C" fn wr_renderer_get_debug_flags(renderer: &mut Renderer) -> WrDebugFlags {
-    WrDebugFlags { bits: renderer.get_debug_flags().bits() }
-}
-
-#[no_mangle]
-pub extern "C" fn wr_renderer_set_debug_flags(renderer: &mut Renderer, flags: WrDebugFlags) {
-    if let Some(dbg_flags) = DebugFlags::from_bits(flags.bits) {
-        renderer.set_debug_flags(dbg_flags);
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn wr_renderer_current_epoch(renderer: &mut Renderer,
                                             pipeline_id: WrPipelineId,
@@ -1176,6 +1158,19 @@ pub unsafe extern "C" fn wr_api_notify_memory_pressure(dh: &mut DocumentHandle) 
     dh.api.notify_memory_pressure();
 }
 
+/// cbindgen:field-names=[mBits]
+#[repr(C)]
+pub struct WrDebugFlags {
+    bits: u32,
+}
+
+#[no_mangle]
+pub extern "C" fn wr_api_set_debug_flags(dh: &mut DocumentHandle, flags: WrDebugFlags) {
+    if let Some(dbg_flags) = DebugFlags::from_bits(flags.bits) {
+        dh.api.set_debug_flags(dbg_flags);
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_accumulate_memory_report(
     dh: &mut DocumentHandle,
@@ -1222,6 +1217,11 @@ pub extern "C" fn wr_transaction_set_low_priority(txn: &mut Transaction, low_pri
 #[no_mangle]
 pub extern "C" fn wr_transaction_is_empty(txn: &Transaction) -> bool {
     txn.is_empty()
+}
+
+#[no_mangle]
+pub extern "C" fn wr_transaction_resource_updates_is_empty(txn: &Transaction) -> bool {
+    txn.resource_updates.is_empty()
 }
 
 #[no_mangle]
@@ -1425,14 +1425,14 @@ pub extern "C" fn wr_resource_updates_add_image(
 #[no_mangle]
 pub extern "C" fn wr_resource_updates_add_blob_image(
     txn: &mut Transaction,
-    image_key: WrImageKey,
+    image_key: BlobImageKey,
     descriptor: &WrImageDescriptor,
     bytes: &mut WrVecU8,
 ) {
-    txn.add_image(
+    txn.add_blob_image(
         image_key,
         descriptor.into(),
-        ImageData::new_blob_image(bytes.flush_into_vec()),
+        Arc::new(bytes.flush_into_vec()),
         if descriptor.format == ImageFormat::BGRA8 { Some(256) } else { None }
     );
 }
@@ -1471,17 +1471,17 @@ pub extern "C" fn wr_resource_updates_update_image(
         key,
         descriptor.into(),
         ImageData::new(bytes.flush_into_vec()),
-        None
+        &DirtyRect::All,
     );
 }
 
 #[no_mangle]
-pub extern "C" fn wr_resource_updates_set_image_visible_area(
+pub extern "C" fn wr_resource_updates_set_blob_image_visible_area(
     txn: &mut Transaction,
-    key: WrImageKey,
+    key: BlobImageKey,
     area: &DeviceIntRect,
 ) {
-    txn.set_image_visible_area(key, *area);
+    txn.set_blob_image_visible_area(key, *area);
 }
 
 #[no_mangle]
@@ -1503,7 +1503,7 @@ pub extern "C" fn wr_resource_updates_update_external_image(
                 image_type: image_type.to_wr(),
             }
         ),
-        None
+        &DirtyRect::All,
     );
 }
 
@@ -1527,23 +1527,23 @@ pub extern "C" fn wr_resource_updates_update_external_image_with_dirty_rect(
                 image_type: image_type.to_wr(),
             }
         ),
-        Some(dirty_rect)
+        &DirtyRect::Partial(dirty_rect)
     );
 }
 
 #[no_mangle]
 pub extern "C" fn wr_resource_updates_update_blob_image(
     txn: &mut Transaction,
-    image_key: WrImageKey,
+    image_key: BlobImageKey,
     descriptor: &WrImageDescriptor,
     bytes: &mut WrVecU8,
-    dirty_rect: DeviceIntRect,
+    dirty_rect: LayoutIntRect,
 ) {
-    txn.update_image(
+    txn.update_blob_image(
         image_key,
         descriptor.into(),
-        ImageData::new_blob_image(bytes.flush_into_vec()),
-        Some(dirty_rect)
+        Arc::new(bytes.flush_into_vec()),
+        &DirtyRect::Partial(dirty_rect)
     );
 }
 
@@ -1553,6 +1553,14 @@ pub extern "C" fn wr_resource_updates_delete_image(
     key: WrImageKey
 ) {
     txn.delete_image(key);
+}
+
+#[no_mangle]
+pub extern "C" fn wr_resource_updates_delete_blob_image(
+    txn: &mut Transaction,
+    key: BlobImageKey
+) {
+    txn.delete_blob_image(key);
 }
 
 #[no_mangle]
@@ -1618,6 +1626,17 @@ pub extern "C" fn wr_api_capture(
     let cstr = unsafe { CStr::from_ptr(path) };
     let mut path = PathBuf::from(&*cstr.to_string_lossy());
 
+    #[cfg(target_os = "android")]
+    {
+        // On Android we need to write into a particular folder on external
+        // storage so that (a) it can be written without requiring permissions
+        // and (b) it can be pulled off via `adb pull`. This env var is set
+        // in GeckoLoader.java.
+        if let Ok(storage_path) = env::var("PUBLIC_STORAGE") {
+            path = PathBuf::from(storage_path).join(path);
+        }
+    }
+
     // Increment the extension until we find a fresh path
     while path.is_dir() {
         let count: u32 = path.extension()
@@ -1627,8 +1646,9 @@ pub extern "C" fn wr_api_capture(
         path.set_extension((count + 1).to_string());
     }
 
+    // Use warn! so that it gets emitted to logcat on android as well
     let border = "--------------------------\n";
-    print!("{} Capturing WR state to: {:?}\n{}", &border, &path, &border);
+    warn!("{} Capturing WR state to: {:?}\n{}", &border, &path, &border);
 
     let _ = create_dir_all(&path);
     match File::create(path.join("wr.txt")) {
@@ -1836,7 +1856,7 @@ pub extern "C" fn wr_dp_clear_save(state: &mut WrState) {
 #[no_mangle]
 pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
                                               bounds: LayoutRect,
-                                              clip_node_id: *const usize,
+                                              clip_node_id: *const WrClipId,
                                               animation: *const WrAnimationProperty,
                                               opacity: *const f32,
                                               transform: *const LayoutTransform,
@@ -1962,7 +1982,7 @@ pub extern "C" fn wr_dp_pop_stacking_context(state: &mut WrState,
 #[no_mangle]
 pub extern "C" fn wr_dp_define_clipchain(state: &mut WrState,
                                          parent_clipchain_id: *const u64,
-                                         clips: *const usize,
+                                         clips: *const WrClipId,
                                          clips_count: usize)
                                          -> u64 {
     debug_assert!(unsafe { is_in_main_thread() });
@@ -1979,7 +1999,7 @@ pub extern "C" fn wr_dp_define_clipchain(state: &mut WrState,
 
 #[no_mangle]
 pub extern "C" fn wr_dp_define_clip(state: &mut WrState,
-                                    parent_id: *const usize,
+                                    parent_id: *const WrClipId,
                                     clip_rect: LayoutRect,
                                     complex: *const ComplexClipRegion,
                                     complex_count: usize,
@@ -2004,7 +2024,7 @@ pub extern "C" fn wr_dp_define_clip(state: &mut WrState,
 
 #[no_mangle]
 pub extern "C" fn wr_dp_push_clip(state: &mut WrState,
-                                  clip_id: usize) {
+                                  clip_id: WrClipId) {
     debug_assert!(unsafe { is_in_main_thread() });
     state.frame_builder.dl_builder.push_clip_id(unpack_clip_id(clip_id, state.pipeline_id));
 }
@@ -2041,7 +2061,7 @@ pub extern "C" fn wr_dp_define_sticky_frame(state: &mut WrState,
 #[no_mangle]
 pub extern "C" fn wr_dp_define_scroll_layer(state: &mut WrState,
                                             scroll_id: u64,
-                                            parent_id: *const usize,
+                                            parent_id: *const WrClipId,
                                             content_rect: LayoutRect,
                                             clip_rect: LayoutRect)
                                             -> usize {
@@ -2075,7 +2095,7 @@ pub extern "C" fn wr_dp_define_scroll_layer(state: &mut WrState,
 
 #[no_mangle]
 pub extern "C" fn wr_dp_push_scroll_layer(state: &mut WrState,
-                                          scroll_id: usize) {
+                                          scroll_id: WrClipId) {
     debug_assert!(unsafe { is_in_main_thread() });
     let clip_id = unpack_clip_id(scroll_id, state.pipeline_id);
     state.frame_builder.dl_builder.push_clip_id(clip_id);
@@ -2089,7 +2109,7 @@ pub extern "C" fn wr_dp_pop_scroll_layer(state: &mut WrState) {
 
 #[no_mangle]
 pub extern "C" fn wr_dp_push_clip_and_scroll_info(state: &mut WrState,
-                                                  scroll_id: usize,
+                                                  scroll_id: WrClipId,
                                                   clip_chain_id: *const u64) {
     debug_assert!(unsafe { is_in_main_thread() });
 
@@ -2685,7 +2705,7 @@ extern "C" {
                                format: ImageFormat,
                                tile_size: Option<&u16>,
                                tile_offset: Option<&TileOffset>,
-                               dirty_rect: Option<&DeviceIntRect>,
+                               dirty_rect: Option<&LayoutIntRect>,
                                output: MutByteSlice)
                                -> bool;
 }
@@ -2708,9 +2728,15 @@ fn pack_clip_id(id: ClipId) -> usize {
     return (id << 1) + type_value;
 }
 
-fn unpack_clip_id(id: usize, pipeline_id: PipelineId) -> ClipId {
-    let type_value = id & 0b01;
-    let id = id >> 1;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WrClipId {
+    id: usize
+}
+
+fn unpack_clip_id(id: WrClipId, pipeline_id: PipelineId) -> ClipId {
+    let type_value = id.id & 0b01;
+    let id = id.id >> 1;
 
     match type_value {
         0 => ClipId::Spatial(id, pipeline_id),

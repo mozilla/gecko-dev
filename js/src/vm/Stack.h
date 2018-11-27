@@ -37,7 +37,7 @@ namespace dbg {
 #pragma GCC diagnostic ignored "-Wattributes"
 #endif // JS_BROKEN_GCC_ATTRIBUTE_WARNING
 
-class JS_PUBLIC_API(AutoEntryMonitor);
+class JS_PUBLIC_API AutoEntryMonitor;
 
 #ifdef JS_BROKEN_GCC_ATTRIBUTE_WARNING
 #pragma GCC diagnostic pop
@@ -2305,7 +2305,7 @@ class NonBuiltinFrameIter : public FrameIter
     }
 };
 
-/* A filtering of the ScriptFrameIter to only stop at non-self-hosted scripts. */
+// A filtering of the ScriptFrameIter to only stop at non-self-hosted scripts.
 class NonBuiltinScriptFrameIter : public ScriptFrameIter
 {
     void settle();

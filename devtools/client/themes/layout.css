@@ -107,9 +107,17 @@
   border-block-end: 1px solid var(--theme-splitter-color);
 }
 
+.flex-header-button-prev {
+  cursor: pointer;
+}
+
 .flex-header-button-prev::before {
   background-image: url("chrome://devtools/skin/images/arrowhead-left.svg");
   background-size: 16px;
+}
+
+html[dir="rtl"] .flex-header-button-prev::before {
+  background-image: url("chrome://devtools/skin/images/arrowhead-right.svg");
 }
 
 .flex-header-content {
@@ -173,6 +181,7 @@
 
 .flex-item-list .devtools-button {
   background-color: transparent;
+  cursor: pointer;
   text-overflow: ellipsis;
   overflow: hidden;
   inline-size: 100%;
@@ -198,13 +207,21 @@
   height: 16px;
 }
 
+html[dir="rtl"] .flex-item-list .devtools-button::after {
+  background-image: url(chrome://devtools/skin/images/arrowhead-left.svg);
+  right: unset;
+  left: 7px;
+}
+
 .flex-item-list .flex-item-index {
   font-size: 12px;
   font-weight: bold;
+  float: inline-start;
 }
 
 .flex-item-list .objectBox-node {
   padding-inline-start: 8px;
+  vertical-align: middle;
 }
 
 /**
@@ -213,6 +230,7 @@
 
 #flex-item-selector {
   background-position: right 4px center;
+  cursor: pointer;
   padding-left: 0;
   vertical-align: middle;
   width: 140px;
@@ -236,6 +254,11 @@
 .flex-outline-container {
   display: flex;
   justify-content: center;
+  /* The flex outline is always drawn in ltr. Whether the UI of DevTools is in RTL or some
+     other writing mode doesn't have an impact on whether the outline should face left,
+     right, top or bottom. This should only be dictated by which direction does the flex
+     item currently face in the page. */
+  direction: ltr;
 }
 
 .flex-outline {
@@ -466,11 +489,25 @@
 .flex-item-sizing .name {
   font-weight: 600;
   grid-column: 1;
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: .5em;
+}
+
+.flex-item-sizing .flexibility .name,
+.flex-item-sizing .max .name,
+.flex-item-sizing .min .name {
+  color: var(--theme-highlight-red);
+}
+
+.flex-item-sizing .base .name {
+  color: var(--theme-highlight-blue);
 }
 
 .flex-item-sizing .value {
   text-align: end;
   font-weight: 600;
+  direction: ltr;
 }
 
 .flex-item-sizing .value .unit {

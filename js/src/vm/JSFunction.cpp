@@ -1095,7 +1095,8 @@ js::FunctionToString(JSContext* cx, HandleFunction fun, bool isToSource)
         // NativeFunction when no source text is available.
         //
         // NativeFunction:
-        //   function PropertyName[~Yield,~Await]opt ( FormalParameters[~Yield,~Await] ) { [native code] }
+        //   function PropertyName[~Yield,~Await]opt (
+        //      FormalParameters[~Yield,~Await] ) { [native code] }
         //
         // Additionally, if |fun| is a well-known intrinsic object and is not
         // identified as an anonymous function, the portion of the returned
@@ -2787,7 +2788,7 @@ js::ReportIncompatible(JSContext* cx, const CallArgs& args)
 namespace JS {
 namespace detail {
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 CheckIsValidConstructible(const Value& calleev)
 {
     MOZ_ASSERT(calleev.toObject().isConstructor());

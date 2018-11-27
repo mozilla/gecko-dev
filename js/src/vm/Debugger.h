@@ -151,7 +151,8 @@ class DebuggerWeakMap : private WeakMap<HeapPtr<UnbarrieredKey>, HeapPtr<JSObjec
     { }
 
   public:
-    /* Expose those parts of HashMap public interface that are used by Debugger methods. */
+    // Expose those parts of HashMap public interface that are used by Debugger
+    // methods.
 
     typedef typename Base::Entry Entry;
     typedef typename Base::Ptr Ptr;
@@ -160,7 +161,7 @@ class DebuggerWeakMap : private WeakMap<HeapPtr<UnbarrieredKey>, HeapPtr<JSObjec
     typedef typename Base::Enum Enum;
     typedef typename Base::Lookup Lookup;
 
-    /* Expose WeakMap public interface */
+    // Expose WeakMap public interface.
 
     using Base::lookup;
     using Base::lookupForAdd;
@@ -454,7 +455,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     js::GCPtrObject uncaughtExceptionHook; /* Strong reference. */
     bool enabled;
     bool allowUnobservedAsmJS;
-    bool allowWasmBinarySource;
 
     // Whether to enable code coverage on the Debuggee.
     bool collectCoverageInfo;
@@ -586,28 +586,29 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     using LazyScriptVector = JS::GCVector<LazyScript*>;
 
-    /* The map from debuggee source script objects to their Debugger.Source instances. */
+    // The map from debuggee source script objects to their Debugger.Source
+    // instances.
     typedef DebuggerWeakMap<JSObject*, true> SourceWeakMap;
     SourceWeakMap sources;
 
-    /* The map from debuggee objects to their Debugger.Object instances. */
+    // The map from debuggee objects to their Debugger.Object instances.
     typedef DebuggerWeakMap<JSObject*> ObjectWeakMap;
     ObjectWeakMap objects;
 
-    /* The map from debuggee Envs to Debugger.Environment instances. */
+    // The map from debuggee Envs to Debugger.Environment instances.
     ObjectWeakMap environments;
 
-    /* The map from WasmInstanceObjects to synthesized Debugger.Script instances. */
+    // The map from WasmInstanceObjects to synthesized Debugger.Script
+    // instances.
     typedef DebuggerWeakMap<WasmInstanceObject*> WasmInstanceWeakMap;
     WasmInstanceWeakMap wasmInstanceScripts;
 
-    /* The map from WasmInstanceObjects to synthesized Debugger.Source instances. */
+    // The map from WasmInstanceObjects to synthesized Debugger.Source
+    // instances.
     WasmInstanceWeakMap wasmInstanceSources;
 
-    /*
-     * Keep track of tracelogger last drained identifiers to know if there are
-     * lost events.
-     */
+    // Keep track of tracelogger last drained identifiers to know if there are
+    // lost events.
 #ifdef NIGHTLY_BUILD
     uint32_t traceLoggerLastDrainedSize;
     uint32_t traceLoggerLastDrainedIteration;
@@ -755,8 +756,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static bool setUncaughtExceptionHook(JSContext* cx, unsigned argc, Value* vp);
     static bool getAllowUnobservedAsmJS(JSContext* cx, unsigned argc, Value* vp);
     static bool setAllowUnobservedAsmJS(JSContext* cx, unsigned argc, Value* vp);
-    static bool getAllowWasmBinarySource(JSContext* cx, unsigned argc, Value* vp);
-    static bool setAllowWasmBinarySource(JSContext* cx, unsigned argc, Value* vp);
     static bool getCollectCoverageInfo(JSContext* cx, unsigned argc, Value* vp);
     static bool setCollectCoverageInfo(JSContext* cx, unsigned argc, Value* vp);
     static bool getMemory(JSContext* cx, unsigned argc, Value* vp);
@@ -829,8 +828,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     // execution.
     IsObserving observesCoverage() const;
 
-    IsObserving observesBinarySource() const;
-
   private:
     static MOZ_MUST_USE bool ensureExecutionObservabilityOfFrame(JSContext* cx,
                                                                  AbstractFramePtr frame);
@@ -842,7 +839,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     MOZ_MUST_USE bool updateObservesAllExecutionOnDebuggees(JSContext* cx, IsObserving observing);
     MOZ_MUST_USE bool updateObservesCoverageOnDebuggees(JSContext* cx, IsObserving observing);
     void updateObservesAsmJSOnDebuggees(IsObserving observing);
-    void updateObservesBinarySourceDebuggees(IsObserving observing);
 
     JSObject* getHook(Hook hook) const;
     bool hasAnyLiveHooks(JSRuntime* rt) const;
@@ -944,7 +940,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     WeakGlobalObjectSet::Range allDebuggees() const { return debuggees.all(); }
 
-    /*********************************** Methods for interaction with the GC. */
+    /*** Methods for interaction with the GC. *******************************/
 
     /*
      * A Debugger object is live if:
@@ -1070,7 +1066,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     // promise can only make the transition from unsettled to settled once.
     static inline void onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise);
 
-    /************************************* Functions for use by Debugger.cpp. */
+    /*** Functions for use by Debugger.cpp. *********************************/
 
     inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;

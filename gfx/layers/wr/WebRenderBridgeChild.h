@@ -66,8 +66,7 @@ public:
 
   void AddWebRenderParentCommand(const WebRenderParentCommand& aCmd);
 
-  void UpdateResources(wr::IpcResourceUpdateQueue& aResources,
-                       bool aScheduleComposite = false);
+  void UpdateResources(wr::IpcResourceUpdateQueue& aResources);
   void BeginTransaction();
   void EndTransaction(const wr::LayoutSize& aContentSize,
                       wr::BuiltDisplayList& dl,
@@ -77,14 +76,16 @@ public:
                       const WebRenderScrollData& aScrollData,
                       bool aContainsSVGroup,
                       const mozilla::TimeStamp& aRefreshStartTime,
-                      const mozilla::TimeStamp& aTxnStartTime);
+                      const mozilla::TimeStamp& aTxnStartTime,
+                      const nsCString& aTxtURL);
   void EndEmptyTransaction(const FocusTarget& aFocusTarget,
                            const ScrollUpdatesMap& aUpdates,
                            Maybe<wr::IpcResourceUpdateQueue>& aResources,
                            uint32_t aPaintSequenceNumber,
                            TransactionId aTransactionId,
                            const mozilla::TimeStamp& aRefreshStartTime,
-                           const mozilla::TimeStamp& aTxnStartTime);
+                           const mozilla::TimeStamp& aTxnStartTime,
+                           const nsCString& aTxtURL);
   void ProcessWebRenderParentCommands();
 
   CompositorBridgeChild* GetCompositorBridgeChild();
@@ -209,6 +210,7 @@ private:
 
   mozilla::ipc::IPCResult RecvWrUpdated(const wr::IdNamespace& aNewIdNamespace,
                                         const TextureFactoryIdentifier& textureFactoryIdentifier) override;
+  mozilla::ipc::IPCResult RecvWrReleasedImages(nsTArray<wr::ExternalImageKeyPair>&& aPairs) override;
 
   void AddIPDLReference() {
     MOZ_ASSERT(mIPCOpen == false);

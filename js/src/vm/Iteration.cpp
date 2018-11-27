@@ -190,7 +190,7 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
     if (flags & JSITER_SYMBOLSONLY) {
         enumerateSymbols = true;
     } else {
-        /* Collect any dense elements from this object. */
+        // Collect any dense elements from this object.
         size_t firstElemIndex = props->length();
         size_t initlen = pobj->getDenseInitializedLength();
         const Value* vp = pobj->getDenseElements();
@@ -199,7 +199,8 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
             if (vp->isMagic(JS_ELEMENTS_HOLE)) {
                 hasHoles = true;
             } else {
-                /* Dense arrays never get so large that i would not fit into an integer id. */
+                // Dense arrays never get so large that i would not fit into an
+                // integer id.
                 if (!Enumerate<CheckForDuplicates>(cx, pobj, INT_TO_JSID(i),
                                                    /* enumerable = */ true, flags, visited, props))
                 {
@@ -208,7 +209,8 @@ EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj, unsigned flags
             }
         }
 
-        /* Collect any typed array or shared typed array elements from this object. */
+        // Collect any typed array or shared typed array elements from this
+        // object.
         if (pobj->is<TypedArrayObject>()) {
             size_t len = pobj->as<TypedArrayObject>().length();
             for (size_t i = 0; i < len; i++) {
@@ -582,7 +584,7 @@ Snapshot(JSContext* cx, HandleObject pobj_, unsigned flags, AutoIdVector* props)
     return true;
 }
 
-JS_FRIEND_API(bool)
+JS_FRIEND_API bool
 js::GetPropertyKeys(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector* props)
 {
     return Snapshot(cx, obj,
@@ -593,7 +595,8 @@ js::GetPropertyKeys(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVecto
 static inline void
 RegisterEnumerator(ObjectRealm& realm, NativeIterator* ni)
 {
-    /* Register non-escaping native enumerators (for-in) with the current context. */
+    // Register non-escaping native enumerators (for-in) with the current
+    // context.
     ni->link(realm.enumerators);
 
     MOZ_ASSERT(!ni->isActive());
@@ -1036,10 +1039,35 @@ Realm::getOrCreateIterResultTemplateObject(JSContext* cx)
         return iterResultTemplate_;
     }
 
+    NativeObject* templateObj = createIterResultTemplateObject(cx, WithObjectPrototype::Yes);
+    iterResultTemplate_.set(templateObj);
+    return iterResultTemplate_;
+}
+
+NativeObject*
+Realm::getOrCreateIterResultWithoutPrototypeTemplateObject(JSContext* cx)
+{
+    MOZ_ASSERT(cx->realm() == this);
+
+    if (iterResultWithoutPrototypeTemplate_) {
+        return iterResultWithoutPrototypeTemplate_;
+    }
+
+    NativeObject* templateObj = createIterResultTemplateObject(cx, WithObjectPrototype::No);
+    iterResultWithoutPrototypeTemplate_.set(templateObj);
+    return iterResultWithoutPrototypeTemplate_;
+}
+
+NativeObject*
+Realm::createIterResultTemplateObject(JSContext* cx, WithObjectPrototype withProto)
+{
     // Create template plain object
-    RootedNativeObject templateObject(cx, NewBuiltinClassInstance<PlainObject>(cx, TenuredObject));
+    RootedNativeObject templateObject(cx,
+        withProto == WithObjectPrototype::Yes
+        ? NewBuiltinClassInstance<PlainObject>(cx, TenuredObject)
+        : NewObjectWithNullTaggedProto<PlainObject>(cx));
     if (!templateObject) {
-        return iterResultTemplate_; // = nullptr
+        return nullptr;
     }
 
     // Create a new group for the template.
@@ -1048,7 +1076,7 @@ Realm::getOrCreateIterResultTemplateObject(JSContext* cx)
                                                             templateObject->getClass(),
                                                             proto));
     if (!group) {
-        return iterResultTemplate_; // = nullptr
+        return nullptr;
     }
     templateObject->setGroup(group);
 
@@ -1056,14 +1084,14 @@ Realm::getOrCreateIterResultTemplateObject(JSContext* cx)
     if (!NativeDefineDataProperty(cx, templateObject, cx->names().value, UndefinedHandleValue,
                                   JSPROP_ENUMERATE))
     {
-        return iterResultTemplate_; // = nullptr
+        return nullptr;
     }
 
     // Set dummy `done` property
     if (!NativeDefineDataProperty(cx, templateObject, cx->names().done, TrueHandleValue,
                                   JSPROP_ENUMERATE))
     {
-        return iterResultTemplate_; // = nullptr
+        return nullptr;
     }
 
     AutoSweepObjectGroup sweep(group);
@@ -1084,12 +1112,10 @@ Realm::getOrCreateIterResultTemplateObject(JSContext* cx)
     MOZ_ASSERT(shape->slot() == Realm::IterResultObjectDoneSlot &&
                shape->propidRef() == NameToId(cx->names().done));
 
-    iterResultTemplate_.set(templateObject);
-
-    return iterResultTemplate_;
+    return templateObject;
 }
 
-/*** Iterator objects ****************************************************************************/
+/*** Iterator objects *******************************************************/
 
 size_t
 PropertyIteratorObject::sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf) const

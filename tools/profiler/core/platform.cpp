@@ -426,10 +426,11 @@ private:
     return aFeatures;
   }
 
-  ActivePS(PSLockRef aLock, uint32_t aCapacity, double aInterval,
-           uint32_t aFeatures, const char** aFilters, uint32_t aFilterCount)
+  ActivePS(PSLockRef aLock, uint32_t aCapacity, double aInterval,  uint32_t aFeatures,
+    const char** aFilters, uint32_t aFilterCount, const Maybe<double>& aDuration)
     : mGeneration(sNextGeneration++)
     , mCapacity(aCapacity)
+    , mDuration(aDuration)
     , mInterval(aInterval)
     , mFeatures(AdjustFeatures(aFeatures, aFilterCount))
     , mBuffer(MakeUnique<ProfileBuffer>(aCapacity))
@@ -524,11 +525,11 @@ private:
 
 public:
   static void Create(PSLockRef aLock, uint32_t aCapacity, double aInterval,
-                     uint32_t aFeatures,
-                     const char** aFilters, uint32_t aFilterCount)
+                     uint32_t aFeatures, const char** aFilters,
+                     uint32_t aFilterCount, const Maybe<double>& aDuration)
   {
     sInstance = new ActivePS(aLock, aCapacity, aInterval, aFeatures,
-                             aFilters, aFilterCount);
+                             aFilters, aFilterCount, aDuration);
   }
 
   static MOZ_MUST_USE SamplerThread* Destroy(PSLockRef aLock)
@@ -543,10 +544,12 @@ public:
   static bool Exists(PSLockRef) { return !!sInstance; }
 
   static bool Equals(PSLockRef,
-                     uint32_t aCapacity, double aInterval, uint32_t aFeatures,
+                     uint32_t aCapacity, const Maybe<double>& aDuration,
+                     double aInterval, uint32_t aFeatures,
                      const char** aFilters, uint32_t aFilterCount)
   {
     if (sInstance->mCapacity != aCapacity ||
+        sInstance->mDuration != aDuration ||
         sInstance->mInterval != aInterval ||
         sInstance->mFeatures != aFeatures ||
         sInstance->mFilters.length() != aFilterCount) {
@@ -587,6 +590,8 @@ public:
   PS_GET(uint32_t, Generation)
 
   PS_GET(uint32_t, Capacity)
+
+  PS_GET(Maybe<double>, Duration)
 
   PS_GET(double, Interval)
 
@@ -780,6 +785,9 @@ private:
 
   // The maximum number of entries in mBuffer.
   const uint32_t mCapacity;
+
+  // The maximum duration of entries in mBuffer.
+  const Maybe<double> mDuration;
 
   // The interval between samples, measured in milliseconds.
   const double mInterval;
@@ -2096,6 +2104,12 @@ PrintUsageThenExit(int aExitCode)
     "  the profiler's circular buffer when the profiler is first started.\n"
     "  If unset, the platform default is used.\n"
     "\n"
+    "  MOZ_PROFILER_STARTUP_DURATION=<1..>\n"
+    "  If MOZ_PROFILER_STARTUP is set, specifies the duration of entries in\n"
+    "  the profiler's circular buffer when the profiler is first started.\n"
+    "  If unset, duration of the entries will be restricted by.\n"
+    "  MOZ_PROFILER_STARTUP_ENTRIES or its default value instead of a time duration."
+    "\n"
     "  MOZ_PROFILER_STARTUP_INTERVAL=<1..1000>\n"
     "  If MOZ_PROFILER_STARTUP is set, specifies the sample interval,\n"
     "  measured in milliseconds, when the profiler is first started.\n"
@@ -2372,6 +2386,14 @@ SamplerThread::Run()
         CorePS::Lul(lock)->MaybeShowStats();
 #endif
       }
+
+      Maybe<double> duration = ActivePS::Duration(lock);
+      if (duration) {
+        ActivePS::Buffer(lock).DiscardSamplesBeforeTime(
+        (TimeStamp::Now() - TimeDuration::FromSeconds(*duration) -
+         CorePS::ProcessStartTime())
+          .ToMilliseconds());
+      }
     }
     // gPSMutex is not held after this point.
 
@@ -2530,6 +2552,7 @@ locked_register_thread(PSLockRef aLock, const char* aName, void* aStackTop)
 
   if (ActivePS::Exists(aLock) &&
       ActivePS::ShouldProfileThread(aLock, info)) {
+    registeredThread->RacyRegisteredThread().SetIsBeingProfiled(true);
     nsCOMPtr<nsIEventTarget> eventTarget = registeredThread->GetEventTarget();
     ProfiledThreadData* profiledThreadData =
       ActivePS::AddLiveProfiledThread(aLock, registeredThread.get(),
@@ -2579,7 +2602,8 @@ NotifyObservers(const char* aTopic, nsISupports* aSubject = nullptr)
 }
 
 static void
-NotifyProfilerStarted(const int aCapacity, double aInterval, uint32_t aFeatures,
+NotifyProfilerStarted(const int aCapacity, const Maybe<double>& aDuration,
+                      double aInterval, uint32_t aFeatures,
                       const char** aFilters, uint32_t aFilterCount)
 {
   nsTArray<nsCString> filtersArray;
@@ -2588,7 +2612,8 @@ NotifyProfilerStarted(const int aCapacity, double aInterval, uint32_t aFeatures,
   }
 
   nsCOMPtr<nsIProfilerStartParams> params =
-    new nsProfilerStartParams(aCapacity, aInterval, aFeatures, filtersArray);
+    new nsProfilerStartParams(aCapacity, aDuration, aInterval,
+                              aFeatures, filtersArray);
 
   ProfilerParent::ProfilerStarted(params);
   NotifyObservers("profiler-started", params);
@@ -2596,8 +2621,8 @@ NotifyProfilerStarted(const int aCapacity, double aInterval, uint32_t aFeatures,
 
 static void
 locked_profiler_start(PSLockRef aLock, uint32_t aCapacity, double aInterval,
-                      uint32_t aFeatures,
-                      const char** aFilters, uint32_t aFilterCount);
+                      uint32_t aFeatures, const char** aFilters,
+                      uint32_t aFilterCount, const Maybe<double>& aDuration);
 
 // This basically duplicates AutoProfilerLabel's constructor.
 ProfilingStack*
@@ -2679,6 +2704,7 @@ profiler_init(void* aStackTop)
   filters.AppendElement("DOM Worker");
 
   int capacity = PROFILER_DEFAULT_ENTRIES;
+  Maybe<double> duration = Nothing();
   double interval = PROFILER_DEFAULT_INTERVAL;
 
   {
@@ -2732,6 +2758,22 @@ profiler_init(void* aStackTop)
       }
     }
 
+    const char* startupDuration = getenv("MOZ_PROFILER_STARTUP_DURATION");
+    if (startupDuration && startupDuration[0] != '\0') {
+      errno = 0;
+      double durationVal = PR_strtod(startupDuration, nullptr);
+      if (errno == 0 && durationVal >= 0.0) {
+        if (durationVal > 0.0) {
+          duration = Some(durationVal);
+        }
+        LOG("- MOZ_PROFILER_STARTUP_DURATION = %f", durationVal);
+      } else {
+        LOG("- MOZ_PROFILER_STARTUP_DURATION not a valid float: %s",
+            startupDuration);
+        PrintUsageThenExit(1);
+      }
+    }
+
     const char* startupInterval = getenv("MOZ_PROFILER_STARTUP_INTERVAL");
     if (startupInterval && startupInterval[0] != '\0') {
       errno = 0;
@@ -2777,13 +2819,13 @@ profiler_init(void* aStackTop)
       LOG("- MOZ_PROFILER_STARTUP_FILTERS = %s", startupFilters);
     }
 
-    locked_profiler_start(lock, capacity, interval, features,
-                          filters.Elements(), filters.Length());
+    locked_profiler_start(lock, capacity, interval, features, filters.Elements(),
+                          filters.Length(), duration);
   }
 
   // We do this with gPSMutex unlocked. The comment in profiler_stop() explains
   // why.
-  NotifyProfilerStarted(capacity, interval, features,
+  NotifyProfilerStarted(capacity, duration, interval, features,
                         filters.Elements(), filters.Length());
 }
 
@@ -2895,13 +2937,14 @@ profiler_get_profile_json_into_lazily_allocated_buffer(
 }
 
 void
-profiler_get_start_params(int* aCapacity, double* aInterval, uint32_t* aFeatures,
-                          Vector<const char*>* aFilters)
+profiler_get_start_params(int* aCapacity, Maybe<double>* aDuration, double* aInterval,
+                          uint32_t* aFeatures, Vector<const char*>* aFilters)
 {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
-  if (NS_WARN_IF(!aCapacity) || NS_WARN_IF(!aInterval) ||
-      NS_WARN_IF(!aFeatures) || NS_WARN_IF(!aFilters)) {
+  if (NS_WARN_IF(!aCapacity) || NS_WARN_IF(!aDuration) ||
+      NS_WARN_IF(!aInterval) || NS_WARN_IF(!aFeatures) ||
+      NS_WARN_IF(!aFilters)) {
     return;
   }
 
@@ -2909,6 +2952,7 @@ profiler_get_start_params(int* aCapacity, double* aInterval, uint32_t* aFeatures
 
   if (!ActivePS::Exists(lock)) {
     *aCapacity = 0;
+    *aDuration = Nothing();
     *aInterval = 0;
     *aFeatures = 0;
     aFilters->clear();
@@ -2916,6 +2960,7 @@ profiler_get_start_params(int* aCapacity, double* aInterval, uint32_t* aFeatures
   }
 
   *aCapacity = ActivePS::Capacity(lock);
+  *aDuration = ActivePS::Duration(lock);
   *aInterval = ActivePS::Interval(lock);
   *aFeatures = ActivePS::Features(lock);
 
@@ -3124,12 +3169,13 @@ TriggerPollJSSamplingOnMainThread()
 
 static void
 locked_profiler_start(PSLockRef aLock, uint32_t aCapacity, double aInterval,
-                      uint32_t aFeatures,
-                      const char** aFilters, uint32_t aFilterCount)
+                      uint32_t aFeatures, const char** aFilters,
+                      uint32_t aFilterCount, const Maybe<double>& aDuration)
 {
   if (LOG_TEST) {
     LOG("locked_profiler_start");
     LOG("- capacity  = %d", aCapacity);
+    LOG("- duration  = %.2f", aDuration ? *aDuration : -1);
     LOG("- interval = %.2f", aInterval);
 
     #define LOG_FEATURE(n_, str_, Name_) \
@@ -3154,9 +3200,14 @@ locked_profiler_start(PSLockRef aLock, uint32_t aCapacity, double aInterval,
 
   // Fall back to the default values if the passed-in values are unreasonable.
   uint32_t capacity = aCapacity > 0 ? aCapacity : PROFILER_DEFAULT_ENTRIES;
+  Maybe<double> duration = aDuration;
+
+  if (aDuration && *aDuration <= 0) {
+    duration = Nothing();
+  }
   double interval = aInterval > 0 ? aInterval : PROFILER_DEFAULT_INTERVAL;
 
-  ActivePS::Create(aLock, capacity, interval, aFeatures, aFilters, aFilterCount);
+  ActivePS::Create(aLock, capacity, interval, aFeatures, aFilters, aFilterCount, duration);
 
   // Set up profiling for each registered thread, if appropriate.
   int tid = Thread::GetCurrentId();
@@ -3166,6 +3217,7 @@ locked_profiler_start(PSLockRef aLock, uint32_t aCapacity, double aInterval,
     RefPtr<ThreadInfo> info = registeredThread->Info();
 
     if (ActivePS::ShouldProfileThread(aLock, info)) {
+      registeredThread->RacyRegisteredThread().SetIsBeingProfiled(true);
       nsCOMPtr<nsIEventTarget> eventTarget = registeredThread->GetEventTarget();
       ProfiledThreadData* profiledThreadData =
         ActivePS::AddLiveProfiledThread(aLock, registeredThread.get(),
@@ -3215,7 +3267,8 @@ locked_profiler_start(PSLockRef aLock, uint32_t aCapacity, double aInterval,
 
 void
 profiler_start(uint32_t aCapacity, double aInterval, uint32_t aFeatures,
-               const char** aFilters, uint32_t aFilterCount)
+               const char** aFilters, uint32_t aFilterCount,
+               const Maybe<double>& aDuration)
 {
   LOG("profiler_start");
 
@@ -3235,7 +3288,7 @@ profiler_start(uint32_t aCapacity, double aInterval, uint32_t aFeatures,
     }
 
     locked_profiler_start(lock, aCapacity, aInterval, aFeatures,
-                          aFilters, aFilterCount);
+                          aFilters, aFilterCount, aDuration);
   }
 
 #if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
@@ -3250,13 +3303,14 @@ profiler_start(uint32_t aCapacity, double aInterval, uint32_t aFeatures,
     NotifyObservers("profiler-stopped");
     delete samplerThread;
   }
-  NotifyProfilerStarted(aCapacity, aInterval, aFeatures,
+  NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures,
                         aFilters, aFilterCount);
 }
 
 void
 profiler_ensure_started(uint32_t aCapacity, double aInterval, uint32_t aFeatures,
-                        const char** aFilters, uint32_t aFilterCount)
+                        const char** aFilters, uint32_t aFilterCount,
+                        const Maybe<double>& aDuration)
 {
   LOG("profiler_ensure_started");
 
@@ -3272,18 +3326,18 @@ profiler_ensure_started(uint32_t aCapacity, double aInterval, uint32_t aFeatures
 
     if (ActivePS::Exists(lock)) {
       // The profiler is active.
-      if (!ActivePS::Equals(lock, aCapacity, aInterval, aFeatures,
+      if (!ActivePS::Equals(lock, aCapacity, aDuration, aInterval, aFeatures,
                             aFilters, aFilterCount)) {
         // Stop and restart with different settings.
         samplerThread = locked_profiler_stop(lock);
         locked_profiler_start(lock, aCapacity, aInterval, aFeatures,
-                              aFilters, aFilterCount);
+                              aFilters, aFilterCount, aDuration);
         startedProfiler = true;
       }
     } else {
       // The profiler is stopped.
       locked_profiler_start(lock, aCapacity, aInterval, aFeatures,
-                            aFilters, aFilterCount);
+                            aFilters, aFilterCount, aDuration);
       startedProfiler = true;
     }
   }
@@ -3296,7 +3350,7 @@ profiler_ensure_started(uint32_t aCapacity, double aInterval, uint32_t aFeatures
     delete samplerThread;
   }
   if (startedProfiler) {
-    NotifyProfilerStarted(aCapacity, aInterval, aFeatures,
+    NotifyProfilerStarted(aCapacity, aDuration, aInterval, aFeatures,
                           aFilters, aFilterCount);
   }
 }
@@ -3333,6 +3387,7 @@ locked_profiler_stop(PSLockRef aLock)
     ActivePS::LiveProfiledThreads(aLock);
   for (auto& thread : liveProfiledThreads) {
     RegisteredThread* registeredThread = thread.mRegisteredThread;
+    registeredThread->RacyRegisteredThread().SetIsBeingProfiled(false);
     if (ActivePS::FeatureJS(aLock)) {
       registeredThread->StopJSSampling();
       RefPtr<ThreadInfo> info = registeredThread->Info();
@@ -3637,6 +3692,16 @@ profiler_thread_wake()
 }
 
 bool
+mozilla::profiler::detail::IsThreadBeingProfiled()
+{
+  MOZ_RELEASE_ASSERT(CorePS::Exists());
+
+  const RacyRegisteredThread* racyRegisteredThread =
+    TLSRegisteredThread::RacyRegisteredThread();
+  return racyRegisteredThread && racyRegisteredThread->IsBeingProfiled();
+}
+
+bool
 profiler_thread_is_sleeping()
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -3716,16 +3781,16 @@ racy_profiler_add_marker(const char* aMarkerName,
 {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
-  // We don't assert that RacyFeatures::IsActiveWithoutPrivacy() is true here,
-  // because it's possible that the result has changed since we tested it in
-  // the caller.
+  // We don't assert that RacyFeatures::IsActiveWithoutPrivacy() or
+  // RacyRegisteredThread::IsBeingProfiled() is true here, because it's
+  // possible that the result has changed since we tested it in the caller.
   //
   // Because of this imprecision it's possible to miss a marker or record one
   // we shouldn't. Either way is not a big deal.
 
   RacyRegisteredThread* racyRegisteredThread =
     TLSRegisteredThread::RacyRegisteredThread();
-  if (!racyRegisteredThread) {
+  if (!racyRegisteredThread || !racyRegisteredThread->IsBeingProfiled()) {
     return;
   }
 

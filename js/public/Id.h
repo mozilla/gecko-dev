@@ -38,21 +38,28 @@
 #define JSID_TYPE_EMPTY                  0x6
 #define JSID_TYPE_MASK                   0x7
 
-struct jsid
+namespace JS {
+    
+struct PropertyKey
 {
     size_t asBits;
 
-    constexpr jsid() : asBits(JSID_TYPE_VOID) {}
+    constexpr PropertyKey() : asBits(JSID_TYPE_VOID) {}
 
-    static constexpr MOZ_ALWAYS_INLINE jsid fromRawBits(size_t bits) {
-        jsid id;
+    static constexpr MOZ_ALWAYS_INLINE PropertyKey fromRawBits(size_t bits) {
+        PropertyKey id;
         id.asBits = bits;
         return id;
     }
 
-    bool operator==(const jsid& rhs) const { return asBits == rhs.asBits; }
-    bool operator!=(const jsid& rhs) const { return asBits != rhs.asBits; }
+    bool operator==(const PropertyKey& rhs) const { return asBits == rhs.asBits; }
+    bool operator!=(const PropertyKey& rhs) const { return asBits != rhs.asBits; }
 } JS_HAZ_GC_POINTER;
+
+}   // namespace JS
+
+using jsid = JS::PropertyKey;
+
 #define JSID_BITS(id) (id.asBits)
 
 // Avoid using canonical 'id' for jsid parameters since this is a magic word in
@@ -81,7 +88,7 @@ JSID_TO_STRING(jsid id)
  * N.B. if a jsid is backed by a string which has not been interned, that
  * string must be appropriately rooted to avoid being collected by the GC.
  */
-JS_PUBLIC_API(jsid)
+JS_PUBLIC_API jsid
 INTERNED_STRING_TO_JSID(JSContext* cx, JSString* str);
 
 static MOZ_ALWAYS_INLINE bool
@@ -177,8 +184,8 @@ JSID_IS_EMPTY(const jsid id)
 constexpr const jsid JSID_VOID;
 constexpr const jsid JSID_EMPTY = jsid::fromRawBits(JSID_TYPE_EMPTY);
 
-extern JS_PUBLIC_DATA(const JS::HandleId) JSID_VOIDHANDLE;
-extern JS_PUBLIC_DATA(const JS::HandleId) JSID_EMPTYHANDLE;
+extern JS_PUBLIC_DATA const JS::HandleId JSID_VOIDHANDLE;
+extern JS_PUBLIC_DATA const JS::HandleId JSID_EMPTYHANDLE;
 
 namespace JS {
 

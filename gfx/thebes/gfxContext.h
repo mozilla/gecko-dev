@@ -149,10 +149,12 @@ public:
 
     /**
      * Draws the rectangle given by rect.
-     * @param snapToPixels ?
      */
-    void Rectangle(const gfxRect& rect, bool snapToPixels = false);
+    void Rectangle(const gfxRect& rect) { return Rectangle(rect, false); }
     void SnappedRectangle(const gfxRect& rect) { return Rectangle(rect, true); }
+private:
+    void Rectangle(const gfxRect& rect, bool snapToPixels);
+public:
 
     /**
      ** Transformation Matrix manipulation
@@ -313,8 +315,6 @@ public:
     // context is in an error state.  |offset| can be nullptr to mean
     // "don't care".
     bool CurrentDash(FallibleTArray<Float>& dashes, Float* offset) const;
-    // Returns 0.0 if dashing isn't enabled.
-    Float CurrentDashOffset() const;
 
     /**
      * Sets the line width that's used for line drawing.
@@ -372,6 +372,7 @@ public:
      */
     void Clip(const Rect& rect);
     void Clip(const gfxRect& rect); // will clip to a rect
+    void SnappedClip(const gfxRect& rect); // snap rect and clip to the result
     void Clip(Path* aPath);
 
     void PopClip();
@@ -422,6 +423,7 @@ public:
     void PopGroupAndBlend();
 
     mozilla::gfx::Point GetDeviceOffset() const;
+    void SetDeviceOffset(const mozilla::gfx::Point& aOffset);
 
 #ifdef MOZ_DUMP_PAINTING
     /**

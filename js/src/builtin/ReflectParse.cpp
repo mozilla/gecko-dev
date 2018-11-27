@@ -448,7 +448,8 @@ class NodeBuilder
             return false;
         }
 
-        /* Represent "no node" as null and ensure users are not exposed to magic values. */
+        // Represent "no node" as null and ensure users are not exposed to magic
+        // values.
         RootedValue optVal(cx, val.isMagic(JS_SERIALIZE_NO_NODE) ? NullValue() : val);
         return DefineDataProperty(cx, obj, atom->asPropertyName(), optVal);
     }
@@ -3655,7 +3656,8 @@ ASTSerializer::functionBody(ParseNode* pn, TokenPos* pos, MutableHandleValue dst
 {
     NodeVector elts(cx);
 
-    /* We aren't sure how many elements there are up front, so we'll check each append. */
+    // We aren't sure how many elements there are up front, so we'll check each
+    // append.
     for (ParseNode* next = pn; next; next = next->pn_next) {
         RootedValue child(cx);
         if (!sourceElement(next, &child) || !elts.append(child)) {
@@ -3866,7 +3868,7 @@ reflect_parse(JSContext* cx, uint32_t argc, Value* vp)
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_InitReflectParse(JSContext* cx, HandleObject global)
 {
     RootedValue reflectVal(cx);

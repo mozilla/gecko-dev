@@ -49,7 +49,7 @@ using JS::UTF8CharsToNewTwoByteCharsZ;
 
 using namespace js;
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::detail::ReportSourceTooLong(JSContext* cx)
 {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SOURCE_TOO_LONG);
@@ -121,6 +121,13 @@ CompileUtf8DontInflate(JSContext* cx, const ReadOnlyCompileOptions& options,
 bool
 JS::Compile(JSContext* cx, const ReadOnlyCompileOptions& options,
             SourceText<char16_t>& srcBuf, JS::MutableHandleScript script)
+{
+    return CompileSourceBuffer(cx, options, srcBuf, script);
+}
+
+bool
+JS::CompileDontInflate(JSContext* cx, const ReadOnlyCompileOptions& options,
+                       SourceText<Utf8Unit>& srcBuf, JS::MutableHandleScript script)
 {
     return CompileSourceBuffer(cx, options, srcBuf, script);
 }
@@ -207,7 +214,7 @@ JS::CompileLatin1ForNonSyntacticScope(JSContext* cx, const ReadOnlyCompileOption
     return ::CompileLatin1(cx, options, bytes, length, script);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS_Utf8BufferIsCompilableUnit(JSContext* cx, HandleObject obj, const char* utf8, size_t length)
 {
     AssertHeapIsIdle();
@@ -360,7 +367,7 @@ BuildFunctionString(const char* name, size_t nameLen,
     return true;
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CompileFunction(JSContext* cx, AutoObjectVector& envChain,
                     const ReadOnlyCompileOptions& options,
                     const char* name, unsigned nargs, const char* const* argnames,
@@ -411,7 +418,7 @@ JS::CompileFunction(JSContext* cx, AutoObjectVector& envChain,
                            scope, fun);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CompileFunctionUtf8(JSContext* cx, AutoObjectVector& envChain,
                         const ReadOnlyCompileOptions& options,
                         const char* name, unsigned nargs, const char* const* argnames,
@@ -432,7 +439,7 @@ JS::CompileFunctionUtf8(JSContext* cx, AutoObjectVector& envChain,
                            source, fun);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::InitScriptSourceElement(JSContext* cx, HandleScript script,
                             HandleObject element, HandleString elementAttrName)
 {
@@ -443,7 +450,7 @@ JS::InitScriptSourceElement(JSContext* cx, HandleScript script,
     return ScriptSourceObject::initElementProperties(cx, sso, element, elementAttrName);
 }
 
-JS_PUBLIC_API(void)
+JS_PUBLIC_API void
 JS::ExposeScriptToDebugger(JSContext* cx, HandleScript script)
 {
     MOZ_ASSERT(cx);
@@ -486,34 +493,34 @@ ExecuteScript(JSContext* cx, AutoObjectVector& envChain, HandleScript scriptArg,
     return ExecuteScript(cx, env, script, rval);
 }
 
-MOZ_NEVER_INLINE JS_PUBLIC_API(bool)
+MOZ_NEVER_INLINE JS_PUBLIC_API bool
 JS_ExecuteScript(JSContext* cx, HandleScript scriptArg, MutableHandleValue rval)
 {
     RootedObject globalLexical(cx, &cx->global()->lexicalEnvironment());
     return ExecuteScript(cx, globalLexical, scriptArg, rval.address());
 }
 
-MOZ_NEVER_INLINE JS_PUBLIC_API(bool)
+MOZ_NEVER_INLINE JS_PUBLIC_API bool
 JS_ExecuteScript(JSContext* cx, HandleScript scriptArg)
 {
     RootedObject globalLexical(cx, &cx->global()->lexicalEnvironment());
     return ExecuteScript(cx, globalLexical, scriptArg, nullptr);
 }
 
-MOZ_NEVER_INLINE JS_PUBLIC_API(bool)
+MOZ_NEVER_INLINE JS_PUBLIC_API bool
 JS_ExecuteScript(JSContext* cx, AutoObjectVector& envChain,
                  HandleScript scriptArg, MutableHandleValue rval)
 {
     return ExecuteScript(cx, envChain, scriptArg, rval.address());
 }
 
-MOZ_NEVER_INLINE JS_PUBLIC_API(bool)
+MOZ_NEVER_INLINE JS_PUBLIC_API bool
 JS_ExecuteScript(JSContext* cx, AutoObjectVector& envChain, HandleScript scriptArg)
 {
     return ExecuteScript(cx, envChain, scriptArg, nullptr);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CloneAndExecuteScript(JSContext* cx, HandleScript scriptArg,
                           JS::MutableHandleValue rval)
 {
@@ -531,7 +538,7 @@ JS::CloneAndExecuteScript(JSContext* cx, HandleScript scriptArg,
     return ExecuteScript(cx, globalLexical, script, rval.address());
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::CloneAndExecuteScript(JSContext* cx, JS::AutoObjectVector& envChain,
                           HandleScript scriptArg,
                           JS::MutableHandleValue rval)
@@ -587,7 +594,7 @@ Evaluate(JSContext* cx, AutoObjectVector& envChain, const ReadOnlyCompileOptions
     return ::Evaluate(cx, scope->kind(), env, optionsArg, srcBuf, rval);
 }
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 JS::EvaluateUtf8(JSContext* cx, const ReadOnlyCompileOptions& options,
                  const char* bytes, size_t length, MutableHandle<Value> rval)
 {
@@ -606,7 +613,7 @@ JS::EvaluateUtf8(JSContext* cx, const ReadOnlyCompileOptions& options,
     return ::Evaluate(cx, ScopeKind::Global, globalLexical, options, srcBuf, rval);
 }
 
-extern JS_PUBLIC_API(bool)
+extern JS_PUBLIC_API bool
 JS::EvaluateLatin1(JSContext* cx, const ReadOnlyCompileOptions& options,
                    const char* bytes, size_t length, MutableHandle<Value> rval)
 {
@@ -624,7 +631,7 @@ JS::EvaluateLatin1(JSContext* cx, const ReadOnlyCompileOptions& options,
     return ::Evaluate(cx, ScopeKind::Global, globalLexical, options, srcBuf, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::Evaluate(JSContext* cx, const ReadOnlyCompileOptions& optionsArg,
              SourceText<char16_t>& srcBuf, MutableHandleValue rval)
 {
@@ -632,14 +639,14 @@ JS::Evaluate(JSContext* cx, const ReadOnlyCompileOptions& optionsArg,
     return ::Evaluate(cx, ScopeKind::Global, globalLexical, optionsArg, srcBuf, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::Evaluate(JSContext* cx, AutoObjectVector& envChain, const ReadOnlyCompileOptions& optionsArg,
              SourceText<char16_t>& srcBuf, MutableHandleValue rval)
 {
     return ::Evaluate(cx, envChain, optionsArg, srcBuf, rval);
 }
 
-JS_PUBLIC_API(bool)
+JS_PUBLIC_API bool
 JS::EvaluateUtf8Path(JSContext* cx, const ReadOnlyCompileOptions& optionsArg,
                      const char* filename, MutableHandleValue rval)
 {

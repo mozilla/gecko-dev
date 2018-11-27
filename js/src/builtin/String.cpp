@@ -115,6 +115,7 @@ static bool
 Escape(JSContext* cx, const CharT* chars, uint32_t length, InlineCharBuffer<Latin1Char>& newChars,
        uint32_t* newLengthOut)
 {
+    // clang-format off
     static const uint8_t shouldPassThrough[128] = {
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -125,6 +126,7 @@ Escape(JSContext* cx, const CharT* chars, uint32_t length, InlineCharBuffer<Lati
          0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,       /*   `abcdefghijklmno  */
          1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,       /*   pqrstuvwxyz{\}~  DEL */
     };
+    // clang-format on
 
     /* Take a first pass and see how big the result string will need to be. */
     uint32_t newLength = length;
@@ -2792,10 +2794,10 @@ AppendDollarReplacement(StringBuffer& newReplaceChars, size_t firstDollarIndex,
 {
     MOZ_ASSERT(firstDollarIndex < repLength);
 
-    /* Move the pre-dollar chunk in bulk. */
+    // Move the pre-dollar chunk in bulk.
     newReplaceChars.infallibleAppend(repChars, firstDollarIndex);
 
-    /* Move the rest char-by-char, interpreting dollars as we encounter them. */
+    // Move the rest char-by-char, interpreting dollars as we encounter them.
     const CharT* repLimit = repChars + repLength;
     for (const CharT* it = repChars + firstDollarIndex; it < repLimit; ++it) {
         if (*it != '$' || it == repLimit - 1) {
@@ -2806,7 +2808,8 @@ AppendDollarReplacement(StringBuffer& newReplaceChars, size_t firstDollarIndex,
         }
 
         switch (*(it + 1)) {
-          case '$': /* Eat one of the dollars. */
+          case '$':
+            // Eat one of the dollars.
             if (!newReplaceChars.append(*it)) {
                 return false;
             }
@@ -2826,13 +2829,15 @@ AppendDollarReplacement(StringBuffer& newReplaceChars, size_t firstDollarIndex,
                 return false;
             }
             break;
-          default: /* The dollar we saw was not special (no matter what its mother told it). */
+          default:
+            // The dollar we saw was not special (no matter what its mother told
+            // it).
             if (!newReplaceChars.append(*it)) {
                 return false;
             }
             continue;
         }
-        ++it; /* We always eat an extra char in the above switch. */
+        ++it; // We always eat an extra char in the above switch.
     }
 
     return true;
@@ -4282,7 +4287,8 @@ BuildFlatMatchArray(JSContext* cx, HandleString str, HandleString pattern, int32
         return true;
     }
 
-    /* Get the templateObject that defines the shape and type of the output object */
+    // Get the templateObject that defines the shape and type of the output
+    // object.
     JSObject* templateObject = cx->realm()->regExps.getOrCreateMatchResultTemplateObject(cx);
     if (!templateObject) {
         return false;
@@ -4293,14 +4299,14 @@ BuildFlatMatchArray(JSContext* cx, HandleString str, HandleString pattern, int32
         return false;
     }
 
-    /* Store a Value for each pair. */
+    // Store a Value for each pair.
     arr->setDenseInitializedLength(1);
     arr->initDenseElement(0, StringValue(pattern));
 
-    /* Set the |index| property. (TemplateObject positions it in slot 0) */
+    // Set the |index| property. (TemplateObject positions it in slot 0).
     arr->setSlot(0, Int32Value(match));
 
-    /* Set the |input| property. (TemplateObject positions it in slot 1) */
+    // Set the |input| property. (TemplateObject positions it in slot 1).
     arr->setSlot(1, StringValue(str));
 
 #ifdef DEBUG

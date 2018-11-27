@@ -448,9 +448,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
-  if (ShouldClipSubdocument()) {
-    clipState.ClipContainingBlockDescendantsToContentBox(aBuilder, this);
-  }
+  clipState.ClipContainingBlockDescendantsToContentBox(aBuilder, this);
 
   nsIScrollableFrame *sf = presShell->GetRootScrollFrameAsScrollable();
   bool constructResolutionItem = subdocRootFrame &&
@@ -852,12 +850,6 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  if (!ShouldClipSubdocument()) {
-    nsIFrame* subdocRootFrame = GetSubdocumentRootFrame();
-    if (subdocRootFrame) {
-      aDesiredSize.mOverflowAreas.UnionWith(subdocRootFrame->GetOverflowAreas() + offset);
-    }
-  }
 
   FinishAndStoreOverflow(&aDesiredSize);
 
@@ -1212,8 +1204,7 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
     nsCOMPtr<nsIContentViewer> cv;
     ds->GetContentViewer(getter_AddRefs(cv));
     while (cv) {
-      RefPtr<nsPresContext> pc;
-      cv->GetPresContext(getter_AddRefs(pc));
+      RefPtr<nsPresContext> pc = cv->GetPresContext();
       if (pc && pc->GetPresShell()) {
         pc->GetPresShell()->SetNeverPainting(ds->IsInvisible());
       }
@@ -1222,9 +1213,7 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
         nsView* v = cv->FindContainerView();
         dc->Init(v ? v->GetNearestWidget(nullptr) : nullptr);
       }
-      nsCOMPtr<nsIContentViewer> prev;
-      cv->GetPreviousViewer(getter_AddRefs(prev));
-      cv = prev;
+      cv = cv->GetPreviousViewer();
     }
   }
 

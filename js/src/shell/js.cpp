@@ -5012,16 +5012,10 @@ AbortDynamicModuleImport(JSContext* cx, unsigned argc, Value* vp)
         return ReportArgumentTypeError(cx, args[2], "PromiseObject");
     }
 
-    if (!args[3].isObject() || !args[3].toObject().is<ErrorObject>()) {
-        return ReportArgumentTypeError(cx, args[3], "ErrorObject");
-    }
-
     RootedString specifier(cx, args[1].toString());
     Rooted<PromiseObject*> promise(cx, &args[2].toObject().as<PromiseObject>());
-    Rooted<ErrorObject*> error(cx, &args[3].toObject().as<ErrorObject>());
 
-    Rooted<Value> value(cx, ObjectValue(*error));
-    cx->setPendingException(value);
+    cx->setPendingException(args[3]);
     return js::FinishDynamicModuleImport(cx, args[0], specifier, promise);
 }
 
@@ -9876,7 +9870,8 @@ dom_constructor(JSContext* cx, unsigned argc, JS::Value* vp)
 static bool
 InstanceClassHasProtoAtDepth(const Class* clasp, uint32_t protoID, uint32_t depth)
 {
-    /* There's only a single (fake) DOM object in the shell, so just return true. */
+    // There's only a single (fake) DOM object in the shell, so just return
+    // true.
     return true;
 }
 
@@ -10734,7 +10729,6 @@ SetContextOptions(JSContext* cx, const OptionParser& op)
         return false;
     }
 
-#ifdef ENABLE_SHARED_ARRAY_BUFFER
     if (const char* str = op.getStringOption("shared-memory")) {
         if (strcmp(str, "off") == 0) {
             enableSharedMemory = false;
@@ -10744,7 +10738,6 @@ SetContextOptions(JSContext* cx, const OptionParser& op)
             return OptionFailure("shared-memory", str);
         }
     }
-#endif
 
 #if defined(JS_CODEGEN_ARM)
     if (const char* str = op.getStringOption("arm-hwcap")) {
@@ -11128,16 +11121,14 @@ main(int argc, char** argv, char** envp)
 #ifdef ENABLE_BIGINT
         || !op.addBoolOption('\0', "no-bigint", "Disable experimental BigInt support")
 #endif
-#ifdef ENABLE_SHARED_ARRAY_BUFFER
         || !op.addStringOption('\0', "shared-memory", "on/off",
                                "SharedArrayBuffer and Atomics "
-#  if SHARED_MEMORY_DEFAULT
+#if SHARED_MEMORY_DEFAULT
                                "(default: on, off to disable)"
-#  else
+#else
                                "(default: off, on to enable)"
-#  endif
-            )
 #endif
+            )
         || !op.addStringOption('\0', "spectre-mitigations", "on/off",
                                "Whether Spectre mitigations are enabled (default: off, on to enable)")
         || !op.addStringOption('\0', "cache-ir-stubs", "on/off/nobinary",

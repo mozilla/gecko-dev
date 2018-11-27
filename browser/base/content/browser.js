@@ -69,6 +69,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UpdateUtils: "resource://gre/modules/UpdateUtils.jsm",
   UrlbarInput: "resource:///modules/UrlbarInput.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
+  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
   UrlbarValueFormatter: "resource:///modules/UrlbarValueFormatter.jsm",
   Utils: "resource://gre/modules/sessionstore/Utils.jsm",
@@ -111,6 +112,8 @@ XPCOMUtils.defineLazyScriptGetter(this, ["CustomizationHandler", "AutoHideMenuba
                                   "chrome://browser/content/browser-customization.js");
 XPCOMUtils.defineLazyScriptGetter(this, ["PointerLock", "FullScreen"],
                                   "chrome://browser/content/browser-fullScreenAndPointerLock.js");
+XPCOMUtils.defineLazyScriptGetter(this, "gIdentityHandler",
+                                  "chrome://browser/content/browser-siteIdentity.js");
 XPCOMUtils.defineLazyScriptGetter(this, ["gGestureSupport", "gHistorySwipeAnimation"],
                                   "chrome://browser/content/browser-gestureSupport.js");
 XPCOMUtils.defineLazyScriptGetter(this, "gSafeBrowsing",
@@ -135,6 +138,8 @@ XPCOMUtils.defineLazyScriptGetter(this, ["DownloadsButton",
                                   "chrome://browser/content/downloads/indicator.js");
 XPCOMUtils.defineLazyScriptGetter(this, "gEditItemOverlay",
                                   "chrome://browser/content/places/editBookmark.js");
+XPCOMUtils.defineLazyScriptGetter(this, "SearchOneOffs",
+                                  "chrome://browser/content/search/search-one-offs.js");
 if (AppConstants.NIGHTLY_BUILD) {
   XPCOMUtils.defineLazyScriptGetter(this, "gWebRender",
                                     "chrome://browser/content/browser-webrender.js");
@@ -157,6 +162,10 @@ if (AppConstants.MOZ_CRASHREPORTER) {
                                      "@mozilla.org/xre/app-info;1",
                                      "nsICrashReporter");
 }
+
+XPCOMUtils.defineLazyGetter(this, "RTL_UI", () => {
+  return document.documentElement.matches(":-moz-locale-dir(rtl)");
+});
 
 XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/browser.properties");
@@ -1319,49 +1328,18 @@ var gBrowserInit = {
   },
 
   onDOMContentLoaded() {
-    gBrowser = window._gBrowser;
-    delete window._gBrowser;
-    gBrowser.init();
-
+    // This needs setting up before we create the first remote browser.
     window.docShell.treeOwner
           .QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(Ci.nsIXULWindow)
           .XULBrowserWindow = window.XULBrowserWindow;
     window.browserDOMWindow = new nsBrowserAccess();
+
+    gBrowser = window._gBrowser;
+    delete window._gBrowser;
+    gBrowser.init();
+
     BrowserWindowTracker.track(window);
-
-    let initBrowser = gBrowser.initialBrowser;
-
-    // remoteType and sameProcessAsFrameLoader are passed through to
-    // updateBrowserRemoteness as part of an options object, which itself defaults
-    // to an empty object. So defaulting them to undefined here will cause the
-    // default behavior in updateBrowserRemoteness if they don't get set.
-    let isRemote = gMultiProcessBrowser;
-    let remoteType;
-    let sameProcessAsFrameLoader;
-
-    let tabArgument = this.getTabToAdopt();
-    if (tabArgument) {
-      // The window's first argument is a tab if and only if we are swapping tabs.
-      // We must set the browser's usercontextid before updateBrowserRemoteness(),
-      // so that the newly created remote tab child has the correct usercontextid.
-      if (tabArgument.hasAttribute("usercontextid")) {
-        initBrowser.setAttribute("usercontextid",
-                                 tabArgument.getAttribute("usercontextid"));
-      }
-
-      let linkedBrowser = tabArgument.linkedBrowser;
-      if (linkedBrowser) {
-        remoteType = linkedBrowser.remoteType;
-        isRemote = remoteType != E10SUtils.NOT_REMOTE;
-        sameProcessAsFrameLoader = linkedBrowser.frameLoader;
-      }
-      initBrowser.removeAttribute("blank");
-    }
-
-    gBrowser.updateBrowserRemoteness(initBrowser, isRemote, {
-      remoteType, sameProcessAsFrameLoader,
-    });
 
     gNavToolbox.palette = document.getElementById("BrowserToolbarPalette");
     gNavToolbox.palette.remove();
@@ -2535,12 +2513,11 @@ function readFromClipboard() {
       Services.clipboard.getData(trans, Services.clipboard.kGlobalClipboard);
 
     var data = {};
-    var dataLen = {};
-    trans.getTransferData("text/unicode", data, dataLen);
+    trans.getTransferData("text/unicode", data);
 
     if (data) {
       data = data.value.QueryInterface(Ci.nsISupportsString);
-      url = data.data.substring(0, dataLen.value / 2);
+      url = data.data;
     }
   } catch (ex) {
   }
@@ -4063,6 +4040,8 @@ const BrowserSearch = {
     let focusUrlBarIfSearchFieldIsNotActive = function(aSearchBar) {
       if (!aSearchBar || document.activeElement != aSearchBar.textbox.inputField) {
         focusAndSelectUrlBar(true);
+        // Limit the results to search suggestions, like the search bar.
+        gURLBar.typeRestrictToken(UrlbarTokenizer.RESTRICT.SEARCH);
       }
     };
 
@@ -5338,7 +5317,7 @@ const AccessibilityRefreshBlocker = {
 var TabsProgressListener = {
   onStateChange(aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     // Collect telemetry data about tab load times.
-    if (aWebProgress.isTopLevel && (!aRequest.originalURI || aRequest.originalURI.spec.scheme != "about")) {
+    if (aWebProgress.isTopLevel && (!aRequest.originalURI || aRequest.originalURI.scheme != "about")) {
       let stopwatchRunning = TelemetryStopwatch.running("FX_PAGE_LOAD_MS_2", aBrowser);
 
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
@@ -7770,12 +7749,9 @@ var MousePosTracker = {
   _listeners: new Set(),
   _x: 0,
   _y: 0,
-  _mostRecentEvent: null,
 
   /**
-   * Registers a listener, and then waits for the next refresh
-   * driver tick before running the listener to see if the
-   * mouse is within the listener's target rect.
+   * Registers a listener.
    *
    * @param listener (object)
    *        A listener is expected to expose the following properties:
@@ -7783,12 +7759,6 @@ var MousePosTracker = {
    *        getMouseTargetRect (function)
    *          Returns the rect that the MousePosTracker needs to alert
    *          the listener about if the mouse happens to be within it.
-   *
-   *        onTrackingStarted (function, optional)
-   *          Called after the next refresh driver tick after listening,
-   *          when the mouse's initial position relative to the MouseTargetRect
-   *          can be computed. If the listener is removed before the refresh
-   *          driver tick, this might never be called.
    *
    *        onMouseEnter (function, optional)
    *          The function to be called if the mouse enters the rect
@@ -7810,19 +7780,7 @@ var MousePosTracker = {
     listener._hover = false;
     this._listeners.add(listener);
 
-    // We're adding some asynchronicity here, during which the listener
-    // might be removed. At each step, we need to ensure that the listener
-    // is still registered before proceeding.
-    window.promiseDocumentFlushed(() => {
-      if (this._listeners.has(listener)) {
-        this._callListeners([listener]);
-        window.requestAnimationFrame(() => {
-          if (this._listeners.has(listener) && listener.onTrackingStarted) {
-            listener.onTrackingStarted();
-          }
-        });
-      }
-    });
+    this._callListener(listener);
   },
 
   removeListener(listener) {
@@ -7830,72 +7788,39 @@ var MousePosTracker = {
   },
 
   handleEvent(event) {
-    let firstEvent = !this._mostRecentEvent;
-    this._mostRecentEvent = event;
+    let fullZoom = window.windowUtils.fullZoom;
+    this._x = event.screenX / fullZoom - window.mozInnerScreenX;
+    this._y = event.screenY / fullZoom - window.mozInnerScreenY;
 
-    if (firstEvent) {
-      window.promiseDocumentFlushed(() => {
-        this.onDocumentFlushed();
-        this._mostRecentEvent = null;
-      });
-    }
-  },
-
-  onDocumentFlushed() {
-    let event = this._mostRecentEvent;
-
-    if (event) {
-      let fullZoom = window.windowUtils.fullZoom;
-      this._x = event.screenX / fullZoom - window.mozInnerScreenX;
-      this._y = event.screenY / fullZoom - window.mozInnerScreenY;
-
-      this._callListeners(this._listeners);
-    }
-  },
-
-  _callListeners(listeners) {
-    let functionsToCall = [];
-    for (let listener of listeners) {
-      let rect;
+    this._listeners.forEach(listener => {
       try {
-        rect = listener.getMouseTargetRect();
+        this._callListener(listener);
       } catch (e) {
         Cu.reportError(e);
-        continue;
-      }
-
-      let hover = this._x >= rect.left &&
-                  this._x <= rect.right &&
-                  this._y >= rect.top &&
-                  this._y <= rect.bottom;
-
-      if (hover == listener._hover) {
-        continue;
-      }
-
-      listener._hover = hover;
-      if (hover) {
-        if (listener.onMouseEnter) {
-          functionsToCall.push(listener.onMouseEnter.bind(listener));
-        }
-      } else if (listener.onMouseLeave) {
-        functionsToCall.push(listener.onMouseLeave.bind(listener));
-      }
-    }
-
-    // _callListeners is being called from within a promiseDocumentFlushed,
-    // where we are expressly forbidden from dirtying styles or layout. Since
-    // the onMouseEnter or onMouseLeave functions are liable to do such
-    // dirtying, we run them inside a requestAnimationFrame callback instead.
-    window.requestAnimationFrame(() => {
-      for (let fn of functionsToCall) {
-        try {
-          fn();
-        } catch (e) {
-          Cu.reportError(e);
-        }
       }
     });
+  },
+
+  _callListener(listener) {
+    let rect = listener.getMouseTargetRect();
+    let hover = this._x >= rect.left &&
+                this._x <= rect.right &&
+                this._y >= rect.top &&
+                this._y <= rect.bottom;
+
+    if (hover == listener._hover) {
+      return;
+    }
+
+    listener._hover = hover;
+
+    if (hover) {
+      if (listener.onMouseEnter) {
+        listener.onMouseEnter();
+      }
+    } else if (listener.onMouseLeave) {
+      listener.onMouseLeave();
+    }
   },
 };
 

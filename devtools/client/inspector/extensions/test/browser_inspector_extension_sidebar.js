@@ -107,7 +107,8 @@ add_task(async function testSidebarSetObject() {
 });
 
 add_task(async function testSidebarSetObjectValueGrip() {
-  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
+  const inspectedWindowFront =
+    await toolbox.target.getFront("webExtensionInspectedWindow");
   const sidebar = inspector.getPanel(SIDEBAR_ID);
   const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);
 
@@ -149,7 +150,8 @@ add_task(async function testSidebarSetObjectValueGrip() {
 });
 
 add_task(async function testSidebarDOMNodeHighlighting() {
-  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
+  const inspectedWindowFront =
+    await toolbox.target.getFront("webExtensionInspectedWindow");
   const sidebar = inspector.getPanel(SIDEBAR_ID);
   const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);
 
@@ -181,7 +183,7 @@ add_task(async function testSidebarDOMNodeHighlighting() {
   // Test highlight DOMNode on mouseover.
   info("Highlight the node by moving the cursor on it");
 
-  const onNodeHighlight = toolbox.once("node-highlight");
+  const onNodeHighlight = toolbox.highlighter.once("node-highlight");
 
   moveMouseOnObjectInspectorDOMNode(sidebarPanelContent);
 
@@ -190,7 +192,7 @@ add_task(async function testSidebarDOMNodeHighlighting() {
 
   // Test unhighlight DOMNode on mousemove.
   info("Unhighlight the node by moving away from the node");
-  const onNodeUnhighlight = toolbox.once("node-unhighlight");
+  const onNodeUnhighlight = toolbox.highlighter.once("node-unhighlight");
 
   moveMouseOnPanelCenter(sidebarPanelContent);
 
@@ -214,8 +216,8 @@ add_task(async function testSidebarDOMNodeOpenInspector() {
 
   // Once we click the open-inspector icon we expect a new node front to be selected
   // and the node to have been highlighted and unhighlighted.
-  const onNodeHighlight = toolbox.once("node-highlight");
-  const onNodeUnhighlight = toolbox.once("node-unhighlight");
+  const onNodeHighlight = toolbox.highlighter.once("node-highlight");
+  const onNodeUnhighlight = toolbox.highlighter.once("node-unhighlight");
   onceNewNodeFront = inspector.selection.once("new-node-front");
 
   clickOpenInspectorIcon(sidebarPanelContent);
@@ -229,7 +231,8 @@ add_task(async function testSidebarDOMNodeOpenInspector() {
 });
 
 add_task(async function testSidebarSetExtensionPage() {
-  const inspectedWindowFront = toolbox.target.getFront("webExtensionInspectedWindow");
+  const inspectedWindowFront =
+    await toolbox.target.getFront("webExtensionInspectedWindow");
 
   const sidebar = inspector.getPanel(SIDEBAR_ID);
   const sidebarPanelContent = inspector.sidebar.getTabPanel(SIDEBAR_ID);

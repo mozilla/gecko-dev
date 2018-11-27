@@ -690,9 +690,6 @@ Toolbox.prototype = {
    * the source map worker.
    */
   get sourceMapService() {
-    if (!Services.prefs.getBoolPref("devtools.source-map.client-service.enabled")) {
-      return null;
-    }
     return this._createSourceMapService();
   },
 
@@ -2382,7 +2379,7 @@ Toolbox.prototype = {
     // Only enable frame highlighting when the top level document is targeted
     if (this.rootFrameSelected) {
       const frameActor = await this.walker.getNodeActorFromWindowID(frameId);
-      this.highlighterUtils.highlightNodeFront(frameActor);
+      this.highlighter.highlight(frameActor);
     }
   },
 
@@ -3049,7 +3046,7 @@ Toolbox.prototype = {
       resolvePerformance = resolve;
     });
 
-    this._performance = this.target.getFront("performance");
+    this._performance = await this.target.getFront("performance");
     await this.performance.connect();
 
     // Emit an event when connected, but don't wait on startup for this.

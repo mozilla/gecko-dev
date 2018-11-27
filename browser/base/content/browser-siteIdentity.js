@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env mozilla/browser-window */
 
 /**
  * Utility object to handle manipulations of the identity indicators in the UI
@@ -205,6 +206,31 @@ var gIdentityHandler = {
       permissionAnchors[anchor.getAttribute("data-permission-id")] = anchor;
     }
     return this._permissionAnchors = permissionAnchors;
+  },
+
+  get _insecureConnectionIconEnabled() {
+    delete this._insecureConnectionIconEnabled;
+    XPCOMUtils.defineLazyPreferenceGetter(this, "_insecureConnectionIconEnabled",
+                                          "security.insecure_connection_icon.enabled");
+    return this._insecureConnectionIconEnabled;
+  },
+  get _insecureConnectionIconPBModeEnabled() {
+    delete this._insecureConnectionIconPBModeEnabled;
+    XPCOMUtils.defineLazyPreferenceGetter(this, "_insecureConnectionIconPBModeEnabled",
+                                          "security.insecure_connection_icon.pbmode.enabled");
+    return this._insecureConnectionIconPBModeEnabled;
+  },
+  get _insecureConnectionTextEnabled() {
+    delete this._insecureConnectionTextEnabled;
+    XPCOMUtils.defineLazyPreferenceGetter(this, "_insecureConnectionTextEnabled",
+                                          "security.insecure_connection_text.enabled");
+    return this._insecureConnectionTextEnabled;
+  },
+  get _insecureConnectionTextPBModeEnabled() {
+    delete this._insecureConnectionTextPBModeEnabled;
+    XPCOMUtils.defineLazyPreferenceGetter(this, "_insecureConnectionTextPBModeEnabled",
+                                          "security.insecure_connection_text.pbmode.enabled");
+    return this._insecureConnectionTextPBModeEnabled;
   },
 
   /**
@@ -525,14 +551,14 @@ var gIdentityHandler = {
           this._identityBox.classList.add("weakCipher");
         }
       } else {
-        let warnOnInsecure = Services.prefs.getBoolPref("security.insecure_connection_icon.enabled") ||
-                             (Services.prefs.getBoolPref("security.insecure_connection_icon.pbmode.enabled") &&
+        let warnOnInsecure = this._insecureConnectionIconEnabled ||
+                             (this._insecureConnectionIconPBModeEnabled &&
                              PrivateBrowsingUtils.isWindowPrivate(window));
         let className = warnOnInsecure ? "notSecure" : "unknownIdentity";
         this._identityBox.className = className;
 
-        let warnTextOnInsecure = Services.prefs.getBoolPref("security.insecure_connection_text.enabled") ||
-                                 (Services.prefs.getBoolPref("security.insecure_connection_text.pbmode.enabled") &&
+        let warnTextOnInsecure = this._insecureConnectionTextEnabled ||
+                                 (this._insecureConnectionTextPBModeEnabled &&
                                  PrivateBrowsingUtils.isWindowPrivate(window));
         if (warnTextOnInsecure) {
           icon_label = gNavigatorBundle.getString("identity.notSecure.label");

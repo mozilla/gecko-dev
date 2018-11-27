@@ -19,6 +19,7 @@
 #include "mozilla/dom/Attr.h"
 #include "mozilla/dom/Flex.h"
 #include "mozilla/dom/Grid.h"
+#include "mozilla/dom/Text.h"
 #include "mozilla/gfx/Matrix.h"
 #include "nsAtom.h"
 #include "nsCSSFrameConstructor.h"
@@ -97,7 +98,6 @@
 #include "nsSVGUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
-#include "nsContentUtils.h"
 #include "ChildIterator.h"
 
 #include "nsIDOMEventListener.h"
@@ -159,36 +159,39 @@ using namespace mozilla::dom;
 
 using mozilla::gfx::Matrix4x4;
 
+// Verify sizes of nodes. We use a template rather than a direct static
+// assert so that the error message actually displays the sizes.
+// On 32 bit systems the actual allocated size varies a bit between
+// OSes/compilers.
 //
-// Verify sizes of elements on 64-bit platforms. This should catch most memory
-// regressions, and is easy to verify locally since most developers are on
-// 64-bit machines. We use a template rather than a direct static assert so
-// that the error message actually displays the sizes.
-//
-
 // We need different numbers on certain build types to deal with the owning
 // thread pointer that comes with the non-threadsafe refcount on
-// FragmentOrElement.
+// nsIContent.
 #ifdef MOZ_THREAD_SAFETY_OWNERSHIP_CHECKS_SUPPORTED
-#define EXTRA_DOM_ELEMENT_BYTES 8
+#define EXTRA_DOM_NODE_BYTES 8
 #else
-#define EXTRA_DOM_ELEMENT_BYTES 0
+#define EXTRA_DOM_NODE_BYTES 0
 #endif
 
-#define ASSERT_ELEMENT_SIZE(type, opt_size) \
-template<int a, int b> struct Check##type##Size \
+#define ASSERT_NODE_SIZE(type, opt_size_64, opt_size_32) \
+template<int a, int sizeOn64, int sizeOn32> struct Check##type##Size \
 { \
-  static_assert(sizeof(void*) != 8 || a == b, "DOM size changed"); \
+  static_assert((sizeof(void*) == 8 && a == sizeOn64) || \
+                (sizeof(void*) == 4 && a <= sizeOn32), "DOM size changed"); \
 }; \
-Check##type##Size<sizeof(type), opt_size + EXTRA_DOM_ELEMENT_BYTES> g##type##CES;
+Check##type##Size<sizeof(type), \
+                  opt_size_64 + EXTRA_DOM_NODE_BYTES, \
+                  opt_size_32 + EXTRA_DOM_NODE_BYTES> g##type##CES;
 
-// Note that mozjemalloc uses a 16 byte quantum, so 128 is a bin/bucket size.
-ASSERT_ELEMENT_SIZE(Element, 128);
-ASSERT_ELEMENT_SIZE(HTMLDivElement, 128);
-ASSERT_ELEMENT_SIZE(HTMLSpanElement, 128);
+// Note that mozjemalloc uses a 16 byte quantum, so 64, 80 and 128 are
+// bucket sizes.
+ASSERT_NODE_SIZE(Element, 128, 80);
+ASSERT_NODE_SIZE(HTMLDivElement, 128, 80);
+ASSERT_NODE_SIZE(HTMLSpanElement, 128, 80);
+ASSERT_NODE_SIZE(Text, 120, 64);
 
-#undef ASSERT_ELEMENT_SIZE
-#undef EXTRA_DOM_ELEMENT_BYTES
+#undef ASSERT_NODE_SIZE
+#undef EXTRA_DOM_NODE_BYTES
 
 nsAtom*
 nsIContent::DoGetID() const
@@ -1636,21 +1639,6 @@ Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements)
   }
 }
 
-/**
- * Returns the count of descendants (inclusive of aContent) in
- * the uncomposed document that are explicitly set as editable.
- */
-static uint32_t
-EditableInclusiveDescendantCount(nsIContent* aContent)
-{
-  auto htmlElem = nsGenericHTMLElement::FromNode(aContent);
-  if (htmlElem) {
-    return htmlElem->EditableInclusiveDescendantCount();
-  }
-
-  return aContent->EditableDescendantCount();
-}
-
 nsresult
 Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                     nsIContent* aBindingParent)
@@ -1799,8 +1787,6 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     SetDirOnBind(this, aParent);
   }
 
-  uint32_t editableDescendantCount = 0;
-
   UpdateEditableState(false);
 
   // If we had a pre-existing XBL binding, we might have anonymous children that
@@ -1823,30 +1809,6 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
        child = child->GetNextSibling()) {
     rv = child->BindToTree(aDocument, this, aBindingParent);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    editableDescendantCount += EditableInclusiveDescendantCount(child);
-  }
-
-  if (aDocument) {
-    // Update our editable descendant count because we don't keep track of it
-    // for content that is not in the uncomposed document.
-    MOZ_ASSERT(EditableDescendantCount() == 0);
-    ChangeEditableDescendantCount(editableDescendantCount);
-
-    if (!hadParent) {
-      uint32_t editableDescendantChange = EditableInclusiveDescendantCount(this);
-      if (editableDescendantChange != 0) {
-        // If we are binding a subtree root to the document, we need to update
-        // the editable descendant count of all the ancestors.
-        // But we don't cross Shadow DOM boundary.
-        // (The expected behavior with Shadow DOM is unclear)
-        nsIContent* parent = GetParent();
-        while (parent && parent->IsElement()) {
-          parent->ChangeEditableDescendantCount(editableDescendantChange);
-          parent = parent->GetParent();
-        }
-      }
-    }
   }
 
   nsNodeUtils::ParentChainChanged(this);
@@ -1988,19 +1950,6 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   }
 
   if (aNullParent) {
-    if (GetParent() && GetParent()->IsInUncomposedDoc()) {
-      // Update the editable descendant count in the ancestors before we
-      // lose the reference to the parent.
-      int32_t editableDescendantChange = -1 * EditableInclusiveDescendantCount(this);
-      if (editableDescendantChange != 0) {
-        nsIContent* parent = GetParent();
-        while (parent) {
-          parent->ChangeEditableDescendantCount(editableDescendantChange);
-          parent = parent->GetParent();
-        }
-      }
-    }
-
     if (IsRootOfNativeAnonymousSubtree()) {
       nsNodeUtils::NativeAnonymousChildListChange(this, true);
     }
@@ -2054,10 +2003,6 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
       }
     }
   }
-
-  // Editable descendant count only counts descendants that
-  // are in the uncomposed document.
-  ResetEditableDescendantCount();
 
   if (aNullParent || !mParent->IsInShadowTree()) {
     UnsetFlags(NODE_IS_IN_SHADOW_TREE);

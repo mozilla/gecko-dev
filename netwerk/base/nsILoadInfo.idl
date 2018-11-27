@@ -884,32 +884,20 @@ interface nsILoadInfo : nsISupports
    * GetChannelResultPrincipal() to ensure that the same null principal object
    * is returned every time.
    */
-  [noscript] readonly attribute nsIPrincipal sandboxedLoadingPrincipal;
+  [notxpcom, nostdcall] readonly attribute nsIPrincipal sandboxedLoadingPrincipal;
 
   /**
    * Return the top-level principal, which is the principal of the top-level
    * window.
    */
-  [noscript] readonly attribute nsIPrincipal topLevelPrincipal;
-
-  /**
-   * A C++-friendly version of topLevelPrincipal.
-   */
-  [noscript, notxpcom, nostdcall, binaryname(TopLevelPrincipal)]
-  nsIPrincipal binaryTopLevelPrincipal();
+  [notxpcom, nostdcall] readonly attribute nsIPrincipal topLevelPrincipal;
 
   /**
    * Return the top-level storage area principal, which is the principal of
    * the top-level window if it's not a 3rd party context, non tracking
    * resource.
    */
-  [noscript] readonly attribute nsIPrincipal topLevelStorageAreaPrincipal;
-
-  /**
-   * A C++-friendly version of topLevelStorageAreaPrincipal.
-   */
-  [noscript, notxpcom, nostdcall, binaryname(TopLevelStorageAreaPrincipal)]
-  nsIPrincipal binaryTopLevelStorageAreaPrincipal();
+  [notxpcom, nostdcall] readonly attribute nsIPrincipal topLevelStorageAreaPrincipal;
 
   /**
    * Note which client (i.e. global) initiated this network request.  All
@@ -1080,4 +1068,11 @@ interface nsILoadInfo : nsISupports
     * See bug 1500908.
     */
   attribute nsICSPEventListener cspEventListener;
+
+  /**
+   * This attribute will be true if this is a load triggered by
+   * https://html.spec.whatwg.org/multipage/iframe-embed-object.html#process-the-iframe-attributes
+   * or https://html.spec.whatwg.org/multipage/obsolete.html#process-the-frame-attributes
+   */
+  [infallible] readonly attribute boolean isFromProcessingFrameAttributes;
 };

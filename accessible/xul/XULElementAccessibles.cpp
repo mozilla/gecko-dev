@@ -89,13 +89,16 @@ Relation
 XULLabelAccessible::RelationByType(RelationType aType) const
 {
   Relation rel = HyperTextAccessibleWrap::RelationByType(aType);
+
+  // The label for xul:groupbox is generated from the first xul:label
   if (aType == RelationType::LABEL_FOR) {
-    // Caption is the label for groupbox
-    nsIContent* parent = mContent->GetFlattenedTreeParent();
-    if (parent && parent->IsXULElement(nsGkAtoms::caption)) {
-      Accessible* parent = Parent();
-      if (parent && parent->Role() == roles::GROUPING)
+    Accessible* parent = Parent();
+    if (parent && parent->Role() == roles::GROUPING &&
+        parent->GetChildAt(0) == this) {
+      nsIContent* parentContent = parent->GetContent();
+      if (parentContent && parentContent->IsXULElement(nsGkAtoms::groupbox)) {
         rel.AppendTarget(parent);
+      }
     }
   }
 

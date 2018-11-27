@@ -234,6 +234,27 @@ class NavigationDelegateTest : BaseSessionTest() {
                 assertThat("Target should not be null", request.target, notNullValue())
                 assertThat("Target should match", request.target,
                         equalTo(GeckoSession.NavigationDelegate.TARGET_WINDOW_CURRENT))
+                assertThat("Redirect flag is set", request.isRedirect,
+                        equalTo(forEachCall(false, true)))
+                return null
+            }
+        })
+    }
+
+    @Test fun bypassClassifier() {
+        val phishingUri = "https://www.itisatrap.org/firefox/its-a-trap.html"
+
+        sessionRule.runtime.settings.blockPhishing = true
+
+        sessionRule.session.loadUri(phishingUri + "?bypass=true",
+                                    GeckoSession.LOAD_FLAGS_BYPASS_CLASSIFIER)
+        sessionRule.session.waitForPageStop()
+
+        sessionRule.forCallbacksDuringWait(
+                object : Callbacks.NavigationDelegate {
+            @AssertCalled(false)
+            override fun onLoadError(session: GeckoSession, uri: String?,
+                                     error: WebRequestError): GeckoResult<String>? {
                 return null
             }
         })
@@ -503,6 +524,7 @@ class NavigationDelegateTest : BaseSessionTest() {
                 assertThat("Target should not be null", request.target, notNullValue())
                 assertThat("Target should match", request.target,
                            equalTo(GeckoSession.NavigationDelegate.TARGET_WINDOW_CURRENT))
+                assertThat("Redirect flag is not set", request.isRedirect, equalTo(false))
                 return null
             }
 

@@ -119,6 +119,7 @@ class Promise;
 class PostMessageEvent;
 struct RequestInit;
 class RequestOrUSVString;
+class SharedWorker;
 class Selection;
 class SpeechSynthesis;
 class TabGroup;
@@ -338,12 +339,6 @@ public:
 
   nsresult PostHandleEvent(mozilla::EventChainPostVisitor& aVisitor) override;
 
-  // nsPIDOMWindow
-  virtual nsPIDOMWindowOuter* GetPrivateRoot() override;
-
-  // Outer windows only.
-  virtual bool IsTopLevelWindowActive() override;
-
   virtual PopupControlState GetPopupControlState() const override;
 
   void Suspend();
@@ -384,9 +379,6 @@ public:
   virtual nsresult SetNewDocument(nsIDocument *aDocument,
                                   nsISupports *aState,
                                   bool aForceReuseInnerWindow) override;
-
-  virtual void SetOpenerWindow(nsPIDOMWindowOuter* aOpener,
-                               bool aOriginalOpener) override;
 
   virtual void MaybeUpdateTouchState() override;
 
@@ -512,10 +504,6 @@ public:
   virtual void EnableOrientationChangeListener() override;
   virtual void DisableOrientationChangeListener() override;
 #endif
-
-  virtual uint32_t GetSerial() override {
-    return mSerial;
-  }
 
   void AddSizeOfIncludingThis(nsWindowSizes& aWindowSizes) const;
 
@@ -711,6 +699,12 @@ public:
 
   mozilla::dom::IntlUtils*
   GetIntlUtils(mozilla::ErrorResult& aRv);
+
+  void
+  StoreSharedWorker(mozilla::dom::SharedWorker* aSharedWorker);
+
+  void
+  ForgetSharedWorker(mozilla::dom::SharedWorker* aSharedWorker);
 
 public:
   void Alert(nsIPrincipal& aSubjectPrincipal,
@@ -991,6 +985,8 @@ public:
 
   nsIDOMWindowUtils* GetWindowUtils(mozilla::ErrorResult& aRv);
 
+  bool HasOpenerForInitialContentBrowser();
+
   void UpdateTopInnerWindow();
 
   virtual bool IsInSyncOperation() override
@@ -1232,6 +1228,11 @@ public:
   // area.
   nsIPrincipal* GetTopLevelStorageAreaPrincipal();
 
+  // This method is called if this window loads a 3rd party tracking resource
+  // and the storage is just been granted. The window can reset the partitioned
+  // storage objects and switch to the first party cookie jar.
+  void StorageAccessGranted();
+
 protected:
   static void NotifyDOMWindowDestroyed(nsGlobalWindowInner* aWindow);
   void NotifyWindowIDDestroyed(const char* aTopic);
@@ -1405,6 +1406,8 @@ protected:
   RefPtr<nsHistory>           mHistory;
   RefPtr<mozilla::dom::CustomElementRegistry> mCustomElements;
 
+  nsTObserverArray<RefPtr<mozilla::dom::SharedWorker>> mSharedWorkers;
+
   RefPtr<mozilla::dom::VisualViewport> mVisualViewport;
 
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
@@ -1414,10 +1417,12 @@ protected:
   uint32_t mSuspendDepth;
   uint32_t mFreezeDepth;
 
+#ifdef DEBUG
+  uint32_t mSerial;
+#endif
+
   // the method that was used to focus mFocusedNode
   uint32_t mFocusMethod;
-
-  uint32_t mSerial;
 
   // The current idle request callback handle
   uint32_t mIdleRequestCallbackCounter;

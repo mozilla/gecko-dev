@@ -1,5 +1,6 @@
 import {isEmailOrPhoneNumber} from "./isEmailOrPhoneNumber";
 import React from "react";
+import schema from "./SendToDeviceSnippet.schema.json";
 import {SubmitFormSnippet} from "../SubmitFormSnippet/SubmitFormSnippet.jsx";
 
 function validateInput(value, content) {
@@ -27,11 +28,30 @@ function processFormData(input, message) {
   return {formData, url};
 }
 
-export const SendToDeviceSnippet = props => (
-  <SubmitFormSnippet {...props}
+function addDefaultValues(props) {
+  return {
+    ...props,
+    content: {
+      scene1_button_label: schema.properties.scene1_button_label.default,
+      scene2_dismiss_button_text: schema.properties.scene2_dismiss_button_text.default,
+      scene2_button_label: schema.properties.scene2_button_label.default,
+      scene2_input_placeholder: schema.properties.scene2_input_placeholder.default,
+      locale: schema.properties.locale.default,
+      country: schema.properties.country.default,
+      message_id_email: "",
+      include_sms: schema.properties.include_sms.default,
+      ...props.content,
+    },
+  };
+}
+
+export const SendToDeviceSnippet = props => {
+  const propsWithDefaults = addDefaultValues(props);
+
+  return (<SubmitFormSnippet {...propsWithDefaults}
     form_method="POST"
     className="send_to_device_snippet"
-    inputType={props.content.include_sms ? "text" : "email"}
-    validateInput={props.content.include_sms ? validateInput : null}
-    processFormData={processFormData} />
-);
+    inputType={propsWithDefaults.content.include_sms ? "text" : "email"}
+    validateInput={propsWithDefaults.content.include_sms ? validateInput : null}
+    processFormData={processFormData} />);
+};

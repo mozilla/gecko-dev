@@ -228,6 +228,8 @@ class FunctionCompiler
               case ValType::AnyRef:
                 MOZ_CRASH("ion support for ref/anyref value NYI");
                 break;
+              case ValType::NullRef:
+                MOZ_CRASH("NullRef not expressible");
             }
 
             curBlock_->add(ins);
@@ -1030,7 +1032,8 @@ class FunctionCompiler
                 stackArg->incrementOffset(call->spIncrement_);
             }
 
-            // If instanceArg_ is not initialized then instanceArg_.kind() != ABIArg::Stack
+            // If instanceArg_ is not initialized then
+            // instanceArg_.kind() != ABIArg::Stack
             if (call->instanceArg_.kind() == ABIArg::Stack) {
                 call->instanceArg_ = ABIArg(call->instanceArg_.offsetFromArgBase() +
                                             call->spIncrement_);
@@ -2774,8 +2777,6 @@ EmitCurrentMemory(FunctionCompiler& f)
     return true;
 }
 
-#ifdef ENABLE_WASM_THREAD_OPS
-
 static bool
 EmitAtomicCmpXchg(FunctionCompiler& f, ValType type, Scalar::Type viewType)
 {
@@ -2979,8 +2980,6 @@ EmitAtomicXchg(FunctionCompiler& f, ValType type, Scalar::Type viewType)
     f.iter().setResult(ins);
     return true;
 }
-
-#endif // ENABLE_WASM_THREAD_OPS
 
 #ifdef ENABLE_WASM_BULKMEM_OPS
 static bool
@@ -3769,7 +3768,6 @@ EmitBodyExprs(FunctionCompiler& f)
 
           // Thread operations
           case uint16_t(Op::ThreadPrefix): {
-#ifdef ENABLE_WASM_THREAD_OPS
             switch (op.b1) {
               case uint16_t(ThreadOp::Wake):
                 CHECK(EmitWake(f));
@@ -3917,9 +3915,6 @@ EmitBodyExprs(FunctionCompiler& f)
               default:
                 return f.iter().unrecognizedOpcode(&op);
             }
-#else
-            return f.iter().unrecognizedOpcode(&op);
-#endif  // ENABLE_WASM_THREAD_OPS
             break;
           }
 

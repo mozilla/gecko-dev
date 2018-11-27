@@ -82,6 +82,9 @@ with Files("ReaderParent.jsm"):
 with Files("Sanitizer.jsm"):
     BUG_COMPONENT = ("Firefox", "Preferences")
 
+with Files("SelectionChangedMenulist.jsm"):
+    BUG_COMPONENT = ("Firefox", "Preferences")
+
 with Files("SiteDataManager.jsm"):
     BUG_COMPONENT = ("Firefox", "Preferences")
 
@@ -130,6 +133,7 @@ EXTRA_JS_MODULES += [
     'ContentMetaHandler.jsm',
     'ContentObservers.js',
     'ContentSearch.jsm',
+    'Discovery.jsm',
     'ExtensionsUI.jsm',
     'FaviconLoader.jsm',
     'Feeds.jsm',
@@ -146,6 +150,7 @@ EXTRA_JS_MODULES += [
     'RemotePrompt.jsm',
     'Sanitizer.jsm',
     'SchedulePressure.jsm',
+    'SelectionChangedMenulist.jsm',
     'SiteDataManager.jsm',
     'SitePermissions.jsm',
     'TabsList.jsm',
