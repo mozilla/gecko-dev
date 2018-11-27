@@ -209,10 +209,6 @@ bool WebGLContext::ValidateInvalidateFramebuffer(
 
   ////
 
-  if (!fb) {
-    mDefaultFB_IsInvalid = true;
-    mResolvedDefaultFB = nullptr;
-  }
   return true;
 }
 
