@@ -25,6 +25,7 @@ js/src/jit/arm64/vixl/
 media/ffvpx/
 media/gmp-clearkey/0.1/openaes/
 media/kiss_fft/
+media/libaom/
 media/libav/
 media/libcubeb/
 media/libjpeg/
@@ -43,6 +44,7 @@ media/libvpx/
 media/libyuv/
 media/mtransport/third_party/
 media/openmax_dl/
+media/openmax_il/
 media/sphinxbase/
 media/webrtc/signaling/src/sdp/sipcc/
 media/webrtc/trunk/
