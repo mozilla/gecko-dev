@@ -284,7 +284,6 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
     }
 }
 
-// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // ABI function calls.
@@ -1310,5 +1309,4 @@ MacroAssembler::convertInt64ToFloat32(Register64 input, FloatRegister output)
 }
 
 //}}} check_macroassembler_style
-// clang-format on
 

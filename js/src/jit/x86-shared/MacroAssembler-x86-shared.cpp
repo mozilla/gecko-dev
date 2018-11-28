@@ -266,7 +266,6 @@ MacroAssemblerX86Shared::minMaxFloat32(FloatRegister first, FloatRegister second
     bind(&done);
 }
 
-// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.
@@ -1432,4 +1431,3 @@ MacroAssembler::speculationBarrier()
 }
 
 //}}} check_macroassembler_style
-// clang-format on

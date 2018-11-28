@@ -291,7 +291,6 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
     }
 }
 
-// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // ABI function calls.
@@ -1065,4 +1064,3 @@ MacroAssembler::atomicEffectOp64(const Synchronization&, AtomicOp op, Register64
 }
 
 //}}} check_macroassembler_style
-// clang-format on
