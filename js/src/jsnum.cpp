@@ -1092,7 +1092,6 @@ num_toPrecision(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static const JSFunctionSpec number_methods[] = {
-    // clang-format off
     JS_FN(js_toSource_str,       num_toSource,          0, 0),
     JS_FN(js_toString_str,       num_toString,          1, 0),
 #if EXPOSE_INTL_API
@@ -1105,7 +1104,6 @@ static const JSFunctionSpec number_methods[] = {
     JS_FN("toExponential",       num_toExponential,     1, 0),
     JS_FN("toPrecision",         num_toPrecision,       1, 0),
     JS_FS_END
-    // clang-format on
 };
 
 bool
