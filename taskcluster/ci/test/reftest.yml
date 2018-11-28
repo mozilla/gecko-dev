@@ -118,6 +118,7 @@ reftest:
     max-run-time:
         by-test-platform:
             android.*: 7200
+            windows10-64-asan/opt: 5400
             default: 3600
     mozharness:
         chunked:
