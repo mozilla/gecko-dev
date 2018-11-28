@@ -588,6 +588,7 @@ osfile_close(JSContext* cx, unsigned argc, Value* vp) {
     return true;
 }
 
+// clang-format off
 static const JSFunctionSpecWithHelp osfile_functions[] = {
     JS_FN_HELP("readFile", osfile_readFile, 1, 0,
 "readFile(filename, [\"binary\"])",
@@ -602,7 +603,9 @@ static const JSFunctionSpecWithHelp osfile_functions[] = {
 
     JS_FS_HELP_END
 };
+// clang-format on
 
+// clang-format off
 static const JSFunctionSpecWithHelp osfile_unsafe_functions[] = {
     JS_FN_HELP("writeTypedArrayToFile", osfile_writeTypedArrayToFile, 2, 0,
 "writeTypedArrayToFile(filename, data)",
@@ -624,6 +627,7 @@ static const JSFunctionSpecWithHelp osfile_unsafe_functions[] = {
 
     JS_FS_HELP_END
 };
+// clang-format on
 
 static bool
 ospath_isAbsolute(JSContext* cx, unsigned argc, Value* vp)
@@ -688,6 +692,7 @@ ospath_join(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+// clang-format off
 static const JSFunctionSpecWithHelp ospath_functions[] = {
     JS_FN_HELP("isAbsolute", ospath_isAbsolute, 1, 0,
 "isAbsolute(path)",
@@ -699,6 +704,7 @@ static const JSFunctionSpecWithHelp ospath_functions[] = {
 
     JS_FS_HELP_END
 };
+// clang-format on
 
 static bool
 os_getenv(JSContext* cx, unsigned argc, Value* vp)
@@ -936,6 +942,7 @@ os_waitpid(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif
 
+// clang-format off
 static const JSFunctionSpecWithHelp os_functions[] = {
     JS_FN_HELP("getenv", os_getenv, 1, 0,
 "getenv(variable)",
@@ -969,6 +976,7 @@ static const JSFunctionSpecWithHelp os_functions[] = {
 
     JS_FS_HELP_END
 };
+// clang-format on
 
 bool
 DefineOS(JSContext* cx, HandleObject global,

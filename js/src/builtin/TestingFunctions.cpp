@@ -5131,6 +5131,7 @@ BaselineCompile(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+// clang-format off
 static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
 "gc([obj] | 'zone' [, 'shrinking'])",
@@ -5787,7 +5788,9 @@ gc::ZealModeHelpText),
 
     JS_FS_HELP_END
 };
+// clang-format on
 
+// clang-format off
 static const JSFunctionSpecWithHelp FuzzingUnsafeTestingFunctions[] = {
 #ifdef DEBUG
     JS_FN_HELP("parseRegExp", ParseRegExp, 3, 0,
@@ -5811,6 +5814,7 @@ static const JSFunctionSpecWithHelp FuzzingUnsafeTestingFunctions[] = {
 
     JS_FS_HELP_END
 };
+// clang-format on
 
 bool
 js::DefineTestingFunctions(JSContext* cx, HandleObject obj, bool fuzzingSafe_,
