@@ -846,7 +846,7 @@ var Policies = {
       let moduleList = pkcs11db.listModules();
       for (let deviceName in securityDevices) {
         let foundModule = false;
-        for (let module of moduleList) {
+        for (let module of XPCOMUtils.IterSimpleEnumerator(moduleList, Ci.nsIPKCS11Module)) {
           if (module && module.libName === securityDevices[deviceName]) {
             foundModule = true;
             break;
