@@ -54,6 +54,7 @@ public:
   static const ViewID START_SCROLL_ID = 2;  // This is the ID that scrolling subframes
                                         // will begin at.
 
+  // clang-format off
   MOZ_DEFINE_ENUM_WITH_BASE_AT_CLASS_SCOPE(
     ScrollOffsetUpdateType, uint8_t, (
       eNone,          // The default; the scroll offset was not updated
@@ -70,6 +71,7 @@ public:
                       // In this case, APZ can ignore the offset change if the
                       // user has done an APZ scroll already.
   ));
+  // clang-format on
 
   FrameMetrics()
     : mScrollId(NULL_SCROLL_ID)
@@ -723,12 +725,14 @@ struct ScrollSnapInfo {
   nsTArray<nsPoint> mScrollSnapCoordinates;
 };
 
+// clang-format off
 MOZ_DEFINE_ENUM_CLASS_WITH_BASE(
   OverscrollBehavior, uint8_t, (
     Auto,
     Contain,
     None
 ));
+// clang-format on
 
 struct OverscrollBehaviorInfo {
   OverscrollBehaviorInfo()

@@ -32,6 +32,7 @@ namespace dom {
 class Touch;
 } // namespace dom
 
+// clang-format off
 MOZ_DEFINE_ENUM(
   InputType, (
     MULTITOUCH_INPUT,
@@ -42,6 +43,7 @@ MOZ_DEFINE_ENUM(
     SCROLLWHEEL_INPUT,
     KEYBOARD_INPUT
 ));
+// clang-format on
 
 class MultiTouchInput;
 class MouseInput;
@@ -187,6 +189,7 @@ public:
 class MultiTouchInput : public InputData
 {
 public:
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     MultiTouchType, (
       MULTITOUCH_START,
@@ -194,6 +197,7 @@ public:
       MULTITOUCH_END,
       MULTITOUCH_CANCEL
   ));
+  // clang-format on
 
   MultiTouchInput(MultiTouchType aType, uint32_t aTime, TimeStamp aTimeStamp,
                   Modifiers aModifiers);
@@ -235,6 +239,7 @@ protected:
 
 public:
 
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     MouseType, (
       MOUSE_NONE,
@@ -255,6 +260,7 @@ public:
       RIGHT_BUTTON,
       NONE
   ));
+  // clang-format on
 
   MouseInput(MouseType aType, ButtonType aButtonType, uint16_t aInputSource,
              int16_t aButtons, const ScreenPoint& aPoint, uint32_t aTime,
@@ -290,6 +296,7 @@ protected:
   PanGestureInput();
 
 public:
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     PanGestureType, (
       // MayStart: Dispatched before any actual panning has occurred but when a
@@ -335,6 +342,7 @@ public:
       // user has stopped the animation by putting their fingers on a touchpad.
       PANGESTURE_MOMENTUMEND
   ));
+  // clang-format on
 
   PanGestureInput(PanGestureType aType,
                   uint32_t aTime,
@@ -410,12 +418,14 @@ protected:
   PinchGestureInput();
 
 public:
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     PinchGestureType, (
       PINCHGESTURE_START,
       PINCHGESTURE_SCALE,
       PINCHGESTURE_END
   ));
+  // clang-format on
 
   // Construct a pinch gesture from a ParentLayer point.
   // mFocusPoint remains (0,0) unless it's set later.
@@ -467,6 +477,7 @@ protected:
   TapGestureInput();
 
 public:
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     TapGestureType, (
       TAPGESTURE_LONG,
@@ -477,6 +488,7 @@ public:
       TAPGESTURE_SECOND, // See GeckoContentController::TapType::eSecondTap
       TAPGESTURE_CANCEL
   ));
+  // clang-format on
 
   // Construct a tap gesture from a Screen point.
   // mLocalPoint remains (0,0) unless it's set later.
@@ -514,10 +526,11 @@ protected:
   ScrollWheelInput();
 
 public:
+  // clang-format off
   MOZ_DEFINE_ENUM_AT_CLASS_SCOPE(
     ScrollDeltaType, (
-      // There are three kinds of scroll delta modes in Gecko: "page", "line" and
-      // "pixel".
+      // There are three kinds of scroll delta modes in Gecko: "page", "line"
+      // and "pixel".
       SCROLLDELTA_LINE,
       SCROLLDELTA_PAGE,
       SCROLLDELTA_PIXEL
@@ -529,6 +542,7 @@ public:
       SCROLLMODE_SMOOTH
     )
   );
+  // clang-format on
 
   ScrollWheelInput(uint32_t aTime, TimeStamp aTimeStamp, Modifiers aModifiers,
                    ScrollMode aScrollMode, ScrollDeltaType aDeltaType,

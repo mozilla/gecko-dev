@@ -37,6 +37,7 @@ operator|(CancelAnimationFlags a, CancelAnimationFlags b)
 
 typedef EnumSet<ScrollDirection> ScrollDirections;
 
+// clang-format off
 enum class ScrollSource {
   // scrollTo() or something similar.
   DOM,
@@ -50,6 +51,7 @@ enum class ScrollSource {
   // Keyboard
   Keyboard,
 };
+// clang-format on
 
 typedef uint32_t TouchBehaviorFlags;
 

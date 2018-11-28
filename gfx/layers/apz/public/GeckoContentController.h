@@ -50,6 +50,7 @@ public:
    * a click event with detail=2 to web content (similar to what a mouse double-
    * click would do).
    */
+  // clang-format off
   MOZ_DEFINE_ENUM_CLASS_AT_CLASS_SCOPE(
     TapType, (
       eSingleTap,
@@ -58,6 +59,7 @@ public:
       eLongTap,
       eLongTapUp
   ));
+  // clang-format on
 
   /**
    * Requests handling of a tap event. |aPoint| is in LD pixels, relative to the
@@ -107,6 +109,7 @@ public:
    */
   virtual void DispatchToRepaintThread(already_AddRefed<Runnable> aTask) = 0;
 
+  // clang-format off
   MOZ_DEFINE_ENUM_CLASS_AT_CLASS_SCOPE(
     APZStateChange, (
       /**
@@ -132,6 +135,7 @@ public:
        */
       eEndTouch
   ));
+  // clang-format on
 
   /**
    * General notices of APZ state changes for consumers.

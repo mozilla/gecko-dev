@@ -327,12 +327,14 @@ private:
 
 class WatchdogManager;
 
+// clang-format off
 MOZ_DEFINE_ENUM(WatchdogTimestampCategory, (
     TimestampWatchdogWakeup,
     TimestampWatchdogHibernateStart,
     TimestampWatchdogHibernateStop,
     TimestampContextStateChange
 ));
+// clang-format on
 
 class AsyncFreeSnowWhite;
 
