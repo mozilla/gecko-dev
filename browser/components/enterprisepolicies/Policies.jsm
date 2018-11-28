@@ -6,17 +6,22 @@
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyServiceGetter(this, "gXulStore",
-                                   "@mozilla.org/xul/xulstore;1",
-                                   "nsIXULStore");
+
+XPCOMUtils.defineLazyServiceGetters(this, {
+  gCertDB: ["@mozilla.org/security/x509certdb;1", "nsIX509CertDB"],
+  gXulStore: ["@mozilla.org/xul/xulstore;1", "nsIXULStore"],
+});
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
   BookmarksPolicies: "resource:///modules/policies/BookmarksPolicies.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   ProxyPolicies: "resource:///modules/policies/ProxyPolicies.jsm",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.jsm",
 });
+
+Cu.importGlobalProperties(["File", "FileReader"]);
 
 const PREF_LOGLEVEL           = "browser.policies.loglevel";
 const BROWSER_DOCUMENT_URL    = "chrome://browser/content/browser.xul";
@@ -132,6 +137,56 @@ var Policies = {
     onBeforeAddons(manager, param) {
       if ("ImportEnterpriseRoots" in param) {
         setAndLockPref("security.enterprise_roots.enabled", true);
+      }
+      if ("Install" in param) {
+        (async () => {
+          let dirs = [];
+          let platform = AppConstants.platform;
+          if (platform == "win") {
+            dirs = [
+              // Ugly, but there is no official way to get %USERNAME\AppData\Local\Mozilla.
+              Services.dirsvc.get("XREUSysExt", Ci.nsIFile).parent,
+            ];
+          } else if (platform == "macosx" || platform == "linux") {
+            dirs = [
+              // These two keys are named wrong. They return the Mozilla directory.
+              Services.dirsvc.get("XREUserNativeManifests", Ci.nsIFile),
+              Services.dirsvc.get("XRESysNativeManifests", Ci.nsIFile),
+            ];
+          }
+          for (let dir of dirs) {
+            dir.append(platform == "linux" ? "certificates" : "Certificates");
+            for (let certfilename of param.Install) {
+              let certfile = dir.clone();
+              certfile.append(certfilename);
+              let file;
+              try {
+                file = await File.createFromNsIFile(certfile);
+              } catch (e) {
+                log.info(`Unable to open certificate - ${certfile.path}`);
+                continue;
+              }
+              let reader = new FileReader();
+              reader.onloadend = function() {
+                if (reader.readyState != reader.DONE) {
+                  log.error(`Unable to read certificate - ${certfile.path}`);
+                  return;
+                }
+                let cert = reader.result;
+                try {
+                  if (/-----BEGIN CERTIFICATE-----/.test(cert)) {
+                    gCertDB.addCertFromBase64(pemToBase64(cert), "CTu,CTu,");
+                  } else {
+                    gCertDB.addCert(cert, "CTu,CTu,");
+                  }
+                } catch (e) {
+                  log.error(`Unable to add certificate - ${certfile.path}`);
+                }
+              };
+              reader.readAsBinaryString(file);
+            }
+          }
+        })();
       }
     }
   },
@@ -1047,4 +1102,10 @@ function blockAllChromeURLs() {
 
   let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
   cm.addCategoryEntry("content-policy", ChromeURLBlockPolicy.contractID, ChromeURLBlockPolicy.contractID, false, true);
+}
+
+function pemToBase64(pem) {
+  return pem.replace(/-----BEGIN CERTIFICATE-----/, "")
+            .replace(/-----END CERTIFICATE-----/, "")
+            .replace(/[\r\n]/g, "");
 }
