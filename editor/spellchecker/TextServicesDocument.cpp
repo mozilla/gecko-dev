@@ -955,7 +955,8 @@ TextServicesDocument::SetSelection(int32_t aOffset,
   UNLOCK_DOC(this);
 
   //**** KDEBUG ****
-  // printf("\n * Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex, mSelStartOffset, mSelEndIndex, mSelEndOffset);
+  // printf("\n * Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex,
+  //        mSelStartOffset, mSelEndIndex, mSelEndOffset);
   //**** KDEBUG ****
 
   return rv;
@@ -1231,7 +1232,8 @@ TextServicesDocument::DeleteSelection()
 
   //**** KDEBUG ****
   // printf("\n---- After Delete\n");
-  // printf("Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex, mSelStartOffset, mSelEndIndex, mSelEndOffset);
+  // printf("Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex,
+  //        mSelStartOffset, mSelEndIndex, mSelEndOffset);
   // PrintOffsetTable();
   //**** KDEBUG ****
 
@@ -1447,7 +1449,8 @@ TextServicesDocument::InsertText(const nsString* aText)
 
   //**** KDEBUG ****
   // printf("\n---- After Insert\n");
-  // printf("Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex, mSelStartOffset, mSelEndIndex, mSelEndOffset);
+  // printf("Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex,
+  //        mSelStartOffset, mSelEndIndex, mSelEndOffset);
   // PrintOffsetTable();
   //**** KDEBUG ****
 
@@ -1879,6 +1882,7 @@ TextServicesDocument::IsBlockNode(nsIContent* aContent)
 
   nsAtom *atom = aContent->NodeInfo()->NameAtom();
 
+  // clang-format off
   return (nsGkAtoms::a       != atom &&
           nsGkAtoms::address != atom &&
           nsGkAtoms::big     != atom &&
@@ -1905,6 +1909,7 @@ TextServicesDocument::IsBlockNode(nsIContent* aContent)
           nsGkAtoms::u       != atom &&
           nsGkAtoms::var     != atom &&
           nsGkAtoms::wbr     != atom);
+  // clang-format on
 }
 
 // static
@@ -2039,7 +2044,8 @@ TextServicesDocument::SetSelectionInternal(int32_t aOffset,
     mSelEndOffset = mSelStartOffset;
 
    //**** KDEBUG ****
-   // printf("\n* Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex, mSelStartOffset, mSelEndIndex, mSelEndOffset);
+   // printf("\n* Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex,
+   //        mSelStartOffset, mSelEndIndex, mSelEndOffset);
    //**** KDEBUG ****
 
     return NS_OK;
@@ -2081,7 +2087,8 @@ TextServicesDocument::SetSelectionInternal(int32_t aOffset,
   }
 
   //**** KDEBUG ****
-  // printf("\n * Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex, mSelStartOffset, mSelEndIndex, mSelEndOffset);
+  // printf("\n * Sel: (%2d, %4d) (%2d, %4d)\n", mSelStartIndex,
+  //        mSelStartOffset, mSelEndIndex, mSelEndOffset);
   //**** KDEBUG ****
 
   return NS_OK;

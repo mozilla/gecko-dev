@@ -350,7 +350,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
   return rv;
 }
 
-// Implementation /////////////////////////////////////////////////////////////////
+// Implementation //////////////////////////////////////////////////////////////
 
 // Implement our nsISupports methods
 NS_IMPL_ISUPPORTS(nsXBLService, nsISupportsWeakReference)
@@ -674,7 +674,7 @@ nsXBLService::DetachGlobalKeyHandler(EventTarget* aTarget)
   return NS_OK;
 }
 
-// Internal helper methods ////////////////////////////////////////////////////////////////
+// Internal helper methods /////////////////////////////////////////////////////
 
 nsresult
 nsXBLService::BindingReady(nsIContent* aBoundElement,

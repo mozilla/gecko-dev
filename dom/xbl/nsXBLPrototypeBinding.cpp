@@ -57,7 +57,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-// Helper Classes =====================================================================
+// Helper Classes ==============================================================
 
 // nsXBLAttributeEntry and helpers.  This class is used to efficiently handle
 // attribute changes in anonymous content.
@@ -110,7 +110,7 @@ nsXBLAttributeEntry::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 
 // =============================================================================
 
-// Implementation /////////////////////////////////////////////////////////////////
+// Implementation //////////////////////////////////////////////////////////////
 
 // Constructors/Destructors
 nsXBLPrototypeBinding::nsXBLPrototypeBinding()
@@ -455,7 +455,7 @@ nsXBLPrototypeBinding::ImplementsInterface(REFNSIID aIID) const
   return !!mInterfaceTable.GetWeak(aIID);
 }
 
-// Internal helpers ///////////////////////////////////////////////////////////////////////
+// Internal helpers ////////////////////////////////////////////////////////////
 
 Element*
 nsXBLPrototypeBinding::GetImmediateChild(nsAtom* aTag)

@@ -584,6 +584,7 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
 
   // Limit the uploadRect as much as possible without supporting discontiguous uploads 
   //
+  // clang-format off
   //                               region we will paint from
   //   uploadRect
   //   .---------------.              .---------------.         resulting uploadRect
@@ -592,6 +593,7 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
   //   |          |         |  ---->  |    |     |    |   ---->  |               |
   //   |          '---------'         '----'     '----'          '---------------'
   //   '---------------'              '---------------'
+  // clang-format on
   //
   //
 

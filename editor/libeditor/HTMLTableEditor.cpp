@@ -79,7 +79,7 @@ public:
   }
 
   // This is needed to abort the caret reset in the destructor
-  //  when one method yields control to another
+  // when one method yields control to another
   void CancelSetCaret()
   {
     mHTMLEditor = nullptr;
@@ -1379,7 +1379,7 @@ HTMLEditor::SelectBlockOfCells(nsIDOMElement* aStartCell,
   NS_ENSURE_TRUE(endTable, NS_ERROR_FAILURE);
 
   // We can only select a block if within the same table,
-  //  so do nothing if not within one table
+  // so do nothing if not within one table
   if (table != endTable) {
     return NS_OK;
   }
@@ -1402,7 +1402,7 @@ HTMLEditor::SelectBlockOfCells(nsIDOMElement* aStartCell,
   SelectionBatcher selectionBatcher(selection);
 
   // Examine all cell nodes in current selection and
-  //  remove those outside the new block cell region
+  // remove those outside the new block cell region
   int32_t minColumn = std::min(startColIndex, endColIndex);
   int32_t minRow    = std::min(startRowIndex, endRowIndex);
   int32_t maxColumn   = std::max(startColIndex, endColIndex);
@@ -1488,7 +1488,7 @@ HTMLEditor::SelectAllTableCells()
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
   // Suppress nsISelectionListener notification
-  //  until all selection changes are finished
+  // until all selection changes are finished
   SelectionBatcher selectionBatcher(selection);
 
   // It is now safe to clear the selection
@@ -1556,12 +1556,12 @@ HTMLEditor::SelectTableRow()
   rv = GetTableSize(table, &rowCount, &colCount);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  //Note: At this point, we could get first and last cells in row,
-  //  then call SelectBlockOfCells, but that would take just
-  //  a little less code, so the following is more efficient
+  // Note: At this point, we could get first and last cells in row,
+  // then call SelectBlockOfCells, but that would take just
+  // a little less code, so the following is more efficient
 
   // Suppress nsISelectionListener notification
-  //  until all selection changes are finished
+  // until all selection changes are finished
   SelectionBatcher selectionBatcher(selection);
 
   // It is now safe to clear the selection
@@ -1628,7 +1628,7 @@ HTMLEditor::SelectTableColumn()
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Suppress nsISelectionListener notification
-  //  until all selection changes are finished
+  // until all selection changes are finished
   SelectionBatcher selectionBatcher(selection);
 
   // It is now safe to clear the selection
@@ -1707,7 +1707,7 @@ HTMLEditor::SplitTableCell()
   int32_t rowSpanBelow, colSpanAfter;
 
   // Split up cell row-wise first into rowspan=1 above, and the rest below,
-  //  whittling away at the cell below until no more extra span
+  // whittling away at the cell below until no more extra span
   for (rowSpanBelow = actualRowSpan-1; rowSpanBelow >= 0; rowSpanBelow--) {
     // We really split row-wise only if we had rowspan > 1
     if (rowSpanBelow > 0) {
@@ -1785,7 +1785,7 @@ HTMLEditor::SplitCellIntoColumns(nsIDOMElement* aTable,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Insert new cell after using the remaining span
-  //  and always get the new cell so we can copy the background color;
+  // and always get the new cell so we can copy the background color;
   nsCOMPtr<nsIDOMElement> newCell;
   rv = InsertCell(cell, actualRowSpan, aColSpanRight, true, false,
                   getter_AddRefs(newCell));
@@ -1865,8 +1865,8 @@ HTMLEditor::SplitCellIntoRows(nsIDOMElement* aTable,
         break;
       }
       // If cell found is AFTER desired new cell colum,
-      //  we have multiple cells with rowspan > 1 that
-      //  prevented us from finding a cell to insert after...
+      // we have multiple cells with rowspan > 1 that
+      // prevented us from finding a cell to insert after...
       if (startColIndex2 > startColIndex) {
         // ... so instead insert before the cell we found
         insertAfter = false;
@@ -1885,9 +1885,9 @@ HTMLEditor::SplitCellIntoRows(nsIDOMElement* aTable,
 
   if (!cell2 && lastCellFound) {
     // Edge case where we didn't find a cell to insert after
-    //  or before because column(s) before desired column
-    //  and all columns after it are spanned from above.
-    //  We can insert after the last cell we found
+    // or before because column(s) before desired column
+    // and all columns after it are spanned from above.
+    // We can insert after the last cell we found
     cell2 = lastCellFound;
     insertAfter = true; // Should always be true, but let's be sure
   }
@@ -1898,7 +1898,7 @@ HTMLEditor::SplitCellIntoRows(nsIDOMElement* aTable,
 
 
   // Insert new cell after using the remaining span
-  //  and always get the new cell so we can copy the background color;
+  // and always get the new cell so we can copy the background color;
   nsCOMPtr<nsIDOMElement> newCell;
   rv = InsertCell(cell2, aRowSpanBelow, actualColSpan, insertAfter, false,
                   getter_AddRefs(newCell));
@@ -1977,8 +1977,8 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
   AutoTransactionsConserveSelection dontChangeSelection(this);
 
   // Note: We dont' use AutoSelectionSetterAfterTableEdit here so the selection
-  //  is retained after joining. This leaves the target cell selected
-  //  as well as the "non-contiguous" cells, so user can see what happened.
+  // is retained after joining. This leaves the target cell selected
+  // as well as the "non-contiguous" cells, so user can see what happened.
 
   nsCOMPtr<nsIDOMElement> firstCell;
   int32_t firstRowIndex, firstColIndex;
@@ -1998,7 +1998,7 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
 
   if (joinSelectedCells) {
     // We have selected cells: Join just contiguous cells
-    //  and just merge contents if not contiguous
+    // and just merge contents if not contiguous
 
     int32_t rowCount, colCount;
     rv = GetTableSize(table, &rowCount, &colCount);
@@ -2011,17 +2011,17 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
     NS_ENSURE_SUCCESS(rv, rv);
 
     // This defines the last indexes along the "edges"
-    //  of the contiguous block of cells, telling us
-    //  that we can join adjacent cells to the block
+    // of the contiguous block of cells, telling us
+    // that we can join adjacent cells to the block
     // Start with same as the first values,
-    //  then expand as we find adjacent selected cells
+    // then expand as we find adjacent selected cells
     int32_t lastRowIndex = firstRowIndex;
     int32_t lastColIndex = firstColIndex;
     int32_t rowIndex, colIndex;
 
     // First pass: Determine boundaries of contiguous rectangular block
-    //  that we will join into one cell,
-    //  favoring adjacent cells in the same row
+    // that we will join into one cell,
+    // favoring adjacent cells in the same row
     for (rowIndex = firstRowIndex; rowIndex <= lastRowIndex; rowIndex++) {
       int32_t currentRowCount = rowCount;
       // Be sure each row doesn't have rowspan errors
@@ -2065,7 +2065,7 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
           // No cell or not selected, but at least one cell in row was found
           if (rowIndex > (firstRowIndex + 1) && colIndex <= lastColIndex) {
             // Cell is in a column less than current right border in
-            //  the third or higher selected row, so stop block at the previous row
+            // the third or higher selected row, so stop block at the previous row
             lastRowIndex = std::max(0,rowIndex - 1);
             lastRowIsSet = true;
           }
@@ -2086,7 +2086,7 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
           if (colIndex < lastColIndex) {
             // (don't think we ever get here?)
             // Cell is in a column less than current right boundary,
-            //  so stop block at the previous row
+            // so stop block at the previous row
             lastRowIndex = std::max(0,rowIndex - 1);
           } else {
             // Go on to examine next row
@@ -2097,7 +2097,7 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
         lastColIndex = std::min(lastColIndex, lastColInRow);
       } else {
         // No selected cells in this row -- stop at row above
-        //  and leave last column at its previous value
+        // and leave last column at its previous value
         lastRowIndex = std::max(0,rowIndex - 1);
       }
     }
@@ -2126,13 +2126,13 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
               colIndex >= firstColIndex && colIndex <= lastColIndex) {
             // We are within the join region
             // Problem: It is very tricky to delete cells as we merge,
-            //  since that will upset the cellmap
-            //  Instead, build a list of cells to delete and do it later
+            // since that will upset the cellmap
+            // Instead, build a list of cells to delete and do it later
             NS_ASSERTION(startRowIndex2 == rowIndex, "JoinTableCells: StartRowIndex is in row above");
 
             if (actualColSpan2 > 1) {
-              //Check if cell "hangs" off the boundary because of colspan > 1
-              //  Use split methods to chop off excess
+              // Check if cell "hangs" off the boundary because of colspan > 1
+              // Use split methods to chop off excess
               int32_t extraColSpan = (startColIndex2 + actualColSpan2) - (lastColIndex+1);
               if ( extraColSpan > 0) {
                 rv = SplitCellIntoColumns(table, startRowIndex2, startColIndex2,
@@ -2246,7 +2246,7 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
       // Merged cell is "shorter"
       // (there are cells(s) below it that are row-spanned by target cell)
       // We could try splitting those cells, but that's REAL messy,
-      //  so the safest thing to do is NOT really join the cells
+      // so the safest thing to do is NOT really join the cells
       return NS_OK;
     }
 
@@ -2280,7 +2280,7 @@ HTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell,
   if (!IsEmptyCell(cellToMerge)) {
     // Get index of last child in target cell
     // If we fail or don't have children,
-    //  we insert at index 0
+    // we insert at index 0
     int32_t insertIndex = 0;
 
     // Start inserting just after last child
@@ -3088,9 +3088,9 @@ HTMLEditor::SetSelectionAfterTableEdit(nsIDOMElement* aTable,
       }
 
       // Set the caret to deepest first child
-      //   but don't go into nested tables
+      // but don't go into nested tables
       // TODO: Should we really be placing the caret at the END
-      //  of the cell content?
+      // of the cell content?
       nsCOMPtr<nsINode> cellNode = do_QueryInterface(cell);
       if (cellNode) {
         CollapseSelectionToDeepestNonTableFirstChild(selection, cellNode);
