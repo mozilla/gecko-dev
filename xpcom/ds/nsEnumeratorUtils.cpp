@@ -22,14 +22,15 @@ class EmptyEnumeratorImpl
 public:
   EmptyEnumeratorImpl() {}
 
-  // nsISupports interface
-  NS_DECL_ISUPPORTS_INHERITED  // not really inherited, but no mRefCnt
+  // nsISupports interface. Not really inherited, but no mRefCnt.
+  NS_DECL_ISUPPORTS_INHERITED
 
   // nsISimpleEnumerator
   NS_DECL_NSISIMPLEENUMERATOR
   NS_DECL_NSIUTF8STRINGENUMERATOR
   // can't use NS_DECL_NSISTRINGENUMERATOR because they share the
   // HasMore() signature
+
   NS_IMETHOD GetNext(nsAString& aResult) override;
 
   static EmptyEnumeratorImpl* GetInstance()
