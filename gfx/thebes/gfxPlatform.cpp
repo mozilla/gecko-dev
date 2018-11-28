@@ -2005,9 +2005,9 @@ gfxPlatform::CreateCMSOutputProfile()
         /* Determine if we're using the internal override to force sRGB as
            an output profile for reftests. See Bug 452125.
 
-           Note that we don't normally (outside of tests) set a
-           default value of this preference, which means nsIPrefBranch::GetBoolPref
-           will typically throw (and leave its out-param untouched).
+           Note that we don't normally (outside of tests) set a default value
+           of this preference, which means nsIPrefBranch::GetBoolPref will
+           typically throw (and leave its out-param untouched).
          */
         if (Preferences::GetBool(GFX_PREF_CMS_FORCE_SRGB, false)) {
             gCMSOutputProfile = GetCMSsRGBProfile();
@@ -2722,7 +2722,8 @@ gfxPlatform::UsesTiling() const
 /***
  * The preference "layout.frame_rate" has 3 meanings depending on the value:
  *
- * -1 = Auto (default), use hardware vsync or software vsync @ 60 hz if hw vsync fails.
+ * -1 = Auto (default), use hardware vsync or software vsync @ 60 hz if hw
+ *      vsync fails.
  *  0 = ASAP mode - used during talos testing.
  *  X = Software vsync at a rate of X times per second.
  */

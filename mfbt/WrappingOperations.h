@@ -101,15 +101,15 @@ private:
   static UnsignedT
   multiply(UnsignedT aX, UnsignedT aY)
   {
-  // |mozilla::WrappingMultiply| isn't constexpr because MSVC warns about well-
-  // defined unsigned integer overflows that may happen here.
-  // https://msdn.microsoft.com/en-us/library/4kze989h.aspx  And constexpr
-  // seems to cause the warning to be emitted at |WrappingMultiply| call *sites*
-  // instead of here, so these #pragmas are ineffective.
-  //
-  // https://stackoverflow.com/questions/37658794/integer-constant-overflow-warning-in-constexpr
-  //
-  // If/when MSVC fix this bug, we should make these functions constexpr.
+    // |mozilla::WrappingMultiply| isn't constexpr because MSVC warns about
+    // well- defined unsigned integer overflows that may happen here.
+    // https://msdn.microsoft.com/en-us/library/4kze989h.aspx  And constexpr
+    // seems to cause the warning to be emitted at |WrappingMultiply| call
+    // *sites* instead of here, so these #pragmas are ineffective.
+    //
+    // https://stackoverflow.com/questions/37658794/integer-constant-overflow-warning-in-constexpr
+    //
+    // If/when MSVC fix this bug, we should make these functions constexpr.
 
     // Begin with |1U| to ensure the overall operation chain is never promoted
     // to signed integer operations that might have *signed* integer overflow.
@@ -165,7 +165,8 @@ public:
  * numbers wrapped to unsigned, taking the product mod 2**N, then wrapping that
  * number to the signed range:
  *
- *   WrappingMultiply(int16_t(-456), int16_t(123)) is 9448 ((-56088 mod 2**16) + 2**16);
+ *   WrappingMultiply(int16_t(-456), int16_t(123)) is
+ *     9448 ((-56088 mod 2**16) + 2**16);
  *   WrappingMultiply(int32_t(-7), int32_t(-9)) is 63 (63 mod 2**32);
  *   WrappingMultiply(int8_t(16), int8_t(24)) is -128 ((384 mod 2**8) - 2**8);
  *   WrappingMultiply(int8_t(16), int8_t(255)) is -16 ((4080 mod 2**8) - 2**8).

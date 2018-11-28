@@ -63,50 +63,54 @@ bool InImageBridgeChildThread();
  *
  * ImageBridgeChild is a CompositableForwarder just like ShadowLayerForwarder.
  * This means it also does transactions with the compositor thread/process,
- * except that the transactions are restricted to operations on the Compositables
- * and cannot contain messages affecting layers directly.
+ * except that the transactions are restricted to operations on the
+ * Compositables and cannot contain messages affecting layers directly.
  *
  * ImageBridgeChild is also a ISurfaceAllocator. It can be used to allocate or
  * deallocate data that is shared with the compositor. The main differerence
  * with other ISurfaceAllocators is that some of its overriden methods can be
  * invoked from any thread.
  *
- * There are three important phases in the ImageBridge protocol. These three steps
- * can do different things depending if (A) the ImageContainer uses ImageBridge
- * or (B) it does not use ImageBridge:
+ * There are three important phases in the ImageBridge protocol. These three
+ * steps can do different things depending if (A) the ImageContainer uses
+ * ImageBridge or (B) it does not use ImageBridge:
  *
  * - When an ImageContainer calls its method SetCurrentImage:
  *   - (A) The image is sent directly to the compositor process through the
  *   ImageBridge IPDL protocol.
- *   On the compositor side the image is stored in a global table that associates
- *   the image with an ID corresponding to the ImageContainer, and a composition is
- *   triggered.
+ *   On the compositor side the image is stored in a global table that
+ *   associates the image with an ID corresponding to the ImageContainer, and a
+ *   composition is triggered.
  *   - (B) Since it does not have an ImageBridge, the image is not sent yet.
- *   instead the will be sent to the compositor during the next layer transaction
- *   (on the main thread).
+ *   instead the will be sent to the compositor during the next layer
+ *   transaction (on the main thread).
  *
  * - During a Layer transaction:
- *   - (A) The ImageContainer uses ImageBridge. The image is already available to the
- *   compositor process because it has been sent with SetCurrentImage. Yet, the
- *   CompositableHost on the compositor side will needs the ID referring to the
- *   ImageContainer to access the Image. So during the Swap operation that happens
- *   in the transaction, we swap the container ID rather than the image data.
- *   - (B) Since the ImageContainer does not use ImageBridge, the image data is swaped.
+ *   - (A) The ImageContainer uses ImageBridge. The image is already available
+ *   to the compositor process because it has been sent with SetCurrentImage.
+ *   Yet, the CompositableHost on the compositor side will needs the ID
+ *   referring to the ImageContainer to access the Image. So during the Swap
+ *   operation that happens in the transaction, we swap the container ID rather
+ *   than the image data.
+ *   - (B) Since the ImageContainer does not use ImageBridge, the image data is
+ *   swaped.
  *
  * - During composition:
- *   - (A) The CompositableHost has an AsyncID, it looks up the ID in the 
- *   global table to see if there is an image. If there is no image, nothing is rendered.
- *   - (B) The CompositableHost has image data rather than an ID (meaning it is not
- *   using ImageBridge), then it just composites the image data normally.
+ *   - (A) The CompositableHost has an AsyncID, it looks up the ID in the
+ *   global table to see if there is an image. If there is no image, nothing is
+ *   rendered.
+ *   - (B) The CompositableHost has image data rather than an ID (meaning it is
+ *   not using ImageBridge), then it just composites the image data normally.
  *
- * This means that there might be a possibility for the ImageBridge to send the first
- * frame before the first layer transaction that will pass the container ID to the
- * CompositableHost happens. In this (unlikely) case the layer is not composited
- * until the layer transaction happens. This means this scenario is not harmful.
+ * This means that there might be a possibility for the ImageBridge to send the
+ * first frame before the first layer transaction that will pass the container
+ * ID to the CompositableHost happens. In this (unlikely) case the layer is not
+ * composited until the layer transaction happens. This means this scenario is
+ * not harmful.
  *
- * Since sending an image through imageBridge triggers compositing, the main thread is
- * not used at all (except for the very first transaction that provides the
- * CompositableHost with an AsyncID).
+ * Since sending an image through imageBridge triggers compositing, the main
+ * thread is not used at all (except for the very first transaction that
+ * provides the CompositableHost with an AsyncID).
  */
 class ImageBridgeChild final : public PImageBridgeChild
                              , public CompositableForwarder

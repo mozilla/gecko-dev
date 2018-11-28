@@ -121,21 +121,23 @@ public:
    /**
    * Function to configure send codec for the video session
    * @param sendSessionConfig: CodecConfiguration
-   * @result: On Success, the video engine is configured with passed in codec for send
+   * @result: On Success, the video engine is configured with passed in codec
+   *          for send
    *          On failure, video engine transmit functionality is disabled.
-   * NOTE: This API can be invoked multiple time. Invoking this API may involve restarting
-   *        transmission sub-system on the engine.
+   * NOTE: This API can be invoked multiple time. Invoking this API may involve
+   * restarting transmission sub-system on the engine.
    */
   virtual MediaConduitErrorCode ConfigureSendMediaCodec(const VideoCodecConfig* codecInfo) override;
 
   /**
    * Function to configure list of receive codecs for the video session
    * @param sendSessionConfig: CodecConfiguration
-   * @result: On Success, the video engine is configured with passed in codec for send
+   * @result: On Success, the video engine is configured with passed in codec
+   *          for send
    *          Also the playout is enabled.
    *          On failure, video engine transmit functionality is disabled.
-   * NOTE: This API can be invoked multiple time. Invoking this API may involve restarting
-   *        transmission sub-system on the engine.
+   * NOTE: This API can be invoked multiple time. Invoking this API may involve
+   * restarting transmission sub-system on the engine.
    */
    virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
        const std::vector<VideoCodecConfig* >& codecConfigList) override;
