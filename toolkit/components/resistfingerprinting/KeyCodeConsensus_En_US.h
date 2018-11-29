@@ -33,6 +33,7 @@
  * Spoofed keycodes for English content (US English keyboard layout).
  */
 
+// clang-format off
 CONTROL(Alt,         AltLeft,     dom::KeyboardEventBinding::DOM_VK_ALT)
 CONTROL(ArrowDown,   ArrowDown,   dom::KeyboardEventBinding::DOM_VK_DOWN)
 CONTROL(ArrowLeft,   ArrowLeft,   dom::KeyboardEventBinding::DOM_VK_LEFT)
@@ -170,3 +171,4 @@ KEY("^",  Digit6,       dom::KeyboardEventBinding::DOM_VK_6, MODIFIER_SHIFT)
 KEY("&",  Digit7,       dom::KeyboardEventBinding::DOM_VK_7, MODIFIER_SHIFT)
 KEY("*",  Digit8,       dom::KeyboardEventBinding::DOM_VK_8, MODIFIER_SHIFT)
 KEY("(",  Digit9,       dom::KeyboardEventBinding::DOM_VK_9, MODIFIER_SHIFT)
+// clang-format on

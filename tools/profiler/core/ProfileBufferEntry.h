@@ -356,7 +356,7 @@ private:
 //     },
 //     "data":
 //     [
-//       [ 1, 0.0, 0.0 ]       /* { stack: 1, time: 0.0, responsiveness: 0.0 } */
+//       [ 1, 0.0, 0.0 ]      /* { stack: 1, time: 0.0, responsiveness: 0.0 } */
 //     ]
 //   },
 //
@@ -364,13 +364,13 @@ private:
 //   {
 //     "schema":
 //     {
-//       "name": 0,            /* index into stringTable */
-//       "time": 1,            /* number */
-//       "data": 2             /* arbitrary JSON */
+//       "name": 0,           /* index into stringTable */
+//       "time": 1,           /* number */
+//       "data": 2            /* arbitrary JSON */
 //     },
 //     "data":
 //     [
-//       [ 3, 0.1 ]            /* { name: 'example marker', time: 0.1 } */
+//       [ 3, 0.1 ]           /* { name: 'example marker', time: 0.1 } */
 //     ]
 //   },
 //
@@ -378,13 +378,13 @@ private:
 //   {
 //     "schema":
 //     {
-//       "prefix": 0,          /* index into stackTable */
-//       "frame": 1            /* index into frameTable */
+//       "prefix": 0,         /* index into stackTable */
+//       "frame": 1           /* index into frameTable */
 //     },
 //     "data":
 //     [
-//       [ null, 0 ],          /* (root) */
-//       [ 0,    1 ]           /* (root) > foo.js */
+//       [ null, 0 ],         /* (root) */
+//       [ 0,    1 ]          /* (root) > foo.js */
 //     ]
 //   },
 //
@@ -400,8 +400,9 @@ private:
 //     },
 //     "data":
 //     [
-//       [ 0 ],                /* { location: '(root)' } */
-//       [ 1, 2 ]              /* { location: 'foo.js', implementation: 'baseline' } */
+//       [ 0 ],               /* { location: '(root)' } */
+//       [ 1, 2 ]             /* { location: 'foo.js',
+//                                 implementation: 'baseline' } */
 //     ]
 //   },
 //
@@ -414,5 +415,4 @@ private:
 //   ]
 // }
 //
-
 #endif /* ndef ProfileBufferEntry_h */

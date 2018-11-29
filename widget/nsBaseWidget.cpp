@@ -1608,7 +1608,8 @@ nsBaseWidget::ResizeClient(double aX,
 //-------------------------------------------------------------------------
 
 /**
-* If the implementation of nsWindow supports borders this method MUST be overridden
+* If the implementation of nsWindow supports borders this method MUST be
+* overridden
 *
 **/
 LayoutDeviceIntRect
@@ -1618,7 +1619,8 @@ nsBaseWidget::GetClientBounds()
 }
 
 /**
-* If the implementation of nsWindow supports borders this method MUST be overridden
+* If the implementation of nsWindow supports borders this method MUST be
+* overridden
 *
 **/
 LayoutDeviceIntRect

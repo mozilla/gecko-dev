@@ -42,8 +42,10 @@ public:
   nsReadingIterator()
   {
   }
+  // clang-format off
   // nsReadingIterator( const nsReadingIterator<CharT>& );                    // auto-generated copy-constructor OK
   // nsReadingIterator<CharT>& operator=( const nsReadingIterator<CharT>& );  // auto-generated copy-assignment operator OK
+  // clang-format on
 
   pointer get() const
   {

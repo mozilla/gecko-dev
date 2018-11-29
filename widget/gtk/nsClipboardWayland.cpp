@@ -380,12 +380,13 @@ data_device_drop (void                  *data,
  *                     content and it's tied to actual wl_surface.
  * data_device_leave - It's called when the wl_data_offer (drag & dop) is not
  *                     valid any more.
- * data_device_motion - It's called when the drag and drop selection moves across
- *                      wl_surface.
- * data_device_drop - It's called when D&D operation is sucessfully finished and
- *                    we can read the data from D&D.
+ * data_device_motion - It's called when the drag and drop selection moves
+ *                      across wl_surface.
+ * data_device_drop - It's called when D&D operation is sucessfully finished
+ *                    and we can read the data from D&D.
  *                    It's generated only if we call wl_data_offer_accept() and
- *                    wl_data_offer_set_actions() from data_device_motion callback.
+ *                    wl_data_offer_set_actions() from data_device_motion
+ *                    callback.
  */
 static const struct wl_data_device_listener data_device_listener = {
     data_device_data_offer,

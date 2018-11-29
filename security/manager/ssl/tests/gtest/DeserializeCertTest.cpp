@@ -25,6 +25,7 @@
 
 TEST(psm_DeserializeCert, gecko33)
 {
+  // clang-format off
   // Gecko 33+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
   //  - nsISSLStatus fa9ba95b-ca3b-498a-b889-7c79cf28fee8
@@ -52,6 +53,7 @@ TEST(psm_DeserializeCert, gecko33)
   "2cqB1GG4esFOalvI52dzn+J4fTIYZvNF+AtGyHSLm2XRXYZCw455laUKf6Sk9RDShDgUvzhOKL4GXfTwKXv12MyMknJybH8UCpjC"
   "HZmFBVHMcUN/87HsQo20PdOekeEvkjrrMIxW+gxw22Yb67yF/qKgwrWr+43bLN709iyw+LWiU7sQcHL2xk9SYiWQDj2tYz2soObV"
   "QYTJm0VUZMEVFhtALq46cx92Zu4vFwC8AAwAAAAABAQAA");
+  // clang-format on
 
   nsCOMPtr<nsISupports> cert;
   nsresult rv = NS_DeserializeObject(base64Serialization, getter_AddRefs(cert));
@@ -61,6 +63,7 @@ TEST(psm_DeserializeCert, gecko33)
 
 TEST(psm_DeserializeCert, gecko46)
 {
+  // clang-format off
   // Gecko 46+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
   //  - nsISSLStatus fa9ba95b-ca3b-498a-b889-7c79cf28fee8
@@ -88,6 +91,7 @@ TEST(psm_DeserializeCert, gecko46)
   "Bx3VmDRynTe4CqhsAwOoO1ERmCAmsAJBwY/rNr4mK22p8erBrqMW0nYXYU5NFynI+pNTjojhKD4II8PNV8G2yMWwYOb/u4+WPzUA"
   "HC9DpZdrWTEH/W69Cr/KxRqGsWPwpgMv2Wqav8jaT35JxqTXjOlhQqzo6fNn3eYOeCf4PkCxZKwckWjy10qDaRbjhwAMHAGj2TPr"
   "idlvOj/7QyyX5m8up/1US8z1fRW4yoCSOt6V2bwuH6cAvAAMAAAAAAQEAAA==");
+  // clang-format on
 
   nsCOMPtr<nsISupports> cert;
   nsresult rv = NS_DeserializeObject(base64Serialization, getter_AddRefs(cert));
@@ -97,6 +101,7 @@ TEST(psm_DeserializeCert, gecko46)
 
 TEST(psm_DeserializeCert, gecko64)
 {
+  // clang-format off
   // This is a serialization of nsITransportSecurityInfo from gecko 64.
   // Deserialization should fail.
   nsCString base64Serialization(
@@ -174,6 +179,7 @@ TEST(psm_DeserializeCert, gecko64)
   "MUu4kehDLI6zeM7b41N5cdblIZQB2lWHmiRk9opmzN6cN82oNLFpmyPInngiK3BD41VHMWEZ71jFhS9OMPagMRYjyOfiZRYzy78a"
   "G6A9+MpeizGLYAiJLQwGXFK3xPkKmNEVX58Svnw2Yzi9RKR/5CYrCsSXaQ3pjOLAEFe4yHYSkVXySGnYvCoCWw9E1CAx2/S6cCZd"
   "kGCevEsXCS+0yx5DaMkHJ8HSXPfqIbloEpw8nL+e/IBcm2PN7EeqJSdnoDfzAIJ9VNep+OkuE6N36B9KAA==");
+  // clang-format on
 
   nsCOMPtr<nsISupports> transportSecurityInfo;
   nsresult rv = NS_DeserializeObject(base64Serialization, getter_AddRefs(transportSecurityInfo));
