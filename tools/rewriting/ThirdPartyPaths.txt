@@ -60,6 +60,7 @@ modules/libmar/
 modules/pdfium/
 modules/woff2/
 modules/zlib/
+netwerk/dns/nsIDNKitInterface.h
 netwerk/sctp/src/
 netwerk/srtp/src/
 nsprpub/
