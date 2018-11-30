@@ -99,6 +99,7 @@ toolkit/components/lz4/
 toolkit/components/protobuf/
 toolkit/components/url-classifier/chromium/
 toolkit/components/url-classifier/protobuf/
+toolkit/crashreporter/breakpad-client/
 toolkit/crashreporter/google-breakpad/
 tools/fuzzing/libfuzzer/
 tools/profiler/core/vtune/
