@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=4 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,10 +22,10 @@ MFBT_API void mozalloc_handle_oom(size_t requestedSize);
  * the size of the allocation on which we aborted.
  */
 typedef void (*mozalloc_oom_abort_handler)(size_t size);
-MFBT_API void mozalloc_set_oom_abort_handler(mozalloc_oom_abort_handler handler);
+MFBT_API void mozalloc_set_oom_abort_handler(
+    mozalloc_oom_abort_handler handler);
 
 /* TODO: functions to query system memory usage and register
  * critical-memory handlers. */
-
 
 #endif /* ifndef mozilla_mozalloc_oom_h */

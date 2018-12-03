@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=80:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=4 sw=2 et tw=80:
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,29 +14,27 @@
 namespace mozilla {
 namespace jsipc {
 
-class JavaScriptParent : public JavaScriptBase<PJavaScriptParent>
-{
-  public:
-    JavaScriptParent();
-    virtual ~JavaScriptParent();
+class JavaScriptParent : public JavaScriptBase<PJavaScriptParent> {
+ public:
+  JavaScriptParent();
+  virtual ~JavaScriptParent();
 
-    void trace(JSTracer* trc);
+  void trace(JSTracer* trc);
 
-    void drop(JSObject* obj);
+  void drop(JSObject* obj);
 
-    bool allowMessage(JSContext* cx) override;
-    void afterProcessTask();
+  bool allowMessage(JSContext* cx) override;
+  void afterProcessTask();
 
-  protected:
-    virtual bool isParent() override { return true; }
-    virtual JSObject* scopeForTargetObjects() override;
+ protected:
+  virtual bool isParent() override { return true; }
+  virtual JSObject* scopeForTargetObjects() override;
 
-  private:
-    uint64_t savedNextCPOWNumber_;
+ private:
+  uint64_t savedNextCPOWNumber_;
 };
 
-} // namespace jsipc
-} // namespace mozilla
+}  // namespace jsipc
+}  // namespace mozilla
 
-#endif // mozilla_jsipc_JavaScriptWrapper_h__
-
+#endif  // mozilla_jsipc_JavaScriptWrapper_h__

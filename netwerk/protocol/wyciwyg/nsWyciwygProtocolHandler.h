@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,15 +9,14 @@
 
 #include "nsIProtocolHandler.h"
 
-class nsWyciwygProtocolHandler : public nsIProtocolHandler
-{
-    virtual ~nsWyciwygProtocolHandler();
+class nsWyciwygProtocolHandler : public nsIProtocolHandler {
+  virtual ~nsWyciwygProtocolHandler();
 
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIPROTOCOLHANDLER
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIPROTOCOLHANDLER
 
-    nsWyciwygProtocolHandler();
+  nsWyciwygProtocolHandler();
 };
 
 #endif /* nsWyciwygProtocolHandler_h___ */

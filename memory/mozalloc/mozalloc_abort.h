@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=4 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,12 +18,11 @@
  * Note: MOZ_NORETURN seems to break crash stacks on ARM, so we don't
  * use that annotation there.
  */
-extern "C"
-MFBT_API
+extern "C" MFBT_API
 #if !defined(__arm__)
-  MOZ_NORETURN
+    MOZ_NORETURN
 #endif
-  void mozalloc_abort(const char* const msg);
+    void
+    mozalloc_abort(const char* const msg);
 
-
-#endif  /* ifndef mozilla_mozalloc_abort_h */
+#endif /* ifndef mozilla_mozalloc_abort_h */

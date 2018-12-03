@@ -39,6 +39,7 @@ class Flexbox extends PureComponent {
       onSetFlexboxOverlayColor: PropTypes.func.isRequired,
       onShowBoxModelHighlighterForNode: PropTypes.func.isRequired,
       onToggleFlexboxHighlighter: PropTypes.func.isRequired,
+      scrollToTop: PropTypes.func.isRequired,
       setSelectedNode: PropTypes.func.isRequired,
     };
   }
@@ -47,6 +48,7 @@ class Flexbox extends PureComponent {
     const {
       onHideBoxModelHighlighter,
       onShowBoxModelHighlighterForNode,
+      scrollToTop,
       setSelectedNode,
     } = this.props;
     const { flexItems } = this.props.flexContainer;
@@ -55,14 +57,12 @@ class Flexbox extends PureComponent {
       flexItems,
       onHideBoxModelHighlighter,
       onShowBoxModelHighlighterForNode,
+      scrollToTop,
       setSelectedNode,
     });
   }
 
   renderFlexItemSizing() {
-    const {
-      color,
-    } = this.props.flexbox;
     const {
       flexItems,
       flexItemShown,
@@ -76,7 +76,6 @@ class Flexbox extends PureComponent {
 
     return createElement(Fragment, null,
       FlexItemSizingOutline({
-        color,
         flexDirection: properties["flex-direction"],
         flexItem,
       }),
@@ -107,12 +106,11 @@ class Flexbox extends PureComponent {
     }
 
     const {
-      flexItems,
       flexItemShown,
     } = flexContainer;
 
     return (
-      dom.div({ id: "layout-flexbox-container" },
+      dom.div({ className: "layout-flexbox-wrapper" },
         Header({
           flexContainer,
           getSwatchColorPickerTooltip,
@@ -122,7 +120,7 @@ class Flexbox extends PureComponent {
           onToggleFlexboxHighlighter,
           setSelectedNode,
         }),
-        !flexItemShown && flexItems.length > 0 ? this.renderFlexItemList() : null,
+        !flexItemShown ? this.renderFlexItemList() : null,
         flexItemShown ? this.renderFlexItemSizing() : null,
       )
     );

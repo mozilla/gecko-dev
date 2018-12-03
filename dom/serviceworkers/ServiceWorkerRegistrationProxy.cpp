@@ -9,22 +9,20 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "ServiceWorkerManager.h"
 #include "ServiceWorkerRegistrationParent.h"
+#include "ServiceWorkerUnregisterCallback.h"
 
 namespace mozilla {
 namespace dom {
 
 using mozilla::ipc::AssertIsOnBackgroundThread;
 
-ServiceWorkerRegistrationProxy::~ServiceWorkerRegistrationProxy()
-{
+ServiceWorkerRegistrationProxy::~ServiceWorkerRegistrationProxy() {
   // Any thread
   MOZ_DIAGNOSTIC_ASSERT(!mActor);
   MOZ_DIAGNOSTIC_ASSERT(!mReg);
 }
 
-void
-ServiceWorkerRegistrationProxy::MaybeShutdownOnBGThread()
-{
+void ServiceWorkerRegistrationProxy::MaybeShutdownOnBGThread() {
   AssertIsOnBackgroundThread();
   if (!mActor) {
     return;
@@ -32,9 +30,8 @@ ServiceWorkerRegistrationProxy::MaybeShutdownOnBGThread()
   mActor->MaybeSendDelete();
 }
 
-void
-ServiceWorkerRegistrationProxy::UpdateStateOnBGThread(const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+void ServiceWorkerRegistrationProxy::UpdateStateOnBGThread(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   AssertIsOnBackgroundThread();
   if (!mActor) {
     return;
@@ -42,45 +39,44 @@ ServiceWorkerRegistrationProxy::UpdateStateOnBGThread(const ServiceWorkerRegistr
   Unused << mActor->SendUpdateState(aDescriptor.ToIPC());
 }
 
-void
-ServiceWorkerRegistrationProxy::InitOnMainThread()
-{
+void ServiceWorkerRegistrationProxy::FireUpdateFoundOnBGThread() {
+  AssertIsOnBackgroundThread();
+  if (!mActor) {
+    return;
+  }
+  Unused << mActor->SendFireUpdateFound();
+}
+
+void ServiceWorkerRegistrationProxy::InitOnMainThread() {
   AssertIsOnMainThread();
 
-  auto scopeExit = MakeScopeExit([&] {
-    MaybeShutdownOnMainThread();
-  });
+  auto scopeExit = MakeScopeExit([&] { MaybeShutdownOnMainThread(); });
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   NS_ENSURE_TRUE_VOID(swm);
 
   RefPtr<ServiceWorkerRegistrationInfo> reg =
-    swm->GetRegistration(mDescriptor.PrincipalInfo(), mDescriptor.Scope());
+      swm->GetRegistration(mDescriptor.PrincipalInfo(), mDescriptor.Scope());
   NS_ENSURE_TRUE_VOID(reg);
 
   scopeExit.release();
 
   mReg = new nsMainThreadPtrHolder<ServiceWorkerRegistrationInfo>(
-    "ServiceWorkerRegistrationProxy::mInfo", reg);
+      "ServiceWorkerRegistrationProxy::mInfo", reg);
 
   mReg->AddInstance(this, mDescriptor);
 }
 
-void
-ServiceWorkerRegistrationProxy::MaybeShutdownOnMainThread()
-{
+void ServiceWorkerRegistrationProxy::MaybeShutdownOnMainThread() {
   AssertIsOnMainThread();
 
-  nsCOMPtr<nsIRunnable> r =
-    NewRunnableMethod(__func__, this,
-                      &ServiceWorkerRegistrationProxy::MaybeShutdownOnBGThread);
+  nsCOMPtr<nsIRunnable> r = NewRunnableMethod(
+      __func__, this, &ServiceWorkerRegistrationProxy::MaybeShutdownOnBGThread);
 
   MOZ_ALWAYS_SUCCEEDS(mEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
 }
 
-void
-ServiceWorkerRegistrationProxy::StopListeningOnMainThread()
-{
+void ServiceWorkerRegistrationProxy::StopListeningOnMainThread() {
   AssertIsOnMainThread();
 
   if (!mReg) {
@@ -91,9 +87,8 @@ ServiceWorkerRegistrationProxy::StopListeningOnMainThread()
   mReg = nullptr;
 }
 
-void
-ServiceWorkerRegistrationProxy::UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+void ServiceWorkerRegistrationProxy::UpdateState(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   AssertIsOnMainThread();
 
   if (mDescriptor == aDescriptor) {
@@ -101,44 +96,48 @@ ServiceWorkerRegistrationProxy::UpdateState(const ServiceWorkerRegistrationDescr
   }
   mDescriptor = aDescriptor;
 
-  nsCOMPtr<nsIRunnable> r = NewRunnableMethod<ServiceWorkerRegistrationDescriptor>(
-    __func__, this, &ServiceWorkerRegistrationProxy::UpdateStateOnBGThread,
-    aDescriptor);
+  nsCOMPtr<nsIRunnable> r =
+      NewRunnableMethod<ServiceWorkerRegistrationDescriptor>(
+          __func__, this,
+          &ServiceWorkerRegistrationProxy::UpdateStateOnBGThread, aDescriptor);
 
   MOZ_ALWAYS_SUCCEEDS(mEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
 }
 
-void
-ServiceWorkerRegistrationProxy::RegistrationRemoved()
-{
+void ServiceWorkerRegistrationProxy::FireUpdateFound() {
+  AssertIsOnMainThread();
+
+  nsCOMPtr<nsIRunnable> r = NewRunnableMethod(
+      __func__, this,
+      &ServiceWorkerRegistrationProxy::FireUpdateFoundOnBGThread);
+
+  MOZ_ALWAYS_SUCCEEDS(mEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
+}
+
+void ServiceWorkerRegistrationProxy::RegistrationRemoved() {
   MaybeShutdownOnMainThread();
 }
 
-void
-ServiceWorkerRegistrationProxy::GetScope(nsAString& aScope) const
-{
+void ServiceWorkerRegistrationProxy::GetScope(nsAString& aScope) const {
   CopyUTF8toUTF16(mDescriptor.Scope(), aScope);
 }
 
-bool
-ServiceWorkerRegistrationProxy::MatchesDescriptor(const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+bool ServiceWorkerRegistrationProxy::MatchesDescriptor(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   AssertIsOnMainThread();
   return aDescriptor.Id() == mDescriptor.Id() &&
          aDescriptor.PrincipalInfo() == mDescriptor.PrincipalInfo() &&
          aDescriptor.Scope() == mDescriptor.Scope();
 }
 
-ServiceWorkerRegistrationProxy::ServiceWorkerRegistrationProxy(const ServiceWorkerRegistrationDescriptor& aDescriptor)
-  : mActor(nullptr)
-  , mEventTarget(GetCurrentThreadSerialEventTarget())
-  , mDescriptor(aDescriptor)
-{
-}
+ServiceWorkerRegistrationProxy::ServiceWorkerRegistrationProxy(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor)
+    : mActor(nullptr),
+      mEventTarget(GetCurrentThreadSerialEventTarget()),
+      mDescriptor(aDescriptor) {}
 
-void
-ServiceWorkerRegistrationProxy::Init(ServiceWorkerRegistrationParent* aActor)
-{
+void ServiceWorkerRegistrationProxy::Init(
+    ServiceWorkerRegistrationParent* aActor) {
   AssertIsOnBackgroundThread();
   MOZ_DIAGNOSTIC_ASSERT(aActor);
   MOZ_DIAGNOSTIC_ASSERT(!mActor);
@@ -150,92 +149,50 @@ ServiceWorkerRegistrationProxy::Init(ServiceWorkerRegistrationParent* aActor)
   // the constructor.  If done from the constructor the runnable can
   // execute, complete, and release its reference before the constructor
   // returns.
-  nsCOMPtr<nsIRunnable> r = NewRunnableMethod(
-    "ServiceWorkerRegistrationProxy::Init", this,
-    &ServiceWorkerRegistrationProxy::InitOnMainThread);
+  nsCOMPtr<nsIRunnable> r =
+      NewRunnableMethod("ServiceWorkerRegistrationProxy::Init", this,
+                        &ServiceWorkerRegistrationProxy::InitOnMainThread);
   MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
 }
 
-void
-ServiceWorkerRegistrationProxy::RevokeActor(ServiceWorkerRegistrationParent* aActor)
-{
+void ServiceWorkerRegistrationProxy::RevokeActor(
+    ServiceWorkerRegistrationParent* aActor) {
   AssertIsOnBackgroundThread();
   MOZ_DIAGNOSTIC_ASSERT(mActor);
   MOZ_DIAGNOSTIC_ASSERT(mActor == aActor);
   mActor = nullptr;
 
-  nsCOMPtr<nsIRunnable> r =
-    NewRunnableMethod(__func__, this,
-                      &ServiceWorkerRegistrationProxy::StopListeningOnMainThread);
+  nsCOMPtr<nsIRunnable> r = NewRunnableMethod(
+      __func__, this,
+      &ServiceWorkerRegistrationProxy::StopListeningOnMainThread);
   MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
 }
 
-namespace {
-
-class UnregisterCallback final : public nsIServiceWorkerUnregisterCallback
-{
-  RefPtr<GenericPromise::Private> mPromise;
-
-  ~UnregisterCallback() = default;
-
-public:
-  explicit UnregisterCallback(GenericPromise::Private* aPromise)
-    : mPromise(aPromise)
-  {
-    MOZ_DIAGNOSTIC_ASSERT(mPromise);
-  }
-
-  NS_IMETHOD
-  UnregisterSucceeded(bool aState) override
-  {
-    mPromise->Resolve(aState, __func__);
-    return NS_OK;
-  }
-
-  NS_IMETHOD
-  UnregisterFailed() override
-  {
-    mPromise->Reject(NS_ERROR_DOM_SECURITY_ERR, __func__);
-    return NS_OK;
-  }
-
-  NS_DECL_ISUPPORTS
-};
-
-NS_IMPL_ISUPPORTS(UnregisterCallback, nsIServiceWorkerUnregisterCallback)
-
-} // anonymous namespace
-
-RefPtr<GenericPromise>
-ServiceWorkerRegistrationProxy::Unregister()
-{
+RefPtr<GenericPromise> ServiceWorkerRegistrationProxy::Unregister() {
   AssertIsOnBackgroundThread();
 
   RefPtr<ServiceWorkerRegistrationProxy> self = this;
   RefPtr<GenericPromise::Private> promise =
-    new GenericPromise::Private(__func__);
+      new GenericPromise::Private(__func__);
 
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(__func__,
-    [self, promise] () mutable {
-      nsresult rv = NS_ERROR_DOM_INVALID_STATE_ERR;
-      auto scopeExit = MakeScopeExit([&] {
-        promise->Reject(rv, __func__);
+  nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction(__func__, [self, promise]() mutable {
+        nsresult rv = NS_ERROR_DOM_INVALID_STATE_ERR;
+        auto scopeExit = MakeScopeExit([&] { promise->Reject(rv, __func__); });
+
+        NS_ENSURE_TRUE_VOID(self->mReg);
+
+        RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+        NS_ENSURE_TRUE_VOID(swm);
+
+        RefPtr<UnregisterCallback> cb = new UnregisterCallback(promise);
+
+        rv = swm->Unregister(self->mReg->Principal(), cb,
+                             NS_ConvertUTF8toUTF16(self->mReg->Scope()));
+        NS_ENSURE_SUCCESS_VOID(rv);
+
+        scopeExit.release();
       });
-
-      NS_ENSURE_TRUE_VOID(self->mReg);
-
-      RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-      NS_ENSURE_TRUE_VOID(swm);
-
-      RefPtr<UnregisterCallback> cb = new UnregisterCallback(promise);
-
-      rv = swm->Unregister(self->mReg->Principal(), cb,
-                           NS_ConvertUTF8toUTF16(self->mReg->Scope()));
-      NS_ENSURE_SUCCESS_VOID(rv);
-
-
-      scopeExit.release();
-    });
 
   MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
 
@@ -244,64 +201,57 @@ ServiceWorkerRegistrationProxy::Unregister()
 
 namespace {
 
-class UpdateCallback final : public ServiceWorkerUpdateFinishCallback
-{
+class UpdateCallback final : public ServiceWorkerUpdateFinishCallback {
   RefPtr<ServiceWorkerRegistrationPromise::Private> mPromise;
 
   ~UpdateCallback() = default;
 
-public:
-  explicit UpdateCallback(RefPtr<ServiceWorkerRegistrationPromise::Private>&& aPromise)
-    : mPromise(std::move(aPromise))
-  {
+ public:
+  explicit UpdateCallback(
+      RefPtr<ServiceWorkerRegistrationPromise::Private>&& aPromise)
+      : mPromise(std::move(aPromise)) {
     MOZ_DIAGNOSTIC_ASSERT(mPromise);
   }
 
-  void
-  UpdateSucceeded(ServiceWorkerRegistrationInfo* aInfo) override
-  {
+  void UpdateSucceeded(ServiceWorkerRegistrationInfo* aInfo) override {
     mPromise->Resolve(aInfo->Descriptor(), __func__);
   }
 
-  void
-  UpdateFailed(ErrorResult& aResult) override
-  {
+  void UpdateFailed(ErrorResult& aResult) override {
     mPromise->Reject(CopyableErrorResult(aResult), __func__);
   }
 };
 
-} // anonymous namespace
+}  // anonymous namespace
 
 RefPtr<ServiceWorkerRegistrationPromise>
-ServiceWorkerRegistrationProxy::Update()
-{
+ServiceWorkerRegistrationProxy::Update() {
   AssertIsOnBackgroundThread();
 
   RefPtr<ServiceWorkerRegistrationProxy> self = this;
   RefPtr<ServiceWorkerRegistrationPromise::Private> promise =
-    new ServiceWorkerRegistrationPromise::Private(__func__);
+      new ServiceWorkerRegistrationPromise::Private(__func__);
 
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(__func__,
-    [self, promise] () mutable {
-      auto scopeExit = MakeScopeExit([&] {
-        promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
+  nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction(__func__, [self, promise]() mutable {
+        auto scopeExit = MakeScopeExit(
+            [&] { promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__); });
+
+        NS_ENSURE_TRUE_VOID(self->mReg);
+
+        RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+        NS_ENSURE_TRUE_VOID(swm);
+
+        RefPtr<UpdateCallback> cb = new UpdateCallback(std::move(promise));
+        swm->Update(self->mReg->Principal(), self->mReg->Scope(), cb);
+
+        scopeExit.release();
       });
-
-      NS_ENSURE_TRUE_VOID(self->mReg);
-
-      RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-      NS_ENSURE_TRUE_VOID(swm);
-
-      RefPtr<UpdateCallback> cb = new UpdateCallback(std::move(promise));
-      swm->Update(self->mReg->Principal(), self->mReg->Scope(), cb);
-
-      scopeExit.release();
-    });
 
   MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
 
   return promise;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

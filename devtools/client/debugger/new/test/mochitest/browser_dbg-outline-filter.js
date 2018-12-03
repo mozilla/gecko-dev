@@ -11,7 +11,7 @@ function getNthItem(dbg, index) {
 
 // Tests the outline pane fuzzy filtering of outline items
 add_task(async function() {
-  const dbg = await initDebugger("doc-scripts.html");
+  const dbg = await initDebugger("doc-scripts.html", "long");
   await selectSource(dbg, "long", 1);
   findElementWithSelector(dbg, ".outline-tab").click();
 
@@ -69,6 +69,10 @@ add_task(async function() {
 
   pressKey(dbg, "Escape");
   is(getItems(dbg).length, 9, "9 items in the list after escape pressed");
+
+  // Ensure no action is taken when Enter key is pressed
+  pressKey(dbg, "Enter");
+  is(getItems(dbg).length, 9, "9 items in the list after enter pressed");
 
   // check that the term 'todo' includes items with todo
   type(dbg, "todo");

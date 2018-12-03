@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,13 +15,14 @@ namespace widget {
 
 // A class for drawing to double-buffered windows.
 class WindowSurface {
-public:
+ public:
   virtual ~WindowSurface() {}
 
   // Locks a region of the window for drawing, returning a draw target
   // capturing the bounds of the provided region.
   // Implementations must permit invocation from any thread.
-  virtual already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion) = 0;
+  virtual already_AddRefed<gfx::DrawTarget> Lock(
+      const LayoutDeviceIntRegion& aRegion) = 0;
 
   // Swaps the provided invalid region from the back buffer to the window.
   // Implementations must permit invocation from any thread.
@@ -34,4 +35,4 @@ public:
 }  // namespace widget
 }  // namespace mozilla
 
-#endif // _MOZILLA_WIDGET_WINDOW_SURFACE_H
+#endif  // _MOZILLA_WIDGET_WINDOW_SURFACE_H

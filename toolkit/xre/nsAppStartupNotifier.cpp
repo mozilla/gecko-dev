@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,70 +12,64 @@
 #include "nsAppStartupNotifier.h"
 #include "nsISimpleEnumerator.h"
 
-/* static */ nsresult
-nsAppStartupNotifier::NotifyObservers(const char* aTopic)
-{
-    NS_ENSURE_ARG(aTopic);
-    nsresult rv;
+/* static */ nsresult nsAppStartupNotifier::NotifyObservers(
+    const char* aTopic) {
+  NS_ENSURE_ARG(aTopic);
+  nsresult rv;
 
-    // now initialize all startup listeners
-    nsCOMPtr<nsICategoryManager> categoryManager =
-                    do_GetService(NS_CATEGORYMANAGER_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+  // now initialize all startup listeners
+  nsCOMPtr<nsICategoryManager> categoryManager =
+      do_GetService(NS_CATEGORYMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    nsDependentCString topic(aTopic);
+  nsDependentCString topic(aTopic);
 
-    nsCOMPtr<nsISimpleEnumerator> enumerator;
-    rv = categoryManager->EnumerateCategory(topic,
-                               getter_AddRefs(enumerator));
-    if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsISimpleEnumerator> enumerator;
+  rv = categoryManager->EnumerateCategory(topic, getter_AddRefs(enumerator));
+  if (NS_FAILED(rv)) return rv;
 
-    nsCOMPtr<nsISupports> entry;
-    while (NS_SUCCEEDED(enumerator->GetNext(getter_AddRefs(entry)))) {
-        nsCOMPtr<nsISupportsCString> category = do_QueryInterface(entry, &rv);
+  nsCOMPtr<nsISupports> entry;
+  while (NS_SUCCEEDED(enumerator->GetNext(getter_AddRefs(entry)))) {
+    nsCOMPtr<nsISupportsCString> category = do_QueryInterface(entry, &rv);
+
+    if (NS_SUCCEEDED(rv)) {
+      nsAutoCString categoryEntry;
+      rv = category->GetData(categoryEntry);
+
+      nsCString contractId;
+      categoryManager->GetCategoryEntry(topic, categoryEntry, contractId);
+
+      if (NS_SUCCEEDED(rv)) {
+        // If we see the word "service," in the beginning
+        // of the contractId then we create it as a service
+        // if not we do a createInstance
+
+        nsCOMPtr<nsISupports> startupInstance;
+        if (Substring(contractId, 0, 8).EqualsLiteral("service,"))
+          startupInstance = do_GetService(contractId.get() + 8, &rv);
+        else
+          startupInstance = do_CreateInstance(contractId.get(), &rv);
 
         if (NS_SUCCEEDED(rv)) {
-            nsAutoCString categoryEntry;
-            rv = category->GetData(categoryEntry);
+          // Try to QI to nsIObserver
+          nsCOMPtr<nsIObserver> startupObserver =
+              do_QueryInterface(startupInstance, &rv);
+          if (NS_SUCCEEDED(rv)) {
+            rv = startupObserver->Observe(nullptr, aTopic, nullptr);
 
-            nsCString contractId;
-            categoryManager->GetCategoryEntry(topic, categoryEntry,
-                                              contractId);
-
-            if (NS_SUCCEEDED(rv)) {
-
-                // If we see the word "service," in the beginning
-                // of the contractId then we create it as a service
-                // if not we do a createInstance
-
-                nsCOMPtr<nsISupports> startupInstance;
-                if (Substring(contractId, 0, 8).EqualsLiteral("service,"))
-                    startupInstance = do_GetService(contractId.get() + 8, &rv);
-                else
-                    startupInstance = do_CreateInstance(contractId.get(), &rv);
-
-                if (NS_SUCCEEDED(rv)) {
-                    // Try to QI to nsIObserver
-                    nsCOMPtr<nsIObserver> startupObserver =
-                        do_QueryInterface(startupInstance, &rv);
-                    if (NS_SUCCEEDED(rv)) {
-                        rv = startupObserver->Observe(nullptr, aTopic, nullptr);
-
-                        // mainly for debugging if you want to know if your observer worked.
-                        NS_ASSERTION(NS_SUCCEEDED(rv), "Startup Observer failed!\n");
-                    }
-                }
-                else {
-                  #ifdef DEBUG
-                    nsAutoCString warnStr("Cannot create startup observer : ");
-                    warnStr += contractId.get();
-                    NS_WARNING(warnStr.get());
-                  #endif
-                }
-
-            }
+            // mainly for debugging if you want to know if your observer worked.
+            NS_ASSERTION(NS_SUCCEEDED(rv), "Startup Observer failed!\n");
+          }
+        } else {
+#ifdef DEBUG
+          nsAutoCString warnStr("Cannot create startup observer : ");
+          warnStr += contractId.get();
+          NS_WARNING(warnStr.get());
+#endif
         }
+      }
     }
+  }
 
-    return NS_OK;
+  return NS_OK;
 }

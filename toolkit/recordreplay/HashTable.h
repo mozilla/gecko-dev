@@ -8,6 +8,7 @@
 #define mozilla_recordreplay_HashTable_h
 
 #include "plhash.h"
+#include "PLDHashTable.h"
 
 namespace mozilla {
 namespace recordreplay {
@@ -15,13 +16,16 @@ namespace recordreplay {
 // Routines for creating specialized callbacks for PLHashTables that preserve
 // iteration order, similar to those for PLDHashTables in RecordReplay.h.
 void GeneratePLHashTableCallbacks(PLHashFunction* aKeyHash,
-				  PLHashComparator* aKeyCompare,
-				  PLHashComparator* aValueCompare,
-				  const PLHashAllocOps** aAllocOps,
-				  void** aAllocPrivate);
+                                  PLHashComparator* aKeyCompare,
+                                  PLHashComparator* aValueCompare,
+                                  const PLHashAllocOps** aAllocOps,
+                                  void** aAllocPrivate);
 void DestroyPLHashTableCallbacks(void* aAllocPrivate);
 
-} // recordreplay
-} // mozilla
+void CheckPLHashTable(PLHashTable* aTable);
+void CheckPLDHashTable(PLDHashTable* aTable);
 
-#endif // mozilla_recordreplay_HashTable_h
+}  // namespace recordreplay
+}  // namespace mozilla
+
+#endif  // mozilla_recordreplay_HashTable_h

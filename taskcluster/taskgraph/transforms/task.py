@@ -921,6 +921,7 @@ def build_binary_transparency_payload(config, task, task_def):
         # locale is used to map upload path and allow for duplicate simple names
         Required('locale'): basestring,
     }],
+    Optional('artifact-map'): object,
 })
 def build_beetmover_payload(config, task, task_def):
     worker = task['worker']
@@ -942,6 +943,8 @@ def build_beetmover_payload(config, task, task_def):
     }
     if worker.get('locale'):
         task_def['payload']['locale'] = worker['locale']
+    if worker.get('artifact-map'):
+        task_def['payload']['artifactMap'] = worker['artifact-map']
     if worker.get('partner-public'):
         task_def['payload']['is_partner_repack_public'] = worker['partner-public']
     if release_config:
@@ -983,11 +986,14 @@ def build_beetmover_push_to_release_payload(config, task, task_def):
         Required('paths'): [basestring],
         Required('zipExtract', default=False): bool,
     }],
+    Optional('artifact-map'): object,
 })
 def build_beetmover_maven_payload(config, task, task_def):
     build_beetmover_payload(config, task, task_def)
 
     task_def['payload']['artifact_id'] = task['worker']['release-properties']['artifact-id']
+    if task['worker'].get('artifact-map'):
+        task_def['payload']['artifactMap'] = task['worker']['artifact-map']
 
     del task_def['payload']['releaseProperties']['hashType']
     del task_def['payload']['releaseProperties']['platform']
@@ -1008,6 +1014,9 @@ def build_beetmover_maven_payload(config, task, task_def):
     Optional('blob-suffix'): basestring,
     Optional('complete-mar-filename-pattern'): basestring,
     Optional('complete-mar-bouncer-product-pattern'): basestring,
+    Optional('update-line'): object,
+    Optional('suffixes'): [basestring],
+
 
     # list of artifact URLs for the artifacts that should be beetmoved
     Optional('upstream-artifacts'): [{
@@ -1027,7 +1036,8 @@ def build_balrog_payload(config, task, task_def):
 
     if worker['balrog-action'] == 'submit-locale':
         task_def['payload'] = {
-            'upstreamArtifacts':  worker['upstream-artifacts']
+            'upstreamArtifacts':  worker['upstream-artifacts'],
+            'suffixes': worker['suffixes'],
         }
     else:
         for prop in ('archive-domain', 'channel-names', 'download-domain',
@@ -1059,6 +1069,7 @@ def build_balrog_payload(config, task, task_def):
                 'platforms': worker['platforms'],
                 'rules_to_update': worker['rules-to-update'],
                 'require_mirrors': worker['require-mirrors'],
+                'update_line': worker['update-line'],
             })
         else:  # schedule / ship
             task_def['payload'].update({
@@ -1914,6 +1925,16 @@ def check_run_task_caches(config, tasks):
                     break
 
                 if arg.startswith('--sparse-profile'):
+                    if '=' not in arg:
+                        raise Exception(
+                            '{} is specifying `--sparse-profile` to run-task as two arguments. '
+                            'Unable to determine if the sparse profile exists.'.format(
+                                task['label']))
+                    _, sparse_profile = arg.split('=', 1)
+                    if not os.path.exists(os.path.join(GECKO, sparse_profile)):
+                        raise Exception(
+                            '{} is using non-existant sparse profile {}.'.format(
+                                task['label'], sparse_profile))
                     require_sparse_cache = True
                     break
 

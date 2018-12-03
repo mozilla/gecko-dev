@@ -1,4 +1,4 @@
-/* -*- Mode: c++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
+/* -*- Mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,7 +17,7 @@ static const gfx::Color sAndroidCheckColor(gfx::Color(0.19f, 0.21f, 0.23f));
 static const gfx::Color sAndroidDisabledColor(gfx::Color(0.88f, 0.88f, 0.88f));
 static const gfx::Color sAndroidActiveColor(gfx::Color(0.94f, 0.94f, 0.94f));
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // mozilla_widget_AndroidColors_h
+#endif  // mozilla_widget_AndroidColors_h

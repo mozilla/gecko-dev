@@ -1123,7 +1123,7 @@ impl GpuCacheTexture {
         let bus = if use_scatter {
             let program = device.create_program_linked(
                 "gpu_cache_update",
-                "",
+                String::new(),
                 &desc::GPU_CACHE_UPDATE,
             )?;
             let buf_position = device.create_vbo();
@@ -1826,6 +1826,7 @@ impl Renderer {
             dual_source_blending_is_enabled: true,
             dual_source_blending_is_supported: ext_dual_source_blending,
             chase_primitive: options.chase_primitive,
+            enable_picture_caching: options.enable_picture_caching,
         };
 
         let device_pixel_ratio = options.device_pixel_ratio;
@@ -4771,6 +4772,7 @@ pub struct RendererOptions {
     pub chase_primitive: ChasePrimitive,
     pub support_low_priority_transactions: bool,
     pub namespace_alloc_by_client: bool,
+    pub enable_picture_caching: bool,
 }
 
 impl Default for RendererOptions {
@@ -4806,6 +4808,7 @@ impl Default for RendererOptions {
             chase_primitive: ChasePrimitive::Nothing,
             support_low_priority_transactions: false,
             namespace_alloc_by_client: false,
+            enable_picture_caching: false,
         }
     }
 }

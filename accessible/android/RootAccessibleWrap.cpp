@@ -1,4 +1,4 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+/* -*- Mode: c++; c-basic-offset: 2; tab-width: 20; indent-tabs-mode: nil; -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,15 +15,11 @@ using namespace mozilla::a11y;
 
 RootAccessibleWrap::RootAccessibleWrap(nsIDocument* aDoc,
                                        nsIPresShell* aPresShell)
-  : RootAccessible(aDoc, aPresShell)
-{
-}
+    : RootAccessible(aDoc, aPresShell) {}
 
 RootAccessibleWrap::~RootAccessibleWrap() {}
 
-AccessibleWrap*
-RootAccessibleWrap::GetContentAccessible()
-{
+AccessibleWrap* RootAccessibleWrap::GetContentAccessible() {
   if (ProxyAccessible* proxy = GetPrimaryRemoteTopLevelContentDoc()) {
     return WrapperFor(proxy);
   }
@@ -41,9 +37,7 @@ RootAccessibleWrap::GetContentAccessible()
   return nullptr;
 }
 
-AccessibleWrap*
-RootAccessibleWrap::FindAccessibleById(int32_t aID)
-{
+AccessibleWrap* RootAccessibleWrap::FindAccessibleById(int32_t aID) {
   AccessibleWrap* contentAcc = GetContentAccessible();
 
   if (!contentAcc) {
@@ -60,18 +54,16 @@ RootAccessibleWrap::FindAccessibleById(int32_t aID)
   }
 
   return FindAccessibleById(
-    static_cast<DocAccessibleWrap*>(contentAcc->AsDoc()), aID);
+      static_cast<DocAccessibleWrap*>(contentAcc->AsDoc()), aID);
 }
 
-AccessibleWrap*
-RootAccessibleWrap::FindAccessibleById(DocProxyAccessibleWrap* aDoc,
-                                       int32_t aID)
-{
+AccessibleWrap* RootAccessibleWrap::FindAccessibleById(
+    DocProxyAccessibleWrap* aDoc, int32_t aID) {
   AccessibleWrap* acc = aDoc->GetAccessibleByID(aID);
   uint32_t index = 0;
   while (!acc) {
     auto child =
-      static_cast<DocProxyAccessibleWrap*>(aDoc->GetChildDocumentAt(index++));
+        static_cast<DocProxyAccessibleWrap*>(aDoc->GetChildDocumentAt(index++));
     if (!child) {
       break;
     }
@@ -81,14 +73,13 @@ RootAccessibleWrap::FindAccessibleById(DocProxyAccessibleWrap* aDoc,
   return acc;
 }
 
-AccessibleWrap*
-RootAccessibleWrap::FindAccessibleById(DocAccessibleWrap* aDoc, int32_t aID)
-{
+AccessibleWrap* RootAccessibleWrap::FindAccessibleById(DocAccessibleWrap* aDoc,
+                                                       int32_t aID) {
   AccessibleWrap* acc = aDoc->GetAccessibleByID(aID);
   uint32_t index = 0;
   while (!acc) {
     auto child =
-      static_cast<DocAccessibleWrap*>(aDoc->GetChildDocumentAt(index++));
+        static_cast<DocAccessibleWrap*>(aDoc->GetChildDocumentAt(index++));
     if (!child) {
       break;
     }

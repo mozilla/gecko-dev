@@ -2,6 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+# ALL CHANGES TO THIS FILE MUST HAVE REVIEW FROM A MARIONETTE PEER!
+#
+# The Marionette Python client is used out-of-tree with various builds of
+# Firefox. Removing a preference from this file will cause regressions,
+# so please be careful and get review from a Testing :: Marionette peer
+# before you make any changes to this file.
+
 from __future__ import absolute_import
 
 import os
@@ -19,14 +26,6 @@ from mozrunner import Runner, FennecEmulatorRunner
 from six import reraise
 
 from . import errors
-
-
-# ALL CHANGES TO THIS FILE MUST HAVE REVIEW FROM A MARIONETTE PEER!
-#
-# The Marionette Python client is used out-of-tree with release
-# channel builds of Firefox.  Removing a preference from this file
-# will cause regressions, so please be careful and get review from
-# a Testing :: Marionette peer before you make any changes to this file.
 
 
 class GeckoInstance(object):
@@ -406,8 +405,11 @@ class FennecInstance(GeckoInstance):
     def __init__(self, emulator_binary=None, avd_home=None, avd=None,
                  adb_path=None, serial=None, connect_to_running_emulator=False,
                  package_name=None, *args, **kwargs):
+        required_prefs = deepcopy(FennecInstance.fennec_prefs)
+        required_prefs.update(kwargs.get("prefs", {}))
+
         super(FennecInstance, self).__init__(*args, **kwargs)
-        self.required_prefs.update(FennecInstance.fennec_prefs)
+        self.required_prefs.update(required_prefs)
 
         self.runner_class = FennecEmulatorRunner
         # runner args
@@ -496,12 +498,17 @@ class DesktopInstance(GeckoInstance):
     desktop_prefs = {
         # Disable Firefox old build background check
         "app.update.checkInstallTime": False,
-        # Disable application updates
-        "app.update.disabledForTesting": True,
-        "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer": True,
-        # app.update.enabled is being removed. Once Firefox 62 becomes stable,
-        # the line below can be removed as well.
-        "app.update.enabled": False,
+
+        # Disable automatically upgrading Firefox
+        # Bug 1508726: "disabledForTesting" has no effect in Marionette yet.
+        # As such automatically downloading updates, and installing those
+        # needs to be prevented. Sadly "app.update.auto" will not be enough
+        # anymore, because Windows has changed in how it handles updates. But
+        # at least we can workaround the problem on other platforms.
+        #
+        # DISCLAIMER: Don't remove or change this line until bug 1508726 has
+        # been fixed.
+        "app.update.auto": False,
 
         # Don't show the content blocking introduction panel
         # We use a larger number than the default 22 to have some buffer
@@ -579,8 +586,11 @@ class DesktopInstance(GeckoInstance):
     }
 
     def __init__(self, *args, **kwargs):
+        required_prefs = deepcopy(DesktopInstance.desktop_prefs)
+        required_prefs.update(kwargs.get("prefs", {}))
+
         super(DesktopInstance, self).__init__(*args, **kwargs)
-        self.required_prefs.update(DesktopInstance.desktop_prefs)
+        self.required_prefs.update(required_prefs)
 
 
 class NullOutput(object):

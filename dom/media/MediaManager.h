@@ -9,7 +9,6 @@
 #include "MediaEnginePrefs.h"
 #include "mozilla/media/DeviceChangeCallback.h"
 #include "mozilla/dom/GetUserMediaRequest.h"
-#include "mozilla/Services.h"
 #include "mozilla/Unused.h"
 #include "nsAutoPtr.h"
 #include "nsIMediaManager.h"
@@ -208,22 +207,32 @@ class MediaManager final : public nsIMediaManagerService,
                                     nsIDOMGetUserMediaErrorCallback>
       GetUserMediaErrorCallback;
 
-  nsresult GetUserMedia(nsPIDOMWindowInner* aWindow,
-                        const dom::MediaStreamConstraints& aConstraints,
-                        GetUserMediaSuccessCallback&& onSuccess,
-                        GetUserMediaErrorCallback&& onError,
-                        dom::CallerType aCallerType);
+  static void CallOnError(const GetUserMediaErrorCallback* aCallback,
+                          dom::MediaStreamError& aError);
+  static void CallOnSuccess(const GetUserMediaSuccessCallback* aCallback,
+                            DOMMediaStream& aStream);
+
+  typedef nsTArray<RefPtr<MediaDevice>> MediaDeviceSet;
+  typedef media::Refcountable<MediaDeviceSet> MediaDeviceSetRefCnt;
+
+  typedef MozPromise<RefPtr<DOMMediaStream>, RefPtr<MediaMgrError>, true>
+      StreamPromise;
+  typedef MozPromise<RefPtr<MediaDeviceSetRefCnt>, RefPtr<MediaMgrError>, true>
+      MediaDeviceSetPromise;
+  typedef MozPromise<const char*, nsresult, false> BadConstraintsPromise;
+
+  RefPtr<StreamPromise> GetUserMedia(
+      nsPIDOMWindowInner* aWindow,
+      const dom::MediaStreamConstraints& aConstraints,
+      dom::CallerType aCallerType);
 
   nsresult GetUserMediaDevices(
       nsPIDOMWindowInner* aWindow,
       const dom::MediaStreamConstraints& aConstraints,
       dom::MozGetUserMediaDevicesSuccessCallback& aOnSuccess,
       uint64_t aInnerWindowID = 0, const nsAString& aCallID = nsString());
-
-  nsresult EnumerateDevices(nsPIDOMWindowInner* aWindow,
-                            nsIGetUserMediaDevicesSuccessCallback* aOnSuccess,
-                            nsIDOMGetUserMediaErrorCallback* aOnFailure,
-                            dom::CallerType aCallerType);
+  RefPtr<MediaDeviceSetPromise> EnumerateDevices(nsPIDOMWindowInner* aWindow,
+                                                 dom::CallerType aCallerType);
 
   nsresult EnumerateDevices(nsPIDOMWindowInner* aWindow,
                             dom::Promise& aPromise);
@@ -252,9 +261,6 @@ class MediaManager final : public nsIMediaManagerService,
 
   MediaEnginePrefs mPrefs;
 
-  typedef nsTArray<RefPtr<MediaDevice>> MediaDeviceSet;
-  typedef media::Refcountable<UniquePtr<MediaDeviceSet>> MediaDeviceSetRefCnt;
-
   virtual int AddDeviceChangeCallback(DeviceChangeCallback* aCallback) override;
   virtual void OnDeviceChange() override;
 
@@ -276,11 +282,6 @@ class MediaManager final : public nsIMediaManagerService,
              addition to normal devices) */
   };
 
-  typedef MozPromise<RefPtr<MediaDeviceSetRefCnt>,
-                     RefPtr<dom::MediaStreamError>, true>
-      MediaDeviceSetPromise;
-  typedef MozPromise<const char*, nsresult, false> BadConstraintsPromise;
-
   RefPtr<MediaDeviceSetPromise> EnumerateRawDevices(
       uint64_t aWindowId, dom::MediaSourceEnum aVideoInputType,
       dom::MediaSourceEnum aAudioInputType, MediaSinkEnum aAudioOutputType,
@@ -295,7 +296,7 @@ class MediaManager final : public nsIMediaManagerService,
       DeviceEnumerationType aAudioInputEnumType);
 
   RefPtr<BadConstraintsPromise> SelectSettings(
-      dom::MediaStreamConstraints& aConstraints, bool aIsChrome,
+      const dom::MediaStreamConstraints& aConstraints, bool aIsChrome,
       const RefPtr<MediaDeviceSetRefCnt>& aSources);
 
   void GetPref(nsIPrefBranch* aBranch, const char* aPref, const char* aData,

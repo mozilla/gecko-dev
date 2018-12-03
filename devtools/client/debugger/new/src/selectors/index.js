@@ -14,11 +14,9 @@ export * from "../reducers/pending-breakpoints";
 export * from "../reducers/ui";
 export * from "../reducers/file-search";
 export * from "../reducers/ast";
-export * from "../reducers/coverage";
 export * from "../reducers/project-text-search";
 export * from "../reducers/source-tree";
 
-export { getEventListeners } from "../reducers/event-listeners";
 export {
   getQuickOpenEnabled,
   getQuickOpenQuery,
@@ -36,6 +34,8 @@ export { getCallStackFrames } from "./getCallStackFrames";
 export { getVisibleSelectedFrame } from "./visibleSelectedFrame";
 export { getBreakpointSources } from "./breakpointSources";
 export { getXHRBreakpoints, shouldPauseOnAnyXHR } from "./breakpoints";
+export { visibleColumnBreakpoints } from "./visibleColumnBreakpoints";
+export { getVisiblePausePoints } from "./visiblePausePoints";
 
 import { objectInspector } from "devtools-reps";
 

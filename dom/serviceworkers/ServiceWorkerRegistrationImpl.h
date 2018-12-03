@@ -27,56 +27,47 @@ class WeakWorkerRef;
 ////////////////////////////////////////////////////
 // Main Thread implementation
 
-class ServiceWorkerRegistrationMainThread final : public ServiceWorkerRegistration::Inner
-                                                , public ServiceWorkerRegistrationListener
-{
-public:
+class ServiceWorkerRegistrationMainThread final
+    : public ServiceWorkerRegistration::Inner,
+      public ServiceWorkerRegistrationListener {
+ public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerRegistrationMainThread, override)
 
-  explicit ServiceWorkerRegistrationMainThread(const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  explicit ServiceWorkerRegistrationMainThread(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor);
 
   // ServiceWorkerRegistration::Inner
-  void
-  SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  Update(ServiceWorkerRegistrationCallback&& aSuccessCB,
-         ServiceWorkerFailureCallback&& aFailureCB) override;
+  void Update(ServiceWorkerRegistrationCallback&& aSuccessCB,
+              ServiceWorkerFailureCallback&& aFailureCB) override;
 
-  void
-  Unregister(ServiceWorkerBoolCallback&& aSuccessCB,
-             ServiceWorkerFailureCallback&& aFailureCB) override;
+  void Unregister(ServiceWorkerBoolCallback&& aSuccessCB,
+                  ServiceWorkerFailureCallback&& aFailureCB) override;
 
   // ServiceWorkerRegistrationListener
-  void
-  UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
+  void UpdateState(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
 
-  void
-  RegistrationRemoved() override;
+  void FireUpdateFound() override;
 
-  void
-  GetScope(nsAString& aScope) const override
-  {
-    aScope = mScope;
-  }
+  void RegistrationRemoved() override;
 
-  bool
-  MatchesDescriptor(const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
+  void GetScope(nsAString& aScope) const override { aScope = mScope; }
 
-private:
+  bool MatchesDescriptor(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
+
+ private:
   ~ServiceWorkerRegistrationMainThread();
 
-  void
-  StartListeningForEvents();
+  void StartListeningForEvents();
 
-  void
-  StopListeningForEvents();
+  void StopListeningForEvents();
 
-  void
-  RegistrationRemovedInternal();
+  void RegistrationRemovedInternal();
 
   ServiceWorkerRegistration* mOuter;
   ServiceWorkerRegistrationDescriptor mDescriptor;
@@ -90,48 +81,42 @@ private:
 
 class WorkerListener;
 
-class ServiceWorkerRegistrationWorkerThread final : public ServiceWorkerRegistration::Inner
-{
+class ServiceWorkerRegistrationWorkerThread final
+    : public ServiceWorkerRegistration::Inner {
   friend class WorkerListener;
 
-public:
+ public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerRegistrationWorkerThread, override)
 
-  explicit ServiceWorkerRegistrationWorkerThread(const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  explicit ServiceWorkerRegistrationWorkerThread(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor);
 
-  void
-  RegistrationRemoved();
+  void RegistrationRemoved();
 
   // ServiceWorkerRegistration::Inner
-  void
-  SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  Update(ServiceWorkerRegistrationCallback&& aSuccessCB,
-         ServiceWorkerFailureCallback&& aFailureCB) override;
+  void Update(ServiceWorkerRegistrationCallback&& aSuccessCB,
+              ServiceWorkerFailureCallback&& aFailureCB) override;
 
-  void
-  Unregister(ServiceWorkerBoolCallback&& aSuccessCB,
-             ServiceWorkerFailureCallback&& aFailureCB) override;
+  void Unregister(ServiceWorkerBoolCallback&& aSuccessCB,
+                  ServiceWorkerFailureCallback&& aFailureCB) override;
 
-private:
+ private:
   ~ServiceWorkerRegistrationWorkerThread();
 
-  void
-  InitListener();
+  void InitListener();
 
-  void
-  ReleaseListener();
+  void ReleaseListener();
 
-  void
-  UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  void UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor);
+
+  void FireUpdateFound();
 
   // This can be called only by WorkerListener.
-  WorkerPrivate*
-  GetWorkerPrivate(const MutexAutoLock& aProofOfLock);
+  WorkerPrivate* GetWorkerPrivate(const MutexAutoLock& aProofOfLock);
 
   ServiceWorkerRegistration* mOuter;
   const ServiceWorkerRegistrationDescriptor mDescriptor;
@@ -140,7 +125,7 @@ private:
   RefPtr<WeakWorkerRef> mWorkerRef;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_serviceworkerregistrationimpl_h
+#endif  // mozilla_dom_serviceworkerregistrationimpl_h

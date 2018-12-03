@@ -8,7 +8,6 @@
  */
 
 import expressions from "./expressions";
-import eventListeners from "./event-listeners";
 import sources from "./sources";
 import tabs from "./tabs";
 import breakpoints from "./breakpoints";
@@ -18,7 +17,6 @@ import pause from "./pause";
 import ui from "./ui";
 import fileSearch from "./file-search";
 import ast from "./ast";
-import coverage from "./coverage";
 import projectTextSearch from "./project-text-search";
 import quickOpen from "./quick-open";
 import sourceTree from "./source-tree";
@@ -27,7 +25,6 @@ import { objectInspector } from "devtools-reps";
 
 export default {
   expressions,
-  eventListeners,
   sources,
   tabs,
   breakpoints,
@@ -37,7 +34,6 @@ export default {
   ui,
   fileSearch,
   ast,
-  coverage,
   projectTextSearch,
   quickOpen,
   sourceTree,

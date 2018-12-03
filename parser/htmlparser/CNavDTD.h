@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set sw=2 ts=2 et tw=78: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,25 +12,21 @@
 #include "nsCOMPtr.h"
 
 #ifdef _MSC_VER
-#pragma warning( disable : 4275 )
+#pragma warning(disable : 4275)
 #endif
 
-class CNavDTD : public nsIDTD
-{
+class CNavDTD : public nsIDTD {
 #ifdef _MSC_VER
-#pragma warning( default : 4275 )
+#pragma warning(default : 4275)
 #endif
 
-    virtual ~CNavDTD();
+  virtual ~CNavDTD();
 
-public:
-    CNavDTD();
+ public:
+  CNavDTD();
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIDTD
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIDTD
 };
 
 #endif
-
-
-

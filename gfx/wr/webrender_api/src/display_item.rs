@@ -66,6 +66,15 @@ pub struct GenericDisplayItem<T> {
 
 pub type DisplayItem = GenericDisplayItem<SpecificDisplayItem>;
 
+/// A modified version of DI where every field is borrowed instead of owned.
+/// It allows us to reduce copies during serialization.
+#[derive(Serialize)]
+pub struct SerializedDisplayItem<'a> {
+    pub item: &'a SpecificDisplayItem,
+    pub clip_and_scroll: &'a ClipAndScrollInfo,
+    pub info: &'a LayoutPrimitiveInfo,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PrimitiveInfo<T> {
     pub rect: TypedRect<f32, T>,
@@ -274,16 +283,6 @@ pub struct NormalBorder {
 }
 
 impl NormalBorder {
-    // Construct a border based upon self with color
-    pub fn with_color(&self, color: ColorF) -> Self {
-        let mut b = *self;
-        b.left.color = color;
-        b.right.color = color;
-        b.top.color = color;
-        b.bottom.color = color;
-        b
-    }
-
     fn can_disable_antialiasing(&self) -> bool {
         fn is_valid(style: BorderStyle) -> bool {
             style == BorderStyle::Solid || style == BorderStyle::None
@@ -302,7 +301,7 @@ impl NormalBorder {
     pub fn normalize(&mut self, widths: &LayoutSideOffsets) {
         debug_assert!(
             self.do_aa || self.can_disable_antialiasing(),
-            "Unexpected disabled-antialising in a border, likely won't work or will be ignored"
+            "Unexpected disabled-antialiasing in a border, likely won't work or will be ignored"
         );
 
         #[inline]
@@ -328,7 +327,7 @@ impl NormalBorder {
 }
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub enum RepeatMode {
     Stretch,
     Repeat,
@@ -463,7 +462,7 @@ pub struct Shadow {
     pub blur_radius: f32,
 }
 
-#[repr(u32)]
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Ord, PartialOrd)]
 pub enum ExtendMode {
     Clamp,

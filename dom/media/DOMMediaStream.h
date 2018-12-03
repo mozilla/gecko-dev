@@ -49,11 +49,6 @@ class ImageContainer;
 class OverlayImage;
 }  // namespace layers
 
-namespace media {
-template <typename V, typename E>
-class Pledge;
-}  // namespace media
-
 #define NS_DOMMEDIASTREAM_IID                        \
   {                                                  \
     0x8cb65468, 0x66c0, 0x444e, {                    \
@@ -152,7 +147,8 @@ class Pledge;
  *
  * DOMStream A
  *           Input        Owned          Playback
- *            t1 ---------> t1                      <- MediaStreamTrack X (removed)
+ *            t1 ---------> t1                      <- MediaStreamTrack X
+ *                                                     (removed)
  *                                                     (pointing to t1 in A)
  *            t2 ---------> t2 ------------> t2     <- MediaStreamTrack Y
  *             \                                       (pointing to t2 in A)
@@ -160,7 +156,8 @@ class Pledge;
  *               \                  /                  (pointing to t1 in B)
  * DOMStream B    \                /
  *           Input \      Owned   /      Playback
- *            t1 ---^-----> t1 ---                  <- MediaStreamTrack Z (removed)
+ *            t1 ---^-----> t1 ---                  <- MediaStreamTrack Z
+ *                                                     (removed)
  *              \    \                                 (pointing to t1 in B)
  *               \    \
  * DOMStream A'   \    \
@@ -274,11 +271,11 @@ class DOMMediaStream
 
     /**
      * Blocks aTrackId from going into mInputPort unless the port has been
-     * destroyed. Returns a pledge that gets resolved when the MediaStreamGraph
+     * destroyed. Returns a promise that gets resolved when the MediaStreamGraph
      * has applied the block in the playback stream.
      */
-    already_AddRefed<media::Pledge<bool, nsresult>> BlockSourceTrackId(
-        TrackID aTrackId, BlockingMode aBlockingMode);
+    RefPtr<GenericPromise> BlockSourceTrackId(TrackID aTrackId,
+                                              BlockingMode aBlockingMode);
 
    private:
     RefPtr<MediaInputPort> mInputPort;

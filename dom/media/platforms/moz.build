@@ -14,7 +14,9 @@ EXPORTS += [
     'AllocationPolicy.h',
     'MediaTelemetryConstants.h',
     'PDMFactory.h',
+    'PEMFactory.h',
     'PlatformDecoderModule.h',
+    'PlatformEncoderModule.h',
     'ReorderQueue.h',
     'SimpleMap.h',
     'wrappers/MediaChangeMonitor.h',
@@ -33,6 +35,7 @@ UNIFIED_SOURCES += [
     'agnostic/WAVDecoder.cpp',
     'AllocationPolicy.cpp',
     'PDMFactory.cpp',
+    'PEMFactory.cpp',
     'wrappers/MediaChangeMonitor.cpp',
     'wrappers/MediaDataDecoderProxy.cpp'
 ]
@@ -69,9 +72,11 @@ if CONFIG['MOZ_FFMPEG']:
 if CONFIG['MOZ_AV1']:
     EXPORTS += [
         'agnostic/AOMDecoder.h',
+        'agnostic/DAV1DDecoder.h',
     ]
     UNIFIED_SOURCES += [
         'agnostic/AOMDecoder.cpp',
+        'agnostic/DAV1DDecoder.cpp',
     ]
 
 if CONFIG['MOZ_OMX']:
@@ -85,16 +90,22 @@ if CONFIG['MOZ_OMX']:
 if CONFIG['MOZ_APPLEMEDIA']:
   EXPORTS += [
       'apple/AppleDecoderModule.h',
+      'apple/AppleEncoderModule.h',
   ]
   UNIFIED_SOURCES += [
       'apple/AppleATDecoder.cpp',
-      'apple/AppleCMLinker.cpp',
       'apple/AppleDecoderModule.cpp',
+      'apple/AppleEncoderModule.cpp',
       'apple/AppleVTDecoder.cpp',
-      'apple/AppleVTLinker.cpp',
+      'apple/AppleVTEncoder.cpp',
+  ]
+  LOCAL_INCLUDES += [
+      '/media/libyuv/libyuv/include',
   ]
   OS_LIBS += [
       '-framework AudioToolbox',
+      '-framework CoreMedia',
+      '-framework VideoToolbox',
   ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

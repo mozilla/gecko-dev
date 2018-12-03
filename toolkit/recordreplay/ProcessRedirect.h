@@ -77,25 +77,24 @@ struct CallArguments;
 
 // All argument and return value data that is stored in registers and whose
 // values are preserved when calling a redirected function.
-struct CallRegisterArguments
-{
-protected:
-  size_t arg0;      // 0
-  size_t arg1;      // 8
-  size_t arg2;      // 16
-  size_t arg3;      // 24
-  size_t arg4;      // 32
-  size_t arg5;      // 40
-  double floatarg0; // 48
-  double floatarg1; // 56
-  double floatarg2; // 64
-  size_t rval0;     // 72
-  size_t rval1;     // 80
-  double floatrval0; // 88
-  double floatrval1; // 96
-                     // Size: 104
+struct CallRegisterArguments {
+ protected:
+  size_t arg0;        // 0
+  size_t arg1;        // 8
+  size_t arg2;        // 16
+  size_t arg3;        // 24
+  size_t arg4;        // 32
+  size_t arg5;        // 40
+  double floatarg0;   // 48
+  double floatarg1;   // 56
+  double floatarg2;   // 64
+  size_t rval0;       // 72
+  size_t rval1;       // 80
+  double floatrval0;  // 88
+  double floatrval1;  // 96
+                      // Size: 104
 
-public:
+ public:
   void CopyFrom(const CallRegisterArguments* aArguments);
   void CopyTo(CallRegisterArguments* aArguments) const;
   void CopyRvalFrom(const CallRegisterArguments* aArguments);
@@ -112,27 +111,41 @@ public:
 // to the function originally. For functions with complex or floating point
 // arguments and return values, the right index to use might be different than
 // expected, per the requirements of the System V x64 ABI.
-struct CallArguments : public CallRegisterArguments
-{
-protected:
-  size_t stack[64]; // 104
-                    // Size: 616
+struct CallArguments : public CallRegisterArguments {
+  // The maximum number of stack arguments that can be captured.
+  static const size_t NumStackArguments = 64;
 
-public:
-  template <size_t Index, typename T>
-  T& Arg() {
+ protected:
+  size_t stack[NumStackArguments];  // 104
+                                    // Size: 616
+
+ public:
+  template <typename T>
+  T& Arg(size_t aIndex) {
     static_assert(sizeof(T) == sizeof(size_t), "Size must match");
     static_assert(IsFloatingPoint<T>::value == false, "FloatArg NYI");
-    static_assert(Index < 70, "Bad index");
-    switch (Index) {
-    case 0: return (T&)arg0;
-    case 1: return (T&)arg1;
-    case 2: return (T&)arg2;
-    case 3: return (T&)arg3;
-    case 4: return (T&)arg4;
-    case 5: return (T&)arg5;
-    default: return (T&)stack[Index - 6];
+    MOZ_RELEASE_ASSERT(aIndex < 70);
+    switch (aIndex) {
+      case 0:
+        return (T&)arg0;
+      case 1:
+        return (T&)arg1;
+      case 2:
+        return (T&)arg2;
+      case 3:
+        return (T&)arg3;
+      case 4:
+        return (T&)arg4;
+      case 5:
+        return (T&)arg5;
+      default:
+        return (T&)stack[aIndex - 6];
     }
+  }
+
+  template <size_t Index, typename T>
+  T& Arg() {
+    return Arg<T>(Index);
   }
 
   template <size_t Offset>
@@ -147,8 +160,10 @@ public:
     static_assert(IsFloatingPoint<T>::value == false, "Use FloatRval instead");
     static_assert(Index == 0 || Index == 1, "Bad index");
     switch (Index) {
-    case 0: return (T&)rval0;
-    case 1: return (T&)rval1;
+      case 0:
+        return (T&)rval0;
+      case 1:
+        return (T&)rval1;
     }
   }
 
@@ -156,27 +171,26 @@ public:
   double& FloatRval() {
     static_assert(Index == 0 || Index == 1, "Bad index");
     switch (Index) {
-    case 0: return floatrval0;
-    case 1: return floatrval1;
+      case 0:
+        return floatrval0;
+      case 1:
+        return floatrval1;
     }
   }
 };
 
-inline void
-CallRegisterArguments::CopyFrom(const CallRegisterArguments* aArguments)
-{
+inline void CallRegisterArguments::CopyFrom(
+    const CallRegisterArguments* aArguments) {
   memcpy(this, aArguments, sizeof(CallRegisterArguments));
 }
 
-inline void
-CallRegisterArguments::CopyTo(CallRegisterArguments* aArguments) const
-{
+inline void CallRegisterArguments::CopyTo(
+    CallRegisterArguments* aArguments) const {
   memcpy(aArguments, this, sizeof(CallRegisterArguments));
 }
 
-inline void
-CallRegisterArguments::CopyRvalFrom(const CallRegisterArguments* aArguments)
-{
+inline void CallRegisterArguments::CopyRvalFrom(
+    const CallRegisterArguments* aArguments) {
   rval0 = aArguments->rval0;
   rval1 = aArguments->rval1;
   floatrval0 = aArguments->floatrval0;
@@ -191,18 +205,26 @@ typedef ssize_t ErrorType;
 // event stream for the current thread, aArguments specifies the arguments to
 // the called function, and aError specifies any system error which the call
 // produces.
-typedef void (*SaveOutputFn)(Stream& aEvents, CallArguments* aArguments, ErrorType* aError);
+typedef void (*SaveOutputFn)(Stream& aEvents, CallArguments* aArguments,
+                             ErrorType* aError);
 
 // Possible results for the redirection preamble hook.
 enum class PreambleResult {
   // Do not perform any further processing.
   Veto,
 
-  // Perform a function redirection as normal if events are not passed through.
+  // If events are not passed through, add an event for the function call and
+  // perform a function redirection as normal.
   Redirect,
 
-  // Do not add an event for the call, as if events were passed through.
-  PassThrough
+  // Don't add an event for the call or perform a normal function redirection.
+  // If events are not passed through, they may still be added for transitive
+  // callees.
+  IgnoreRedirect,
+
+  // Do not add an event for the call or anything it transitively calls, as if
+  // events were passed through.
+  PassThrough,
 };
 
 // Signature for a function that is called on entry to a redirection and can
@@ -215,8 +237,7 @@ struct MiddlemanCallContext;
 typedef void (*MiddlemanCallFn)(MiddlemanCallContext& aCx);
 
 // Information about a system library API function which is being redirected.
-struct Redirection
-{
+struct Redirection {
   // Name of the function being redirected.
   const char* mName;
 
@@ -248,10 +269,11 @@ struct Redirection
   PreambleFn mMiddlemanPreamble;
 };
 
-// All platform specific redirections, indexed by the call event.
-extern Redirection gRedirections[];
+// Platform specific methods describing the set of redirections.
+size_t NumRedirections();
+Redirection& GetRedirection(size_t aCallId);
 
-// Do early initialization of redirections. This is done on both
+// Platform specific early initialization of redirections. This is done on both
 // recording/replaying and middleman processes, and allows OriginalCall() to
 // work in either case.
 void EarlyInitializeRedirections();
@@ -259,6 +281,10 @@ void EarlyInitializeRedirections();
 // Set up all platform specific redirections, or fail and set
 // gInitializationFailureMessage.
 bool InitializeRedirections();
+
+// Platform specific function called after setting up redirections in recording
+// or replaying processes.
+void LateInitializeRedirections();
 
 // Functions for saving or restoring system error codes.
 static inline ErrorType SaveError() { return errno; }
@@ -270,33 +296,19 @@ static inline void RestoreError(ErrorType aError) { errno = aError; }
 // Define CallFunction(...) for all supported ABIs.
 DefineAllCallFunctions(DEFAULTABI)
 
-// Get the address of the original function for a call event ID.
-static inline void*
-OriginalFunction(size_t aCallId)
-{
-  return gRedirections[aCallId].mOriginalFunction;
+    // Get the address of the original function for a call event ID.
+    static inline void* OriginalFunction(size_t aCallId) {
+  return GetRedirection(aCallId).mOriginalFunction;
 }
 
-#define TokenPaste(aFirst, aSecond) aFirst ## aSecond
+// Get the address of the original function by name.
+void* OriginalFunction(const char* aName);
 
-// Call the original function for a call event ID with a particular ABI and any
-// number of arguments.
-#define OriginalCallABI(aName, aReturnType, aABI, ...)          \
-  TokenPaste(CallFunction, aABI) <aReturnType>                  \
-    (OriginalFunction(CallEvent_ ##aName), ##__VA_ARGS__)
-
-// Call the original function for a call event ID with the default ABI.
-#define OriginalCall(aName, aReturnType, ...)                   \
-  OriginalCallABI(aName, aReturnType, DEFAULTABI, ##__VA_ARGS__)
-
-static inline ThreadEvent
-CallIdToThreadEvent(size_t aCallId)
-{
+static inline ThreadEvent CallIdToThreadEvent(size_t aCallId) {
   return (ThreadEvent)((uint32_t)ThreadEvent::CallStart + aCallId);
 }
 
-void
-RecordReplayInvokeCall(size_t aCallId, CallArguments* aArguments);
+void RecordReplayInvokeCall(void* aFunction, CallArguments* aArguments);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Callback Redirections
@@ -315,30 +327,26 @@ RecordReplayInvokeCall(size_t aCallId, CallArguments* aArguments);
 // The RecordReplayCallback is used early in the callback wrapper to save and
 // restore both the Gecko callback and its opaque data pointer.
 
-struct CallbackWrapperData
-{
+struct CallbackWrapperData {
   void* mFunction;
   void* mData;
 
   template <typename FunctionType>
   CallbackWrapperData(FunctionType aFunction, void* aData)
-    : mFunction(BitwiseCast<void*>(aFunction)), mData(aData)
-  {}
+      : mFunction(BitwiseCast<void*>(aFunction)), mData(aData) {}
 };
 
 // This class should not be used directly, but rather through the macro below.
 template <typename FunctionType>
-struct AutoRecordReplayCallback
-{
+struct AutoRecordReplayCallback {
   FunctionType mFunction;
 
   AutoRecordReplayCallback(void** aDataArgument, size_t aCallbackId)
-    : mFunction(nullptr)
-  {
+      : mFunction(nullptr) {
     MOZ_ASSERT(IsRecordingOrReplaying());
     if (IsRecording()) {
-      CallbackWrapperData* wrapperData = (CallbackWrapperData*) *aDataArgument;
-      mFunction = (FunctionType) wrapperData->mFunction;
+      CallbackWrapperData* wrapperData = (CallbackWrapperData*)*aDataArgument;
+      mFunction = (FunctionType)wrapperData->mFunction;
       *aDataArgument = wrapperData->mData;
       BeginCallback(aCallbackId);
     }
@@ -354,38 +362,37 @@ struct AutoRecordReplayCallback
 };
 
 // Macro for using AutoRecordReplayCallback.
-#define RecordReplayCallback(aFunctionType, aDataArgument)              \
-  AutoRecordReplayCallback<aFunctionType> rrc(aDataArgument, CallbackEvent_ ##aFunctionType)
+#define RecordReplayCallback(aFunctionType, aDataArgument)   \
+  AutoRecordReplayCallback<aFunctionType> rrc(aDataArgument, \
+                                              CallbackEvent_##aFunctionType)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Redirection Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-extern Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gMemoryLeakBytes;
+extern Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve>
+    gMemoryLeakBytes;
 
 // For allocating memory in redirections that will never be reclaimed. This is
 // done for simplicity. If the amount of leaked memory from redirected calls
 // grows too large then steps can be taken to more closely emulate the library
 // behavior.
 template <typename T>
-static inline T*
-NewLeakyArray(size_t aSize)
-{
+static inline T* NewLeakyArray(size_t aSize) {
   gMemoryLeakBytes += aSize * sizeof(T);
   return new T[aSize];
 }
 
 // Record/replay a string rval.
-static inline void
-RR_CStringRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_CStringRval(Stream& aEvents, CallArguments* aArguments,
+                                  ErrorType* aError) {
   auto& rval = aArguments->Rval<char*>();
   size_t len = (IsRecording() && rval) ? strlen(rval) + 1 : 0;
   aEvents.RecordOrReplayValue(&len);
   if (IsReplaying()) {
     // Note: Some users (e.g. realpath) require malloc to be used to allocate
     // the returned buffer.
-    rval = len ? (char*) malloc(len) : nullptr;
+    rval = len ? (char*)malloc(len) : nullptr;
   }
   if (len) {
     aEvents.RecordOrReplayBytes(rval, len);
@@ -394,9 +401,8 @@ RR_CStringRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
 
 // Ensure that the return value matches the specified argument.
 template <size_t Argument>
-static inline void
-RR_RvalIsArgument(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_RvalIsArgument(Stream& aEvents, CallArguments* aArguments,
+                                     ErrorType* aError) {
   auto& rval = aArguments->Rval<size_t>();
   auto& arg = aArguments->Arg<Argument, size_t>();
   if (IsRecording()) {
@@ -407,20 +413,14 @@ RR_RvalIsArgument(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
 }
 
 // No-op record/replay output method.
-static inline void
-RR_NoOp(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
-}
+static inline void RR_NoOp(Stream& aEvents, CallArguments* aArguments,
+                           ErrorType* aError) {}
 
 // Record/replay multiple SaveOutput functions sequentially.
-template <SaveOutputFn Fn0,
-          SaveOutputFn Fn1,
-          SaveOutputFn Fn2 = RR_NoOp,
-          SaveOutputFn Fn3 = RR_NoOp,
-          SaveOutputFn Fn4 = RR_NoOp>
-static inline void
-RR_Compose(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+template <SaveOutputFn Fn0, SaveOutputFn Fn1, SaveOutputFn Fn2 = RR_NoOp,
+          SaveOutputFn Fn3 = RR_NoOp, SaveOutputFn Fn4 = RR_NoOp>
+static inline void RR_Compose(Stream& aEvents, CallArguments* aArguments,
+                              ErrorType* aError) {
   Fn0(aEvents, aArguments, aError);
   Fn1(aEvents, aArguments, aError);
   Fn2(aEvents, aArguments, aError);
@@ -432,9 +432,9 @@ RR_Compose(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
 // errno value on failure. SuccessFn does any further processing in non-error
 // cases.
 template <SaveOutputFn SuccessFn = RR_NoOp>
-static inline void
-RR_SaveRvalHadErrorNegative(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_SaveRvalHadErrorNegative(Stream& aEvents,
+                                               CallArguments* aArguments,
+                                               ErrorType* aError) {
   auto& rval = aArguments->Rval<ssize_t>();
   aEvents.RecordOrReplayValue(&rval);
   if (rval < 0) {
@@ -447,9 +447,9 @@ RR_SaveRvalHadErrorNegative(Stream& aEvents, CallArguments* aArguments, ErrorTyp
 // Record/replay a success code rval (where zero is a failure) and errno value
 // on failure. SuccessFn does any further processing in non-error cases.
 template <SaveOutputFn SuccessFn = RR_NoOp>
-static inline void
-RR_SaveRvalHadErrorZero(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_SaveRvalHadErrorZero(Stream& aEvents,
+                                           CallArguments* aArguments,
+                                           ErrorType* aError) {
   auto& rval = aArguments->Rval<ssize_t>();
   aEvents.RecordOrReplayValue(&rval);
   if (rval == 0) {
@@ -462,9 +462,8 @@ RR_SaveRvalHadErrorZero(Stream& aEvents, CallArguments* aArguments, ErrorType* a
 // Record/replay the contents of a buffer at argument BufferArg with element
 // count at CountArg.
 template <size_t BufferArg, size_t CountArg, typename ElemType = char>
-static inline void
-RR_WriteBuffer(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_WriteBuffer(Stream& aEvents, CallArguments* aArguments,
+                                  ErrorType* aError) {
   auto& buf = aArguments->Arg<BufferArg, ElemType*>();
   auto& count = aArguments->Arg<CountArg, size_t>();
   aEvents.CheckInput(count);
@@ -474,9 +473,9 @@ RR_WriteBuffer(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
 // Record/replay the contents of a buffer at argument BufferArg with element
 // count at CountArg, and which may be null.
 template <size_t BufferArg, size_t CountArg, typename ElemType = char>
-static inline void
-RR_WriteOptionalBuffer(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_WriteOptionalBuffer(Stream& aEvents,
+                                          CallArguments* aArguments,
+                                          ErrorType* aError) {
   auto& buf = aArguments->Arg<BufferArg, ElemType*>();
   auto& count = aArguments->Arg<CountArg, size_t>();
   aEvents.CheckInput(!!buf);
@@ -489,9 +488,9 @@ RR_WriteOptionalBuffer(Stream& aEvents, CallArguments* aArguments, ErrorType* aE
 // Record/replay the contents of a buffer at argument BufferArg with fixed
 // size ByteCount.
 template <size_t BufferArg, size_t ByteCount>
-static inline void
-RR_WriteBufferFixedSize(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_WriteBufferFixedSize(Stream& aEvents,
+                                           CallArguments* aArguments,
+                                           ErrorType* aError) {
   auto& buf = aArguments->Arg<BufferArg, void*>();
   aEvents.RecordOrReplayBytes(buf, ByteCount);
 }
@@ -499,9 +498,9 @@ RR_WriteBufferFixedSize(Stream& aEvents, CallArguments* aArguments, ErrorType* a
 // Record/replay the contents of a buffer at argument BufferArg with fixed
 // size ByteCount, and which may be null.
 template <size_t BufferArg, size_t ByteCount>
-static inline void
-RR_WriteOptionalBufferFixedSize(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_WriteOptionalBufferFixedSize(Stream& aEvents,
+                                                   CallArguments* aArguments,
+                                                   ErrorType* aError) {
   auto& buf = aArguments->Arg<BufferArg, void*>();
   aEvents.CheckInput(!!buf);
   if (buf) {
@@ -514,9 +513,9 @@ RR_WriteOptionalBufferFixedSize(Stream& aEvents, CallArguments* aArguments, Erro
 // data written to the buffer by the call. The return value must already have
 // been recorded/replayed.
 template <size_t BufferArg, size_t CountArg, size_t Offset = 0>
-static inline void
-RR_WriteBufferViaRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_WriteBufferViaRval(Stream& aEvents,
+                                         CallArguments* aArguments,
+                                         ErrorType* aError) {
   auto& buf = aArguments->Arg<BufferArg, void*>();
   auto& count = aArguments->Arg<CountArg, size_t>();
   aEvents.CheckInput(count);
@@ -527,31 +526,30 @@ RR_WriteBufferViaRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aEr
 }
 
 // Record/replay a scalar return value.
-static inline void
-RR_ScalarRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_ScalarRval(Stream& aEvents, CallArguments* aArguments,
+                                 ErrorType* aError) {
   aEvents.RecordOrReplayValue(&aArguments->Rval<size_t>());
 }
 
 // Record/replay a complex scalar return value that fits in two registers.
-static inline void
-RR_ComplexScalarRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_ComplexScalarRval(Stream& aEvents,
+                                        CallArguments* aArguments,
+                                        ErrorType* aError) {
   aEvents.RecordOrReplayValue(&aArguments->Rval<size_t>());
   aEvents.RecordOrReplayValue(&aArguments->Rval<size_t, 1>());
 }
 
 // Record/replay a floating point return value.
-static inline void
-RR_FloatRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_FloatRval(Stream& aEvents, CallArguments* aArguments,
+                                ErrorType* aError) {
   aEvents.RecordOrReplayValue(&aArguments->FloatRval());
 }
 
-// Record/replay a complex floating point return value that fits in two registers.
-static inline void
-RR_ComplexFloatRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+// Record/replay a complex floating point return value that fits in two
+// registers.
+static inline void RR_ComplexFloatRval(Stream& aEvents,
+                                       CallArguments* aArguments,
+                                       ErrorType* aError) {
   aEvents.RecordOrReplayValue(&aArguments->FloatRval());
   aEvents.RecordOrReplayValue(&aArguments->FloatRval<1>());
 }
@@ -559,24 +557,20 @@ RR_ComplexFloatRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aErro
 // Record/replay a return value that does not fit in the return registers,
 // and whose storage is pointed to by the first argument register.
 template <size_t ByteCount>
-static inline void
-RR_OversizeRval(Stream& aEvents, CallArguments* aArguments, ErrorType* aError)
-{
+static inline void RR_OversizeRval(Stream& aEvents, CallArguments* aArguments,
+                                   ErrorType* aError) {
   RR_WriteBufferFixedSize<0, ByteCount>(aEvents, aArguments, aError);
 }
 
 template <size_t ReturnValue>
-static inline PreambleResult
-Preamble_Veto(CallArguments* aArguments)
-{
+static inline PreambleResult Preamble_Veto(CallArguments* aArguments) {
   aArguments->Rval<size_t>() = ReturnValue;
   return PreambleResult::Veto;
 }
 
 template <size_t ReturnValue>
-static inline PreambleResult
-Preamble_VetoIfNotPassedThrough(CallArguments* aArguments)
-{
+static inline PreambleResult Preamble_VetoIfNotPassedThrough(
+    CallArguments* aArguments) {
   if (AreThreadEventsPassedThrough()) {
     return PreambleResult::PassThrough;
   }
@@ -584,15 +578,11 @@ Preamble_VetoIfNotPassedThrough(CallArguments* aArguments)
   return PreambleResult::Veto;
 }
 
-static inline PreambleResult
-Preamble_PassThrough(CallArguments* aArguments)
-{
+static inline PreambleResult Preamble_PassThrough(CallArguments* aArguments) {
   return PreambleResult::PassThrough;
 }
 
-static inline PreambleResult
-Preamble_WaitForever(CallArguments* aArguments)
-{
+static inline PreambleResult Preamble_WaitForever(CallArguments* aArguments) {
   Thread::WaitForever();
   Unreachable();
   return PreambleResult::PassThrough;
@@ -615,11 +605,10 @@ Preamble_WaitForever(CallArguments* aArguments)
 // }
 //
 // Supported positions for the bound argument are 1, 2, and 3.
-void*
-BindFunctionArgument(void* aFunction, void* aArgument, size_t aArgumentPosition,
-                     Assembler& aAssembler);
+void* BindFunctionArgument(void* aFunction, void* aArgument,
+                           size_t aArgumentPosition, Assembler& aAssembler);
 
-} // recordreplay
-} // mozilla
+}  // namespace recordreplay
+}  // namespace mozilla
 
-#endif // mozilla_recordreplay_ProcessRedirect_h
+#endif  // mozilla_recordreplay_ProcessRedirect_h

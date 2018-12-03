@@ -1,4 +1,4 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -23,8 +23,7 @@ namespace devtools {
 // succeeds or fails, then you should call the `flush` method yourself. Errors
 // will be logged, however.
 class MOZ_STACK_CLASS ZeroCopyNSIOutputStream
-  : public ::google::protobuf::io::ZeroCopyOutputStream
-{
+    : public ::google::protobuf::io::ZeroCopyOutputStream {
   static const int BUFFER_SIZE = 8192;
 
   // The nsIOutputStream we are streaming to.
@@ -47,7 +46,7 @@ class MOZ_STACK_CLASS ZeroCopyNSIOutputStream
   // Write the internal buffer to the output stream and flush it.
   nsresult writeBuffer();
 
-public:
+ public:
   explicit ZeroCopyNSIOutputStream(nsCOMPtr<nsIOutputStream>& out);
 
   nsresult flush() { return writeBuffer(); }
@@ -64,7 +63,7 @@ public:
   virtual ::google::protobuf::int64 ByteCount() const override;
 };
 
-} // namespace devtools
-} // namespace mozilla
+}  // namespace devtools
+}  // namespace mozilla
 
-#endif // mozilla_devtools_ZeroCopyNSIOutputStream__
+#endif  // mozilla_devtools_ZeroCopyNSIOutputStream__

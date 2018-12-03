@@ -8,11 +8,82 @@ use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedRect, TypedSize2D, Vector
 use euclid::{TypedTransform2D, TypedTransform3D, TypedVector2D, TypedScale};
 use num_traits::Zero;
 use plane_split::{Clipper, Polygon};
-use std::{i32, f32, fmt};
+use std::{i32, f32, fmt, ptr};
 use std::borrow::Cow;
+
 
 // Matches the definition of SK_ScalarNearlyZero in Skia.
 const NEARLY_ZERO: f32 = 1.0 / 4096.0;
+
+/// A typesafe helper that separates new value construction from
+/// vector growing, allowing LLVM to ideally construct the element in place.
+pub struct Allocation<'a, T: 'a> {
+    vec: &'a mut Vec<T>,
+    index: usize,
+}
+
+impl<'a, T> Allocation<'a, T> {
+    // writing is safe because alloc() ensured enough capacity
+    // and `Allocation` holds a mutable borrow to prevent anyone else
+    // from breaking this invariant.
+    #[inline(always)]
+    pub fn init(self, value: T) -> usize {
+        unsafe {
+            ptr::write(self.vec.as_mut_ptr().add(self.index), value);
+            self.vec.set_len(self.index + 1);
+        }
+        self.index
+    }
+}
+
+/// An entry into a vector, similar to `std::collections::hash_map::Entry`.
+pub enum VecEntry<'a, T: 'a> {
+    Vacant(Allocation<'a, T>),
+    Occupied(&'a mut T),
+}
+
+impl<'a, T> VecEntry<'a, T> {
+    #[inline(always)]
+    pub fn set(self, value: T) {
+        match self {
+            VecEntry::Vacant(alloc) => { alloc.init(value); }
+            VecEntry::Occupied(slot) => { *slot = value; }
+        }
+    }
+}
+
+pub trait VecHelper<T> {
+    /// Growns the vector by a single entry, returning the allocation.
+    fn alloc(&mut self) -> Allocation<T>;
+    /// Either returns an existing elemenet, or grows the vector by one.
+    /// Doesn't expect indices to be higher than the current length.
+    fn entry(&mut self, index: usize) -> VecEntry<T>;
+}
+
+impl<T> VecHelper<T> for Vec<T> {
+    fn alloc(&mut self) -> Allocation<T> {
+        let index = self.len();
+        if self.capacity() == index {
+            self.reserve(1);
+        }
+        Allocation {
+            vec: self,
+            index,
+        }
+    }
+
+    fn entry(&mut self, index: usize) -> VecEntry<T> {
+        if index < self.len() {
+            VecEntry::Occupied(unsafe {
+                self.get_unchecked_mut(index)
+            })
+        } else {
+            assert_eq!(index, self.len());
+            VecEntry::Vacant(self.alloc())
+        }
+    }
+}
+
 
 // Represents an optimized transform where there is only
 // a scale and translation (which are guaranteed to maintain
@@ -538,6 +609,18 @@ impl<Src, Dst> FastTransform<Src, Dst> {
         match *self {
             FastTransform::Offset(..) => true,
             FastTransform::Transform { ref inverse, .. } => inverse.is_some(),
+        }
+    }
+
+    /// Return true if this is an identity transform
+    pub fn is_identity(&self)-> bool {
+        match *self {
+            FastTransform::Offset(offset) => {
+                offset == TypedVector2D::zero()
+            }
+            FastTransform::Transform { ref transform, .. } => {
+                *transform == TypedTransform3D::identity()
+            }
         }
     }
 

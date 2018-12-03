@@ -7,6 +7,7 @@
 #ifndef __NS_CSSCLIPPATHINSTANCE_H__
 #define __NS_CSSCLIPPATHINSTANCE_H__
 
+#include "gfxPoint.h"
 #include "nsStyleStruct.h"
 #include "nsRect.h"
 #include "mozilla/gfx/2D.h"
@@ -16,30 +17,24 @@ class gfxContext;
 
 namespace mozilla {
 
-class nsCSSClipPathInstance
-{
+class nsCSSClipPathInstance {
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Path Path;
   typedef mozilla::gfx::Rect Rect;
 
-public:
-  static void ApplyBasicShapeOrPathClip(gfxContext& aContext,
-                                        nsIFrame* aFrame);
+ public:
+  static void ApplyBasicShapeOrPathClip(gfxContext& aContext, nsIFrame* aFrame);
   // aPoint is in CSS pixels.
   static bool HitTestBasicShapeOrPathClip(nsIFrame* aFrame,
                                           const gfxPoint& aPoint);
 
   static Rect GetBoundingRectForBasicShapeOrPathClip(
-    nsIFrame* aFrame,
-    const StyleShapeSource& aClipPathStyle);
+      nsIFrame* aFrame, const StyleShapeSource& aClipPathStyle);
 
-private:
+ private:
   explicit nsCSSClipPathInstance(nsIFrame* aFrame,
                                  const StyleShapeSource aClipPathStyle)
-    : mTargetFrame(aFrame)
-    , mClipPathStyle(aClipPathStyle)
-  {
-  }
+      : mTargetFrame(aFrame), mClipPathStyle(aClipPathStyle) {}
 
   already_AddRefed<Path> CreateClipPath(DrawTarget* aDrawTarget);
 
@@ -64,6 +59,6 @@ private:
   StyleShapeSource mClipPathStyle;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

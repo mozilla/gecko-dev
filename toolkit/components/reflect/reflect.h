@@ -1,4 +1,4 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,19 +12,18 @@
 namespace mozilla {
 namespace reflect {
 
-class Module final : public nsIXPCScriptable
-{
-public:
+class Module final : public nsIXPCScriptable {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCSCRIPTABLE
 
   Module();
 
-private:
+ private:
   ~Module();
 };
 
-} // namespace reflect
-} // namespace mozilla
+}  // namespace reflect
+}  // namespace mozilla
 
 #endif

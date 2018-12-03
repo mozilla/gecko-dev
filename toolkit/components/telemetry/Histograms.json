@@ -127,6 +127,16 @@
     "labels": ["ValidHash", "OriginalHashEmpty", "OriginalHashTooShort", "OriginalHashTooLong", "MissingDigest", "MissingSha256", "InvalidSha256"],
     "description": "Whether the hash included in application reputation lookups is valid or broken in some way."
   },
+  "APPLICATION_REPUTATION_REASON": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["dlee@mozilla.com", "safebrowsing-telemetry@mozilla.org"],
+    "bug_numbers": [1500360],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "categorical",
+    "labels": ["NotSet", "LocalWhitelist", "LocalBlocklist", "NonBinaryFile", "VerdictSafe", "VerdictUnknown", "VerdictDangerous", "VerdictDangerousHost", "VerdictUnwanted", "VerdictUncommon", "VerdictUnrecognized", "DangerousPrefOff", "DangerousHostPrefOff", "UnwantedPrefOff", "UncommonPrefOff", "NetworkError", "RemoteLookupDisabled", "InternalError", "DPDisabled"],
+    "description": "The reason application reputation service blocks or allows the download."
+  },
   "APPLICATION_REPUTATION_SHOULD_BLOCK": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["francois@mozilla.com", "safebrowsing-telemetry@mozilla.org"],
@@ -267,6 +277,17 @@
     "n_buckets": 50,
     "description": "Opaque measure of the severity of a checkerboard event"
   },
+  "CHILD_PROCESS_LAUNCH_MS" : {
+    "record_in_processes": ["main"],
+    "alert_emails": ["jld@mozilla.com", "jimm@mozilla.com", "mconley@mozilla.com"],
+    "expires_in_version": "70",
+    "bug_numbers": [1474991],
+    "kind": "exponential",
+    "high": 64000,
+    "n_buckets": 100,
+    "releaseChannelCollection": "opt-out",
+    "description": "Time spent in the generic child process launching code, which is run off-main-thread and used by all child process types"
+  },
   "COMPOSITE_TIME" : {
     "record_in_processes": ["main", "content", "gpu"],
     "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "rhunt@mozilla.com"],
@@ -285,16 +306,47 @@
     "high": 1000,
     "n_buckets": 50
   },
-  "CONTENT_PROCESS_LAUNCH_TIME_MS" : {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["fgomes@mozilla.com", "mconley@mozilla.com"],
-    "expires_in_version": "67",
-    "bug_numbers": [1304790],
+  "CONTENT_PROCESS_LAUNCH_MAINTHREAD_MS" : {
+    "record_in_processes": ["main"],
+    "alert_emails": ["jld@mozilla.com", "jimm@mozilla.com", "mconley@mozilla.com"],
+    "expires_in_version": "70",
+    "bug_numbers": [1474991],
     "kind": "exponential",
     "high": 64000,
     "n_buckets": 100,
     "releaseChannelCollection": "opt-out",
-    "description": "Content process launch time until the GetXPCOMProcessAttributes message is received, in milliseconds"
+    "description": "Time spent on the main thread during asynchronous content process launch."
+  },
+  "CONTENT_PROCESS_LAUNCH_TOTAL_MS" : {
+    "record_in_processes": ["main"],
+    "alert_emails": ["jld@mozilla.com", "jimm@mozilla.com", "mconley@mozilla.com"],
+    "expires_in_version": "70",
+    "bug_numbers": [1474991],
+    "kind": "exponential",
+    "high": 64000,
+    "n_buckets": 100,
+    "releaseChannelCollection": "opt-out",
+    "description": "Total time elapsed during asynchronous content process launch, until the process is usable for loading content."
+  },
+  "CONTENT_PROCESS_SYNC_LAUNCH_MS" : {
+    "record_in_processes": ["main"],
+    "alert_emails": ["jld@mozilla.com", "jimm@mozilla.com", "mconley@mozilla.com"],
+    "expires_in_version": "67",
+    "bug_numbers": [1474991],
+    "kind": "exponential",
+    "high": 64000,
+    "n_buckets": 100,
+    "releaseChannelCollection": "opt-out",
+    "description": "Time elapsed during synchronous content process launch until the process is usable for loading content."
+  },
+  "CONTENT_PROCESS_LAUNCH_IS_SYNC" : {
+    "record_in_processes": ["main"],
+    "alert_emails": ["jld@mozilla.com", "jimm@mozilla.com", "mconley@mozilla.com"],
+    "expires_in_version": "67",
+    "bug_numbers": [1474991],
+    "kind": "boolean",
+    "releaseChannelCollection": "opt-out",
+    "description": "Whether a content process was launched synchronously (unnecessarily delaying UI response)."
   },
   "CONTENT_RESPONSE_DURATION" : {
     "record_in_processes": ["main", "content", "gpu"],
@@ -484,15 +536,6 @@
     "n_values": 10,
     "bug_numbers": [1135408],
     "description": "GPU Device Reset Reason (ok, hung, removed, reset, internal error, invalid call, out of memory)"
-  },
-  "DOCUMENT_ANALYTICS_TRACKER_FASTBLOCKED": {
-    "record_in_processes": ["content"],
-    "expires_in_version": "67",
-    "alert_emails": ["seceng-telemetry@mozilla.com", "fxprivacyandsecurity@mozilla.com"],
-    "kind": "categorical",
-    "labels": ["other", "googleanalytics", "scorecardresearch", "hotjar", "newrelic", "nrdata", "crwdcntrl", "eyeota", "yahooanalytics", "statcounter", "v12group", "all"],
-    "bug_numbers": [1489252],
-    "description": "Number of top-level documents which have resources blocked by fastblock, categorized by analytics provider."
   },
   "FETCH_IS_MAINTHREAD": {
     "record_in_processes": ["main", "content"],
@@ -5677,7 +5720,7 @@
     "kind": "count",
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1137447],
-    "description": "Update: count of when nsIApplicationUpdateService::getAutoUpdateIsEnabled does not return the default value of true (true values are not submitted)"
+    "description": "Update: count of when getAppUpdateAutoEnabled from UpdateUtils.jsm does not return the default value of true (true values are not submitted)"
   },
   "UPDATE_NOT_PREF_UPDATE_AUTO_NOTIFY": {
     "record_in_processes": ["main"],
@@ -5686,7 +5729,7 @@
     "kind": "count",
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1137447],
-    "description": "Update: count of when nsIApplicationUpdateService::getAutoUpdateIsEnabled does not return the default value of true (true values are not submitted)"
+    "description": "Update: count of when getAppUpdateAutoEnabled from UpdateUtils.jsm does not return the default value of true (true values are not submitted)"
   },
   "UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_EXTERNAL": {
     "record_in_processes": ["main"],
@@ -9823,6 +9866,17 @@
     "releaseChannelCollection": "opt-out",
     "description": "How long has the application panel been active (seconds)."
   },
+  "DEVTOOLS_FLEXBOX_HIGHLIGHTER_TIME_ACTIVE_SECONDS": {
+    "record_in_processes": ["main", "content"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 86400,
+    "n_buckets": 100,
+    "bug_numbers": [1509907],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "mbalfanz@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
+    "description": "How long has the flexbox highlighter been active (seconds)."
+  },
   "DEVTOOLS_TOOLBOX_TIME_ACTIVE_SECONDS": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "never",
@@ -9888,6 +9942,17 @@
     "alert_emails": ["dev-developer-tools@lists.mozilla.org", "jryans@mozilla.com"],
     "releaseChannelCollection": "opt-out",
     "description": "How long has the rule view been active (seconds)"
+  },
+  "DEVTOOLS_CHANGESVIEW_TIME_ACTIVE_SECONDS": {
+    "record_in_processes": ["main", "content"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 10000000,
+    "n_buckets": 100,
+    "bug_numbers": [1509890],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "mbalfanz@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
+    "description": "How long has the Changes panel been active (seconds)"
   },
   "DEVTOOLS_COMPUTEDVIEW_TIME_ACTIVE_SECONDS": {
     "record_in_processes": ["main", "content"],
@@ -13107,8 +13172,9 @@
   "CONTENT_FRAME_TIME": {
     "record_in_processes": ["main", "gpu"],
     "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "rhunt@mozilla.com"],
-    "bug_numbers": [1470528],
-    "expires_in_version": "66",
+    "bug_numbers": [1470528, 1509536],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
     "kind": "exponential",
     "high": 5000,
     "n_buckets": 50,
@@ -13117,8 +13183,9 @@
   "CONTENT_FRAME_TIME_WITH_SVG": {
     "record_in_processes": ["main", "gpu"],
     "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "mwoodrow@mozilla.com"],
-    "bug_numbers": [1483549],
-    "expires_in_version": "66",
+    "bug_numbers": [1483549, 1509536],
+    "expires_in_version": "70",
+    "releaseChannelCollection": "opt-out",
     "kind": "exponential",
     "high": 5000,
     "n_buckets": 50,

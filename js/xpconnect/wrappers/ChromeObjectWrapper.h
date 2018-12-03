@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=4 et sw=4 tw=99: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,20 +22,19 @@ struct OpaqueWithSilentFailing;
 #define ChromeObjectWrapperBase \
   FilteringWrapper<js::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
 
-class ChromeObjectWrapper : public ChromeObjectWrapperBase
-{
-  public:
-    constexpr ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
+class ChromeObjectWrapper : public ChromeObjectWrapperBase {
+ public:
+  constexpr ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
 
-    virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                                JS::Handle<jsid> id,
-                                JS::Handle<JS::PropertyDescriptor> desc,
-                                JS::ObjectOpResult& result) const override;
-    virtual bool set(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                     JS::HandleValue v, JS::HandleValue receiver,
-                     JS::ObjectOpResult& result) const override;
+  virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                              JS::Handle<jsid> id,
+                              JS::Handle<JS::PropertyDescriptor> desc,
+                              JS::ObjectOpResult& result) const override;
+  virtual bool set(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                   JS::HandleValue v, JS::HandleValue receiver,
+                   JS::ObjectOpResult& result) const override;
 
-    static const ChromeObjectWrapper singleton;
+  static const ChromeObjectWrapper singleton;
 };
 
 } /* namespace xpc */

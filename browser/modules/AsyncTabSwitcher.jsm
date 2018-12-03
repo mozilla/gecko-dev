@@ -740,10 +740,12 @@ class AsyncTabSwitcher {
   onPaint(event) {
     if (this.switchPaintId != -1 &&
         event.transactionId >= this.switchPaintId) {
-      let time = TelemetryStopwatch.timeElapsed("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
-      if (time != -1) {
-        TelemetryStopwatch.finish("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
-        this.log("DEBUG: tab switch time including compositing = " + time);
+      if (TelemetryStopwatch.running("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window)) {
+        let time = TelemetryStopwatch.timeElapsed("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
+        if (time != -1) {
+          TelemetryStopwatch.finish("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
+          this.log("DEBUG: tab switch time including compositing = " + time);
+        }
       }
       this.addMarker("AsyncTabSwitch:Composited");
       this.switchPaintId = -1;
@@ -1075,7 +1077,9 @@ class AsyncTabSwitcher {
     TelemetryStopwatch.cancel("FX_TAB_SWITCH_TOTAL_E10S_MS", this.window);
     TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_E10S_MS", this.window);
 
-    TelemetryStopwatch.cancel("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
+    if (TelemetryStopwatch.running("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window)) {
+      TelemetryStopwatch.cancel("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
+    }
     TelemetryStopwatch.start("FX_TAB_SWITCH_COMPOSITE_E10S_MS", this.window);
     this.addMarker("AsyncTabSwitch:Start");
     this.switchInProgress = true;

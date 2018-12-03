@@ -40,14 +40,20 @@ add_task(async function() {
 
   info("Wait until Connect page is displayed");
   await waitUntil(() => document.querySelector(".js-connect-page"));
-  ok(isSidebarItemSelected(connectSidebarItem), "Connect sidebar item is selected");
+  // we need to wait here because the sidebar isn't updated after mounting the page
+  info("Wait until Connect sidebar item is selected");
+  await waitUntil(() => isSidebarItemSelected(connectSidebarItem));
   ok(!document.querySelector(".js-runtime-page"), "Runtime page no longer rendered");
 
   info("Open a new tab which should be listed when we go back to This Firefox");
   const backgroundTab2 = await addTab(TAB_URL_2, { background: true });
 
   info("Click on the ThisFirefox item in the sidebar");
+  const requestsSuccess = waitForRequestsSuccess(window);
   thisFirefoxLink.click();
+
+  info("Wait for all target requests to complete");
+  await requestsSuccess;
 
   info("Wait until ThisFirefox page is displayed");
   await waitUntil(() => document.querySelector(".js-runtime-page"));

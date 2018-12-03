@@ -822,19 +822,19 @@ impl TextureCache {
     ///
     /// These parameters come from very rough instrumentation of hits in the
     /// shared cache, with simple browsing on a few pages. In rough terms, more
-    /// than 95% of cache hits occur for entries that were used in the previous
-    /// frame, and 99% occur within two frames. If we exclude immediately-reused
-    /// (first frame) entries, 90% of the remaining hits happen within the first
-    /// 30 frames. So we can be relatively agressive about eviction without
-    /// sacrificing much in terms of cache performance.
-    ///
+    /// than 99.5% of cache hits occur for entries that were used in the previous
+    /// frame. This is obviously the dominant case, but we still want good behavior
+    /// in long-tail cases (i.e. a large image is scrolled off-screen and on again).
+    /// If we exclude immediately-reused (first frame) entries, 70% of the remaining
+    /// hits happen within the first 200 frames. So we can be relatively agressive
+    /// about eviction without sacrificing much in terms of cache performance.
     /// The one wrinkle is that animation-heavy pages do tend to extend the
     /// distribution, presumably because they churn through FrameIds faster than
     /// their more-static counterparts. As such, we _also_ provide a time floor
     /// (which was not measured with the same degree of rigour).
     fn default_eviction(&self) -> EvictionThreshold {
         EvictionThresholdBuilder::new(self.now)
-            .max_frames(30)
+            .max_frames(200)
             .max_time_s(3)
             .scale_by_pressure()
             .build()
@@ -853,7 +853,21 @@ impl TextureCache {
                 match entry.eviction {
                     Eviction::Manual => false,
                     Eviction::Auto => threshold.should_evict(entry.last_access),
-                    Eviction::Eager => entry.last_access < self.now,
+                    Eviction::Eager => {
+                        // Texture cache entries can be evicted at the start of
+                        // a frame, or at any time during the frame when a cache
+                        // allocation is occurring. This means that entries tagged
+                        // with eager eviction may get evicted before they have a
+                        // chance to be requested on the current frame. Instead,
+                        // advance the frame id of the entry by one before
+                        // comparison. This ensures that an eager entry will
+                        // not be evicted until it is not used for at least
+                        // one complete frame.
+                        let mut entry_frame_id = entry.last_access.frame_id();
+                        entry_frame_id.advance();
+
+                        entry_frame_id < self.now.frame_id()
+                    }
                 }
             };
             if evict {
@@ -952,6 +966,12 @@ impl TextureCache {
         descriptor: &ImageDescriptor,
     ) -> bool {
         let mut allowed_in_shared_cache = true;
+
+        // TODO(sotaro): For now, anything that requests RGBA8 just fails to allocate
+        // in a texture page, and gets a standalone texture.
+        if descriptor.format == ImageFormat::RGBA8 {
+            allowed_in_shared_cache = false;
+        }
 
         // TODO(gw): For now, anything that requests nearest filtering and isn't BGRA8
         //           just fails to allocate in a texture page, and gets a standalone

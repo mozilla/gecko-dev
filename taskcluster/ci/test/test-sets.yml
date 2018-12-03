@@ -76,6 +76,9 @@ talos:
     # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
     # - talos-h2 Bug 1487031 - Disabled for not finding actionable regressions
 
+talos-ux:
+    - talos-g4
+
 raptor-firefox:
     - raptor-tp6-1-firefox
     - raptor-tp6-2-firefox
@@ -349,8 +352,8 @@ android-x86-kvm-tests:
     # - mochitest-webgl1-core
     # - reftest
     # - test-verify
-    # - web-platform-tests
-    # - web-platform-tests-reftests
+    - web-platform-tests
+    - web-platform-tests-reftests
     # - web-platform-tests-wdspec
 
 android-ccov-tests:

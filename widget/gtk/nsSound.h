@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,24 +13,21 @@
 
 #include <gtk/gtk.h>
 
-class nsSound : public nsISound,
-                public nsIStreamLoaderObserver
-{
-public:
-    nsSound();
+class nsSound : public nsISound, public nsIStreamLoaderObserver {
+ public:
+  nsSound();
 
-    static void Shutdown();
-    static already_AddRefed<nsISound> GetInstance();
+  static void Shutdown();
+  static already_AddRefed<nsISound> GetInstance();
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISOUND
-    NS_DECL_NSISTREAMLOADEROBSERVER
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISOUND
+  NS_DECL_NSISTREAMLOADEROBSERVER
 
-private:
-    virtual ~nsSound();
+ private:
+  virtual ~nsSound();
 
-    bool mInited;
-
+  bool mInited;
 };
 
 #endif /* __nsSound_h__ */

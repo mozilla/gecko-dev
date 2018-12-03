@@ -8,8 +8,7 @@ use clip::ClipItemKey;
 use display_list_flattener::DisplayListFlattener;
 use gpu_cache::GpuCacheHandle;
 use gpu_types::BoxShadowStretchMode;
-use prim_store::{BrushKind, BrushPrimitive, PrimitiveContainer};
-use prim_store::ScrollNodeAndClipChain;
+use prim_store::{ScrollNodeAndClipChain, PrimitiveKeyKind};
 use render_task::RenderTaskCacheEntryHandle;
 use util::RectHelpers;
 
@@ -73,7 +72,7 @@ impl<'a> DisplayListFlattener<'a> {
         clip_and_scroll: ScrollNodeAndClipChain,
         prim_info: &LayoutPrimitiveInfo,
         box_offset: &LayoutVector2D,
-        color: &ColorF,
+        color: ColorF,
         mut blur_radius: f32,
         spread_radius: f32,
         border_radius: BorderRadius,
@@ -149,7 +148,9 @@ impl<'a> DisplayListFlattener<'a> {
                 clip_and_scroll,
                 &LayoutPrimitiveInfo::with_clip_rect(final_prim_rect, prim_info.clip_rect),
                 clips,
-                PrimitiveContainer::Brush(BrushPrimitive::new(BrushKind::new_solid(*color), None)),
+                PrimitiveKeyKind::Rectangle {
+                    color: color.into(),
+                },
             );
         } else {
             // Normal path for box-shadows with a valid blur radius.
@@ -170,7 +171,9 @@ impl<'a> DisplayListFlattener<'a> {
 
             // Draw the box-shadow as a solid rect, using a box-shadow
             // clip mask item.
-            let prim = BrushPrimitive::new(BrushKind::new_solid(*color), None);
+            let prim = PrimitiveKeyKind::Rectangle {
+                color: color.into(),
+            };
 
             // Create the box-shadow clip item.
             let shadow_clip_source = ClipItemKey::box_shadow(
@@ -221,7 +224,7 @@ impl<'a> DisplayListFlattener<'a> {
                 clip_and_scroll,
                 &prim_info,
                 extra_clips,
-                PrimitiveContainer::Brush(prim),
+                prim,
             );
         }
     }

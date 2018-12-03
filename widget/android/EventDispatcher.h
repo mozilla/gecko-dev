@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * vim: set sw=4 ts=4 expandtab:
+/* -*- Mode: c++; c-basic-offset: 2; tab-width: 20; indent-tabs-mode: nil; -*-
+ * vim: set sw=2 ts=4 expandtab:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,75 +26,73 @@ namespace widget {
  * side may notify event listeners on the Gecko side, and vice versa.
  */
 class EventDispatcher final
-    : public nsIAndroidEventDispatcher
-    , public java::EventDispatcher::Natives<EventDispatcher>
-{
-    using NativesBase = java::EventDispatcher::Natives<EventDispatcher>;
+    : public nsIAndroidEventDispatcher,
+      public java::EventDispatcher::Natives<EventDispatcher> {
+  using NativesBase = java::EventDispatcher::Natives<EventDispatcher>;
 
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIANDROIDEVENTDISPATCHER
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIANDROIDEVENTDISPATCHER
 
-    EventDispatcher() {}
+  EventDispatcher() {}
 
-    void Attach(java::EventDispatcher::Param aDispatcher,
-                nsPIDOMWindowOuter* aDOMWindow);
-    void Detach();
+  void Attach(java::EventDispatcher::Param aDispatcher,
+              nsPIDOMWindowOuter* aDOMWindow);
+  void Detach();
 
-    nsresult Dispatch(const char16_t* aEvent,
-                      java::GeckoBundle::Param aData = nullptr,
-                      nsIAndroidEventCallback* aCallback = nullptr);
+  nsresult Dispatch(const char16_t* aEvent,
+                    java::GeckoBundle::Param aData = nullptr,
+                    nsIAndroidEventCallback* aCallback = nullptr);
 
-    bool HasGeckoListener(jni::String::Param aEvent);
-    void DispatchToGecko(jni::String::Param aEvent,
-                         jni::Object::Param aData,
-                         jni::Object::Param aCallback);
+  bool HasGeckoListener(jni::String::Param aEvent);
+  void DispatchToGecko(jni::String::Param aEvent, jni::Object::Param aData,
+                       jni::Object::Param aCallback);
 
-    static nsresult UnboxBundle(JSContext* aCx,
-                                jni::Object::Param aData,
-                                JS::MutableHandleValue aOut);
+  static nsresult UnboxBundle(JSContext* aCx, jni::Object::Param aData,
+                              JS::MutableHandleValue aOut);
 
-    nsIGlobalObject* GetGlobalObject();
+  nsIGlobalObject* GetGlobalObject();
 
-    using NativesBase::DisposeNative;
-private:
-    java::EventDispatcher::WeakRef mDispatcher;
-    nsCOMPtr<nsPIDOMWindowOuter> mDOMWindow;
+  using NativesBase::DisposeNative;
 
-    virtual ~EventDispatcher() {}
+ private:
+  java::EventDispatcher::WeakRef mDispatcher;
+  nsCOMPtr<nsPIDOMWindowOuter> mDOMWindow;
 
-    struct ListenersList {
-        nsCOMArray<nsIAndroidEventListener> listeners{/* count */ 1};
-        // 0 if the list can be modified
-        uint32_t lockCount{0};
-        // true if this list has a listener that is being unregistered
-        bool unregistering{false};
-    };
+  virtual ~EventDispatcher() {}
 
-    using ListenersMap = nsClassHashtable<nsStringHashKey, ListenersList>;
+  struct ListenersList {
+    nsCOMArray<nsIAndroidEventListener> listeners{/* count */ 1};
+    // 0 if the list can be modified
+    uint32_t lockCount{0};
+    // true if this list has a listener that is being unregistered
+    bool unregistering{false};
+  };
 
-    Mutex mLock{"mozilla::widget::EventDispatcher"};
-    ListenersMap mListenersMap;
+  using ListenersMap = nsClassHashtable<nsStringHashKey, ListenersList>;
 
-    using IterateEventsCallback = nsresult (EventDispatcher::*)
-            (const nsAString&, nsIAndroidEventListener*);
+  Mutex mLock{"mozilla::widget::EventDispatcher"};
+  ListenersMap mListenersMap;
 
-    nsresult IterateEvents(JSContext* aCx, JS::HandleValue aEvents,
-                           IterateEventsCallback aCallback,
-                           nsIAndroidEventListener* aListener);
-    nsresult RegisterEventLocked(const nsAString&, nsIAndroidEventListener*);
-    nsresult UnregisterEventLocked(const nsAString&, nsIAndroidEventListener*);
+  using IterateEventsCallback =
+      nsresult (EventDispatcher::*)(const nsAString&, nsIAndroidEventListener*);
 
-    nsresult DispatchOnGecko(ListenersList* list, const nsAString& aEvent,
-                             JS::HandleValue aData,
-                             nsIAndroidEventCallback* aCallback);
+  nsresult IterateEvents(JSContext* aCx, JS::HandleValue aEvents,
+                         IterateEventsCallback aCallback,
+                         nsIAndroidEventListener* aListener);
+  nsresult RegisterEventLocked(const nsAString&, nsIAndroidEventListener*);
+  nsresult UnregisterEventLocked(const nsAString&, nsIAndroidEventListener*);
 
-    java::EventDispatcher::NativeCallbackDelegate::LocalRef
-    WrapCallback(nsIAndroidEventCallback* aCallback,
-                 nsIAndroidEventFinalizer* aFinalizer = nullptr);
+  nsresult DispatchOnGecko(ListenersList* list, const nsAString& aEvent,
+                           JS::HandleValue aData,
+                           nsIAndroidEventCallback* aCallback);
+
+  java::EventDispatcher::NativeCallbackDelegate::LocalRef WrapCallback(
+      nsIAndroidEventCallback* aCallback,
+      nsIAndroidEventFinalizer* aFinalizer = nullptr);
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // mozilla_widget_EventDispatcher_h
+#endif  // mozilla_widget_EventDispatcher_h

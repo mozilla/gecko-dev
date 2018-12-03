@@ -410,7 +410,16 @@ class OSXBootstrapper(BaseBootstrapper):
         ]
 
         self._ensure_macports_packages(packages)
-        self.run_as_root([self.port, 'select', '--set', 'python', 'python27'])
+
+        pythons = set(self.check_output([self.port, 'select', '--list', 'python']).split('\n'))
+        active = ''
+        for python in pythons:
+            if 'active' in python:
+                active = python
+        if 'python27' not in active:
+            self.run_as_root([self.port, 'select', '--set', 'python', 'python27'])
+        else:
+            print('The right python version is already active.')
 
     def ensure_macports_browser_packages(self, artifact_mode=False):
         # TODO: Figure out what not to install for artifact mode
@@ -503,6 +512,9 @@ class OSXBootstrapper(BaseBootstrapper):
                     sys.exit(1)
 
         return active_name.lower()
+
+    def ensure_clang_static_analysis_package(self, checkout_root):
+        self.install_toolchain_static_analysis(checkout_root)
 
     def ensure_stylo_packages(self, state_dir, checkout_root):
         from mozboot import stylo

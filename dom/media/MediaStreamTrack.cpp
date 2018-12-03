@@ -45,13 +45,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(MediaStreamTrackSource)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 auto MediaStreamTrackSource::ApplyConstraints(
-    nsPIDOMWindowInner* aWindow, const dom::MediaTrackConstraints& aConstraints,
-    CallerType aCallerType) -> already_AddRefed<PledgeVoid> {
-  RefPtr<PledgeVoid> p = new PledgeVoid();
-  p->Reject(new MediaStreamError(aWindow,
-                                 MediaStreamError::Name::OverconstrainedError,
-                                 NS_LITERAL_STRING("")));
-  return p.forget();
+    const dom::MediaTrackConstraints& aConstraints, CallerType aCallerType)
+    -> RefPtr<ApplyConstraintsPromise> {
+  return ApplyConstraintsPromise::CreateAndReject(
+      MakeRefPtr<MediaMgrError>(MediaMgrError::Name::OverconstrainedError,
+                                NS_LITERAL_STRING("")),
+      __func__);
 }
 
 /**
@@ -308,9 +307,7 @@ void MediaStreamTrack::Stop() {
   DOMMediaStream::TrackPort* port = mOwningStream->FindOwnedTrackPort(*this);
   MOZ_ASSERT(port,
              "A MediaStreamTrack must exist in its owning DOMMediaStream");
-  RefPtr<Pledge<bool>> p =
-      port->BlockSourceTrackId(mInputTrackID, BlockingMode::CREATION);
-  Unused << p;
+  Unused << port->BlockSourceTrackId(mInputTrackID, BlockingMode::CREATION);
 
   mReadyState = MediaStreamTrackState::Ended;
 
@@ -348,8 +345,6 @@ already_AddRefed<Promise> MediaStreamTrack::ApplyConstraints(
                          this, NS_ConvertUTF16toUTF8(str).get()));
   }
 
-  typedef media::Pledge<bool, MediaStreamError*> PledgeVoid;
-
   nsPIDOMWindowInner* window = mOwningStream->GetParentObject();
   nsIGlobalObject* go = window ? window->AsGlobal() : nullptr;
 
@@ -365,17 +360,26 @@ already_AddRefed<Promise> MediaStreamTrack::ApplyConstraints(
   // applied values.
 
   // Keep a reference to this, to make sure it's still here when we get back.
-  RefPtr<MediaStreamTrack> that = this;
-  RefPtr<PledgeVoid> p =
-      GetSource().ApplyConstraints(window, aConstraints, aCallerType);
-  p->Then(
-      [this, that, promise, aConstraints](bool& aDummy) mutable {
-        mConstraints = aConstraints;
-        promise->MaybeResolve(false);
-      },
-      [promise](MediaStreamError*& reason) mutable {
-        promise->MaybeReject(reason);
-      });
+  RefPtr<MediaStreamTrack> self(this);
+  GetSource()
+      .ApplyConstraints(aConstraints, aCallerType)
+      ->Then(
+          GetCurrentThreadSerialEventTarget(), __func__,
+          [this, self, promise, aConstraints](bool aDummy) {
+            nsPIDOMWindowInner* window = mOwningStream->GetParentObject();
+            if (!window || !window->IsCurrentInnerWindow()) {
+              return;  // Leave Promise pending after navigation by design.
+            }
+            mConstraints = aConstraints;
+            promise->MaybeResolve(false);
+          },
+          [this, self, promise](const RefPtr<MediaMgrError>& aError) {
+            nsPIDOMWindowInner* window = mOwningStream->GetParentObject();
+            if (!window || !window->IsCurrentInnerWindow()) {
+              return;  // Leave Promise pending after navigation by design.
+            }
+            promise->MaybeReject(MakeRefPtr<MediaStreamError>(window, *aError));
+          });
   return promise.forget();
 }
 

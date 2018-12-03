@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,28 +31,27 @@ namespace mozilla {
 class WebBrowserPersistDocumentParent;
 
 class WebBrowserPersistRemoteDocument final
-    : public nsIWebBrowserPersistDocument
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBBROWSERPERSISTDOCUMENT
+    : public nsIWebBrowserPersistDocument {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIWEBBROWSERPERSISTDOCUMENT
 
-private:
-    using Attrs = WebBrowserPersistDocumentAttrs;
-    WebBrowserPersistDocumentParent* mActor;
-    Attrs mAttrs;
-    nsCOMPtr<nsIInputStream> mPostData;
-    nsCOMPtr<nsIPrincipal> mPrincipal;
+ private:
+  using Attrs = WebBrowserPersistDocumentAttrs;
+  WebBrowserPersistDocumentParent* mActor;
+  Attrs mAttrs;
+  nsCOMPtr<nsIInputStream> mPostData;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 
-    friend class WebBrowserPersistDocumentParent;
-    WebBrowserPersistRemoteDocument(WebBrowserPersistDocumentParent* aActor,
-                                    const Attrs& aAttrs,
-                                    nsIInputStream* aPostData);
-    ~WebBrowserPersistRemoteDocument();
+  friend class WebBrowserPersistDocumentParent;
+  WebBrowserPersistRemoteDocument(WebBrowserPersistDocumentParent* aActor,
+                                  const Attrs& aAttrs,
+                                  nsIInputStream* aPostData);
+  ~WebBrowserPersistRemoteDocument();
 
-    void ActorDestroy(void);
+  void ActorDestroy(void);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WebBrowserPersistRemoteDocument_h__
+#endif  // WebBrowserPersistRemoteDocument_h__

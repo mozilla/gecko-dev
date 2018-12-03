@@ -7,7 +7,7 @@ use api::{DevicePixelScale, ImageDescriptor, ImageFormat};
 use api::{LineStyle, LineOrientation, LayoutSize, ColorF, DirtyRect};
 #[cfg(feature = "pathfinder")]
 use api::FontRenderMode;
-use border::{BorderCornerCacheKey, BorderEdgeCacheKey};
+use border::BorderSegmentCacheKey;
 use box_shadow::{BoxShadowCacheKey};
 use clip::{ClipDataStore, ClipItem, ClipStore, ClipNodeRange};
 use clip_scroll_tree::SpatialNodeIndex;
@@ -144,8 +144,12 @@ impl RenderTaskTree {
             pass_index
         };
 
-        let pass = &mut passes[pass_index];
-        pass.add_render_task(id, task.get_dynamic_size(), task.target_kind(), &task.location);
+        passes[pass_index].add_render_task(
+            id,
+            task.get_dynamic_size(),
+            task.target_kind(),
+            &task.location,
+        );
     }
 
     pub fn prepare_for_render(&mut self) {
@@ -1118,8 +1122,7 @@ pub enum RenderTaskCacheKeyKind {
     #[allow(dead_code)]
     Glyph(GpuGlyphCacheKey),
     Picture(SurfaceCacheKey),
-    BorderEdge(BorderEdgeCacheKey),
-    BorderCorner(BorderCornerCacheKey),
+    BorderSegment(BorderSegmentCacheKey),
     LineDecoration(LineDecorationCacheKey),
 }
 

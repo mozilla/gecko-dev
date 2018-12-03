@@ -25,12 +25,12 @@ import type {
   Breakpoint as BreakpointType,
   Frame,
   Source,
-  Location
+  SourceLocation
 } from "../../../types";
 
 type FormattedFrame = {
   ...Frame,
-  selectedLocation: Location
+  selectedLocation: SourceLocation
 };
 
 import {
@@ -49,8 +49,10 @@ type Props = {
   removeBreakpoints: typeof actions.removeBreakpoints,
   removeAllBreakpoints: typeof actions.removeAllBreakpoints,
   disableBreakpoint: typeof actions.disableBreakpoint,
+  setBreakpointCondition: typeof actions.setBreakpointCondition,
   toggleAllBreakpoints: typeof actions.toggleAllBreakpoints,
   toggleBreakpoints: typeof actions.toggleBreakpoints,
+  toggleDisabledBreakpoint: typeof actions.toggleDisabledBreakpoint,
   openConditionalPanel: typeof actions.openConditionalPanel,
   selectSpecificLocation: typeof actions.selectSpecificLocation
 };
@@ -201,8 +203,10 @@ export default connect(
     disableBreakpoint: actions.disableBreakpoint,
     selectSpecificLocation: actions.selectSpecificLocation,
     selectLocation: actions.selectLocation,
+    setBreakpointCondition: actions.setBreakpointCondition,
     toggleAllBreakpoints: actions.toggleAllBreakpoints,
     toggleBreakpoints: actions.toggleBreakpoints,
+    toggleDisabledBreakpoint: actions.toggleDisabledBreakpoint,
     openConditionalPanel: actions.openConditionalPanel
   }
 )(Breakpoint);

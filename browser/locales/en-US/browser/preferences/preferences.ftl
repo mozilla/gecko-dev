@@ -162,6 +162,9 @@ startup-restore-previous-session =
     .label = Restore previous session
     .accesskey = s
 
+startup-restore-warn-on-quit =
+    .label = Warn you when quitting the browser
+
 disable-extension =
     .label = Disable Extension
 
@@ -770,13 +773,13 @@ sitedata-disallow-cookies-option =
 sitedata-block-desc = Type blocked
     .accesskey = T
 
-sitedata-block-trackers-option =
+sitedata-option-block-trackers =
     .label = Third-party trackers
-sitedata-block-unvisited-option =
+sitedata-option-block-unvisited =
     .label = Cookies from unvisited websites
-sitedata-block-all-third-party-option =
+sitedata-option-block-all-third-party =
     .label = All third-party cookies (may cause websites to break)
-sitedata-block-all-option =
+sitedata-option-block-all =
     .label = All cookies (will cause websites to break)
 
 sitedata-clear =
@@ -829,6 +832,7 @@ content-blocking-setting-custom =
   .label = Custom
   .accesskey = C
 
+content-blocking-standard-description = Only blocks known trackers in Private Windows.
 content-blocking-standard-desc = Balanced for protection and performance. Allows some trackers so websites function properly.
 content-blocking-strict-desc = Blocks all trackers { -brand-short-name } detects. May cause some sites to break.
 content-blocking-custom-desc = Choose what to block.
@@ -842,16 +846,13 @@ content-blocking-warning-title = Heads up!
 content-blocking-warning-desc = Blocking cookies and trackers can cause some websites to break. It’s easy to disable blocking for sites you trust.
 content-blocking-learn-how = Learn how
 
-content-blocking-tracking-protection-trackers-label =
+content-blocking-trackers-label =
   .label = Trackers
-  .accesskey = T
-content-blocking-tracking-protection-all-detected-trackers-label =
-  .label = All Detected Trackers
   .accesskey = T
 content-blocking-tracking-protection-option-all-windows =
   .label = In all windows
   .accesskey = A
-content-blocking-tracking-protection-option-private =
+content-blocking-option-private =
   .label = Only in Private Windows
   .accesskey = p
 content-blocking-tracking-protection-change-block-list = Change block list
@@ -951,6 +952,10 @@ collection-health-report-link = Learn more
 collection-studies =
     .label = Allow { -brand-short-name } to install and run studies
 collection-studies-link = View { -brand-short-name } studies
+
+addon-recommendations =
+    .label = Allow { -brand-short-name } to make personalized extension recommendations
+addon-recommendations-link = Learn more
 
 # This message is displayed above disabled data sharing options in developer builds
 # or builds with no Telemetry support available.

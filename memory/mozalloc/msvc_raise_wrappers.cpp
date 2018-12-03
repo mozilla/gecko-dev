@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=4 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,14 +8,10 @@
 #include <exception>
 #include "mozalloc_abort.h"
 
-static void __cdecl
-RaiseHandler(const std::exception& e)
-{
-    mozalloc_abort(e.what());
+static void __cdecl RaiseHandler(const std::exception& e) {
+  mozalloc_abort(e.what());
 }
 
 static struct StaticScopeStruct final {
-    StaticScopeStruct() {
-        std::exception::_Set_raise_handler(RaiseHandler);
-    }
+  StaticScopeStruct() { std::exception::_Set_raise_handler(RaiseHandler); }
 } StaticScopeInvoke;

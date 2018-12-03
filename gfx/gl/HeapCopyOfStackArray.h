@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=4 et sw=4 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,14 +19,11 @@ namespace mozilla {
 // avoiding passing stack pointers to the GL (see bug 1005658).
 
 template <typename ElemType>
-class HeapCopyOfStackArray
-{
-public:
-  template<size_t N>
+class HeapCopyOfStackArray {
+ public:
+  template <size_t N>
   MOZ_IMPLICIT HeapCopyOfStackArray(const ElemType (&array)[N])
-    : mArrayLength(N)
-    , mArrayData(MakeUnique<ElemType[]>(N))
-  {
+      : mArrayLength(N), mArrayData(MakeUnique<ElemType[]>(N)) {
     memcpy(mArrayData.get(), &array[0], N * sizeof(ElemType));
   }
 
@@ -34,7 +31,7 @@ public:
   size_t ArrayLength() const { return mArrayLength; }
   size_t ByteLength() const { return mArrayLength * sizeof(ElemType); }
 
-private:
+ private:
   HeapCopyOfStackArray() = delete;
   HeapCopyOfStackArray(const HeapCopyOfStackArray&) = delete;
 
@@ -42,6 +39,6 @@ private:
   UniquePtr<ElemType[]> const mArrayData;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // HEAPCOPYOFSTACKARRAY_H_
+#endif  // HEAPCOPYOFSTACKARRAY_H_

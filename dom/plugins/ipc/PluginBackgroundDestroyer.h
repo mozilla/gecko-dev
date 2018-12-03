@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=8 et :
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,16 +23,17 @@ namespace plugins {
  * along with them, completing the destruction process (whether or not
  * the plugin stayed alive long enough to ack).
  */
-class PluginBackgroundDestroyerParent : public PPluginBackgroundDestroyerParent {
-public:
-    explicit PluginBackgroundDestroyerParent(gfxASurface* aDyingBackground);
+class PluginBackgroundDestroyerParent
+    : public PPluginBackgroundDestroyerParent {
+ public:
+  explicit PluginBackgroundDestroyerParent(gfxASurface* aDyingBackground);
 
-    virtual ~PluginBackgroundDestroyerParent();
+  virtual ~PluginBackgroundDestroyerParent();
 
-private:
-    virtual void ActorDestroy(ActorDestroyReason why) override;
+ private:
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
-    RefPtr<gfxASurface> mDyingBackground;
+  RefPtr<gfxASurface> mDyingBackground;
 };
 
 /**
@@ -40,17 +41,16 @@ private:
  * current background, a new one may be coming.
  */
 class PluginBackgroundDestroyerChild : public PPluginBackgroundDestroyerChild {
-public:
-    PluginBackgroundDestroyerChild() { }
-    virtual ~PluginBackgroundDestroyerChild() { }
+ public:
+  PluginBackgroundDestroyerChild() {}
+  virtual ~PluginBackgroundDestroyerChild() {}
 
-private:
-    // Implementing this for good hygiene.
-    virtual void ActorDestroy(ActorDestroyReason why) override
-    { }
+ private:
+  // Implementing this for good hygiene.
+  virtual void ActorDestroy(ActorDestroyReason why) override {}
 };
 
-} // namespace plugins
-} // namespace mozilla
+}  // namespace plugins
+}  // namespace mozilla
 
 #endif  // dom_plugins_PluginBackgroundDestroyer

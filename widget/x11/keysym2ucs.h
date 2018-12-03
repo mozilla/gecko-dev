@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /*
@@ -18,14 +18,11 @@
 #endif /* MOZ_X11 */
 
 #ifdef __cplusplus
-extern "C" { 
+extern "C" {
 #endif
 
-long keysym2ucs(KeySym keysym); 
+long keysym2ucs(KeySym keysym);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-
-

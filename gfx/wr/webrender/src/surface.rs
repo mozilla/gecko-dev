@@ -58,10 +58,10 @@ fn quantize(value: f32) -> f32 {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct ScaleOffsetKey {
-    scale_x: f32,
-    scale_y: f32,
-    offset_x: f32,
-    offset_y: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub offset_x: f32,
+    pub offset_y: f32,
 }
 
 impl ScaleOffsetKey {
@@ -236,12 +236,18 @@ impl SurfaceDescriptor {
             // a legacy primitive or picture, then fail to create a cache
             // descriptor.
             match prim_instance.kind {
-                PrimitiveInstanceKind::Picture { .. } |
-                PrimitiveInstanceKind::LegacyPrimitive { .. } => {
+                PrimitiveInstanceKind::Picture { .. } => {
                     return None;
                 }
+                PrimitiveInstanceKind::Image { .. } |
+                PrimitiveInstanceKind::YuvImage { .. } |
                 PrimitiveInstanceKind::LineDecoration { .. } |
+                PrimitiveInstanceKind::LinearGradient { .. } |
+                PrimitiveInstanceKind::RadialGradient { .. } |
                 PrimitiveInstanceKind::TextRun { .. } |
+                PrimitiveInstanceKind::NormalBorder { .. } |
+                PrimitiveInstanceKind::Rectangle { .. } |
+                PrimitiveInstanceKind::ImageBorder { .. } |
                 PrimitiveInstanceKind::Clear => {}
             }
 

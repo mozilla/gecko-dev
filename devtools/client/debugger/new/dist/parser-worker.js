@@ -1008,13 +1008,12 @@ exports.isYieldExpression = isYieldExpression;
 exports.isObjectShorthand = isObjectShorthand;
 exports.getObjectExpressionValue = getObjectExpressionValue;
 exports.getCode = getCode;
-exports.getVariableNames = getVariableNames;
 exports.getComments = getComments;
 exports.getSpecifiers = getSpecifiers;
-exports.isVariable = isVariable;
 exports.isComputedExpression = isComputedExpression;
 exports.getMemberExpression = getMemberExpression;
 exports.getVariables = getVariables;
+exports.getPatternIdentifiers = getPatternIdentifiers;
 exports.isTopLevel = isTopLevel;
 
 var _types = __webpack_require__(2268);
@@ -1025,19 +1024,17 @@ var _generator = __webpack_require__(2365);
 
 var _generator2 = _interopRequireDefault(_generator);
 
-var _flatten = __webpack_require__(706);
-
-var _flatten2 = _interopRequireDefault(_flatten);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
+
 function isFunction(node) {
   return t.isFunction(node) || t.isArrowFunctionExpression(node) || t.isObjectMethod(node) || t.isClassMethod(node);
-} /* This Source Code Form is subject to the terms of the Mozilla Public
-   * License, v. 2.0. If a copy of the MPL was not distributed with this
-   * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
+}
 
 function isAwaitExpression(path) {
   const { node, parent } = path;
@@ -1073,37 +1070,6 @@ function getCode(node) {
   return (0, _generator2.default)(node).code;
 }
 
-function getVariableNames(path) {
-  if (t.isObjectProperty(path.node) && !isFunction(path.node.value)) {
-    if (path.node.key.type === "StringLiteral") {
-      return [{
-        name: path.node.key.value,
-        location: path.node.loc
-      }];
-    } else if (path.node.value.type === "Identifier") {
-      return [{ name: path.node.value.name, location: path.node.loc }];
-    } else if (path.node.value.type === "AssignmentPattern") {
-      return [{ name: path.node.value.left.name, location: path.node.loc }];
-    }
-
-    return [{
-      name: path.node.key.name,
-      location: path.node.loc
-    }];
-  }
-
-  if (!path.node.declarations) {
-    return path.node.params.map(dec => ({
-      name: dec.name,
-      location: dec.loc
-    }));
-  }
-
-  const declarations = path.node.declarations.filter(dec => dec.id.type !== "ObjectPattern").map(getVariables);
-
-  return (0, _flatten2.default)(declarations);
-}
-
 function getComments(ast) {
   if (!ast || !ast.comments) {
     return [];
@@ -1120,11 +1086,6 @@ function getSpecifiers(specifiers) {
   }
 
   return specifiers.map(specifier => specifier.local && specifier.local.name);
-}
-
-function isVariable(path) {
-  const node = path.node;
-  return t.isVariableDeclaration(node) || isFunction(path) && path.node.params != null && path.node.params.length || t.isObjectProperty(node) && !isFunction(path.node.value);
 }
 
 function isComputedExpression(expression) {
@@ -1164,20 +1125,51 @@ function getVariables(dec) {
       return [];
     }
 
-    // NOTE: it's possible that an element is empty
+    // NOTE: it's possible that an element is empty or has several variables
     // e.g. const [, a] = arr
+    // e.g. const [{a, b }] = 2
     return dec.id.elements.filter(element => element).map(element => {
       return {
-        name: t.isAssignmentPattern(element) ? element.left.name : element.name || element.argument.name,
+        name: t.isAssignmentPattern(element) ? element.left.name : element.name || element.argument && element.argument.name,
         location: element.loc
       };
-    });
+    }).filter(({ name }) => name);
   }
 
   return [{
     name: dec.id.name,
     location: dec.loc
   }];
+}
+
+function getPatternIdentifiers(pattern) {
+  let items = [];
+  if (t.isObjectPattern(pattern)) {
+    items = pattern.properties.map(({ value }) => value);
+  }
+
+  if (t.isArrayPattern(pattern)) {
+    items = pattern.elements;
+  }
+
+  return getIdentifiers(items);
+}
+
+function getIdentifiers(items) {
+  let ids = [];
+  items.forEach(function (item) {
+    if (t.isObjectPattern(item) || t.isArrayPattern(item)) {
+      ids = ids.concat(getPatternIdentifiers(item));
+    } else if (t.isIdentifier(item)) {
+      const { start, end } = item.loc;
+      ids.push({
+        name: item.name,
+        expression: item.name,
+        location: { start, end }
+      });
+    }
+  });
+  return ids;
 }
 
 // Top Level checks the number of "body" nodes in the ancestor chain
@@ -1348,10 +1340,6 @@ function getFunctionParameterNames(path) {
 
 /* eslint-disable complexity */
 function extractSymbol(path, symbols) {
-  if ((0, _helpers.isVariable)(path)) {
-    symbols.variables.push(...(0, _helpers.getVariableNames)(path));
-  }
-
   if ((0, _helpers.isFunction)(path)) {
     symbols.functions.push({
       name: (0, _getFunctionName2.default)(path.node, path.parent),
@@ -1450,7 +1438,7 @@ function extractSymbol(path, symbols) {
     });
   }
 
-  if (t.isIdentifier(path) && !t.isGenericTypeAnnotation(path.parent)) {
+  if (t.isIdentifier(path) && !t.isGenericTypeAnnotation(path.parent) && !t.isObjectProperty(path.parent) && !t.isArrayPattern(path.parent)) {
     let { start, end } = path.node.loc;
 
     // We want to include function params, but exclude the function name
@@ -1490,31 +1478,16 @@ function extractSymbol(path, symbols) {
   if (t.isVariableDeclarator(path)) {
     const nodeId = path.node.id;
 
-    if (t.isArrayPattern(nodeId)) {
-      return;
-    }
-
-    const properties = nodeId.properties && t.objectPattern(nodeId.properties) ? nodeId.properties : [{
-      value: { name: nodeId.name },
-      loc: path.node.loc
-    }];
-
-    properties.forEach(function (property) {
-      const { start, end } = property.loc;
-      symbols.identifiers.push({
-        name: property.value.name,
-        expression: property.value.name,
-        location: { start, end }
-      });
-    });
+    const ids = (0, _helpers.getPatternIdentifiers)(nodeId);
+    symbols.identifiers = [...symbols.identifiers, ...ids];
   }
 }
+
 /* eslint-enable complexity */
 
 function extractSymbols(sourceId) {
   const symbols = {
     functions: [],
-    variables: [],
     callExpressions: [],
     memberExpressions: [],
     objectProperties: [],
@@ -22954,15 +22927,17 @@ function hasPoint(state, { line, column }) {
   return state[line] && state[line][column];
 }
 
-function addPoint(state, { line, column }, types) {
+function addPoint(state, location, types) {
   if (typeof types === "boolean") {
     types = { step: types, break: types };
   }
 
+  const { line, column } = location;
+
   if (!state[line]) {
     state[line] = {};
   }
-  state[line][column] = types;
+  state[line][column] = { types, location };
   return state;
 }
 
@@ -46566,107 +46541,6 @@ module.exports = Symbol;
 var isArray = Array.isArray;
 
 module.exports = isArray;
-
-
-/***/ }),
-
-/***/ 706:
-/***/ (function(module, exports, __webpack_require__) {
-
-var baseFlatten = __webpack_require__(707);
-
-/**
- * Flattens `array` a single level deep.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Array
- * @param {Array} array The array to flatten.
- * @returns {Array} Returns the new flattened array.
- * @example
- *
- * _.flatten([1, [2, [3, [4]], 5]]);
- * // => [1, 2, [3, [4]], 5]
- */
-function flatten(array) {
-  var length = array == null ? 0 : array.length;
-  return length ? baseFlatten(array, 1) : [];
-}
-
-module.exports = flatten;
-
-
-/***/ }),
-
-/***/ 707:
-/***/ (function(module, exports, __webpack_require__) {
-
-var arrayPush = __webpack_require__(287),
-    isFlattenable = __webpack_require__(708);
-
-/**
- * The base implementation of `_.flatten` with support for restricting flattening.
- *
- * @private
- * @param {Array} array The array to flatten.
- * @param {number} depth The maximum recursion depth.
- * @param {boolean} [predicate=isFlattenable] The function invoked per iteration.
- * @param {boolean} [isStrict] Restrict to values that pass `predicate` checks.
- * @param {Array} [result=[]] The initial result value.
- * @returns {Array} Returns the new flattened array.
- */
-function baseFlatten(array, depth, predicate, isStrict, result) {
-  var index = -1,
-      length = array.length;
-
-  predicate || (predicate = isFlattenable);
-  result || (result = []);
-
-  while (++index < length) {
-    var value = array[index];
-    if (depth > 0 && predicate(value)) {
-      if (depth > 1) {
-        // Recursively flatten arrays (susceptible to call stack limits).
-        baseFlatten(value, depth - 1, predicate, isStrict, result);
-      } else {
-        arrayPush(result, value);
-      }
-    } else if (!isStrict) {
-      result[result.length] = value;
-    }
-  }
-  return result;
-}
-
-module.exports = baseFlatten;
-
-
-/***/ }),
-
-/***/ 708:
-/***/ (function(module, exports, __webpack_require__) {
-
-var Symbol = __webpack_require__(7),
-    isArguments = __webpack_require__(208),
-    isArray = __webpack_require__(70);
-
-/** Built-in value references. */
-var spreadableSymbol = Symbol ? Symbol.isConcatSpreadable : undefined;
-
-/**
- * Checks if `value` is a flattenable `arguments` object or array.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is flattenable, else `false`.
- */
-function isFlattenable(value) {
-  return isArray(value) || isArguments(value) ||
-    !!(spreadableSymbol && value && value[spreadableSymbol]);
-}
-
-module.exports = isFlattenable;
 
 
 /***/ }),

@@ -676,13 +676,32 @@ void SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
     }
   } else {
     AutoNoJSAPI nojsapi;
-    MediaManager* manager = MediaManager::Get();
-    MediaManager::GetUserMediaSuccessCallback onsuccess(
-        new GetUserMediaSuccessCallback(this));
-    MediaManager::GetUserMediaErrorCallback onerror(
-        new GetUserMediaErrorCallback(this));
-    manager->GetUserMedia(GetOwner(), constraints, std::move(onsuccess),
-                          std::move(onerror), aCallerType);
+    RefPtr<SpeechRecognition> self(this);
+    MediaManager::Get()
+        ->GetUserMedia(GetOwner(), constraints, aCallerType)
+        ->Then(GetCurrentThreadSerialEventTarget(), __func__,
+               [this, self](RefPtr<DOMMediaStream>&& aStream) {
+                 mStream = std::move(aStream);
+                 mStream->RegisterTrackListener(this);
+                 nsTArray<RefPtr<AudioStreamTrack>> tracks;
+                 mStream->GetAudioTracks(tracks);
+                 for (const RefPtr<AudioStreamTrack>& track : tracks) {
+                   if (!track->Ended()) {
+                     NotifyTrackAdded(track);
+                   }
+                 }
+               },
+               [this, self](RefPtr<MediaMgrError>&& error) {
+                 SpeechRecognitionErrorCode errorCode;
+
+                 if (error->mName == MediaMgrError::Name::NotAllowedError) {
+                   errorCode = SpeechRecognitionErrorCode::Not_allowed;
+                 } else {
+                   errorCode = SpeechRecognitionErrorCode::Audio_capture;
+                 }
+                 DispatchError(SpeechRecognition::EVENT_AUDIO_ERROR, errorCode,
+                               error->mMessage);
+               });
   }
 
   RefPtr<SpeechEvent> event = new SpeechEvent(this, EVENT_START);
@@ -968,54 +987,6 @@ SpeechEvent::~SpeechEvent() { delete mAudioSegment; }
 NS_IMETHODIMP
 SpeechEvent::Run() {
   mRecognition->ProcessEvent(this);
-  return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS(SpeechRecognition::GetUserMediaSuccessCallback,
-                  nsIDOMGetUserMediaSuccessCallback)
-
-NS_IMETHODIMP
-SpeechRecognition::GetUserMediaSuccessCallback::OnSuccess(
-    nsISupports* aStream) {
-  RefPtr<DOMMediaStream> stream = do_QueryObject(aStream);
-  if (!stream) {
-    return NS_ERROR_NO_INTERFACE;
-  }
-  mRecognition->mStream = stream;
-  mRecognition->mStream->RegisterTrackListener(mRecognition);
-  nsTArray<RefPtr<AudioStreamTrack>> tracks;
-  mRecognition->mStream->GetAudioTracks(tracks);
-  for (const RefPtr<AudioStreamTrack>& track : tracks) {
-    if (!track->Ended()) {
-      mRecognition->NotifyTrackAdded(track);
-    }
-  }
-  return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS(SpeechRecognition::GetUserMediaErrorCallback,
-                  nsIDOMGetUserMediaErrorCallback)
-
-NS_IMETHODIMP
-SpeechRecognition::GetUserMediaErrorCallback::OnError(nsISupports* aError) {
-  RefPtr<MediaStreamError> error = do_QueryObject(aError);
-  if (!error) {
-    return NS_OK;
-  }
-  SpeechRecognitionErrorCode errorCode;
-
-  nsAutoString name;
-  error->GetName(name);
-  if (name.EqualsLiteral("PERMISSION_DENIED")) {
-    errorCode = SpeechRecognitionErrorCode::Not_allowed;
-  } else {
-    errorCode = SpeechRecognitionErrorCode::Audio_capture;
-  }
-
-  nsAutoString message;
-  error->GetMessage(message);
-  mRecognition->DispatchError(SpeechRecognition::EVENT_AUDIO_ERROR, errorCode,
-                              message);
   return NS_OK;
 }
 

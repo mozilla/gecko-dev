@@ -9,7 +9,6 @@
 
 #include "MediaChild.h"
 
-#include "mozilla/dom/ContentParent.h"
 #include "mozilla/media/PMediaParent.h"
 
 namespace mozilla {
@@ -68,8 +67,6 @@ class Parent : public RefCountedParent, public Super {
 
   RefPtr<OriginKeyStore> mOriginKeyStore;
   bool mDestroyed;
-
-  CoatCheck<Pledge<nsCString>> mOutstandingPledges;
 };
 
 template <class Parent>

@@ -7,20 +7,20 @@ use api::{DeviceIntRect, DevicePoint, LayoutRect, PictureToRasterTransform, Layo
 use api::{DevicePixelScale, RasterRect, RasterSpace, PictureSize, DeviceIntPoint, ColorF, ImageKey, DirtyRect};
 use api::{PicturePixel, RasterPixel, WorldPixel, WorldRect, ImageFormat, ImageDescriptor};
 use box_shadow::{BLUR_SAMPLE_SCALE};
-use clip::{ClipNodeCollector, ClipStore, ClipChainId, ClipChainNode};
+use clip::{ClipNodeCollector, ClipStore, ClipChainId, ClipChainNode, ClipUid};
 use clip_scroll_tree::{ROOT_SPATIAL_NODE_INDEX, ClipScrollTree, SpatialNodeIndex};
 use device::TextureFilter;
 use euclid::{TypedScale, vec3, TypedRect, TypedPoint2D, TypedSize2D};
 use euclid::approxeq::ApproxEq;
 use internal_types::{FastHashMap, PlaneSplitter};
 use frame_builder::{FrameBuildingContext, FrameBuildingState, PictureState, PictureContext};
-use gpu_cache::{GpuCacheAddress, GpuCacheHandle};
+use gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use gpu_types::{TransformPalette, TransformPaletteId, UvRectKind};
 use internal_types::FastHashSet;
 use plane_split::{Clipper, Polygon, Splitter};
-use prim_store::{PictureIndex, PrimitiveInstance, SpaceMapper, VisibleFace, PrimitiveInstanceKind};
+use prim_store::{PictureIndex, PrimitiveInstance, SpaceMapper, VisibleFace, PrimitiveInstanceKind, PrimitiveUid};
 use prim_store::{get_raster_rects, PrimitiveDataInterner, PrimitiveDataStore, CoordinateSpaceMapping};
-use prim_store::{PrimitiveDetails, BrushKind, Primitive, OpacityBindingStorage};
+use prim_store::{OpacityBindingStorage, PrimitiveTemplateKind, ImageInstanceStorage, OpacityBindingIndex, SizeKey};
 use render_task::{ClearMode, RenderTask, RenderTaskCacheEntryHandle, TileBlit};
 use render_task::{RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskId, RenderTaskLocation};
 use resource_cache::ResourceCache;
@@ -65,21 +65,38 @@ pub const TILE_SIZE_DP: i32 = 512;
 
 /// Information about the state of a transform dependency.
 #[derive(Debug)]
-pub struct TransformInfo {
-    /// Quantized transform value
-    key: TransformKey,
+pub struct TileTransformInfo {
+    /// The spatial node in the current clip-scroll tree that
+    /// this transform maps to.
+    spatial_node_index: SpatialNodeIndex,
     /// Tiles check this to see if the dependencies have changed.
+    changed: bool,
+}
+
+#[derive(Debug)]
+pub struct GlobalTransformInfo {
+    /// Current (quantized) value of the transform, that is
+    /// independent of the value of the spatial node index.
+    /// Only calculated on first use.
+    current: Option<TransformKey>,
+    /// Tiles check this to see if the dependencies have changed.
+    changed: bool,
+}
+
+/// Information about the state of an opacity binding.
+#[derive(Debug)]
+pub struct OpacityBindingInfo {
+    /// The current value retrieved from dynamic scene properties.
+    value: f32,
+    /// True if it was changed (or is new) since the last frame build.
     changed: bool,
 }
 
 /// Information about a cached tile.
 #[derive(Debug)]
 pub struct Tile {
-    // TODO(gw): We could perhaps use a bitset here instead of a hash set?
-    /// The set of transform values that primitives in this tile depend on.
-    transforms: FastHashSet<SpatialNodeIndex>,
     /// The set of opacity bindings that this tile depends on.
-    opacity_bindings: FastHashMap<PropertyBindingId, f32>,
+    opacity_bindings: FastHashSet<PropertyBindingId>,
     /// Set of image keys that this tile depends on.
     image_keys: FastHashSet<ImageKey>,
     /// If true, this tile is marked valid, and the existing texture
@@ -95,27 +112,184 @@ pub struct Tile {
     /// may be false if the tile is outside the bounding rect of
     /// the current picture, but hasn't been discarded yet. This
     /// is calculated during primitive dependency updating.
-    in_use: bool,
+    pub in_use: bool,
     /// If true, this tile is currently visible on screen. This
     /// is calculated during build_dirty_regions.
     pub is_visible: bool,
     /// Handle to the cached texture for this tile.
     pub handle: TextureCacheHandle,
+    /// A map from clip-scroll tree spatial node indices to the tile
+    /// transforms. This allows the tile transforms to be stable
+    /// if the content of the tile is the same, but the shape of the
+    /// clip-scroll tree changes between scenes in other areas.
+    tile_transform_map: FastHashMap<SpatialNodeIndex, TileTransformIndex>,
+    /// Information about the transforms that is not part of the cache key.
+    transform_info: Vec<TileTransformInfo>,
+    /// Uniquely describes the content of this tile, in a way that can be
+    /// (reasonably) efficiently hashed and compared.
+    descriptor: TileDescriptor,
 }
 
 impl Tile {
     /// Construct a new, invalid tile.
-    fn new() -> Self {
+    fn new(
+        tile_offset: TileOffset,
+        local_tile_size: SizeKey,
+        raster_transform: TransformKey,
+    ) -> Self {
         Tile {
-            transforms: FastHashSet::default(),
-            opacity_bindings: FastHashMap::default(),
+            opacity_bindings: FastHashSet::default(),
             image_keys: FastHashSet::default(),
             is_valid: false,
             is_visible: false,
             is_cacheable: true,
             in_use: false,
             handle: TextureCacheHandle::invalid(),
+            descriptor: TileDescriptor::new(
+                tile_offset,
+                local_tile_size,
+                raster_transform,
+            ),
+            tile_transform_map: FastHashMap::default(),
+            transform_info: Vec::new(),
         }
+    }
+
+    /// Add a (possibly) new transform dependency to this tile.
+    fn push_transform_dependency(
+        &mut self,
+        spatial_node_index: SpatialNodeIndex,
+        surface_spatial_node_index: SpatialNodeIndex,
+        clip_scroll_tree: &ClipScrollTree,
+        global_transforms: &mut [GlobalTransformInfo],
+    ) {
+        // If the primitive is positioned by the same spatial
+        // node as the surface, we don't care about it since
+        // the primitive can never move to a different position
+        // relative to the surface.
+        if spatial_node_index == surface_spatial_node_index {
+            return;
+        }
+
+        let transform_info = &mut self.transform_info;
+        let descriptor = &mut self.descriptor;
+
+        // Get the mapping from unstable spatial node index to
+        // a local transform index within this tile.
+        let tile_transform_index = self
+            .tile_transform_map
+            .entry(spatial_node_index)
+            .or_insert_with(|| {
+                let index = transform_info.len();
+
+                let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
+                    surface_spatial_node_index,
+                    spatial_node_index,
+                    clip_scroll_tree,
+                ).expect("todo: handle invalid mappings");
+
+                // See if the transform changed, and cache the current
+                // transform if not set before.
+                let changed = get_global_transform_changed(
+                    global_transforms,
+                    spatial_node_index,
+                    clip_scroll_tree,
+                    surface_spatial_node_index,
+                );
+
+                transform_info.push(TileTransformInfo {
+                    changed,
+                    spatial_node_index,
+                });
+
+                let key = mapping.into();
+
+                descriptor.transforms.push(key);
+
+                TileTransformIndex(index as u32)
+            });
+
+        // Record the transform for this primitive / clip node.
+        // TODO(gw): It might be worth storing these in runs, since they
+        //           probably don't change very often between prims.
+        descriptor.transform_ids.push(*tile_transform_index);
+    }
+
+    /// Destroy a tile, optionally returning a handle and cache descriptor,
+    /// if this surface was valid and may be useful on the next scene.
+    fn destroy(self) -> Option<(TileDescriptor, TextureCacheHandle)> {
+        if self.is_valid {
+            Some((self.descriptor, self.handle))
+        } else {
+            None
+        }
+    }
+}
+
+/// Index of a transform array local to the tile.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct TileTransformIndex(u32);
+
+/// Uniquely describes the content of this tile, in a way that can be
+/// (reasonably) efficiently hashed and compared.
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct TileDescriptor {
+    /// List of primitive unique identifiers. The uid is guaranteed
+    /// to uniquely describe the content of the primitive.
+    pub prim_uids: Vec<PrimitiveUid>,
+
+    /// List of clip node unique identifiers. The uid is guaranteed
+    /// to uniquely describe the content of the clip node.
+    pub clip_uids: Vec<ClipUid>,
+
+    /// List of local tile transform ids that are used to position
+    /// the primitive and clip items above.
+    pub transform_ids: Vec<TileTransformIndex>,
+
+    /// List of transforms used by this tile, along with the current
+    /// quantized value.
+    pub transforms: Vec<TransformKey>,
+
+    /// The set of opacity bindings that this tile depends on.
+    // TODO(gw): Ugh, get rid of all opacity binding support!
+    pub opacity_bindings: Vec<PropertyBindingId>,
+
+    /// Ensures that we hash to a tile in the same local position.
+    pub tile_offset: TileOffset,
+    pub local_tile_size: SizeKey,
+
+    /// Identifies the raster configuration of the rasterization
+    /// root, to ensure tiles are invalidated if they are drawn in
+    /// screen-space with an incompatible transform.
+    pub raster_transform: TransformKey,
+}
+
+impl TileDescriptor {
+    fn new(
+        tile_offset: TileOffset,
+        local_tile_size: SizeKey,
+        raster_transform: TransformKey,
+    ) -> Self {
+        TileDescriptor {
+            prim_uids: Vec::new(),
+            clip_uids: Vec::new(),
+            transform_ids: Vec::new(),
+            opacity_bindings: Vec::new(),
+            transforms: Vec::new(),
+            tile_offset,
+            raster_transform,
+            local_tile_size,
+        }
+    }
+
+    /// Clear the dependency information for a tile, when the dependencies
+    /// are being rebuilt.
+    fn clear(&mut self) {
+        self.prim_uids.clear();
+        self.clip_uids.clear();
+        self.transform_ids.clear();
+        self.transforms.clear();
+        self.opacity_bindings.clear();
     }
 }
 
@@ -142,7 +316,10 @@ pub struct TileCache {
     pub tile_rect: TileRect,
     /// List of transform keys - used to check if transforms
     /// have changed.
-    pub transforms: Vec<TransformInfo>,
+    pub transforms: Vec<GlobalTransformInfo>,
+    /// List of opacity bindings, with some extra information
+    /// about whether they changed since last frame.
+    pub opacity_bindings: FastHashMap<PropertyBindingId, OpacityBindingInfo>,
     /// A helper struct to map local rects into picture coords.
     pub space_mapper: SpaceMapper<LayoutPixel, PicturePixel>,
     /// If true, we need to update the prim dependencies, due
@@ -153,6 +330,10 @@ pub struct TileCache {
     pub needs_update: bool,
     /// If Some(..) the region that is dirty in this picture.
     pub dirty_region: Option<DirtyRegion>,
+    /// The current transform of the surface itself, to allow
+    /// invalidating tiles if the surface transform changes.
+    /// This is only relevant when raster_space == RasterSpace::Screen.
+    raster_transform: TransformKey,
 }
 
 impl TileCache {
@@ -164,12 +345,14 @@ impl TileCache {
             tile_rect: TileRect::zero(),
             local_tile_size: PictureSize::zero(),
             transforms: Vec::new(),
+            opacity_bindings: FastHashMap::default(),
             needs_update: true,
             dirty_region: None,
             space_mapper: SpaceMapper::new(
                 ROOT_SPATIAL_NODE_INDEX,
                 PictureRect::zero(),
             ),
+            raster_transform: TransformKey::Local,
         }
     }
 
@@ -179,6 +362,8 @@ impl TileCache {
     pub fn update_transforms(
         &mut self,
         surface_spatial_node_index: SpatialNodeIndex,
+        raster_spatial_node_index: SpatialNodeIndex,
+        raster_space: RasterSpace,
         frame_context: &FrameBuildingContext,
     ) {
         // Initialize the space mapper with current bounds,
@@ -217,45 +402,101 @@ impl TileCache {
         // dependencies for each tile.
         // TODO(gw): We could be smarter here and only rebuild for the primitives
         //           which are affected by transforms that have changed.
-        self.needs_update = if self.transforms.len() == frame_context.clip_scroll_tree.spatial_nodes.len() {
-            // If the transform array length is the same, then we can walk the list
-            // and check if the values of each transform are the same.
-            let mut any_transforms_changed = false;
-
+        if self.transforms.len() == frame_context.clip_scroll_tree.spatial_nodes.len() {
             for (i, transform) in self.transforms.iter_mut().enumerate() {
-                let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
-                    surface_spatial_node_index,
-                    SpatialNodeIndex(i),
-                    frame_context.clip_scroll_tree,
-                ).expect("todo: handle invalid mappings");
+                // If this relative transform was used on the previous frame,
+                // update it and store whether it changed for use during
+                // tile invalidation later.
+                if let Some(ref mut current) = transform.current {
+                    let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
+                        surface_spatial_node_index,
+                        SpatialNodeIndex(i),
+                        frame_context.clip_scroll_tree,
+                    ).expect("todo: handle invalid mappings");
 
-                let key = mapping.into();
-                transform.changed = transform.key != key;
-                transform.key = key;
-
-                any_transforms_changed |= transform.changed;
+                    let key = mapping.into();
+                    transform.changed = key != *current;
+                    *current = key;
+                }
             }
-
-            any_transforms_changed
         } else {
             // If the size of the transforms array changed, just invalidate all the transforms for now.
             self.transforms.clear();
 
-            for i in 0 .. frame_context.clip_scroll_tree.spatial_nodes.len() {
-                let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
-                    surface_spatial_node_index,
-                    SpatialNodeIndex(i),
-                    frame_context.clip_scroll_tree,
-                ).expect("todo: handle invalid mappings");
-
-                self.transforms.push(TransformInfo {
-                    key: mapping.into(),
+            for _ in 0 .. frame_context.clip_scroll_tree.spatial_nodes.len() {
+                self.transforms.push(GlobalTransformInfo {
+                    current: None,
                     changed: true,
                 });
             }
-
-            true
         };
+
+        // Do a hacky diff of opacity binding values from the last frame. This is
+        // used later on during tile invalidation tests.
+        let current_properties = frame_context.scene_properties.float_properties();
+        let old_properties = mem::replace(&mut self.opacity_bindings, FastHashMap::default());
+        for (id, value) in current_properties {
+            let changed = match old_properties.get(id) {
+                Some(old_property) => !old_property.value.approx_eq(value),
+                None => true,
+            };
+            self.opacity_bindings.insert(*id, OpacityBindingInfo {
+                value: *value,
+                changed,
+            });
+        }
+
+        // Update the state of the transform for compositing this picture.
+        self.raster_transform = match raster_space {
+            RasterSpace::Screen => {
+                // In general cases, if we're rasterizing a picture in screen space, then the
+                // value of the surface spatial node will affect the contents of the picture
+                // itself. However, if the surface and raster spatial nodes are in the same
+                // coordinate system (which is the common case!) then we are effectively drawing
+                // in a local space anyway, so don't care about that transform for the purposes
+                // of validating the surface cache contents.
+
+                let mut key = CoordinateSpaceMapping::<LayoutPixel, PicturePixel>::new(
+                    raster_spatial_node_index,
+                    surface_spatial_node_index,
+                    frame_context.clip_scroll_tree,
+                ).expect("bug: unable to get coord mapping").into();
+
+                if let TransformKey::ScaleOffset(ref mut key) = key {
+                    key.offset_x = 0.0;
+                    key.offset_y = 0.0;
+                }
+
+                key
+            }
+            RasterSpace::Local(..) => {
+                TransformKey::local()
+            }
+        };
+
+        // Walk the transforms and see if we need to rebuild the primitive
+        // dependencies for each tile.
+        // TODO(gw): We could be smarter here and only rebuild for the primitives
+        //           which are affected by transforms that have changed.
+        for tile in &mut self.tiles {
+            tile.descriptor.local_tile_size = self.local_tile_size.into();
+            tile.descriptor.raster_transform = self.raster_transform.clone();
+
+            debug_assert_eq!(tile.transform_info.len(), tile.descriptor.transforms.len());
+            for (info, transform) in tile.transform_info.iter_mut().zip(tile.descriptor.transforms.iter_mut()) {
+                let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
+                    surface_spatial_node_index,
+                    info.spatial_node_index,
+                    frame_context.clip_scroll_tree,
+                ).expect("todo: handle invalid mappings");
+                let new_transform = mapping.into();
+
+                info.changed = *transform != new_transform;
+                *transform = new_transform;
+
+                self.needs_update |= info.changed;
+            }
+        }
 
         // If we need to update the dependencies for tiles, walk each tile
         // and clear the transforms and opacity bindings arrays.
@@ -268,7 +509,9 @@ impl TileCache {
             for (i, mut tile) in self.tiles.drain(..).enumerate() {
                 let y = i as i32 / self.tile_rect.size.width;
                 let x = i as i32 % self.tile_rect.size.width;
-                tile.transforms.clear();
+                tile.descriptor.clear();
+                tile.transform_info.clear();
+                tile.tile_transform_map.clear();
                 tile.opacity_bindings.clear();
                 tile.image_keys.clear();
                 tile.in_use = false;
@@ -321,12 +564,26 @@ impl TileCache {
                 // just resize the picture by adding / remove primitives.
                 let tx = x0 - self.tile_rect.origin.x + x;
                 let ty = y0 - self.tile_rect.origin.y + y;
+                let tile_offset = TileOffset::new(x + x0, y + y0);
 
                 let tile = if tx >= 0 && ty >= 0 && tx < self.tile_rect.size.width && ty < self.tile_rect.size.height {
                     let index = (ty * self.tile_rect.size.width + tx) as usize;
-                    mem::replace(&mut self.tiles[index], Tile::new())
+                    mem::replace(
+                        &mut self.tiles[index],
+                        Tile::new(
+                            tile_offset,
+                            self.local_tile_size.into(),
+                            self.raster_transform.clone(),
+                        )
+                    )
                 } else {
-                    self.old_tiles.remove(&TileOffset::new(x + x0, y + y0)).unwrap_or_else(Tile::new)
+                    self.old_tiles.remove(&tile_offset).unwrap_or_else(|| {
+                        Tile::new(
+                            tile_offset,
+                            self.local_tile_size.into(),
+                            self.raster_transform.clone(),
+                        )
+                    })
                 };
                 new_tiles.push(tile);
             }
@@ -345,11 +602,10 @@ impl TileCache {
         clip_scroll_tree: &ClipScrollTree,
         prim_data_store: &PrimitiveDataStore,
         clip_chain_nodes: &[ClipChainNode],
-        primitives: &[Primitive],
         pictures: &[PicturePrimitive],
         resource_cache: &ResourceCache,
-        scene_properties: &SceneProperties,
         opacity_binding_store: &OpacityBindingStorage,
+        image_instances: &ImageInstanceStorage,
     ) {
         self.space_mapper.set_target_spatial_node(
             prim_instance.spatial_node_index,
@@ -359,7 +615,15 @@ impl TileCache {
         let prim_data = &prim_data_store[prim_instance.prim_data_handle];
 
         // Map the primitive local rect into the picture space.
-        let rect = match self.space_mapper.map(&prim_data.prim_rect) {
+        // TODO(gw): We should maybe store this in the primitive template
+        //           during interning so that we never have to calculate
+        //           it during frame building.
+        let culling_rect = match prim_data.prim_rect.intersection(&prim_data.clip_rect) {
+            Some(rect) => rect,
+            None => return,
+        };
+
+        let rect = match self.space_mapper.map(&culling_rect) {
             Some(rect) => rect,
             None => {
                 return;
@@ -382,77 +646,78 @@ impl TileCache {
         self.reconfigure_tiles_if_required(x0, y0, x1, y1);
 
         // Build the list of resources that this primitive has dependencies on.
-        let mut is_cacheable = true;
-        let mut opacity_bindings: SmallVec<[(PropertyBindingId, f32); 4]> = SmallVec::new();
+        let mut opacity_bindings: SmallVec<[PropertyBindingId; 4]> = SmallVec::new();
         let mut clip_chain_spatial_nodes: SmallVec<[SpatialNodeIndex; 8]> = SmallVec::new();
+        let mut clip_chain_uids: SmallVec<[ClipUid; 8]> = SmallVec::new();
         let mut image_keys: SmallVec<[ImageKey; 8]> = SmallVec::new();
         let mut current_clip_chain_id = prim_instance.clip_chain_id;
+
+        // Some primitives can not be cached (e.g. external video images)
+        let is_cacheable = prim_instance.is_cacheable(
+            prim_data_store,
+            resource_cache,
+        );
 
         match prim_instance.kind {
             PrimitiveInstanceKind::Picture { pic_index } => {
                 // Pictures can depend on animated opacity bindings.
                 let pic = &pictures[pic_index.0];
                 if let Some(PictureCompositeMode::Filter(FilterOp::Opacity(binding, _))) = pic.requested_composite_mode {
-                    if let PropertyBinding::Binding(key, default) = binding {
-                        opacity_bindings.push((key.id, default));
+                    if let PropertyBinding::Binding(key, _) = binding {
+                        opacity_bindings.push(key.id);
                     }
                 }
             }
-            PrimitiveInstanceKind::LegacyPrimitive { prim_index } => {
-                let prim = &primitives[prim_index.0];
-
-                // Some primitives can not be cached (e.g. external video images)
-                is_cacheable = prim_instance.is_cacheable(
-                    &prim.details,
-                    resource_cache,
-                );
-
-                match prim.details {
-                    PrimitiveDetails::Brush(ref brush) => {
-                        match brush.kind {
-                            // Rectangles and images may depend on opacity bindings.
-                            // TODO(gw): In future, we might be able to completely remove
-                            //           opacity collapsing support. It's of limited use
-                            //           once we have full picture caching.
-                            BrushKind::Solid { opacity_binding_index, .. } => {
-                                let opacity_binding = &opacity_binding_store[opacity_binding_index];
-                                for binding in &opacity_binding.bindings {
-                                    if let PropertyBinding::Binding(key, default) = binding {
-                                        opacity_bindings.push((key.id, *default));
-                                    }
-                                }
-                            }
-                            BrushKind::Image { opacity_binding_index, ref request, .. } => {
-                                let opacity_binding = &opacity_binding_store[opacity_binding_index];
-                                for binding in &opacity_binding.bindings {
-                                    if let PropertyBinding::Binding(key, default) = binding {
-                                        opacity_bindings.push((key.id, *default));
-                                    }
-                                }
-
-                                image_keys.push(request.key);
-                            }
-                            BrushKind::YuvImage { ref yuv_key, .. } => {
-                                image_keys.extend_from_slice(yuv_key);
-                            }
-                            BrushKind::RadialGradient { .. } |
-                            BrushKind::LinearGradient { .. } |
-                            BrushKind::Border { .. } => {
-                            }
+            PrimitiveInstanceKind::Rectangle { opacity_binding_index, .. } => {
+                if opacity_binding_index != OpacityBindingIndex::INVALID {
+                    let opacity_binding = &opacity_binding_store[opacity_binding_index];
+                    for binding in &opacity_binding.bindings {
+                        if let PropertyBinding::Binding(key, _) = binding {
+                            opacity_bindings.push(key.id);
                         }
+                    }
+                }
+            }
+            PrimitiveInstanceKind::Image { image_instance_index, .. } => {
+                let image_instance = &image_instances[image_instance_index];
+                let opacity_binding_index = image_instance.opacity_binding_index;
+
+                if opacity_binding_index != OpacityBindingIndex::INVALID {
+                    let opacity_binding = &opacity_binding_store[opacity_binding_index];
+                    for binding in &opacity_binding.bindings {
+                        if let PropertyBinding::Binding(key, _) = binding {
+                            opacity_bindings.push(key.id);
+                        }
+                    }
+                }
+
+                match prim_data.kind {
+                    PrimitiveTemplateKind::Image { key, .. } => {
+                        image_keys.push(key);
+                    }
+                    _ => {
+                        unreachable!();
+                    }
+                }
+            }
+            PrimitiveInstanceKind::YuvImage { .. } => {
+                match prim_data.kind {
+                    PrimitiveTemplateKind::YuvImage { ref yuv_key, .. } => {
+                        image_keys.extend_from_slice(yuv_key);
+                    }
+                    _ => {
+                        unreachable!();
                     }
                 }
             }
             PrimitiveInstanceKind::TextRun { .. } |
             PrimitiveInstanceKind::LineDecoration { .. } |
-            PrimitiveInstanceKind::Clear => {
+            PrimitiveInstanceKind::Clear |
+            PrimitiveInstanceKind::NormalBorder { .. } |
+            PrimitiveInstanceKind::LinearGradient { .. } |
+            PrimitiveInstanceKind::RadialGradient { .. } |
+            PrimitiveInstanceKind::ImageBorder { .. } => {
                 // These don't contribute dependencies
-            }
-        }
-
-        for (key, current) in &mut opacity_bindings {
-            if let Some(value) = scene_properties.get_float_value(*key) {
-                *current = value;
             }
         }
 
@@ -465,6 +730,7 @@ impl TileCache {
             // handled by the clip collector when these tiles are composited.
             if clip_chain_node.spatial_node_index > surface_spatial_node_index {
                 clip_chain_spatial_nodes.push(clip_chain_node.spatial_node_index);
+                clip_chain_uids.push(clip_chain_node.handle.uid());
             }
             current_clip_chain_id = clip_chain_node.parent_clip_chain_id;
         }
@@ -486,17 +752,33 @@ impl TileCache {
                 }
 
                 // Include the transform of the primitive itself.
-                tile.transforms.insert(prim_instance.spatial_node_index);
+                tile.push_transform_dependency(
+                    prim_instance.spatial_node_index,
+                    surface_spatial_node_index,
+                    clip_scroll_tree,
+                    &mut self.transforms,
+                );
 
                 // Include the transforms of any relevant clip nodes for this primitive.
                 for clip_chain_spatial_node in &clip_chain_spatial_nodes {
-                    tile.transforms.insert(*clip_chain_spatial_node);
+                    tile.push_transform_dependency(
+                        *clip_chain_spatial_node,
+                        surface_spatial_node_index,
+                        clip_scroll_tree,
+                        &mut self.transforms,
+                    );
                 }
 
                 // Include any opacity bindings this primitive depends on.
-                for &(id, value) in &opacity_bindings {
-                    tile.opacity_bindings.insert(id, value);
+                for id in &opacity_bindings {
+                    if tile.opacity_bindings.insert(*id) {
+                        tile.descriptor.opacity_bindings.push(*id);
+                    }
                 }
+
+                // Update the tile descriptor, used for tile comparison during scene swaps.
+                tile.descriptor.prim_uids.push(prim_instance.prim_data_handle.uid());
+                tile.descriptor.clip_uids.extend_from_slice(&clip_chain_uids);
             }
         }
     }
@@ -508,13 +790,13 @@ impl TileCache {
         surface_spatial_node_index: SpatialNodeIndex,
         frame_context: &FrameBuildingContext,
         resource_cache: &mut ResourceCache,
+        gpu_cache: &mut GpuCache,
+        retained_tiles: &mut FastHashMap<TileDescriptor, TextureCacheHandle>,
     ) {
         self.needs_update = false;
 
         for (_, tile) in self.old_tiles.drain() {
-            if resource_cache.texture_cache.is_allocated(&tile.handle) {
-                resource_cache.texture_cache.mark_unused(&tile.handle);
-            }
+            resource_cache.texture_cache.mark_unused(&tile.handle);
         }
 
         let world_mapper = SpaceMapper::new_with_target(
@@ -537,6 +819,12 @@ impl TileCache {
                 let i = y * self.tile_rect.size.width + x;
                 let tile = &mut self.tiles[i as usize];
 
+                // If this tile is unused (has no primitives on it), we can just
+                // skip any invalidation / dirty region work for it.
+                if !tile.in_use {
+                    continue;
+                }
+
                 let tile_rect = PictureRect::new(
                     PicturePoint::new(
                         (self.tile_rect.origin.x + x) as f32 * self.local_tile_size.width,
@@ -545,12 +833,37 @@ impl TileCache {
                     self.local_tile_size,
                 );
 
-                // Invalidate the tile if not cacheable
-                if !tile.is_cacheable {
-                    tile.is_valid = false;
+                // Check if this tile is actually visible.
+                let tile_world_rect = world_mapper
+                    .map(&tile_rect)
+                    .expect("bug: unable to map tile to world coords");
+                tile.is_visible = frame_context.screen_world_rect.intersects(&tile_world_rect);
+
+                // Try to reuse cached tiles from the previous scene in this new
+                // scene, if possible.
+                if tile.is_visible && !resource_cache.texture_cache.is_allocated(&tile.handle) {
+                    // See if we have a retained tile from last scene that matches the
+                    // exact content of this tile.
+                    if let Some(retained_handle) = retained_tiles.remove(&tile.descriptor) {
+                        // Only use if not evicted from texture cache in the meantime.
+                        if resource_cache.texture_cache.is_allocated(&retained_handle) {
+                            // We found a matching tile from the previous scene, so use it!
+                            tile.handle = retained_handle;
+                            tile.is_valid = true;
+                            // We know that the hash key of the descriptor validates that
+                            // the local transforms in this tile exactly match the value
+                            // of the current relative transforms needed for this tile,
+                            // so we can mark those transforms as valid to avoid the
+                            // retained tile being invalidated below.
+                            for info in &mut tile.transform_info {
+                                info.changed = false;
+                            }
+                        }
+                    }
                 }
 
-                if !tile.in_use {
+                // Invalidate the tile if not cacheable
+                if !tile.is_cacheable {
                     tile.is_valid = false;
                 }
 
@@ -562,21 +875,23 @@ impl TileCache {
                     }
                 }
 
-                // Invalidate the tile if any dependent transforms changed
-                for node_index in &tile.transforms {
-                    if self.transforms[node_index.0].changed {
+                // Invalidate the tile if any opacity bindings changed.
+                for id in &tile.opacity_bindings {
+                    let changed = match self.opacity_bindings.get(id) {
+                        Some(info) => info.changed,
+                        None => true,
+                    };
+                    if changed {
                         tile.is_valid = false;
                         break;
                     }
                 }
 
-                // Invalidate the tile if any opacity bindings changed.
-                for (id, old) in &mut tile.opacity_bindings {
-                    if let Some(new) = frame_context.scene_properties.get_float_value(*id) {
-                        if !new.approx_eq(old) {
-                            tile.is_valid = false;
-                            break;
-                        }
+                // Invalidate the tile if any dependent transforms changed
+                for info in &tile.transform_info {
+                    if info.changed {
+                        tile.is_valid = false;
+                        break;
                     }
                 }
 
@@ -585,18 +900,19 @@ impl TileCache {
                     tile.is_valid = false;
                 }
 
-                // Check if this tile is actually visible.
-                let tile_world_rect = world_mapper
-                    .map(&tile_rect)
-                    .expect("bug: unable to map tile to world coords");
-                tile.is_visible = frame_context.screen_world_rect.intersects(&tile_world_rect);
+                if tile.is_visible {
+                    // Ensure we request the texture cache handle for this tile
+                    // each frame it will be used so the texture cache doesn't
+                    // decide to evict tiles that we currently want to use.
+                    resource_cache.texture_cache.request(&tile.handle, gpu_cache);
 
-                // If we have an invalid tile, which is also visible, add it to the
-                // dirty rect we will need to draw.
-                if !tile.is_valid && tile.is_visible {
-                    dirty_rect = dirty_rect.union(&tile_rect);
-                    tile_offset.x = tile_offset.x.min(x);
-                    tile_offset.y = tile_offset.y.min(y);
+                    // If we have an invalid tile, which is also visible, add it to the
+                    // dirty rect we will need to draw.
+                    if !tile.is_valid {
+                        dirty_rect = dirty_rect.union(&tile_rect);
+                        tile_offset.x = tile_offset.x.min(x);
+                        tile_offset.y = tile_offset.y.min(y);
+                    }
                 }
             }
         }
@@ -1103,6 +1419,22 @@ impl PicturePrimitive {
         }
     }
 
+    /// Destroy an existing picture. This is called just before
+    /// a frame builder is replaced with a newly built scene. It
+    /// gives a picture a chance to retain any cached tiles that
+    /// may be useful during the next scene build.
+    pub fn destroy(
+        mut self,
+        retained_tiles: &mut FastHashMap<TileDescriptor, TextureCacheHandle>,
+    ) {
+        if let Some(tile_cache) = self.tile_cache.take() {
+            debug_assert!(tile_cache.old_tiles.is_empty());
+            for tile in tile_cache.tiles {
+                retained_tiles.extend(tile.destroy());
+            }
+        }
+    }
+
     pub fn new_image(
         requested_composite_mode: Option<PictureCompositeMode>,
         context_3d: Picture3DContext<OrderedPictureChild>,
@@ -1466,18 +1798,6 @@ impl PicturePrimitive {
             return None;
         }
 
-        // If we have a tile cache for this picture, see if any of the
-        // relative transforms have changed, which means we need to
-        // re-map the dependencies of any child primitives.
-        if let Some(mut tile_cache) = self.tile_cache.take() {
-            tile_cache.update_transforms(
-                self.spatial_node_index,
-                frame_context,
-            );
-
-            state.push_tile_cache(tile_cache);
-        }
-
         // Push information about this pic on stack for children to read.
         state.push_picture(PictureInfo {
             spatial_node_index: self.spatial_node_index,
@@ -1552,6 +1872,20 @@ impl PicturePrimitive {
                 surface_index,
             });
 
+            // If we have a tile cache for this picture, see if any of the
+            // relative transforms have changed, which means we need to
+            // re-map the dependencies of any child primitives.
+            if let Some(mut tile_cache) = self.tile_cache.take() {
+                tile_cache.update_transforms(
+                    surface_spatial_node_index,
+                    raster_spatial_node_index,
+                    raster_space,
+                    frame_context,
+                );
+
+                state.push_tile_cache(tile_cache);
+            }
+
             // If we have a cache key / descriptor for this surface,
             // update any transforms it cares about.
             if let Some(ref mut surface_desc) = self.surface_desc {
@@ -1575,28 +1909,29 @@ impl PicturePrimitive {
         frame_context: &FrameBuildingContext,
         resource_cache: &mut ResourceCache,
         prim_data_store: &PrimitiveDataStore,
-        primitives: &[Primitive],
         pictures: &[PicturePrimitive],
         clip_store: &ClipStore,
         opacity_binding_store: &OpacityBindingStorage,
+        image_instances: &ImageInstanceStorage,
     ) {
         if state.tile_cache_update_count == 0 {
             return;
         }
 
+        let surface_spatial_node_index = state.current_surface().surface_spatial_node_index;
+
         for prim_instance in &self.prim_list.prim_instances {
             for tile_cache in &mut state.tile_cache_stack {
                 tile_cache.update_prim_dependencies(
                     prim_instance,
-                    self.spatial_node_index,
+                    surface_spatial_node_index,
                     &frame_context.clip_scroll_tree,
                     prim_data_store,
                     &clip_store.clip_chain_nodes,
-                    primitives,
                     pictures,
                     resource_cache,
-                    frame_context.scene_properties,
                     opacity_binding_store,
+                    image_instances,
                 );
             }
         }
@@ -1610,6 +1945,8 @@ impl PicturePrimitive {
         state: &mut PictureUpdateState,
         frame_context: &FrameBuildingContext,
         resource_cache: &mut ResourceCache,
+        gpu_cache: &mut GpuCache,
+        retained_tiles: &mut FastHashMap<TileDescriptor, TextureCacheHandle>,
     ) {
         // Pop the state information about this picture.
         state.pop_picture();
@@ -1702,6 +2039,8 @@ impl PicturePrimitive {
                     self.spatial_node_index,
                     frame_context,
                     resource_cache,
+                    gpu_cache,
+                    retained_tiles,
                 );
 
                 self.tile_cache = Some(tile_cache);
@@ -1834,7 +2173,7 @@ impl PicturePrimitive {
 
                                 // If tile is invalidated, and on-screen, then we will
                                 // need to rasterize it.
-                                if !tile.is_valid && tile.is_visible {
+                                if !tile.is_valid && tile.is_visible && tile.in_use {
                                     // Notify the texture cache that we want to use this handle
                                     // and make sure it is allocated.
                                     frame_state.resource_cache.texture_cache.update(
@@ -2333,4 +2672,29 @@ fn create_raster_mappers(
     );
 
     (map_raster_to_world, map_pic_to_raster)
+}
+
+// Check whether a relative transform between two spatial nodes has changed
+// since last frame. If that relative transform hasn't been calculated, then
+// do that now and store it for later use.
+fn get_global_transform_changed(
+    global_transforms: &mut [GlobalTransformInfo],
+    spatial_node_index: SpatialNodeIndex,
+    clip_scroll_tree: &ClipScrollTree,
+    surface_spatial_node_index: SpatialNodeIndex,
+) -> bool {
+    let transform = &mut global_transforms[spatial_node_index.0];
+
+    if transform.current.is_none() {
+        let mapping: CoordinateSpaceMapping<LayoutPixel, PicturePixel> = CoordinateSpaceMapping::new(
+            surface_spatial_node_index,
+            spatial_node_index,
+            clip_scroll_tree,
+        ).expect("todo: handle invalid mappings");
+
+        transform.current = Some(mapping.into());
+        transform.changed = true;
+    }
+
+    transform.changed
 }

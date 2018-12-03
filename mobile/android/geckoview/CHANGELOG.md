@@ -19,5 +19,14 @@
 - Changed `LoadRequest.isUserTriggered` to `isRedirect`.
 - Added `GeckoSession.LOAD_FLAGS_BYPASS_CLASSIFIER` to bypass the URI
   classifier.
+- Added a `protected` empty constructor to all field-only classes so that apps
+  can mock these classes in tests.
+- Added `ContentDelegate.ContextElement` to extend the information passed to
+  `ContentDelegate#onContextMenu`. Extended information includes the element's
+  title and alt attributes.
+- Changed `ContentDelegate.ContextElement` TYPE_ constants to public access.
+  Changed `ContentDelegate.ContextElement` to non-final class.
+- Update `CrashReporter.sendCrashReport()` to return the crash ID as a
+  GeckoResult<String>.
 
-[api-version]: 15d9fe901464f8b00016237cd8c0d954686bd07d
+[api-version]: d6c40ef4886c7818a446fb7b7a1cdbde706025ab

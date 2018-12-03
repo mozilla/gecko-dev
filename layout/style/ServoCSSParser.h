@@ -11,6 +11,7 @@
 
 #include "mozilla/gfx/Types.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/ServoTypes.h"
 #include "nsColor.h"
 #include "nsCSSPropertyID.h"
@@ -28,8 +29,8 @@ using RawGeckoGfxMatrix4x4 = mozilla::gfx::Float[16];
 namespace mozilla {
 namespace css {
 class Loader;
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 namespace mozilla {
 
@@ -37,9 +38,8 @@ class ServoStyleSet;
 class SharedFontList;
 struct URLExtraData;
 
-class ServoCSSParser
-{
-public:
+class ServoCSSParser {
+ public:
   using ParsingEnvironment = nsDOMCSSDeclaration::ParsingEnvironment;
 
   /**
@@ -65,10 +65,8 @@ public:
    *   won't be reported to the console.
    * @return Whether aValue was successfully parsed and aResultColor was set.
    */
-  static bool ComputeColor(ServoStyleSet* aStyleSet,
-                           nscolor aCurrentColor,
-                           const nsAString& aValue,
-                           nscolor* aResultColor,
+  static bool ComputeColor(ServoStyleSet* aStyleSet, nscolor aCurrentColor,
+                           const nsAString& aValue, nscolor* aResultColor,
                            bool* aWasCurrentColor = nullptr,
                            css::Loader* aLoader = nullptr);
 
@@ -85,10 +83,9 @@ public:
    *   in Servo.
    */
   static already_AddRefed<RawServoDeclarationBlock> ParseProperty(
-    nsCSSPropertyID aProperty,
-    const nsAString& aValue,
-    const ParsingEnvironment& aParsingEnvironment,
-    ParsingMode aParsingMode = ParsingMode::Default);
+      nsCSSPropertyID aProperty, const nsAString& aValue,
+      const ParsingEnvironment& aParsingEnvironment,
+      ParsingMode aParsingMode = ParsingMode::Default);
 
   /**
    * Parse a animation timing function.
@@ -98,8 +95,7 @@ public:
    * @param aResult The output timing function. (output)
    * @return Whether the value was successfully parsed.
    */
-  static bool ParseEasing(const nsAString& aValue,
-                          URLExtraData* aUrl,
+  static bool ParseEasing(const nsAString& aValue, URLExtraData* aUrl,
                           nsTimingFunction& aResult);
 
   /**
@@ -127,12 +123,10 @@ public:
    * @param aWeight The parsed FontWeight. (output)
    * @return Whether the value was successfully parsed.
    */
-  static bool ParseFontShorthandForMatching(const nsAString& aValue,
-                                            URLExtraData* aUrl,
-                                            RefPtr<SharedFontList>& aList,
-                                            StyleComputedFontStyleDescriptor& aStyle,
-                                            float& aStretch,
-                                            float& aWeight);
+  static bool ParseFontShorthandForMatching(
+      const nsAString& aValue, URLExtraData* aUrl,
+      RefPtr<SharedFontList>& aList, StyleComputedFontStyleDescriptor& aStyle,
+      float& aStretch, float& aWeight);
 
   /**
    * Get a URLExtraData from |nsIDocument|.
@@ -151,6 +145,6 @@ public:
   static ParsingEnvironment GetParsingEnvironment(nsIDocument* aDocument);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoCSSParser_h
+#endif  // mozilla_ServoCSSParser_h

@@ -188,8 +188,8 @@ void AudioContext::NotifyScheduledSourceNodeStarted() {
   }
 
   const bool isAllowedToPlay = AutoplayPolicy::IsAllowedToPlay(*this);
-  AUTOPLAY_LOG("Trying to start AudioContext %p, IsAllowedToPlay=%d",
-               this, isAllowedToPlay);
+  AUTOPLAY_LOG("Trying to start AudioContext %p, IsAllowedToPlay=%d", this,
+               isAllowedToPlay);
   if (isAllowedToPlay) {
     ResumeInternal();
   } else {
@@ -209,8 +209,8 @@ void AudioContext::EnsureAutoplayRequested() {
     return;
   }
 
-  AUTOPLAY_LOG("AudioContext %p EnsureAutoplayRequested %p",
-               this, request.get());
+  AUTOPLAY_LOG("AudioContext %p EnsureAutoplayRequested %p", this,
+               request.get());
   RefPtr<AudioContext> self = this;
   request->RequestWithPrompt()->Then(
       parent->AsGlobal()->AbstractMainThreadFor(TaskCategory::Other), __func__,
@@ -225,13 +225,12 @@ void AudioContext::EnsureAutoplayRequested() {
                      request.get());
         self->mWasAllowedToStart = false;
         self->DispatchBlockedEvent();
-        nsIDocument* doc = self->GetParentObject() ?
-            self->GetParentObject()->GetExtantDoc() : nullptr;
-        nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                        NS_LITERAL_CSTRING("Media"),
-                                        doc,
-                                        nsContentUtils::eDOM_PROPERTIES,
-                                        "BlockAutoplayError");
+        nsIDocument* doc = self->GetParentObject()
+                               ? self->GetParentObject()->GetExtantDoc()
+                               : nullptr;
+        nsContentUtils::ReportToConsole(
+            nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Media"), doc,
+            nsContentUtils::eDOM_PROPERTIES, "BlockAutoplayError");
       });
 }
 
@@ -664,7 +663,7 @@ MediaStreamGraph* AudioContext::Graph() const {
   return Destination()->Stream()->Graph();
 }
 
-MediaStream* AudioContext::DestinationStream() const {
+AudioNodeStream* AudioContext::DestinationStream() const {
   if (Destination()) {
     return Destination()->Stream();
   }
@@ -949,9 +948,8 @@ void AudioContext::SuspendInternal(void* aPromise) {
   if (!mSuspendCalled) {
     streams = GetAllStreams();
   }
-  Graph()->ApplyAudioContextOperation(DestinationStream()->AsAudioNodeStream(),
-                                      streams, AudioContextOperation::Suspend,
-                                      aPromise);
+  Graph()->ApplyAudioContextOperation(DestinationStream(), streams,
+                                      AudioContextOperation::Suspend, aPromise);
 
   mSuspendCalled = true;
 }
@@ -977,8 +975,8 @@ already_AddRefed<Promise> AudioContext::Resume(ErrorResult& aRv) {
   mPendingResumePromises.AppendElement(promise);
 
   const bool isAllowedToPlay = AutoplayPolicy::IsAllowedToPlay(*this);
-  AUTOPLAY_LOG("Trying to resume AudioContext %p, IsAllowedToPlay=%d",
-               this, isAllowedToPlay);
+  AUTOPLAY_LOG("Trying to resume AudioContext %p, IsAllowedToPlay=%d", this,
+               isAllowedToPlay);
   if (isAllowedToPlay) {
     mWasAllowedToStart = true;
     ResumeInternal();
@@ -1001,9 +999,8 @@ void AudioContext::ResumeInternal() {
   if (mSuspendCalled) {
     streams = GetAllStreams();
   }
-  Graph()->ApplyAudioContextOperation(DestinationStream()->AsAudioNodeStream(),
-                                      streams, AudioContextOperation::Resume,
-                                      nullptr);
+  Graph()->ApplyAudioContextOperation(DestinationStream(), streams,
+                                      AudioContextOperation::Resume, nullptr);
   mSuspendCalled = false;
 }
 
@@ -1060,7 +1057,7 @@ already_AddRefed<Promise> AudioContext::Close(ErrorResult& aRv) {
 
   // This can be called when freeing a document, and the streams are dead at
   // this point, so we need extra null-checks.
-  MediaStream* ds = DestinationStream();
+  AudioNodeStream* ds = DestinationStream();
   if (ds) {
     nsTArray<MediaStream*> streams;
     // If mSuspendCalled or mCloseCalled are true then we already suspended
@@ -1069,7 +1066,7 @@ already_AddRefed<Promise> AudioContext::Close(ErrorResult& aRv) {
     if (!mSuspendCalled && !mCloseCalled) {
       streams = GetAllStreams();
     }
-    Graph()->ApplyAudioContextOperation(ds->AsAudioNodeStream(), streams,
+    Graph()->ApplyAudioContextOperation(ds, streams,
                                         AudioContextOperation::Close, promise);
   }
   mCloseCalled = true;

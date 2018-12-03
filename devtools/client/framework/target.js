@@ -5,6 +5,7 @@
 "use strict";
 
 const EventEmitter = require("devtools/shared/event-emitter");
+const Services = require("Services");
 
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "DebuggerClient",
@@ -472,6 +473,12 @@ Target.prototype = {
     return this.activeTab && this.activeTab.traits.canRewind;
   },
 
+  isReplayEnabled() {
+    return Services.prefs.getBoolPref("devtools.recordreplay.mvp.enabled")
+      && this.canRewind
+      && this.isLocalTab;
+  },
+
   getExtensionPathName(url) {
     // Return the url if the target is not a webextension.
     if (!this.isWebExtension) {
@@ -529,7 +536,7 @@ Target.prototype = {
       // The call to attachTarget is to be removed once all Target are having a front
       // passed as contructor's argument.
       if (!this.activeTab) {
-        const [, targetFront] = await this._client.attachTarget(this.form.actor);
+        const [, targetFront] = await this._client.attachTarget(this.form);
         this.activeTab = targetFront;
       } else {
         await this.activeTab.attach();
@@ -562,13 +569,7 @@ Target.prototype = {
         // the addon (e.g. when the addon is disabled or uninstalled).
         // To retrieve the target actor instance, we call its "connect" method, (which
         // fetches the target actor form from a WebExtensionTargetActor instance).
-        const {form} = await this._client.request({
-          to: this.form.actor, type: "connect",
-        });
-
-        this._form = form;
-        this._url = this.form.url;
-        this._title = this.form.title;
+        this.activeTab = await this.activeTab.connect();
       }
 
       // AddonTargetActor and ContentProcessTargetActor don't inherit from
@@ -576,14 +577,11 @@ Target.prototype = {
       // to be attached via DebuggerClient.attachTarget.
       if (this.isBrowsingContext) {
         await attachBrowsingContextTarget();
-      } else if (this.isLegacyAddon) {
-        const [, addonTargetFront] = await this._client.attachAddon(this.form);
-        this.activeTab = addonTargetFront;
 
-      // Worker and Content process targets are the first target to have their front already
-      // instantiated. The plan is to have all targets to have their front passed as
-      // constructor argument.
-      } else if (this.isWorkerTarget) {
+      // Addon Worker and Content process targets are the first targets to have their
+      // front already instantiated. The plan is to have all targets to have their front
+      // passed as constructor argument.
+      } else if (this.isWorkerTarget || this.isLegacyAddon) {
         // Worker is the first front to be completely migrated to have only its attach
         // method being called from Target.attach. Other fronts should be refactored.
         await this.activeTab.attach();

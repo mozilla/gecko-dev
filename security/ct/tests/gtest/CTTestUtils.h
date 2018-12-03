@@ -13,9 +13,9 @@
 #include "mozpkix/Time.h"
 #include "seccomon.h"
 #include "SignedCertificateTimestamp.h"
-#include "SignedTreeHead.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 Buffer HexToBytes(const char* hexData);
 
@@ -75,9 +75,6 @@ void GetPrecertSCT(SignedCertificateTimestamp& sct);
 // Issuer key hash.
 Buffer GetDefaultIssuerKeyHash();
 
-// A sample, valid STH.
-void GetSampleSignedTreeHead(SignedTreeHead& sth);
-
 // The SHA256 root hash for the sample STH.
 Buffer GetSampleSTHSHA256RootHash();
 
@@ -124,11 +121,9 @@ void ExtractEmbeddedSCTList(const Buffer& cert, Buffer& result);
 // an OCSP response as an extension with the OID 1.3.6.1.4.1.11129.2.4.5.
 // The OCSP response is verified, and the verification must succeed for the
 // extension to be extracted.
-void ExtractSCTListFromOCSPResponse(pkix::Input cert,
-                                    pkix::Input issuerSPKI,
+void ExtractSCTListFromOCSPResponse(pkix::Input cert, pkix::Input issuerSPKI,
                                     pkix::Input encodedResponse,
-                                    pkix::Time time,
-                                    Buffer& result);
+                                    pkix::Time time, Buffer& result);
 
 // Returns Input for the data stored in the buffer, failing assertion on error.
 pkix::Input InputForBuffer(const Buffer& buffer);
@@ -136,6 +131,7 @@ pkix::Input InputForBuffer(const Buffer& buffer);
 // Returns Input for the data stored in the item, failing assertion on error.
 pkix::Input InputForSECItem(const SECItem& item);
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla
 
 #endif  // CTTestUtils_h

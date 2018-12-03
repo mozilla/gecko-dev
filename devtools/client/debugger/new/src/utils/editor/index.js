@@ -18,7 +18,7 @@ import { isWasm, lineToWasmOffset, wasmOffsetToLine } from "../wasm";
 
 import type { AstLocation } from "../../workers/parser";
 import type { EditorPosition, EditorRange } from "../editor/types";
-import type { Location } from "../../types";
+import type { SourceLocation } from "../../types";
 type Editor = Object;
 
 let editor: ?Editor;
@@ -96,7 +96,7 @@ export function toEditorLine(sourceId: string, lineOrOffset: number): number {
   return lineOrOffset ? lineOrOffset - 1 : 1;
 }
 
-export function toEditorPosition(location: Location): EditorPosition {
+export function toEditorPosition(location: SourceLocation): EditorPosition {
   return {
     line: toEditorLine(location.sourceId, location.line),
     column: isWasm(location.sourceId) || !location.column ? 0 : location.column
@@ -158,6 +158,34 @@ function isVisible(codeMirror: any, top: number, left: number) {
   return inXView && inYView;
 }
 
+export function getLocationsInViewport(_editor: any) {
+  // Get scroll position
+  const charWidth = _editor.codeMirror.defaultCharWidth();
+  const scrollArea = _editor.codeMirror.getScrollInfo();
+  const { scrollLeft } = _editor.codeMirror.doc;
+  const rect = _editor.codeMirror.getWrapperElement().getBoundingClientRect();
+  const topVisibleLine = _editor.codeMirror.lineAtHeight(rect.top, "window");
+  const bottomVisibleLine = _editor.codeMirror.lineAtHeight(
+    rect.bottom,
+    "window"
+  );
+
+  const leftColumn = Math.floor(scrollLeft > 0 ? scrollLeft / charWidth : 0);
+  const rightPosition = scrollLeft + (scrollArea.clientWidth - 30);
+  const rightCharacter = Math.floor(rightPosition / charWidth);
+
+  return {
+    start: {
+      line: topVisibleLine,
+      column: leftColumn
+    },
+    end: {
+      line: bottomVisibleLine,
+      column: rightCharacter
+    }
+  };
+}
+
 export function markText(_editor: any, className, { start, end }: EditorRange) {
   return _editor.codeMirror.markText(
     { ch: start.column, line: start.line },
@@ -173,7 +201,7 @@ export function lineAtHeight(_editor, sourceId, event) {
 
 export function getSourceLocationFromMouseEvent(
   _editor: Object,
-  selectedLocation: Location,
+  selectedLocation: SourceLocation,
   e: MouseEvent
 ) {
   const { line, ch } = _editor.codeMirror.coordsChar({

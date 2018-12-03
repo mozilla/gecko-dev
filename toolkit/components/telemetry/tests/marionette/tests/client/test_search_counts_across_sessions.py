@@ -10,8 +10,6 @@ from telemetry_harness.ping_filters import (
     MAIN_SHUTDOWN_PING,
 )
 
-CANARY_CLIENT_ID = "c0ffeec0-ffee-c0ff-eec0-ffeec0ffeec0"
-
 
 class TestSearchCounts(TelemetryTestCase):
     """Test for SEARCH_COUNTS across sessions."""
@@ -66,8 +64,8 @@ class TestSearchCounts(TelemetryTestCase):
 
         self.search_in_new_tab("mozilla firefox")
 
-        [ping1] = self.wait_for_pings(
-            self.restart_with_new_session, MAIN_SHUTDOWN_PING, 1
+        ping1 = self.wait_for_ping(
+            self.restart_with_new_session, MAIN_SHUTDOWN_PING
         )
 
         # Session S2, subsession 1:
@@ -86,11 +84,7 @@ class TestSearchCounts(TelemetryTestCase):
         #     - SEARCH_COUNTS values should match performed search action
 
         client_id = ping1["clientId"]
-        self.assertIsNotNone(client_id)
-        self.assertNotEqual(client_id, "")
-
-        # Check for client ID that used when Telemetry upload is disabled
-        self.assertNotEqual(client_id, CANARY_CLIENT_ID)
+        self.assertIsValidUUID(client_id)
 
         ping1_info = ping1["payload"]["info"]
         self.assertEqual(ping1_info["reason"], "shutdown")
@@ -144,8 +138,8 @@ class TestSearchCounts(TelemetryTestCase):
         # - Verify that there should be no listing for tab scalar as we started a new
         # session
 
-        [ping2] = self.wait_for_pings(
-            self.install_addon, MAIN_ENVIRONMENT_CHANGE_PING, 1
+        ping2 = self.wait_for_ping(
+            self.install_addon, MAIN_ENVIRONMENT_CHANGE_PING
         )
 
         self.assertEqual(ping2["clientId"], client_id)
@@ -179,8 +173,8 @@ class TestSearchCounts(TelemetryTestCase):
         self.search("python unittest")
         self.search("python pytest")
 
-        [ping3] = self.wait_for_pings(
-            self.restart_with_new_session, MAIN_SHUTDOWN_PING, 1
+        ping3 = self.wait_for_ping(
+            self.restart_with_new_session, MAIN_SHUTDOWN_PING
         )
 
         # Session S3, subsession 1:

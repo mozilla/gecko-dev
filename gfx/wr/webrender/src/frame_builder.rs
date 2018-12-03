@@ -12,7 +12,7 @@ use gpu_cache::GpuCache;
 use gpu_types::{PrimitiveHeaders, TransformPalette, UvRectKind, ZBufferIdGenerator};
 use hit_test::{HitTester, HitTestingRun};
 use internal_types::{FastHashMap, PlaneSplitter};
-use picture::{PictureSurface, PictureUpdateState, SurfaceInfo, ROOT_SURFACE_INDEX, SurfaceIndex};
+use picture::{PictureSurface, PictureUpdateState, SurfaceInfo, ROOT_SURFACE_INDEX, SurfaceIndex, TileDescriptor};
 use prim_store::{PrimitiveStore, SpaceMapper, PictureIndex, PrimitiveDebugId, PrimitiveScratchBuffer};
 #[cfg(feature = "replay")]
 use prim_store::{PrimitiveStoreStats};
@@ -23,8 +23,9 @@ use resource_cache::{ResourceCache};
 use scene::{ScenePipeline, SceneProperties};
 use segment::SegmentBuilder;
 use spatial_node::SpatialNode;
-use std::f32;
+use std::{f32, mem};
 use std::sync::Arc;
+use texture_cache::TextureCacheHandle;
 use tiling::{Frame, RenderPass, RenderPassKind, RenderTargetContext};
 use tiling::{SpecialRenderPasses};
 
@@ -52,6 +53,7 @@ pub struct FrameBuilderConfig {
     pub dual_source_blending_is_supported: bool,
     pub dual_source_blending_is_enabled: bool,
     pub chase_primitive: ChasePrimitive,
+    pub enable_picture_caching: bool,
 }
 
 /// A builder structure for `tiling::Frame`
@@ -60,6 +62,9 @@ pub struct FrameBuilder {
     background_color: Option<ColorF>,
     window_size: DeviceIntSize,
     root_pic_index: PictureIndex,
+    /// Cache of surface tiles from the previous frame builder
+    /// that can optionally be consumed by this frame builder.
+    pending_retained_tiles: FastHashMap<TileDescriptor, TextureCacheHandle>,
     pub prim_store: PrimitiveStore,
     pub clip_store: ClipStore,
     pub hit_testing_runs: Vec<HitTestingRun>,
@@ -83,10 +88,8 @@ pub struct FrameBuildingState<'a> {
     pub gpu_cache: &'a mut GpuCache,
     pub special_render_passes: &'a mut SpecialRenderPasses,
     pub transforms: &'a mut TransformPalette,
-    pub resources: &'a mut FrameResources,
     pub segment_builder: SegmentBuilder,
     pub surfaces: &'a mut Vec<SurfaceInfo>,
-    pub scratch: &'a mut PrimitiveScratchBuffer,
 }
 
 /// Immutable context of a picture when processing children.
@@ -146,13 +149,26 @@ impl FrameBuilder {
             window_size: DeviceIntSize::zero(),
             background_color: None,
             root_pic_index: PictureIndex(0),
+            pending_retained_tiles: FastHashMap::default(),
             config: FrameBuilderConfig {
                 default_font_render_mode: FontRenderMode::Mono,
                 dual_source_blending_is_enabled: true,
                 dual_source_blending_is_supported: false,
                 chase_primitive: ChasePrimitive::Nothing,
+                enable_picture_caching: false,
             },
         }
+    }
+
+    /// Provide any cached surface tiles from the previous frame builder
+    /// to a new frame builder. These will be consumed or dropped the
+    /// first time a new frame builder creates a frame.
+    pub fn set_retained_tiles(
+        &mut self,
+        retained_tiles: FastHashMap<TileDescriptor, TextureCacheHandle>,
+    ) {
+        debug_assert!(self.pending_retained_tiles.is_empty());
+        self.pending_retained_tiles = retained_tiles;
     }
 
     pub fn with_display_list_flattener(
@@ -169,8 +185,20 @@ impl FrameBuilder {
             screen_rect,
             background_color,
             window_size,
+            pending_retained_tiles: FastHashMap::default(),
             config: flattener.config,
         }
+    }
+
+    /// Destroy an existing frame builder. This is called just before
+    /// a frame builder is replaced with a newly built scene.
+    pub fn destroy(
+        self,
+        retained_tiles: &mut FastHashMap<TileDescriptor, TextureCacheHandle>,
+    ) {
+        self.prim_store.destroy(
+            retained_tiles,
+        );
     }
 
     /// Compute the contribution (bounding rectangles, and resources) of layers and their
@@ -229,6 +257,10 @@ impl FrameBuilder {
         surfaces.push(root_surface);
 
         let mut pic_update_state = PictureUpdateState::new(surfaces);
+        let mut retained_tiles = mem::replace(
+            &mut self.pending_retained_tiles,
+            FastHashMap::default(),
+        );
 
         // The first major pass of building a frame is to walk the picture
         // tree. This pass must be quick (it should never touch individual
@@ -242,9 +274,19 @@ impl FrameBuilder {
             &mut pic_update_state,
             &frame_context,
             resource_cache,
+            gpu_cache,
             &resources.prim_data_store,
             &self.clip_store,
+            &mut retained_tiles,
         );
+
+        // If we had any retained tiles from the last scene that were not picked
+        // up by the new frame, then just discard them eagerly.
+        // TODO(gw): Maybe it's worth keeping them around for a bit longer in
+        //           some cases?
+        for (_, handle) in retained_tiles.drain() {
+            resource_cache.texture_cache.mark_unused(&handle);
+        }
 
         let mut frame_state = FrameBuildingState {
             render_tasks,
@@ -254,10 +296,8 @@ impl FrameBuilder {
             gpu_cache,
             special_render_passes,
             transforms: transform_palette,
-            resources,
             segment_builder: SegmentBuilder::new(),
             surfaces: pic_update_state.surfaces,
-            scratch,
         };
 
         let (pic_context, mut pic_state, mut prim_list) = self
@@ -280,6 +320,8 @@ impl FrameBuilder {
             &mut pic_state,
             &frame_context,
             &mut frame_state,
+            resources,
+            scratch,
         );
 
         let pic = &mut self.prim_store.pictures[self.root_pic_index.0];

@@ -7,6 +7,7 @@
 #include "ChromeWorkerScope.h"
 
 #include "jsapi.h"
+#include "js/MemoryFunctions.h"
 
 #include "nsXPCOM.h"
 #include "nsNativeCharsetUtils.h"
@@ -21,9 +22,8 @@ namespace {
 
 #ifdef BUILD_CTYPES
 
-char*
-UnicodeToNative(JSContext* aCx, const char16_t* aSource, size_t aSourceLen)
-{
+char* UnicodeToNative(JSContext* aCx, const char16_t* aSource,
+                      size_t aSourceLen) {
   nsDependentString unicode(aSource, aSourceLen);
 
   nsAutoCString native;
@@ -42,13 +42,12 @@ UnicodeToNative(JSContext* aCx, const char16_t* aSource, size_t aSourceLen)
   return result;
 }
 
-#endif // BUILD_CTYPES
+#endif  // BUILD_CTYPES
 
-} // namespace
+}  // namespace
 
-bool
-DefineChromeWorkerFunctions(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
-{
+bool DefineChromeWorkerFunctions(JSContext* aCx,
+                                 JS::Handle<JSObject*> aGlobal) {
   // Currently ctypes is the only special property given to ChromeWorkers.
 #ifdef BUILD_CTYPES
   {
@@ -58,16 +57,14 @@ DefineChromeWorkerFunctions(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
       return false;
     }
 
-    static const JSCTypesCallbacks callbacks = {
-      UnicodeToNative
-    };
+    static const JSCTypesCallbacks callbacks = {UnicodeToNative};
 
     JS_SetCTypesCallbacks(ctypes.toObjectOrNull(), &callbacks);
   }
-#endif // BUILD_CTYPES
+#endif  // BUILD_CTYPES
 
   return true;
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

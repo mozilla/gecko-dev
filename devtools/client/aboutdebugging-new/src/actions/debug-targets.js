@@ -6,6 +6,8 @@
 
 const { AddonManager } = require("resource://gre/modules/AddonManager.jsm");
 const { gDevToolsBrowser } = require("devtools/client/framework/devtools-browser");
+const { remoteClientManager } =
+  require("devtools/client/shared/remote-debugging/remote-client-manager");
 
 const { l10n } = require("../modules/l10n");
 
@@ -44,9 +46,10 @@ function inspectDebugTarget(type, id) {
       case DEBUG_TARGETS.TAB: {
         // Open tab debugger in new window.
         if (runtimeType === RUNTIMES.NETWORK || runtimeType === RUNTIMES.USB) {
-          const { host, port } = runtimeDetails.transportDetails;
-          window.open(`about:devtools-toolbox?type=tab&id=${id}` +
-                      `&host=${host}&port=${port}`);
+          // Pass the remote id from the client manager so that about:devtools-toolbox can
+          // retrieve the connected client directly.
+          const remoteId = remoteClientManager.getRemoteId(runtime.id, runtime.type);
+          window.open(`about:devtools-toolbox?type=tab&id=${id}&remoteId=${remoteId}`);
         } else if (runtimeType === RUNTIMES.THIS_FIREFOX) {
           window.open(`about:devtools-toolbox?type=tab&id=${id}`);
         }
@@ -100,12 +103,13 @@ function pushServiceWorker(actor) {
   };
 }
 
-function reloadTemporaryExtension(actor) {
+function reloadTemporaryExtension(id) {
   return async (_, getState) => {
     const clientWrapper = getCurrentClient(getState().runtimes);
 
     try {
-      await clientWrapper.request({ to: actor, type: "reload" });
+      const addonTargetFront = await clientWrapper.getAddon({ id });
+      await addonTargetFront.reload();
     } catch (e) {
       console.error(e);
     }
@@ -146,8 +150,14 @@ function requestExtensions() {
     const clientWrapper = getCurrentClient(getState().runtimes);
 
     try {
-      const { addons } = await clientWrapper.listAddons();
-      const extensions = addons.filter(a => a.debuggable);
+      const addons = await clientWrapper.listAddons();
+      let extensions = addons.filter(a => a.debuggable);
+
+      // Filter out system addons unless the dedicated preference is set to true.
+      if (!getState().ui.showSystemAddons) {
+        extensions = extensions.filter(e => !e.isSystem);
+      }
+
       if (runtime.type !== RUNTIMES.THIS_FIREFOX) {
         // manifestURL can only be used when debugging local addons, remove this
         // information for the extension data.
@@ -155,6 +165,7 @@ function requestExtensions() {
           extension.manifestURL = null;
         });
       }
+
       const installedExtensions = extensions.filter(e => !e.temporarilyInstalled);
       const temporaryExtensions = extensions.filter(e => e.temporarilyInstalled);
 

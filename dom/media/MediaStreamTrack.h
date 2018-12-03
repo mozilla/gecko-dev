@@ -35,12 +35,12 @@ class PeerIdentity;
 class ProcessedMediaStream;
 class RemoteSourceStreamInfo;
 class SourceStreamInfo;
+class MediaMgrError;
 
 namespace dom {
 
 class AudioStreamTrack;
 class VideoStreamTrack;
-class MediaStreamError;
 class TrackSink;
 enum class CallerType : uint32_t;
 
@@ -155,14 +155,14 @@ class MediaStreamTrackSource : public nsISupports {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  typedef media::Pledge<bool, dom::MediaStreamError*> PledgeVoid;
+  typedef MozPromise<bool /* aIgnored */, RefPtr<MediaMgrError>, true>
+      ApplyConstraintsPromise;
 
   /**
    * We provide a fallback solution to ApplyConstraints() here.
    * Sources that support ApplyConstraints() will have to override it.
    */
-  virtual already_AddRefed<PledgeVoid> ApplyConstraints(
-      nsPIDOMWindowInner* aWindow,
+  virtual RefPtr<ApplyConstraintsPromise> ApplyConstraints(
       const dom::MediaTrackConstraints& aConstraints, CallerType aCallerType);
 
   /**

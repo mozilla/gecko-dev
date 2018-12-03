@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,34 +10,29 @@
 #include "nsCOMArray.h"
 #include "nsTArray.h"
 
-class txNamespaceMap
-{
-public:
-    txNamespaceMap();
-    txNamespaceMap(const txNamespaceMap& aOther);
+class txNamespaceMap {
+ public:
+  txNamespaceMap();
+  txNamespaceMap(const txNamespaceMap& aOther);
 
-    nsrefcnt AddRef()
-    {
-        return ++mRefCnt;
+  nsrefcnt AddRef() { return ++mRefCnt; }
+  nsrefcnt Release() {
+    if (--mRefCnt == 0) {
+      mRefCnt = 1;  // stabilize
+      delete this;
+      return 0;
     }
-    nsrefcnt Release()
-    {
-        if (--mRefCnt == 0) {
-            mRefCnt = 1; //stabilize
-            delete this;
-            return 0;
-        }
-        return mRefCnt;
-    }
+    return mRefCnt;
+  }
 
-    nsresult mapNamespace(nsAtom* aPrefix, const nsAString& aNamespaceURI);
-    int32_t lookupNamespace(nsAtom* aPrefix);
-    int32_t lookupNamespaceWithDefault(const nsAString& aPrefix);
+  nsresult mapNamespace(nsAtom* aPrefix, const nsAString& aNamespaceURI);
+  int32_t lookupNamespace(nsAtom* aPrefix);
+  int32_t lookupNamespaceWithDefault(const nsAString& aPrefix);
 
-private:
-    nsAutoRefCnt mRefCnt;
-    nsTArray<RefPtr<nsAtom>> mPrefixes;
-    nsTArray<int32_t> mNamespaces;
+ private:
+  nsAutoRefCnt mRefCnt;
+  nsTArray<RefPtr<nsAtom>> mPrefixes;
+  nsTArray<int32_t> mNamespaces;
 };
 
-#endif //TRANSFRMX_TXNAMESPACEMAP_H
+#endif  // TRANSFRMX_TXNAMESPACEMAP_H

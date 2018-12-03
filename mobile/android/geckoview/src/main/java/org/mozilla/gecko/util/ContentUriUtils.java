@@ -24,6 +24,10 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
+import android.text.TextUtils;
+
+import java.io.File;
 
 /**
  * Based on https://github.com/iPaulPro/aFileChooser/blob/48d65e6649d4201407702b0390326ec9d5c9d17c/aFileChooser/src/com/ipaulpro/afilechooser/utils/FileUtils.java
@@ -41,7 +45,7 @@ public class ContentUriUtils {
      * @param uri The Uri to query.
      * @author paulburke
      */
-    public static String getPath(final Context context, final Uri uri) {
+    public static @Nullable String getOriginalFilePathFromUri(final Context context, final Uri uri) throws IllegalArgumentException {
 
         final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
@@ -61,12 +65,21 @@ public class ContentUriUtils {
             }
             // DownloadsProvider
             else if (isDownloadsDocument(uri)) {
-
                 final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-
-                return getDataColumn(context, contentUri, null, null);
+                // workaround for issue (https://bugzilla.mozilla.org/show_bug.cgi?id=1502721) and
+                // as per https://github.com/Yalantis/uCrop/issues/318#issuecomment-333066640
+                if (!TextUtils.isEmpty(id)) {
+                    if (id.startsWith("raw:")) {
+                        return id.replaceFirst("raw:", "");
+                    }
+                    try {
+                        final Uri contentUri = ContentUris.withAppendedId(
+                                Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+                        return getDataColumn(context, contentUri, null, null);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                }
             }
             // MediaProvider
             else if (isMediaDocument(uri)) {
@@ -109,6 +122,30 @@ public class ContentUriUtils {
     }
 
     /**
+     * Retrieves file contents via getContentResolver().openInputStream() and stores them in a
+     * temporary file.
+     *
+     * @return The path of the temporary file, or <code>null</code> if there was an error
+     *         retrieving the file.
+     */
+    public static @Nullable String getTempFilePathFromContentUri(Context context, Uri contentUri) {
+        //copy file and send new file path
+        final String fileName = FileUtils.getFileNameFromContentUri(context, contentUri);
+        final File folder = new File(context.getCacheDir(), FileUtils.CONTENT_TEMP_DIRECTORY);
+        boolean success = true;
+        if (!folder.exists()) {
+            success = folder.mkdirs();
+        }
+
+        if (!TextUtils.isEmpty(fileName) && success) {
+                File copyFile = new File(folder.getPath(), fileName);
+                FileUtils.copy(context, contentUri, copyFile);
+                return copyFile.getAbsolutePath();
+        }
+        return null;
+    }
+
+    /**
      * Get the value of the data column for this Uri. This is useful for
      * MediaStore Uris, and other file-based ContentProviders.
      *
@@ -120,24 +157,19 @@ public class ContentUriUtils {
      * @author paulburke
      */
     private static String getDataColumn(Context context, Uri uri, String selection,
-                                        String[] selectionArgs) {
+                                        String[] selectionArgs) throws IllegalArgumentException {
 
-        Cursor cursor = null;
         final String column = "_data";
         final String[] projection = {
                 column
         };
 
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
-                    null);
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+                null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 final int column_index = cursor.getColumnIndexOrThrow(column);
                 return cursor.getString(column_index);
             }
-        } finally {
-            if (cursor != null)
-                cursor.close();
         }
         return null;
     }

@@ -20,9 +20,10 @@ ChromeUtils.defineModuleGetter(this, "CloudStorage",
   "resource://gre/modules/CloudStorage.jsm");
 ChromeUtils.defineModuleGetter(this, "SelectionChangedMenulist",
                                "resource:///modules/SelectionChangedMenulist.jsm");
+ChromeUtils.defineModuleGetter(this, "UpdateUtils",
+  "resource://gre/modules/UpdateUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetters(this, {
-  gAUS: ["@mozilla.org/updates/update-service;1", "nsIApplicationUpdateService"],
   gHandlerService: ["@mozilla.org/uriloader/handler-service;1", "nsIHandlerService"],
   gMIMEService: ["@mozilla.org/mime;1", "nsIMIMEService"],
 });
@@ -76,6 +77,7 @@ Preferences.addAll([
   // Startup
   { id: "browser.startup.page", type: "int" },
   { id: "browser.privatebrowsing.autostart", type: "bool" },
+  { id: "browser.sessionstore.warnOnQuit", type: "bool" },
 
   // Downloads
   { id: "browser.download.useDownloadDir", type: "bool" },
@@ -734,14 +736,22 @@ var gMainPane = {
 
     let newValue;
     let checkbox = document.getElementById("browserRestoreSession");
+    let warnOnQuitCheckbox = document.getElementById("browserRestoreSessionQuitWarning");
     if (pbAutoStartPref.value || startupPref.locked) {
       checkbox.setAttribute("disabled", "true");
+      warnOnQuitCheckbox.setAttribute("disabled", "true");
     } else {
       checkbox.removeAttribute("disabled");
     }
     newValue = pbAutoStartPref.value ? false : startupPref.value === this.STARTUP_PREF_RESTORE_SESSION;
     if (checkbox.checked !== newValue) {
       checkbox.checked = newValue;
+      let warnOnQuitPref = Preferences.get("browser.sessionstore.warnOnQuit");
+      if (newValue && !warnOnQuitPref.locked && !pbAutoStartPref.value) {
+        warnOnQuitCheckbox.removeAttribute("disabled");
+      } else {
+        warnOnQuitCheckbox.setAttribute("disabled", "true");
+      }
     }
   },
 
@@ -889,14 +899,20 @@ var gMainPane = {
     const startupPref = Preferences.get("browser.startup.page");
     let newValue;
 
+    let warnOnQuitCheckbox = document.getElementById("browserRestoreSessionQuitWarning");
     if (value) {
       // We need to restore the blank homepage setting in our other pref
       if (startupPref.value === this.STARTUP_PREF_BLANK) {
         Preferences.get("browser.startup.homepage").value = "about:blank";
       }
       newValue = this.STARTUP_PREF_RESTORE_SESSION;
+      let warnOnQuitPref = Preferences.get("browser.sessionstore.warnOnQuit");
+      if (!warnOnQuitPref.locked) {
+        warnOnQuitCheckbox.removeAttribute("disabled");
+      }
     } else {
       newValue = this.STARTUP_PREF_HOMEPAGE;
+      warnOnQuitCheckbox.setAttribute("disabled", "true");
     }
     startupPref.value = newValue;
   },
@@ -1333,7 +1349,7 @@ var gMainPane = {
       let radiogroup = document.getElementById("updateRadioGroup");
       radiogroup.disabled = true;
       try {
-        let enabled = await gAUS.getAutoUpdateIsEnabled();
+        let enabled = await UpdateUtils.getAppUpdateAutoEnabled();
         radiogroup.value = enabled;
         radiogroup.disabled = false;
       } catch (error) {
@@ -1352,7 +1368,7 @@ var gMainPane = {
       let updateAutoValue = (radiogroup.value == "true");
       radiogroup.disabled = true;
       try {
-        await gAUS.setAutoUpdateIsEnabled(updateAutoValue);
+        await UpdateUtils.setAppUpdateAutoEnabled(updateAutoValue);
         radiogroup.disabled = false;
       } catch (error) {
         Cu.reportError(error);

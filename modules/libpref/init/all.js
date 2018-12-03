@@ -211,17 +211,13 @@ pref("dom.gamepad.haptic_feedback.enabled", true);
 // If this is true, TextEventDispatcher dispatches keydown and keyup events
 // even during composition (keypress events are never fired during composition
 // even if this is true).
-#ifdef EARLY_BETA_OR_EARLIER
 pref("dom.keyboardevent.dispatch_during_composition", true);
-#else
-pref("dom.keyboardevent.dispatch_during_composition", false);
-#endif
 
 // If this is true, TextEventDispatcher dispatches keypress event with setting
 // WidgetEvent::mFlags::mOnlySystemGroupDispatchInContent to true if it won't
 // cause inputting printable character.
-#ifdef NIGHTLY_BUILD
 pref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_in_content", true);
+
 // Blacklist of domains of web apps which are not aware of strict keypress
 // dispatching behavior.  This is comma separated list.  If you need to match
 // all sub-domains, you can specify it as "*.example.com".  Additionally, you
@@ -229,19 +225,13 @@ pref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_i
 // if you need to limit under a directory, the path should end with "/" like
 // "example.com/foo/".  Note that this cannot limit port number for now.
 pref("dom.keyboardevent.keypress.hack.dispatch_non_printable_keys", "");
-#else
-pref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_in_content", false);
-#endif
 
-#ifdef NIGHTLY_BUILD
 // Blacklist of domains of web apps which handle keyCode and charCode of
 // keypress events with a path only for Firefox (i.e., broken if we set
 // non-zero keyCode or charCode value to the other).  The format is exactly
 // same as "dom.keyboardevent.keypress.hack.dispatch_non_printable_keys". So,
 // check its explanation for the detail.
-pref("dom.keyboardevent.keypress.hack.use_legacy_keycode_and_charcode",
-     "docs.google.com,www.rememberthemilk.com");
-#endif
+pref("dom.keyboardevent.keypress.hack.use_legacy_keycode_and_charcode", "");
 
 // Whether the WebMIDI API is enabled
 pref("dom.webmidi.enabled", false);
@@ -274,11 +264,7 @@ pref("dom.script_loader.binast_encoding.enabled", false);
 #endif
 
 // Whether window.event is enabled
-#ifdef NIGHTLY_BUILD
 pref("dom.window.event.enabled", true);
-#else
-pref("dom.window.event.enabled", false);
-#endif
 
 // Fastback caching - if this pref is negative, then we calculate the number
 // of content viewers to cache based on the amount of available memory.
@@ -657,6 +643,8 @@ pref("media.cubeb.sandbox", false);
 
 #ifdef MOZ_AV1
 pref("media.av1.enabled", false);
+// Use libdav1d instead of libaom
+pref("media.av1.use-dav1d", false);
 #endif
 
 pref("media.webaudio.audiocontextoptions-samplerate.enabled", true);
@@ -990,7 +978,6 @@ pref("ui.scrollToClick", 0);
 
 // provide ability to turn on support for canvas focus rings
 pref("canvas.focusring.enabled", true);
-pref("canvas.customfocusring.enabled", false);
 pref("canvas.hitregions.enabled", false);
 pref("canvas.filters.enabled", true);
 // Add support for canvas path objects
@@ -1168,7 +1155,6 @@ pref("browser.fixup.alternate.enabled", true);
 pref("browser.fixup.alternate.prefix", "www.");
 pref("browser.fixup.alternate.suffix", ".com");
 pref("browser.fixup.dns_first_for_single_words", false);
-pref("browser.fixup.hide_user_pass", true);
 
 // Print header customization
 // Use the following codes:
@@ -1285,7 +1271,17 @@ pref("dom.disable_open_click_delay", 1000);
 pref("dom.serviceWorkers.disable_open_click_delay", 1000);
 
 pref("dom.storage.enabled", true);
+// Whether or not LSNG (Next Generation Local Storage) is enabled.
+// See bug 1510410 for enabling this on Nightly.
+#ifdef NIGHTLY_BUILD
+pref("dom.storage.next_gen", false);
+#else
+pref("dom.storage.next_gen", false);
+#endif
 pref("dom.storage.default_quota",      5120);
+pref("dom.storage.shadow_writes", true);
+pref("dom.storage.snapshot_prefill", 16384);
+pref("dom.storage.snapshot_reusing", true);
 pref("dom.storage.testing", false);
 
 pref("dom.send_after_paint_to_content", false);
@@ -1439,11 +1435,7 @@ pref("dom.event.clipboardevents.enabled",   true);
 pref("dom.event.highrestimestamp.enabled",  true);
 pref("dom.event.coalesce_mouse_move",       true);
 
-#if defined(NIGHTLY_BUILD)
 pref("dom.ua_widget.enabled", true);
-#else
-pref("dom.ua_widget.enabled", false);
-#endif
 
 pref("javascript.enabled",                  true);
 pref("javascript.options.strict",           false);
@@ -1583,11 +1575,7 @@ pref("javascript.options.spectre.jit_to_C++_calls", true);
 #endif
 
 // Streams API
-#ifdef NIGHTLY_BUILD
 pref("javascript.options.streams", true);
-#else
-pref("javascript.options.streams", false);
-#endif
 
 // BigInt API
 pref("javascript.options.bigint", false);
@@ -1952,8 +1940,6 @@ pref("network.sts.max_time_for_pr_close_during_shutdown", 5000);
 pref("network.sts.pollable_event_timeout", 6);
 
 // Enable/disable sni encryption.
-// Currently this does not work even if the pref is true, the nss part is
-// missing.
 pref("network.security.esni.enabled", false);
 
 // 2147483647 == PR_INT32_MAX == ~2 GB
@@ -4862,7 +4848,6 @@ pref("webgl.force-layers-readback", false);
 pref("webgl.force-index-validation", 0);
 pref("webgl.lose-context-on-memory-pressure", false);
 pref("webgl.can-lose-context-in-foreground", true);
-pref("webgl.restore-context-when-visible", true);
 #ifdef ANDROID
 pref("webgl.max-contexts", 16);
 pref("webgl.max-contexts-per-principal", 8);
@@ -5153,7 +5138,7 @@ pref("extensions.webextensions.performanceCountersMaxAge", 1000);
 
 // Report Site Issue button
 pref("extensions.webcompat-reporter.newIssueEndpoint", "https://webcompat.com/issues/new");
-#if defined(MOZ_DEV_EDITION) || defined(NIGHTLY_BUILD)
+#if MOZ_UPDATE_CHANNEL != release && MOZ_UPDATE_CHANNEL != esr
 pref("extensions.webcompat-reporter.enabled", true);
 #else
 pref("extensions.webcompat-reporter.enabled", false);
@@ -5562,7 +5547,7 @@ pref("urlclassifier.trackingTable", "test-track-simple,base-track-digest256");
 pref("urlclassifier.trackingWhitelistTable", "test-trackwhite-simple,mozstd-trackwhite-digest256");
 
 // These tables will never trigger a gethash call.
-pref("urlclassifier.disallow_completions", "test-malware-simple,test-harmful-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256,goog-passwordwhite-proto,ads-track-digest256,social-track-digest256,analytics-track-digest256,fastblock1-track-digest256,fastblock1-trackwhite-digest256,fastblock2-track-digest256,fastblock2-trackwhite-digest256,fastblock3-track-digest256");
+pref("urlclassifier.disallow_completions", "test-malware-simple,test-harmful-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256,goog-passwordwhite-proto,ads-track-digest256,social-track-digest256,analytics-track-digest256");
 
 // Number of random entries to send with a gethash request
 pref("urlclassifier.gethashnoise", 4);
@@ -5634,7 +5619,7 @@ pref("browser.safebrowsing.reportPhishURL", "https://%LOCALE%.phish-report.mozil
 
 // Mozilla Safe Browsing provider (for tracking protection and plugin blocking)
 pref("browser.safebrowsing.provider.mozilla.pver", "2.2");
-pref("browser.safebrowsing.provider.mozilla.lists", "base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,fastblock1-track-digest256,fastblock1-trackwhite-digest256,fastblock2-track-digest256,fastblock2-trackwhite-digest256,fastblock3-track-digest256");
+pref("browser.safebrowsing.provider.mozilla.lists", "base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256");
 pref("browser.safebrowsing.provider.mozilla.updateURL", "https://shavar.services.mozilla.com/downloads?client=SAFEBROWSING_ID&appver=%MAJOR_VERSION%&pver=2.2");
 pref("browser.safebrowsing.provider.mozilla.gethashURL", "https://shavar.services.mozilla.com/gethash?client=SAFEBROWSING_ID&appver=%MAJOR_VERSION%&pver=2.2");
 // Set to a date in the past to force immediate download in new profiles.
@@ -5973,13 +5958,6 @@ pref("general.document_open_conversion_depth_limit", 20);
 // If true, touchstart and touchmove listeners on window, document,
 // documentElement and document.body are passive by default.
 pref("dom.event.default_to_passive_touch_listeners", true);
-
-// The amount of time (ms) since navigation start after which all
-// tracker connections will be cancelled.
-pref("browser.fastblock.timeout", 5000);
-// The amount of time (ms) since navigation start after which
-// we'll stop blocking tracker connections (0 = no limit).
-pref("browser.fastblock.limit", 20000);
 
 // Enable clipboard readText() and writeText() by default
 pref("dom.events.asyncClipboard", true);

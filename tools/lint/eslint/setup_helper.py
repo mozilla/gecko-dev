@@ -92,6 +92,10 @@ def eslint_setup(should_clobber=False):
     if not npm_path:
         return 1
 
+    node_path, _ = find_node_executable()
+    if not node_path:
+        return 1
+
     extra_parameters = ["--loglevel=error"]
 
     package_lock_json_path = os.path.join(get_project_root(), "package-lock.json")
@@ -106,6 +110,11 @@ def eslint_setup(should_clobber=False):
         shutil.copy2(package_lock_json_path, package_lock_json_tmp_path)
     else:
         cmd = [npm_path, "ci"]
+
+    # On non-Windows, ensure npm is called via node, as node may not be in the
+    # path.
+    if platform.system() != "Windows":
+        cmd.insert(0, node_path)
 
     cmd.extend(extra_parameters)
     print("Installing eslint for mach using \"%s\"..." % (" ".join(cmd)))

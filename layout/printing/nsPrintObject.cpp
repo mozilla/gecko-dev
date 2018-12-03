@@ -5,10 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsPrintObject.h"
+
 #include "nsIContentViewer.h"
-#include "nsContentUtils.h" // for nsAutoScriptBlocker
+#include "nsContentUtils.h"  // for nsAutoScriptBlocker
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsPIDOMWindow.h"
+#include "nsPresContext.h"
 #include "nsGkAtoms.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIDocShellTreeItem.h"
@@ -17,22 +19,30 @@
 #include "nsDocShell.h"
 
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/Element.h"
+
+using mozilla::dom::BrowsingContext;
+using mozilla::dom::Element;
 
 //---------------------------------------------------
 //-- nsPrintObject Class Impl
 //---------------------------------------------------
-nsPrintObject::nsPrintObject() :
-  mContent(nullptr), mFrameType(eFrame), mParent(nullptr),
-  mHasBeenPrinted(false), mDontPrint(true), mPrintAsIs(false),
-  mInvisible(false), mPrintPreview(false), mDidCreateDocShell(false),
-  mShrinkRatio(1.0), mZoomRatio(1.0)
-{
+nsPrintObject::nsPrintObject()
+    : mContent(nullptr),
+      mFrameType(eFrame),
+      mParent(nullptr),
+      mHasBeenPrinted(false),
+      mDontPrint(true),
+      mPrintAsIs(false),
+      mInvisible(false),
+      mPrintPreview(false),
+      mDidCreateDocShell(false),
+      mShrinkRatio(1.0),
+      mZoomRatio(1.0) {
   MOZ_COUNT_CTOR(nsPrintObject);
 }
 
-
-nsPrintObject::~nsPrintObject()
-{
+nsPrintObject::~nsPrintObject() {
   MOZ_COUNT_DTOR(nsPrintObject);
 
   DestroyPresentation();
@@ -43,14 +53,12 @@ nsPrintObject::~nsPrintObject()
     }
   }
   mDocShell = nullptr;
-  mTreeOwner = nullptr; // mTreeOwner must be released after mDocShell;
+  mTreeOwner = nullptr;  // mTreeOwner must be released after mDocShell;
 }
 
 //------------------------------------------------------------------
-nsresult
-nsPrintObject::Init(nsIDocShell* aDocShell, nsIDocument* aDoc,
-                    bool aPrintPreview)
-{
+nsresult nsPrintObject::Init(nsIDocShell* aDocShell, nsIDocument* aDoc,
+                             bool aPrintPreview) {
   NS_ENSURE_STATE(aDoc);
 
   mPrintPreview = aPrintPreview;
@@ -62,11 +70,11 @@ nsPrintObject::Init(nsIDocShell* aDocShell, nsIDocument* aDoc,
 
     // Create a new BrowsingContext to create our DocShell in.
     RefPtr<BrowsingContext> bc = BrowsingContext::Create(
-      nullptr,
-      EmptyString(),
-      aDocShell->ItemType() == nsIDocShellTreeItem::typeContent
-        ? BrowsingContext::Type::Content
-        : BrowsingContext::Type::Chrome);
+        /* aParent */ nullptr,
+        /* aOpener */ nullptr, EmptyString(),
+        aDocShell->ItemType() == nsIDocShellTreeItem::typeContent
+            ? BrowsingContext::Type::Content
+            : BrowsingContext::Type::Chrome);
 
     // Create a container docshell for printing.
     mDocShell = nsDocShell::Create(bc);
@@ -104,9 +112,7 @@ nsPrintObject::Init(nsIDocShell* aDocShell, nsIDocument* aDoc,
 
 //------------------------------------------------------------------
 // Resets PO by destroying the presentation
-void
-nsPrintObject::DestroyPresentation()
-{
+void nsPrintObject::DestroyPresentation() {
   if (mPresShell) {
     mPresShell->EndObservingDocument();
     nsAutoScriptBlocker scriptBlocker;

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,38 +26,34 @@ namespace js {
 // declaration or expression.
 
 // Returns a wrapped async function from an unwrapped async function.
-JSFunction*
-GetWrappedAsyncFunction(JSFunction* unwrapped);
+JSFunction* GetWrappedAsyncFunction(JSFunction* unwrapped);
 
 // Returns an unwrapped async function from a wrapped async function.
-JSFunction*
-GetUnwrappedAsyncFunction(JSFunction* wrapped);
+JSFunction* GetUnwrappedAsyncFunction(JSFunction* wrapped);
 
 // Returns true if the given function is a wrapped async function.
-bool
-IsWrappedAsyncFunction(JSFunction* fun);
+bool IsWrappedAsyncFunction(JSFunction* fun);
 
 // Create a wrapped async function from unwrapped async function with given
 // prototype object.
-JSObject*
-WrapAsyncFunctionWithProto(JSContext* cx, HandleFunction unwrapped, HandleObject proto);
+JSObject* WrapAsyncFunctionWithProto(JSContext* cx, HandleFunction unwrapped,
+                                     HandleObject proto);
 
 // Create a wrapped async function from unwrapped async function with default
 // prototype object.
-JSObject*
-WrapAsyncFunction(JSContext* cx, HandleFunction unwrapped);
+JSObject* WrapAsyncFunction(JSContext* cx, HandleFunction unwrapped);
 
 // Resume the async function when the `await` operand resolves.
 // Split into two functions depending on whether the awaited value was
 // fulfilled or rejected.
-MOZ_MUST_USE bool
-AsyncFunctionAwaitedFulfilled(JSContext* cx, Handle<PromiseObject*> resultPromise,
-                              HandleValue generatorVal, HandleValue value);
+MOZ_MUST_USE bool AsyncFunctionAwaitedFulfilled(
+    JSContext* cx, Handle<PromiseObject*> resultPromise,
+    HandleValue generatorVal, HandleValue value);
 
-MOZ_MUST_USE bool
-AsyncFunctionAwaitedRejected(JSContext* cx, Handle<PromiseObject*> resultPromise,
-                             HandleValue generatorVal, HandleValue reason);
+MOZ_MUST_USE bool AsyncFunctionAwaitedRejected(
+    JSContext* cx, Handle<PromiseObject*> resultPromise,
+    HandleValue generatorVal, HandleValue reason);
 
-} // namespace js
+}  // namespace js
 
 #endif /* vm_AsyncFunction_h */

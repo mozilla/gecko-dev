@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,14 +8,6 @@
 #include "nsIdleServiceAndroid.h"
 #include "nsIServiceManager.h"
 
-bool
-nsIdleServiceAndroid::PollIdleTime(uint32_t *aIdleTime)
-{
-    return false;
-}
+bool nsIdleServiceAndroid::PollIdleTime(uint32_t *aIdleTime) { return false; }
 
-bool
-nsIdleServiceAndroid::UsePollMode()
-{
-    return false;
-}
+bool nsIdleServiceAndroid::UsePollMode() { return false; }

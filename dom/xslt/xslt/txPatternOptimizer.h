@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,23 +10,21 @@
 
 class txPattern;
 
-class txPatternOptimizer
-{
-public:
-    /**
-     * Optimize the given pattern.
-     * @param aInPattern    Pattern to optimize.
-     * @param aOutPattern   Resulting pattern, null if optimization didn't
-     *                      result in a new pattern.
-     */
-    nsresult optimize(txPattern* aInPattern, txPattern** aOutPattern);
+class txPatternOptimizer {
+ public:
+  /**
+   * Optimize the given pattern.
+   * @param aInPattern    Pattern to optimize.
+   * @param aOutPattern   Resulting pattern, null if optimization didn't
+   *                      result in a new pattern.
+   */
+  nsresult optimize(txPattern* aInPattern, txPattern** aOutPattern);
 
-private:
+ private:
+  // Helper methods for optimizing specific classes
+  nsresult optimizeStep(txPattern* aInPattern, txPattern** aOutPattern);
 
-    // Helper methods for optimizing specific classes
-    nsresult optimizeStep(txPattern* aInPattern, txPattern** aOutPattern);
-
-    txXPathOptimizer mXPathOptimizer;
+  txXPathOptimizer mXPathOptimizer;
 };
 
-#endif //txPatternOptimizer_h__
+#endif  // txPatternOptimizer_h__

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -17,38 +17,37 @@
  * execute within the same thread that created the widget under Win32.
  */
 
-class nsGTKToolkit
-{
-public:
-    nsGTKToolkit();
+class nsGTKToolkit {
+ public:
+  nsGTKToolkit();
 
-    static nsGTKToolkit* GetToolkit();
+  static nsGTKToolkit* GetToolkit();
 
-    static void Shutdown() {
-      delete gToolkit;
-      gToolkit = nullptr;
-    }
+  static void Shutdown() {
+    delete gToolkit;
+    gToolkit = nullptr;
+  }
 
-    /**
-     * Get/set our value of DESKTOP_STARTUP_ID. When non-empty, this is applied
-     * to the next toplevel window to be shown or focused (and then immediately
-     * cleared).
-     */
-    void SetDesktopStartupID(const nsACString& aID) { mDesktopStartupID = aID; }
-    void GetDesktopStartupID(nsACString* aID) { *aID = mDesktopStartupID; }
+  /**
+   * Get/set our value of DESKTOP_STARTUP_ID. When non-empty, this is applied
+   * to the next toplevel window to be shown or focused (and then immediately
+   * cleared).
+   */
+  void SetDesktopStartupID(const nsACString& aID) { mDesktopStartupID = aID; }
+  void GetDesktopStartupID(nsACString* aID) { *aID = mDesktopStartupID; }
 
-    /**
-     * Get/set the timestamp value to be used, if non-zero, to focus the
-     * next top-level window to be shown or focused (upon which it is cleared).
-     */
-    void SetFocusTimestamp(uint32_t aTimestamp) { mFocusTimestamp = aTimestamp; }
-    uint32_t GetFocusTimestamp() { return mFocusTimestamp; }
+  /**
+   * Get/set the timestamp value to be used, if non-zero, to focus the
+   * next top-level window to be shown or focused (upon which it is cleared).
+   */
+  void SetFocusTimestamp(uint32_t aTimestamp) { mFocusTimestamp = aTimestamp; }
+  uint32_t GetFocusTimestamp() { return mFocusTimestamp; }
 
-private:
-    static nsGTKToolkit* gToolkit;
+ private:
+  static nsGTKToolkit* gToolkit;
 
-    nsCString      mDesktopStartupID;
-    uint32_t       mFocusTimestamp;
+  nsCString mDesktopStartupID;
+  uint32_t mFocusTimestamp;
 };
 
 #endif  // GTKTOOLKIT_H
