@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,32 +17,27 @@
 namespace js {
 namespace jit {
 
-class Linker
-{
-    MacroAssembler& masm;
-    mozilla::Maybe<AutoWritableJitCodeFallible> awjcf;
+class Linker {
+  MacroAssembler& masm;
+  mozilla::Maybe<AutoWritableJitCodeFallible> awjcf;
 
-    JitCode* fail(JSContext* cx) {
-        ReportOutOfMemory(cx);
-        return nullptr;
-    }
+  JitCode* fail(JSContext* cx) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
 
-  public:
-    // Construct a linker with a rooted macro assembler.
-    explicit Linker(MacroAssembler& masm)
-      : masm(masm)
-    {
-        masm.finish();
-    }
+ public:
+  // Construct a linker with a rooted macro assembler.
+  explicit Linker(MacroAssembler& masm) : masm(masm) { masm.finish(); }
 
-    // Create a new JitCode object and populate it with the contents of the
-    // macro assember buffer.
-    //
-    // This method cannot GC. Errors are reported to the context.
-    JitCode* newCode(JSContext* cx, CodeKind kind);
+  // Create a new JitCode object and populate it with the contents of the
+  // macro assember buffer.
+  //
+  // This method cannot GC. Errors are reported to the context.
+  JitCode* newCode(JSContext* cx, CodeKind kind);
 };
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_Linker_h */

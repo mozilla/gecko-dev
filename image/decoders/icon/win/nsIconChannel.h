@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,11 +25,10 @@
 
 class nsIFile;
 
-class nsIconChannel final : public nsIChannel, public nsIStreamListener
-{
+class nsIconChannel final : public nsIChannel, public nsIStreamListener {
   ~nsIconChannel();
 
-public:
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIREQUEST
   NS_DECL_NSICHANNEL
@@ -40,16 +39,16 @@ public:
 
   nsresult Init(nsIURI* uri);
 
-protected:
+ protected:
   nsCOMPtr<nsIURI> mUrl;
   nsCOMPtr<nsIURI> mOriginalURI;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
-  nsCOMPtr<nsISupports>  mOwner;
-  nsCOMPtr<nsILoadInfo>  mLoadInfo;
+  nsCOMPtr<nsISupports> mOwner;
+  nsCOMPtr<nsILoadInfo> mLoadInfo;
 
   nsCOMPtr<nsIInputStreamPump> mPump;
-  nsCOMPtr<nsIStreamListener>  mListener;
+  nsCOMPtr<nsIStreamListener> mListener;
 
   nsresult ExtractIconInfoFromUrl(nsIFile** aLocalFile,
                                   uint32_t* aDesiredImageSize,
@@ -59,8 +58,8 @@ protected:
   nsresult MakeInputStream(nsIInputStream** _retval, bool nonBlocking);
 
   // Functions specific to Vista and above
-protected:
+ protected:
   nsresult GetStockHIcon(nsIMozIconURI* aIconURI, HICON* hIcon);
 };
 
-#endif // mozilla_image_encoders_icon_win_nsIconChannel_h
+#endif  // mozilla_image_encoders_icon_win_nsIconChannel_h

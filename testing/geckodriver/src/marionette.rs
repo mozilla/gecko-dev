@@ -1,6 +1,8 @@
-use command::{AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
-              GeckoExtensionCommand, GeckoExtensionRoute, XblLocatorParameters,
-              CHROME_ELEMENT_KEY, LEGACY_ELEMENT_KEY};
+use crate::command::{
+    AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
+    GeckoExtensionCommand, GeckoExtensionRoute, XblLocatorParameters, CHROME_ELEMENT_KEY,
+    LEGACY_ELEMENT_KEY,
+};
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
 use mozrunner::runner::{FirefoxProcess, FirefoxRunner, Runner, RunnerProcess};
@@ -48,10 +50,10 @@ use webdriver::response::{CloseWindowResponse, CookieResponse, CookiesResponse,
                           ValueResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::server::{Session, WebDriverHandler};
 
-use build::BuildInfo;
-use capabilities::{FirefoxCapabilities, FirefoxOptions};
-use logging;
-use prefs;
+use crate::build::BuildInfo;
+use crate::capabilities::{FirefoxCapabilities, FirefoxOptions};
+use crate::logging;
+use crate::prefs;
 
 // localhost may be routed to the IPv6 stack on certain systems,
 // and nsIServerSocket in Marionette only supports IPv4
@@ -439,7 +441,7 @@ impl MarionetteSession {
             return Err(error.into());
         }
 
-        try!(self.update(msg, &resp));
+        self.update(msg, &resp)?;
 
         Ok(match msg.command {
             // Everything that doesn't have a response value
@@ -525,17 +527,15 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret value as array"
                 );
-                let handles = try!(
-                    data.iter()
-                        .map(|x| {
-                            Ok(try_opt!(
-                                x.as_str(),
-                                ErrorStatus::UnknownError,
-                                "Failed to interpret window handle as string"
-                            ).to_owned())
-                        })
-                        .collect()
-                );
+                let handles = data
+                    .iter()
+                    .map(|x| {
+                        Ok(try_opt!(
+                            x.as_str(),
+                            ErrorStatus::UnknownError,
+                            "Failed to interpret window handle as string"
+                        ).to_owned())
+                    }).collect::<Result<Vec<_>, _>>()?;
                 WebDriverResponse::CloseWindow(CloseWindowResponse(handles))
             }
             GetElementRect(_) => {
@@ -652,11 +652,11 @@ impl MarionetteSession {
                 WebDriverResponse::Cookie(CookieResponse(cookie))
             }
             FindElement(_) | FindElementElement(_, _) => {
-                let element = try!(self.to_web_element(try_opt!(
+                let element = self.to_web_element(try_opt!(
                     resp.result.get("value"),
                     ErrorStatus::UnknownError,
                     "Failed to find value field"
-                )));
+                ))?;
                 WebDriverResponse::Generic(ValueResponse(serde_json::to_value(element)?))
             }
             FindElements(_) | FindElementElements(_, _) => {
@@ -665,12 +665,11 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret value as array"
                 );
-                let elements = try!(
-                    element_vec
-                        .iter()
-                        .map(|x| self.to_web_element(x))
-                        .collect::<Result<Vec<_>, _>>()
-                );
+                let elements = element_vec
+                    .iter()
+                    .map(|x| self.to_web_element(x))
+                    .collect::<Result<Vec<_>, _>>()?;
+
                 // TODO(Henrik): How to remove unwrap?
                 WebDriverResponse::Generic(ValueResponse(Value::Array(
                     elements
@@ -680,11 +679,11 @@ impl MarionetteSession {
                 )))
             }
             GetActiveElement => {
-                let element = try!(self.to_web_element(try_opt!(
+                let element = self.to_web_element(try_opt!(
                     resp.result.get("value"),
                     ErrorStatus::UnknownError,
                     "Failed to find value field"
-                )));
+                ))?;
                 WebDriverResponse::Generic(ValueResponse(serde_json::to_value(element)?))
             }
             NewSession(_) => {
@@ -725,20 +724,19 @@ impl MarionetteSession {
                         ErrorStatus::UnknownError,
                         "Failed to interpret body as array"
                     );
-                    let els = try!(
-                        els_vec
-                            .iter()
-                            .map(|x| self.to_web_element(x))
-                            .collect::<Result<Vec<_>, _>>()
-                    );
+                    let els = els_vec
+                        .iter()
+                        .map(|x| self.to_web_element(x))
+                        .collect::<Result<Vec<_>, _>>()?;
+
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(els)?))
                 }
                 XblAnonymousByAttribute(_, _) => {
-                    let el = try!(self.to_web_element(try_opt!(
+                    let el = self.to_web_element(try_opt!(
                         resp.result.get("value"),
                         ErrorStatus::UnknownError,
                         "Failed to find value field"
-                    )));
+                    ))?;
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(el)?))
                 }
                 InstallAddon(_) => WebDriverResponse::Generic(resp.to_value_response(true)?),
@@ -829,13 +827,13 @@ impl MarionetteCommand {
             ExecuteScript(ref x) => (Some("WebDriver:ExecuteScript"), Some(x.to_marionette())),
             FindElement(ref x) => (Some("WebDriver:FindElement"), Some(x.to_marionette())),
             FindElementElement(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), Value::String(e.id.clone()));
                 (Some("WebDriver:FindElement"), Some(Ok(data)))
             }
             FindElements(ref x) => (Some("WebDriver:FindElements"), Some(x.to_marionette())),
             FindElementElements(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), Value::String(e.id.clone()));
                 (Some("WebDriver:FindElements"), Some(Ok(data)))
             }
@@ -969,7 +967,7 @@ impl MarionetteCommand {
             ErrorStatus::UnsupportedOperation,
             "Operation not supported"
         );
-        let parameters = try!(opt_parameters.unwrap_or(Ok(Map::new())));
+        let parameters = opt_parameters.unwrap_or(Ok(Map::new()))?;
 
         Ok(MarionetteCommand::new(id, name.into(), parameters))
     }
@@ -1244,7 +1242,7 @@ impl MarionetteConnection {
         let stream = self.stream.as_mut().unwrap();
         loop {
             let buf = &mut [0 as u8];
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             let byte = match num_read {
                 0 => {
                     return Err(IoError::new(
@@ -1269,7 +1267,7 @@ impl MarionetteConnection {
         let mut payload = Vec::with_capacity(bytes);
         let mut total_read = 0;
         while total_read < bytes {
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             if num_read == 0 {
                 return Err(IoError::new(
                     ErrorKind::Other,
@@ -1376,7 +1374,7 @@ impl ToMarionette for FrameId {
             FrameId::Short(x) => data.insert("id".to_string(), serde_json::to_value(x)?),
             FrameId::Element(ref x) => data.insert(
                 "element".to_string(),
-                Value::Object(try!(x.to_marionette())),
+                Value::Object(x.to_marionette()?),
             ),
         };
         Ok(data)

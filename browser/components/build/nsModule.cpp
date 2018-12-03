@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -126,15 +126,12 @@ static const mozilla::Module::ContractIDEntry kBrowserContracts[] = {
 };
 
 static const mozilla::Module::CategoryEntry kBrowserCategories[] = {
-    { XPCOM_DIRECTORY_PROVIDER_CATEGORY, "browser-directory-provider", NS_BROWSERDIRECTORYPROVIDER_CONTRACTID },
-    { nullptr }
-};
+    {XPCOM_DIRECTORY_PROVIDER_CATEGORY, "browser-directory-provider",
+     NS_BROWSERDIRECTORYPROVIDER_CONTRACTID},
+    {nullptr}};
 
-static const mozilla::Module kBrowserModule = {
-    mozilla::Module::kVersion,
-    kBrowserCIDs,
-    kBrowserContracts,
-    kBrowserCategories
-};
+static const mozilla::Module kBrowserModule = {mozilla::Module::kVersion,
+                                               kBrowserCIDs, kBrowserContracts,
+                                               kBrowserCategories};
 
 NSMODULE_DEFN(nsBrowserCompsModule) = &kBrowserModule;

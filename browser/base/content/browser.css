@@ -199,15 +199,13 @@ panelview[mainview] > .panel-header {
 }
 
 .tab-label:not([fadein]),
-.tab-throbber:not([fadein]),
-.tab-throbber-fallback:not([fadein]) {
+.tab-throbber:not([fadein]) {
   display: none;
 }
 
 %ifdef NIGHTLY_BUILD
 @supports -moz-bool-pref("browser.tabs.hideThrobber") {
-  .tab-throbber,
-  .tab-throbber-fallback {
+  .tab-throbber {
     display: none !important;
   }
 }
@@ -559,17 +557,13 @@ html|input.urlbar-input:-moz-locale-dir(rtl) {
   direction: ltr !important;
   text-align: right !important;
 }
+
 /* Make sure that the location bar's alignment in RTL mode changes according
    to the input box direction if the user switches the text direction using
    cmd_switchTextDirection (which applies a dir attribute to the <input>). */
 html|input.urlbar-input[dir=ltr]:-moz-locale-dir(rtl) {
   text-align: left !important;
 }
-/* Show placeholder text in URL bar using correct direction */
-html|input.urlbar-input:-moz-locale-dir(rtl):placeholder-shown {
-  direction: rtl !important;
-}
-
 
 /*
  * Display visual cue that browser is under remote control by Marionette.

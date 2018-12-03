@@ -7,24 +7,20 @@
 #include "nsDeque.h"
 #include "nsISupportsImpl.h"
 #include <string.h>
-#ifdef DEBUG_rickg
-#include <stdio.h>
-#endif
 
 #include "mozilla/CheckedInt.h"
 
-#define modulus(x,y) ((x)%(y))
+#define modulus(x, y) ((x) % (y))
 
 /**
  * Standard constructor
  * @param deallocator, called by Erase and ~nsDeque
  */
-nsDeque::nsDeque(nsDequeFunctor* aDeallocator)
-{
+nsDeque::nsDeque(nsDequeFunctor* aDeallocator) {
   MOZ_COUNT_CTOR(nsDeque);
   mDeallocator = aDeallocator;
   mOrigin = mSize = 0;
-  mData = mBuffer; // don't allocate space until you must
+  mData = mBuffer;  // don't allocate space until you must
   mCapacity = sizeof(mBuffer) / sizeof(mBuffer[0]);
   memset(mData, 0, mCapacity * sizeof(mBuffer[0]));
 }
@@ -32,31 +28,8 @@ nsDeque::nsDeque(nsDequeFunctor* aDeallocator)
 /**
  * Destructor
  */
-nsDeque::~nsDeque()
-{
+nsDeque::~nsDeque() {
   MOZ_COUNT_DTOR(nsDeque);
-
-#ifdef DEBUG_rickg
-  char buffer[30];
-  printf("Capacity: %i\n", mCapacity);
-
-  static int mCaps[15] = {0};
-  switch (mCapacity) {
-    case 4:     mCaps[0]++; break;
-    case 8:     mCaps[1]++; break;
-    case 16:    mCaps[2]++; break;
-    case 32:    mCaps[3]++; break;
-    case 64:    mCaps[4]++; break;
-    case 128:   mCaps[5]++; break;
-    case 256:   mCaps[6]++; break;
-    case 512:   mCaps[7]++; break;
-    case 1024:  mCaps[8]++; break;
-    case 2048:  mCaps[9]++; break;
-    case 4096:  mCaps[10]++; break;
-    default:
-      break;
-  }
-#endif
 
   Erase();
   if (mData && mData != mBuffer) {
@@ -66,9 +39,7 @@ nsDeque::~nsDeque()
   SetDeallocator(0);
 }
 
-size_t
-nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t size = 0;
   if (mData != mBuffer) {
     size += aMallocSizeOf(mData);
@@ -81,9 +52,7 @@ nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   return size;
 }
 
-size_t
-nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
@@ -93,9 +62,7 @@ nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
  *
  * @param   aDeallocator functor object for use by Erase()
  */
-void
-nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator)
-{
+void nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator) {
   delete mDeallocator;
   mDeallocator = aDeallocator;
 }
@@ -103,9 +70,7 @@ nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator)
 /**
  * Remove all items from container without destroying them.
  */
-void
-nsDeque::Empty()
-{
+void nsDeque::Empty() {
   if (mSize && mData) {
     memset(mData, 0, mCapacity * sizeof(*mData));
   }
@@ -116,9 +81,7 @@ nsDeque::Empty()
 /**
  * Remove and delete all items from container
  */
-void
-nsDeque::Erase()
-{
+void nsDeque::Erase() {
   if (mDeallocator && mSize) {
     ForEach(*mDeallocator);
   }
@@ -132,9 +95,7 @@ nsDeque::Erase()
  *
  * @return  whether growing succeeded
  */
-bool
-nsDeque::GrowCapacity()
-{
+bool nsDeque::GrowCapacity() {
   mozilla::CheckedInt<size_t> newCapacity = mCapacity;
   newCapacity *= 4;
 
@@ -157,10 +118,10 @@ nsDeque::GrowCapacity()
     return false;
   }
 
-  //Here's the interesting part: You can't just move the elements
-  //directly (in situ) from the old buffer to the new one.
-  //Since capacity has changed, the old origin doesn't make
-  //sense anymore. It's better to resequence the elements now.
+  // Here's the interesting part: You can't just move the elements
+  // directly (in situ) from the old buffer to the new one.
+  // Since capacity has changed, the old origin doesn't make
+  // sense anymore. It's better to resequence the elements now.
 
   memcpy(temp, mData + mOrigin, sizeof(void*) * (mCapacity - mOrigin));
   memcpy(temp + (mCapacity - mOrigin), mData, sizeof(void*) * mOrigin);
@@ -170,7 +131,7 @@ nsDeque::GrowCapacity()
   }
 
   mCapacity = newCapacity.value();
-  mOrigin = 0; //now realign the origin...
+  mOrigin = 0;  // now realign the origin...
   mData = temp;
 
   return true;
@@ -183,9 +144,7 @@ nsDeque::GrowCapacity()
  *
  * @param   aItem: new item to be added to deque
  */
-bool
-nsDeque::Push(void* aItem, const fallible_t&)
-{
+bool nsDeque::Push(void* aItem, const fallible_t&) {
   if (mSize == mCapacity && !GrowCapacity()) {
     return false;
   }
@@ -226,10 +185,7 @@ nsDeque::Push(void* aItem, const fallible_t&)
  * --
  * @param   aItem: new item to be added to deque
  */
-bool
-nsDeque::PushFront(void* aItem, const fallible_t&)
-{
-
+bool nsDeque::PushFront(void* aItem, const fallible_t&) {
   if (mOrigin == 0) {
     mOrigin = mCapacity - 1;
   } else {
@@ -253,9 +209,7 @@ nsDeque::PushFront(void* aItem, const fallible_t&)
  *
  * @return  ptr to last item in container
  */
-void*
-nsDeque::Pop()
-{
+void* nsDeque::Pop() {
   void* result = 0;
   if (mSize > 0) {
     --mSize;
@@ -275,14 +229,12 @@ nsDeque::Pop()
  *
  * @return  last item in container
  */
-void*
-nsDeque::PopFront()
-{
+void* nsDeque::PopFront() {
   void* result = 0;
   if (mSize > 0) {
     NS_ASSERTION(mOrigin < mCapacity, "Error: Bad origin");
     result = mData[mOrigin];
-    mData[mOrigin++] = 0;   //zero it out for debugging purposes.
+    mData[mOrigin++] = 0;  // zero it out for debugging purposes.
     mSize--;
     // Cycle around if we pop off the end
     // and reset origin if when we pop the last element
@@ -299,9 +251,7 @@ nsDeque::PopFront()
  *
  * @return  last item in container
  */
-void*
-nsDeque::Peek() const
-{
+void* nsDeque::Peek() const {
   void* result = 0;
   if (mSize > 0) {
     result = mData[modulus(mSize - 1 + mOrigin, mCapacity)];
@@ -315,9 +265,7 @@ nsDeque::Peek() const
  *
  * @return  last item in container
  */
-void*
-nsDeque::PeekFront() const
-{
+void* nsDeque::PeekFront() const {
   void* result = 0;
   if (mSize > 0) {
     result = mData[mOrigin];
@@ -334,9 +282,7 @@ nsDeque::PeekFront() const
  * @param   aIndex : 0 relative offset of item you want
  * @return  void* or null
  */
-void*
-nsDeque::ObjectAt(size_t aIndex) const
-{
+void* nsDeque::ObjectAt(size_t aIndex) const {
   void* result = 0;
   if (aIndex < mSize) {
     result = mData[modulus(mOrigin + aIndex, mCapacity)];
@@ -352,9 +298,7 @@ nsDeque::ObjectAt(size_t aIndex) const
  * @param   aFunctor object to call for each member
  * @return  *this
  */
-void
-nsDeque::ForEach(nsDequeFunctor& aFunctor) const
-{
+void nsDeque::ForEach(nsDequeFunctor& aFunctor) const {
   for (size_t i = 0; i < mSize; ++i) {
     aFunctor(ObjectAt(i));
   }

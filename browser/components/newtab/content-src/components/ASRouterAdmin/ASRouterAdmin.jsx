@@ -12,6 +12,8 @@ export class ASRouterAdmin extends React.PureComponent {
     this.findOtherBundledMessagesOfSameTemplate = this.findOtherBundledMessagesOfSameTemplate.bind(this);
     this.handleExpressionEval = this.handleExpressionEval.bind(this);
     this.onChangeTargetingParameters = this.onChangeTargetingParameters.bind(this);
+    this.onChangeAttributionParameters = this.onChangeAttributionParameters.bind(this);
+    this.setAttribution = this.setAttribution.bind(this);
     this.onCopyTargetingParams = this.onCopyTargetingParams.bind(this);
     this.onPasteTargetingParams = this.onPasteTargetingParams.bind(this);
     this.onNewTargetingParams = this.onNewTargetingParams.bind(this);
@@ -22,6 +24,11 @@ export class ASRouterAdmin extends React.PureComponent {
       newStringTargetingParameters: null,
       copiedToClipboard: false,
       pasteFromClipboard: false,
+      attributionParameters: {
+        source: "addons.mozilla.org",
+        campaign: "non-fx-button",
+        content: "iridium@particlecore.github.io",
+      },
     };
   }
 
@@ -264,7 +271,7 @@ export class ASRouterAdmin extends React.PureComponent {
 
         let label = "local";
         if (provider.type === "remote") {
-          label = (<span>endpoint (<a className="providerUrl" target="_blank" href={info.url}>{info.url}</a>)</span>);
+          label = (<span>endpoint (<a className="providerUrl" target="_blank" href={info.url} rel="noopener noreferrer">{info.url}</a>)</span>);
         } else if (provider.type === "remote-settings") {
           label = `remote settings (${provider.bucket})`;
         }
@@ -352,9 +359,56 @@ export class ASRouterAdmin extends React.PureComponent {
       </tbody></table>);
   }
 
+  onChangeAttributionParameters(event) {
+    const {name, value} = event.target;
+
+    this.setState(({attributionParameters}) => {
+      const updatedParameters = {...attributionParameters};
+      updatedParameters[name] = value;
+
+      return {attributionParameters: updatedParameters};
+    });
+  }
+
+  setAttribution(e) {
+    ASRouterUtils.sendMessage({type: "FORCE_ATTRIBUTION", data: this.state.attributionParameters});
+  }
+
+  renderAttributionParamers() {
+    return (
+      <div>
+        <h2> Attribution Parameters </h2>
+        <p> This forces the browser to set some attribution parameters, useful for testing the Return To AMO feature. Clicking on 'Force Attribution', with the default values in each field, will demo the Return To AMO flow with the addon called 'Iridium for Youtube'. If you wish to try different attribution parameters, enter them in the text boxes. If you wish to try a different addon with the Return To AMO flow, make sure the 'content' text box has the addon GUID, then click 'Force Attribution'.</p>
+        <table>
+          <tr>
+            <td><b> Source </b></td>
+            <td> <input type="text" name="source" placeholder="addons.mozilla.org" value={this.state.attributionParameters.source} onChange={this.onChangeAttributionParameters} /> </td>
+          </tr>
+          <tr>
+            <td><b> Campaign </b></td>
+            <td> <input type="text" name="campaign" placeholder="non-fx-button" value={this.state.attributionParameters.campaign} onChange={this.onChangeAttributionParameters} /> </td>
+          </tr>
+          <tr>
+            <td><b> Content </b></td>
+            <td> <input type="text" name="content" placeholder="iridium@particlecore.github.io" value={this.state.attributionParameters.content} onChange={this.onChangeAttributionParameters} /> </td>
+          </tr>
+          <tr>
+            <td> <button className="ASRouterButton primary button" onClick={this.setAttribution} > Force Attribution </button> </td>
+          </tr>
+        </table>
+      </div>);
+  }
+
   render() {
     return (<div className="asrouter-admin outer-wrapper">
       <h1>AS Router Admin</h1>
+      <p className="helpLink">
+        <span className="icon icon-small-spacer icon-info" />
+        {" "}
+        <span>
+          Need help using these tools? Check out our <a target="blank" href="https://github.com/mozilla/activity-stream/blob/master/content-src/asrouter/docs/debugging-docs.md">documentation</a>
+        </span>
+      </p>
       <h2>Targeting Utilities</h2>
       <button className="button" onClick={this.expireCache}>Expire Cache</button> (This expires the cache in ASR Targeting for bookmarks and top sites)
       <h2>Message Providers <button title="Restore all provider settings that ship with Firefox" className="button" onClick={this.resetPref}>Restore default prefs</button></h2>
@@ -365,6 +419,7 @@ export class ASRouterAdmin extends React.PureComponent {
       {this.renderMessages()}
       {this.renderPasteModal()}
       {this.renderTargetingParameters()}
+      {this.renderAttributionParamers()}
     </div>);
   }
 }

@@ -94,6 +94,7 @@ UNIFIED_SOURCES += [
     'testSavedStacks.cpp',
     'testScriptInfo.cpp',
     'testScriptObject.cpp',
+    'testScriptSourceCompression.cpp',
     'testSetProperty.cpp',
     'testSetPropertyIgnoringNamedGetter.cpp',
     'testSharedImmutableStringsCache.cpp',
@@ -113,6 +114,7 @@ UNIFIED_SOURCES += [
     'testUTF8.cpp',
     'testWasmLEB128.cpp',
     'testWeakMap.cpp',
+    'testWindowNonConfigurable.cpp',
     'testXDR.cpp',
 ]
 

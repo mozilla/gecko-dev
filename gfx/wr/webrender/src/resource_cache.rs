@@ -36,6 +36,7 @@ use render_task::{RenderTaskCacheEntry, RenderTaskCacheEntryHandle, RenderTaskTr
 use smallvec::SmallVec;
 use std::collections::hash_map::Entry::{self, Occupied, Vacant};
 use std::collections::hash_map::IterMut;
+use std::collections::VecDeque;
 use std::{cmp, mem};
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -436,6 +437,9 @@ pub struct ResourceCache {
     missing_blob_images: Vec<BlobImageParams>,
     // The rasterizer associated with the current scene.
     blob_image_rasterizer: Option<Box<AsyncBlobImageRasterizer>>,
+    // A log of the last three frames worth of deleted image keys kept
+    // for debugging purposes.
+    deleted_blob_keys: VecDeque<Vec<BlobImageKey>>
 }
 
 impl ResourceCache {
@@ -460,6 +464,8 @@ impl ResourceCache {
             blob_image_templates: FastHashMap::default(),
             missing_blob_images: Vec::new(),
             blob_image_rasterizer: None,
+            // We want to keep three frames worth of delete blob keys
+            deleted_blob_keys: vec![Vec::new(), Vec::new(), Vec::new()].into(),
         }
     }
 
@@ -794,11 +800,10 @@ impl ResourceCache {
                 entry.dirty_rect = entry.dirty_rect.union(dirty_rect);
             }
             Some(&mut ImageResult::Multi(ref mut entries)) => {
-                let tile_size = tiling.unwrap();
                 for (key, entry) in entries.iter_mut() {
                     // We want the dirty rect relative to the tile and not the whole image.
-                    let local_dirty_rect = match key.tile {
-                        Some(tile) => {
+                    let local_dirty_rect = match (tiling, key.tile) {
+                        (Some(tile_size), Some(tile)) => {
                             dirty_rect.map(|mut rect|{
                                 let tile_offset = DeviceIntPoint::new(
                                     tile.x as i32,
@@ -809,7 +814,8 @@ impl ResourceCache {
                                 rect
                             })
                         }
-                        None => *dirty_rect,
+                        (None, Some(..)) => DirtyRect::All,
+                        _ => *dirty_rect,
                     };
                     entry.dirty_rect = entry.dirty_rect.union(&local_dirty_rect);
                 }
@@ -888,6 +894,7 @@ impl ResourceCache {
             Some(image) => if image.data.is_blob() {
                 let blob_key = BlobImageKey(image_key);
                 self.blob_image_handler.as_mut().unwrap().delete(blob_key);
+                self.deleted_blob_keys.back_mut().unwrap().push(blob_key);
                 self.blob_image_templates.remove(&blob_key);
                 self.rasterized_blob_images.remove(&blob_key);
             },
@@ -1055,6 +1062,10 @@ impl ResourceCache {
                 };
 
                 assert!(!descriptor.rect.is_empty());
+
+                if !self.blob_image_templates.contains_key(&request.key) {
+                    panic!("already missing blob image key {:?} deleted: {:?}", request, self.deleted_blob_keys);
+                }
 
                 self.missing_blob_images.push(
                     BlobImageParams {
@@ -1457,6 +1468,10 @@ impl ResourceCache {
         self.cached_glyphs.begin_frame(&self.texture_cache, &self.cached_render_tasks, &mut self.glyph_rasterizer);
         self.cached_render_tasks.begin_frame(&mut self.texture_cache);
         self.current_frame_id = stamp.frame_id();
+
+        // pop the old frame and push a new one
+        self.deleted_blob_keys.pop_front();
+        self.deleted_blob_keys.push_back(Vec::new());
     }
 
     pub fn block_until_all_resources_added(
@@ -1502,6 +1517,12 @@ impl ResourceCache {
             .unwrap()
             .prepare_resources(&self.resources, &self.missing_blob_images);
 
+
+        for blob_image in &self.missing_blob_images {
+            if !self.blob_image_templates.contains_key(&blob_image.request.key) {
+                panic!("missing blob image key {:?} deleted: {:?}", blob_image, self.deleted_blob_keys);
+            }
+        }
         let is_low_priority = false;
         let rasterized_blobs = self.blob_image_rasterizer
             .as_mut()

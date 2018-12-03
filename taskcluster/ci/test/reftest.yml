@@ -95,10 +95,7 @@ reftest:
         by-test-platform:
             android-em.*: xlarge
             default: default
-    virtualization:
-        by-test-platform:
-            windows10.*: hardware
-            default: virtual-with-gpu
+    virtualization: virtual-with-gpu
     chunks:
         by-test-platform:
             android-em-4.3-arm7-api-16/debug: 56
@@ -119,6 +116,7 @@ reftest:
         by-test-platform:
             android-em.*: 7200
             windows10-64-ccov/debug: 5400
+            windows10-64-asan/opt: 5400
             macosx64-ccov/debug: 5400
             default: 3600
     mozharness:

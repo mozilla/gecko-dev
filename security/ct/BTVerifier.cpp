@@ -14,23 +14,154 @@
 #include "mozpkix/pkixnss.h"
 #include "mozpkix/pkixutil.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
 typedef mozilla::pkix::Result Result;
 
-// Members of a Inclusion Proof struct
+// Common prefix lengths
 static const size_t kLogIdPrefixLengthBytes = 1;
-static const size_t kProofTreeSizeLength = 8;
-static const size_t kLeafIndexLength = 8;
-static const size_t kInclusionPathLengthBytes = 2;
+static const size_t kBTTreeSizeLength = 8;
 static const size_t kNodeHashPrefixLengthBytes = 1;
 
-Result
-DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
-{
+// Members of a SignedTreeHeadDataV2 struct
+static const size_t kSTHTimestampLength = 8;
+static const size_t kSTHExtensionsLengthBytes = 2;
+static const size_t kSTHSignatureLengthBytes = 2;
+
+// Members of a Inclusion Proof struct
+static const size_t kLeafIndexLength = 8;
+static const size_t kInclusionPathLengthBytes = 2;
+
+static Result GetDigestAlgorithmLengthAndIdentifier(
+    DigestAlgorithm digestAlgorithm,
+    /* out */ size_t& digestAlgorithmLength,
+    /* out */ SECOidTag& digestAlgorithmId) {
+  switch (digestAlgorithm) {
+    case DigestAlgorithm::sha512:
+      digestAlgorithmLength = SHA512_LENGTH;
+      digestAlgorithmId = SEC_OID_SHA512;
+      return Success;
+    case DigestAlgorithm::sha256:
+      digestAlgorithmLength = SHA256_LENGTH;
+      digestAlgorithmId = SEC_OID_SHA256;
+      return Success;
+    default:
+      return pkix::Result::FATAL_ERROR_INVALID_ARGS;
+  }
+}
+
+Result DecodeAndVerifySignedTreeHead(
+    Input signerSubjectPublicKeyInfo, DigestAlgorithm digestAlgorithm,
+    der::PublicKeyAlgorithm publicKeyAlgorithm, Input signedTreeHeadInput,
+    /* out */ SignedTreeHeadDataV2& signedTreeHead) {
+  SignedTreeHeadDataV2 result;
+  Reader reader(signedTreeHeadInput);
+
+  Input logId;
+  Result rv = ReadVariableBytes<kLogIdPrefixLengthBytes>(reader, logId);
+  if (rv != Success) {
+    return rv;
+  }
+  InputToBuffer(logId, result.logId);
+
+  // This is the beginning of the data covered by the signature.
+  Reader::Mark signedDataMark = reader.GetMark();
+
+  rv = ReadUint<kSTHTimestampLength>(reader, result.timestamp);
+  if (rv != Success) {
+    return rv;
+  }
+
+  rv = ReadUint<kBTTreeSizeLength>(reader, result.treeSize);
+  if (rv != Success) {
+    return rv;
+  }
+
+  Input hash;
+  rv = ReadVariableBytes<kNodeHashPrefixLengthBytes>(reader, hash);
+  if (rv != Success) {
+    return rv;
+  }
+  InputToBuffer(hash, result.rootHash);
+
+  // We ignore any extensions, but we have to read them.
+  Input extensionsInput;
+  rv = ReadVariableBytes<kSTHExtensionsLengthBytes>(reader, extensionsInput);
+  if (rv != Success) {
+    return rv;
+  }
+
+  Input signedDataInput;
+  rv = reader.GetInput(signedDataMark, signedDataInput);
+  if (rv != Success) {
+    return rv;
+  }
+
+  SECOidTag unusedDigestAlgorithmId;
+  size_t digestAlgorithmLength;
+  rv = GetDigestAlgorithmLengthAndIdentifier(
+      digestAlgorithm, digestAlgorithmLength, unusedDigestAlgorithmId);
+  if (rv != Success) {
+    return rv;
+  }
+
+  uint8_t digestBuf[MAX_DIGEST_SIZE_IN_BYTES];
+  rv = DigestBufNSS(signedDataInput, digestAlgorithm, digestBuf,
+                    digestAlgorithmLength);
+  if (rv != Success) {
+    return rv;
+  }
+
+  Input digestInput;
+  rv = digestInput.Init(digestBuf, digestAlgorithmLength);
+  if (rv != Success) {
+    return rv;
+  }
+
+  Input signatureInput;
+  rv = ReadVariableBytes<kSTHSignatureLengthBytes>(reader, signatureInput);
+  if (rv != Success) {
+    return rv;
+  }
+
+  SignedDigest signedDigest = {digestInput, digestAlgorithm, signatureInput};
+  switch (publicKeyAlgorithm) {
+    case der::PublicKeyAlgorithm::ECDSA:
+      rv = VerifyECDSASignedDigestNSS(signedDigest, signerSubjectPublicKeyInfo,
+                                      nullptr);
+      break;
+    case der::PublicKeyAlgorithm::RSA_PKCS1:
+    case der::PublicKeyAlgorithm::Uninitialized:
+    default:
+      return Result::FATAL_ERROR_INVALID_ARGS;
+  }
+  if (rv != Success) {
+    // VerifyECDSASignedDigestNSS eventually calls VFY_VerifyDigestDirect, which
+    // can set the PR error code to SEC_ERROR_PKCS7_KEYALG_MISMATCH if the type
+    // of key decoded from the SPKI does not match the given signature
+    // algorithm. mozilla::pkix does not have a corresponding Result value and
+    // turns this error code into Result::ERROR_UNKNOWN_ERROR. Since this is
+    // uninformative, we'll turn that result into a bad signature error.
+    if (rv == Result::ERROR_UNKNOWN_ERROR) {
+      return Result::ERROR_BAD_SIGNATURE;
+    }
+    return rv;
+  }
+
+  if (!reader.AtEnd()) {
+    return pkix::Result::ERROR_BAD_DER;
+  }
+
+  signedTreeHead = std::move(result);
+  return Success;
+}
+
+Result DecodeInclusionProof(Input input, InclusionProofDataV2& output) {
   InclusionProofDataV2 result;
+  Reader reader(input);
 
   Input logId;
   Result rv = ReadVariableBytes<kLogIdPrefixLengthBytes>(reader, logId);
@@ -38,7 +169,7 @@ DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
     return rv;
   }
 
-  rv = ReadUint<kProofTreeSizeLength>(reader, result.treeSize);
+  rv = ReadUint<kBTTreeSizeLength>(reader, result.treeSize);
   if (rv != Success) {
     return rv;
   }
@@ -82,7 +213,7 @@ DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
     inclusionPath.push_back(std::move(hashBuffer));
   }
 
-  if (!reader.AtEnd()){
+  if (!reader.AtEnd()) {
     return pkix::Result::ERROR_BAD_DER;
   }
 
@@ -94,10 +225,9 @@ DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
   return Success;
 }
 
-static Result
-CommonFinishDigest(UniquePK11Context& context, size_t digestAlgorithmLength,
-  /* out */ Buffer& outputBuffer)
-{
+static Result CommonFinishDigest(UniquePK11Context& context,
+                                 size_t digestAlgorithmLength,
+                                 /* out */ Buffer& outputBuffer) {
   uint32_t outLen = 0;
   outputBuffer.assign(digestAlgorithmLength, 0);
   if (PK11_DigestFinal(context.get(), outputBuffer.data(), &outLen,
@@ -110,10 +240,9 @@ CommonFinishDigest(UniquePK11Context& context, size_t digestAlgorithmLength,
   return Success;
 }
 
-static Result
-LeafHash(Input leafEntry, size_t digestAlgorithmLength,
-  SECOidTag digestAlgorithmId, /* out */ Buffer& calculatedHash)
-{
+static Result LeafHash(Input leafEntry, size_t digestAlgorithmLength,
+                       SECOidTag digestAlgorithmId,
+                       /* out */ Buffer& calculatedHash) {
   UniquePK11Context context(PK11_CreateDigestContext(digestAlgorithmId));
   if (!context) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
@@ -123,17 +252,17 @@ LeafHash(Input leafEntry, size_t digestAlgorithmLength,
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
   SECItem leafEntryItem = UnsafeMapInputToSECItem(leafEntry);
-  if (PK11_DigestOp(context.get(), leafEntryItem.data, leafEntryItem.len)
-        != SECSuccess) {
+  if (PK11_DigestOp(context.get(), leafEntryItem.data, leafEntryItem.len) !=
+      SECSuccess) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
   return CommonFinishDigest(context, digestAlgorithmLength, calculatedHash);
 }
 
-static Result
-NodeHash(const Buffer& left, const Buffer& right, size_t digestAlgorithmLength,
-  SECOidTag digestAlgorithmId, /* out */ Buffer& calculatedHash)
-{
+static Result NodeHash(const Buffer& left, const Buffer& right,
+                       size_t digestAlgorithmLength,
+                       SECOidTag digestAlgorithmId,
+                       /* out */ Buffer& calculatedHash) {
   UniquePK11Context context(PK11_CreateDigestContext(digestAlgorithmId));
   if (!context) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
@@ -151,38 +280,18 @@ NodeHash(const Buffer& left, const Buffer& right, size_t digestAlgorithmLength,
   return CommonFinishDigest(context, digestAlgorithmLength, calculatedHash);
 }
 
-static Result
-GetDigestAlgorithmLengthAndIdentifier(DigestAlgorithm digestAlgorithm,
-  /* out */ size_t& digestAlgorithmLength,
-  /* out */ SECOidTag& digestAlgorithmId)
-{
-  switch (digestAlgorithm) {
-    case DigestAlgorithm::sha512:
-      digestAlgorithmLength = SHA512_LENGTH;
-      digestAlgorithmId = SEC_OID_SHA512;
-      return Success;
-    case DigestAlgorithm::sha256:
-      digestAlgorithmLength = SHA256_LENGTH;
-      digestAlgorithmId = SEC_OID_SHA256;
-      return Success;
-    default:
-      return pkix::Result::FATAL_ERROR_INVALID_ARGS;
-  }
-}
-
 // This algorithm is specified by:
 // https://tools.ietf.org/html/draft-ietf-trans-rfc6962-bis-28#section-2.1.3.2
-Result
-VerifyInclusionProof(const InclusionProofDataV2& proof, Input leafEntry,
-                     Input expectedRootHash, DigestAlgorithm digestAlgorithm)
-{
+Result VerifyInclusionProof(const InclusionProofDataV2& proof, Input leafEntry,
+                            Input expectedRootHash,
+                            DigestAlgorithm digestAlgorithm) {
   if (proof.treeSize == 0) {
     return pkix::Result::ERROR_BAD_SIGNATURE;
   }
   size_t digestAlgorithmLength;
   SECOidTag digestAlgorithmId;
-  Result rv = GetDigestAlgorithmLengthAndIdentifier(digestAlgorithm,
-    digestAlgorithmLength, digestAlgorithmId);
+  Result rv = GetDigestAlgorithmLengthAndIdentifier(
+      digestAlgorithm, digestAlgorithmLength, digestAlgorithmId);
   if (rv != Success) {
     return rv;
   }
@@ -200,7 +309,7 @@ VerifyInclusionProof(const InclusionProofDataV2& proof, Input leafEntry,
   if (rv != Success) {
     return rv;
   }
-  for (const auto& hash: proof.inclusionPath) {
+  for (const auto& hash : proof.inclusionPath) {
     if (lastNodeIndex == 0) {
       return pkix::Result::ERROR_BAD_SIGNATURE;
     }
@@ -240,4 +349,5 @@ VerifyInclusionProof(const InclusionProofDataV2& proof, Input leafEntry,
   return Success;
 }
 
-} } //namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

@@ -13,9 +13,7 @@ DIRS += [
 
 DebuggerModules(
     'ast.js',
-    'coverage.js',
     'debuggee.js',
-    'event-listeners.js',
     'expressions.js',
     'file-search.js',
     'index.js',

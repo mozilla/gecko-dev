@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=4 et sw=4 tw=99: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,56 +22,47 @@
 #include "nsIXPCScriptable.h"
 #include "nsWrapperCache.h"
 
-class xpcObjectHelper
-{
-public:
-    explicit xpcObjectHelper(nsISupports* aObject, nsWrapperCache* aCache = nullptr)
-      : mObject(aObject)
-      , mCache(aCache)
-    {
-        if (!mCache && aObject) {
-            CallQueryInterface(aObject, &mCache);
-        }
+class xpcObjectHelper {
+ public:
+  explicit xpcObjectHelper(nsISupports* aObject,
+                           nsWrapperCache* aCache = nullptr)
+      : mObject(aObject), mCache(aCache) {
+    if (!mCache && aObject) {
+      CallQueryInterface(aObject, &mCache);
     }
+  }
 
-    nsISupports* Object()
-    {
-        return mObject;
+  nsISupports* Object() { return mObject; }
+
+  nsIClassInfo* GetClassInfo() {
+    if (!mClassInfo) {
+      mClassInfo = do_QueryInterface(mObject);
     }
+    return mClassInfo;
+  }
 
-    nsIClassInfo* GetClassInfo()
-    {
-        if (!mClassInfo) {
-            mClassInfo = do_QueryInterface(mObject);
-        }
-        return mClassInfo;
-    }
+  // We assert that we can reach an nsIXPCScriptable somehow.
+  uint32_t GetScriptableFlags() {
+    nsCOMPtr<nsIXPCScriptable> sinfo = do_QueryInterface(mObject);
 
-    // We assert that we can reach an nsIXPCScriptable somehow.
-    uint32_t GetScriptableFlags()
-    {
-        nsCOMPtr<nsIXPCScriptable> sinfo = do_QueryInterface(mObject);
+    // We should have something by now.
+    MOZ_ASSERT(sinfo);
 
-        // We should have something by now.
-        MOZ_ASSERT(sinfo);
+    // Grab the flags.
+    return sinfo->GetScriptableFlags();
+  }
 
-        // Grab the flags.
-        return sinfo->GetScriptableFlags();
-    }
+  nsWrapperCache* GetWrapperCache() { return mCache; }
 
-    nsWrapperCache* GetWrapperCache()
-    {
-        return mCache;
-    }
+ private:
+  xpcObjectHelper(xpcObjectHelper& aOther) = delete;
 
-private:
-    xpcObjectHelper(xpcObjectHelper& aOther) = delete;
-
-    nsISupports* MOZ_UNSAFE_REF("xpcObjectHelper has been specifically optimized "
-                                "to avoid unnecessary AddRefs and Releases. "
-                                "(see bug 565742)") mObject;
-    nsWrapperCache*          mCache;
-    nsCOMPtr<nsIClassInfo>   mClassInfo;
+  nsISupports* MOZ_UNSAFE_REF(
+      "xpcObjectHelper has been specifically optimized "
+      "to avoid unnecessary AddRefs and Releases. "
+      "(see bug 565742)") mObject;
+  nsWrapperCache* mCache;
+  nsCOMPtr<nsIClassInfo> mClassInfo;
 };
 
 #endif

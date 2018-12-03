@@ -37,16 +37,12 @@ static const uint32_t kStartupDelay = 0;
 
 const char kTestingPref[] = "dom.storage.testing";
 
-NS_IMPL_ISUPPORTS(StorageObserver,
-                  nsIObserver,
-                  nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(StorageObserver, nsIObserver, nsISupportsWeakReference)
 
 StorageObserver* StorageObserver::sSelf = nullptr;
 
 // static
-nsresult
-StorageObserver::Init()
-{
+nsresult StorageObserver::Init() {
   if (sSelf) {
     return NS_OK;
   }
@@ -83,9 +79,7 @@ StorageObserver::Init()
 }
 
 // static
-nsresult
-StorageObserver::Shutdown()
-{
+nsresult StorageObserver::Shutdown() {
   if (!sSelf) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -95,9 +89,8 @@ StorageObserver::Shutdown()
 }
 
 // static
-void
-StorageObserver::TestingPrefChanged(const char* aPrefName, void* aClosure)
-{
+void StorageObserver::TestingPrefChanged(const char* aPrefName,
+                                         void* aClosure) {
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (!obs) {
     return;
@@ -120,23 +113,17 @@ StorageObserver::TestingPrefChanged(const char* aPrefName, void* aClosure)
   }
 }
 
-void
-StorageObserver::AddSink(StorageObserverSink* aObs)
-{
+void StorageObserver::AddSink(StorageObserverSink* aObs) {
   mSinks.AppendElement(aObs);
 }
 
-void
-StorageObserver::RemoveSink(StorageObserverSink* aObs)
-{
+void StorageObserver::RemoveSink(StorageObserverSink* aObs) {
   mSinks.RemoveElement(aObs);
 }
 
-void
-StorageObserver::Notify(const char* aTopic,
-                        const nsAString& aOriginAttributesPattern,
-                        const nsACString& aOriginScope)
-{
+void StorageObserver::Notify(const char* aTopic,
+                             const nsAString& aOriginAttributesPattern,
+                             const nsACString& aOriginScope) {
   nsTObserverArray<StorageObserverSink*>::ForwardIterator iter(mSinks);
   while (iter.HasMore()) {
     StorageObserverSink* sink = iter.GetNext();
@@ -144,16 +131,12 @@ StorageObserver::Notify(const char* aTopic,
   }
 }
 
-void
-StorageObserver::NoteBackgroundThread(nsIEventTarget* aBackgroundThread)
-{
+void StorageObserver::NoteBackgroundThread(nsIEventTarget* aBackgroundThread) {
   mBackgroundThread = aBackgroundThread;
 }
 
-nsresult
-StorageObserver::ClearMatchingOrigin(const char16_t* aData,
-                                     nsACString& aOriginScope)
-{
+nsresult StorageObserver::ClearMatchingOrigin(const char16_t* aData,
+                                              nsACString& aOriginScope) {
   nsresult rv;
 
   NS_ConvertUTF16toUTF8 domain(aData);
@@ -166,10 +149,8 @@ StorageObserver::ClearMatchingOrigin(const char16_t* aData,
   } else {
     // In case the IDN service is not available, this is the best we can come
     // up with!
-    rv = NS_EscapeURL(domain,
-                      esc_OnlyNonASCII | esc_AlwaysCopy,
-                      convertedDomain,
-                      fallible);
+    rv = NS_EscapeURL(domain, esc_OnlyNonASCII | esc_AlwaysCopy,
+                      convertedDomain, fallible);
   }
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -181,13 +162,15 @@ StorageObserver::ClearMatchingOrigin(const char16_t* aData,
     return rv;
   }
 
-  if (XRE_IsParentProcess()) {
-    StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-    if (NS_WARN_IF(!storageChild)) {
-      return NS_ERROR_FAILURE;
-    }
+  if (!NextGenLocalStorageEnabled()) {
+    if (XRE_IsParentProcess()) {
+      StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
+      if (NS_WARN_IF(!storageChild)) {
+        return NS_ERROR_FAILURE;
+      }
 
-    storageChild->SendClearMatchingOrigin(originScope);
+      storageChild->SendClearMatchingOrigin(originScope);
+    }
   }
 
   aOriginScope = originScope;
@@ -195,26 +178,30 @@ StorageObserver::ClearMatchingOrigin(const char16_t* aData,
 }
 
 NS_IMETHODIMP
-StorageObserver::Observe(nsISupports* aSubject,
-                         const char* aTopic,
-                         const char16_t* aData)
-{
+StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
+                         const char16_t* aData) {
   nsresult rv;
 
   // Start the thread that opens the database.
   if (!strcmp(aTopic, kStartupTopic)) {
     MOZ_ASSERT(XRE_IsParentProcess());
 
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     obs->RemoveObserver(this, kStartupTopic);
 
     return NS_NewTimerWithObserver(getter_AddRefs(mDBThreadStartDelayTimer),
-                                   this, nsITimer::TYPE_ONE_SHOT, kStartupDelay);
+                                   this, nsITimer::TYPE_ONE_SHOT,
+                                   kStartupDelay);
   }
 
   // Timer callback used to start the database a short timer after startup
   if (!strcmp(aTopic, NS_TIMER_CALLBACK_TOPIC)) {
     MOZ_ASSERT(XRE_IsParentProcess());
+    MOZ_ASSERT(!NextGenLocalStorageEnabled());
 
     nsCOMPtr<nsITimer> timer = do_QueryInterface(aSubject);
     if (!timer) {
@@ -241,15 +228,17 @@ StorageObserver::Observe(nsISupports* aSubject,
       return NS_OK;
     }
 
-    StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-    if (NS_WARN_IF(!storageChild)) {
-      return NS_ERROR_FAILURE;
-    }
+    if (!NextGenLocalStorageEnabled()) {
+      StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
+      if (NS_WARN_IF(!storageChild)) {
+        return NS_ERROR_FAILURE;
+      }
 
-    storageChild->AsyncClearAll();
+      storageChild->AsyncClearAll();
 
-    if (XRE_IsParentProcess()) {
-      storageChild->SendClearAll();
+      if (XRE_IsParentProcess()) {
+        storageChild->SendClearAll();
+      }
     }
 
     Notify("cookie-cleared");
@@ -286,7 +275,8 @@ StorageObserver::Observe(nsISupports* aSubject,
     }
 
     nsAutoCString originSuffix;
-    BasePrincipal::Cast(principal)->OriginAttributesRef().CreateSuffix(originSuffix);
+    BasePrincipal::Cast(principal)->OriginAttributesRef().CreateSuffix(
+        originSuffix);
 
     nsCOMPtr<nsIURI> origin;
     principal->GetURI(getter_AddRefs(origin));
@@ -311,6 +301,10 @@ StorageObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "extension:purge-localStorage")) {
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     const char topic[] = "extension:purge-localStorage-caches";
 
     if (aData) {
@@ -355,6 +349,10 @@ StorageObserver::Observe(nsISupports* aSubject,
 
   // Clear all private-browsing caches
   if (!strcmp(aTopic, "last-pb-context-exited")) {
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     Notify("private-browsing-data-cleared");
 
     return NS_OK;
@@ -363,6 +361,10 @@ StorageObserver::Observe(nsISupports* aSubject,
   // Clear data of the origins whose prefixes will match the suffix.
   if (!strcmp(aTopic, "clear-origin-attributes-data")) {
     MOZ_ASSERT(XRE_IsParentProcess());
+
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
 
     OriginAttributesPattern pattern;
     if (!pattern.Init(nsDependentString(aData))) {
@@ -391,13 +393,17 @@ StorageObserver::Observe(nsISupports* aSubject,
   if (!strcmp(aTopic, "profile-before-change")) {
     MOZ_ASSERT(XRE_IsParentProcess());
 
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     if (mBackgroundThread) {
       bool done = false;
 
       RefPtr<StorageDBThread::ShutdownRunnable> shutdownRunnable =
-        new StorageDBThread::ShutdownRunnable(done);
+          new StorageDBThread::ShutdownRunnable(done);
       MOZ_ALWAYS_SUCCEEDS(
-        mBackgroundThread->Dispatch(shutdownRunnable, NS_DISPATCH_NORMAL));
+          mBackgroundThread->Dispatch(shutdownRunnable, NS_DISPATCH_NORMAL));
 
       MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return done; }));
 
@@ -409,6 +415,10 @@ StorageObserver::Observe(nsISupports* aSubject,
 
 #ifdef DOM_STORAGE_TESTS
   if (!strcmp(aTopic, "domstorage-test-flush-force")) {
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
     if (NS_WARN_IF(!storageChild)) {
       return NS_ERROR_FAILURE;
@@ -420,6 +430,10 @@ StorageObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "domstorage-test-flushed")) {
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     // Only used to propagate to IPC children
     Notify("test-flushed");
 
@@ -427,6 +441,10 @@ StorageObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "domstorage-test-reload")) {
+    if (NextGenLocalStorageEnabled()) {
+      return NS_OK;
+    }
+
     Notify("test-reload");
 
     return NS_OK;
@@ -437,5 +455,5 @@ StorageObserver::Observe(nsISupports* aSubject,
   return NS_ERROR_UNEXPECTED;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

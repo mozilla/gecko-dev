@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,41 +30,41 @@ extern void usePointer(const void* ptr);
 
 template <typename T>
 void use(const T& thing) {
-    usePointer(&thing);
+  usePointer(&thing);
 }
 
 struct AutoSuppressHazardsForTest {
-    int dummy;
-    AutoSuppressHazardsForTest() : dummy(3) {}
-    ~AutoSuppressHazardsForTest() {
-        // Need nontrivial destructor.
-        usePointer(&dummy);
-    }
+  int dummy;
+  AutoSuppressHazardsForTest() : dummy(3) {}
+  ~AutoSuppressHazardsForTest() {
+    // Need nontrivial destructor.
+    usePointer(&dummy);
+  }
 } JS_HAZ_GC_SUPPRESSED;
 
 struct GDBFragment {
-    GDBFragment() {
-        next = allFragments;
-        allFragments = this;
-    }
+  GDBFragment() {
+    next = allFragments;
+    allFragments = this;
+  }
 
-    // The name of this fragment. gdb-tests.cpp runs the fragments whose names
-    // are passed to it on the command line.
-    virtual const char* name() = 0;
+  // The name of this fragment. gdb-tests.cpp runs the fragments whose names
+  // are passed to it on the command line.
+  virtual const char* name() = 0;
 
-    // Run the fragment code. |argv| is a reference to the pointer into the
-    // command-line argument vector, referring to the argument immediately
-    // following this fragment's name. The fragment can consume arguments and
-    // advance argv if it wishes.
-    virtual void run(JSContext* cx, const char**& argv) = 0;
+  // Run the fragment code. |argv| is a reference to the pointer into the
+  // command-line argument vector, referring to the argument immediately
+  // following this fragment's name. The fragment can consume arguments and
+  // advance argv if it wishes.
+  virtual void run(JSContext* cx, const char**& argv) = 0;
 
-    // We declare one instance of this type for each fragment to run. The
-    // constructor adds each instance to a linked list, of which this is
-    // the head.
-    static GDBFragment* allFragments;
+  // We declare one instance of this type for each fragment to run. The
+  // constructor adds each instance to a linked list, of which this is
+  // the head.
+  static GDBFragment* allFragments;
 
-    // The link in the list of all instances.
-    GDBFragment* next;
+  // The link in the list of all instances.
+  GDBFragment* next;
 };
 
 // Macro for declaring a C++ fragment for some Python unit test to call. Usage:
@@ -77,16 +77,20 @@ struct GDBFragment {
 //
 // The body runs in a scope where 'cx' is a usable JSContext*.
 
-#define FRAGMENT(category, subname)                                                             \
-class FRAGMENT_CLASS_NAME(category, subname): public GDBFragment {                              \
-    void run(JSContext* cx, const char**& argv) override;                                       \
-    const char* name() override { return FRAGMENT_STRING_NAME(category, subname); }             \
-    static FRAGMENT_CLASS_NAME(category, subname) singleton;                                    \
-};                                                                                              \
-FRAGMENT_CLASS_NAME(category, subname) FRAGMENT_CLASS_NAME(category, subname)::singleton;       \
-void FRAGMENT_CLASS_NAME(category, subname)::run(JSContext* cx, const char**& argv)
+#define FRAGMENT(category, subname)                                   \
+  class FRAGMENT_CLASS_NAME(category, subname) : public GDBFragment { \
+    void run(JSContext* cx, const char**& argv) override;             \
+    const char* name() override {                                     \
+      return FRAGMENT_STRING_NAME(category, subname);                 \
+    }                                                                 \
+    static FRAGMENT_CLASS_NAME(category, subname) singleton;          \
+  };                                                                  \
+  FRAGMENT_CLASS_NAME(category, subname)                              \
+  FRAGMENT_CLASS_NAME(category, subname)::singleton;                  \
+  void FRAGMENT_CLASS_NAME(category, subname)::run(JSContext* cx,     \
+                                                   const char**& argv)
 
 #define FRAGMENT_STRING_NAME(category, subname) (#category "." #subname)
-#define FRAGMENT_CLASS_NAME(category, subname) Fragment_ ## category ## _ ## subname
+#define FRAGMENT_CLASS_NAME(category, subname) Fragment_##category##_##subname
 
 #endif /* gdb_gdb_tests_h */

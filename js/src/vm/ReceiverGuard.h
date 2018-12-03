@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -36,64 +36,53 @@ namespace js {
 
 class HeapReceiverGuard;
 
-class ReceiverGuard
-{
-  public:
-    ObjectGroup* group;
-    Shape* shape;
+class ReceiverGuard {
+ public:
+  ObjectGroup* group;
+  Shape* shape;
 
-    ReceiverGuard()
-      : group(nullptr), shape(nullptr)
-    {}
+  ReceiverGuard() : group(nullptr), shape(nullptr) {}
 
-    inline MOZ_IMPLICIT ReceiverGuard(const HeapReceiverGuard& guard);
+  inline MOZ_IMPLICIT ReceiverGuard(const HeapReceiverGuard& guard);
 
-    explicit MOZ_ALWAYS_INLINE ReceiverGuard(JSObject* obj);
-    MOZ_ALWAYS_INLINE ReceiverGuard(ObjectGroup* group, Shape* shape);
+  explicit MOZ_ALWAYS_INLINE ReceiverGuard(JSObject* obj);
+  MOZ_ALWAYS_INLINE ReceiverGuard(ObjectGroup* group, Shape* shape);
 
-    bool operator ==(const ReceiverGuard& other) const {
-        return group == other.group && shape == other.shape;
-    }
+  bool operator==(const ReceiverGuard& other) const {
+    return group == other.group && shape == other.shape;
+  }
 
-    bool operator !=(const ReceiverGuard& other) const {
-        return !(*this == other);
-    }
+  bool operator!=(const ReceiverGuard& other) const {
+    return !(*this == other);
+  }
 
-    uintptr_t hash() const {
-        return (uintptr_t(group) >> 3) ^ (uintptr_t(shape) >> 3);
-    }
+  uintptr_t hash() const {
+    return (uintptr_t(group) >> 3) ^ (uintptr_t(shape) >> 3);
+  }
 };
 
-class HeapReceiverGuard
-{
-    GCPtrObjectGroup group_;
-    GCPtrShape shape_;
+class HeapReceiverGuard {
+  GCPtrObjectGroup group_;
+  GCPtrShape shape_;
 
-  public:
-    explicit HeapReceiverGuard(const ReceiverGuard& guard)
-      : group_(guard.group), shape_(guard.shape)
-    {}
+ public:
+  explicit HeapReceiverGuard(const ReceiverGuard& guard)
+      : group_(guard.group), shape_(guard.shape) {}
 
-    void init(const ReceiverGuard& other) {
-        group_.init(other.group);
-        shape_.init(other.shape);
-    }
+  void init(const ReceiverGuard& other) {
+    group_.init(other.group);
+    shape_.init(other.shape);
+  }
 
-    void trace(JSTracer* trc);
+  void trace(JSTracer* trc);
 
-    Shape* shape() const {
-        return shape_;
-    }
-    ObjectGroup* group() const {
-        return group_;
-    }
+  Shape* shape() const { return shape_; }
+  ObjectGroup* group() const { return group_; }
 };
 
-inline
-ReceiverGuard::ReceiverGuard(const HeapReceiverGuard& guard)
-  : group(guard.group()), shape(guard.shape())
-{}
+inline ReceiverGuard::ReceiverGuard(const HeapReceiverGuard& guard)
+    : group(guard.group()), shape(guard.shape()) {}
 
-} // namespace js
+}  // namespace js
 
 #endif /* vm_ReceiverGuard_h */

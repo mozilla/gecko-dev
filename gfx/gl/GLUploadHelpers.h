@@ -1,4 +1,4 @@
-/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
+/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 4; -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace gfx {
 class DataSourceSurface;
-} // namespace gfx
+}  // namespace gfx
 
 namespace gl {
 
@@ -44,19 +44,13 @@ class GLContext;
  * \param aTextureTarget The texture target to use.
  * \return Surface format of this texture.
  */
-gfx::SurfaceFormat
-UploadImageDataToTexture(GLContext* gl,
-                         unsigned char* aData,
-                         const gfx::IntSize& aDataSize,
-                         int32_t aStride,
-                         gfx::SurfaceFormat aFormat,
-                         const nsIntRegion& aDstRegion,
-                         GLuint aTexture,
-                         const gfx::IntSize& aSize,
-                         size_t* aOutUploadSize = nullptr,
-                         bool aNeedInit = false,
-                         GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
-                         GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
+gfx::SurfaceFormat UploadImageDataToTexture(
+    GLContext* gl, unsigned char* aData, const gfx::IntSize& aDataSize,
+    int32_t aStride, gfx::SurfaceFormat aFormat, const nsIntRegion& aDstRegion,
+    GLuint aTexture, const gfx::IntSize& aSize,
+    size_t* aOutUploadSize = nullptr, bool aNeedInit = false,
+    GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
+    GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
 
 /**
  * Convenience wrapper around UploadImageDataToTexture for
@@ -65,22 +59,18 @@ UploadImageDataToTexture(GLContext* gl,
  * \param aSurface The surface from which to upload image data.
  * \param aSrcPoint Offset into aSurface where this texture's data begins.
  */
-gfx::SurfaceFormat
-UploadSurfaceToTexture(GLContext* gl,
-                       gfx::DataSourceSurface* aSurface,
-                       const nsIntRegion& aDstRegion,
-                       GLuint aTexture,
-                       const gfx::IntSize& aSize,
-                       size_t* aOutUploadSize = nullptr,
-                       bool aNeedInit = false,
-                       const gfx::IntPoint& aSrcPoint = gfx::IntPoint(0, 0),
-                       GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
-                       GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
+gfx::SurfaceFormat UploadSurfaceToTexture(
+    GLContext* gl, gfx::DataSourceSurface* aSurface,
+    const nsIntRegion& aDstRegion, GLuint aTexture, const gfx::IntSize& aSize,
+    size_t* aOutUploadSize = nullptr, bool aNeedInit = false,
+    const gfx::IntPoint& aSrcPoint = gfx::IntPoint(0, 0),
+    GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
+    GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
 
 bool CanUploadSubTextures(GLContext* gl);
 bool CanUploadNonPowerOfTwo(GLContext* gl);
 
-} // namespace gl
-} // namespace mozilla
+}  // namespace gl
+}  // namespace mozilla
 
 #endif

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,58 +13,43 @@
 class txNamespaceMap;
 
 class txExpandedName {
-public:
-    txExpandedName() : mNamespaceID(kNameSpaceID_None)
-    {
-    }
+ public:
+  txExpandedName() : mNamespaceID(kNameSpaceID_None) {}
 
-    txExpandedName(int32_t aNsID,
-                   nsAtom* aLocalName) : mNamespaceID(aNsID),
-                                          mLocalName(aLocalName)
-    {
-    }
+  txExpandedName(int32_t aNsID, nsAtom* aLocalName)
+      : mNamespaceID(aNsID), mLocalName(aLocalName) {}
 
-    txExpandedName(const txExpandedName& aOther) :
-        mNamespaceID(aOther.mNamespaceID),
-        mLocalName(aOther.mLocalName)
-    {
-    }
+  txExpandedName(const txExpandedName& aOther)
+      : mNamespaceID(aOther.mNamespaceID), mLocalName(aOther.mLocalName) {}
 
-    nsresult init(const nsAString& aQName, txNamespaceMap* aResolver,
-                  bool aUseDefault);
+  nsresult init(const nsAString& aQName, txNamespaceMap* aResolver,
+                bool aUseDefault);
 
-    void reset()
-    {
-        mNamespaceID = kNameSpaceID_None;
-        mLocalName = nullptr;
-    }
+  void reset() {
+    mNamespaceID = kNameSpaceID_None;
+    mLocalName = nullptr;
+  }
 
-    bool isNull()
-    {
-        return mNamespaceID == kNameSpaceID_None && !mLocalName;
-    }
+  bool isNull() { return mNamespaceID == kNameSpaceID_None && !mLocalName; }
 
-    txExpandedName& operator = (const txExpandedName& rhs)
-    {
-        mNamespaceID = rhs.mNamespaceID;
-        mLocalName = rhs.mLocalName;
-        return *this;
-    }
+  txExpandedName& operator=(const txExpandedName& rhs) {
+    mNamespaceID = rhs.mNamespaceID;
+    mLocalName = rhs.mLocalName;
+    return *this;
+  }
 
-    bool operator == (const txExpandedName& rhs) const
-    {
-        return ((mLocalName == rhs.mLocalName) &&
-                (mNamespaceID == rhs.mNamespaceID));
-    }
+  bool operator==(const txExpandedName& rhs) const {
+    return ((mLocalName == rhs.mLocalName) &&
+            (mNamespaceID == rhs.mNamespaceID));
+  }
 
-    bool operator != (const txExpandedName& rhs) const
-    {
-        return ((mLocalName != rhs.mLocalName) ||
-                (mNamespaceID != rhs.mNamespaceID));
-    }
+  bool operator!=(const txExpandedName& rhs) const {
+    return ((mLocalName != rhs.mLocalName) ||
+            (mNamespaceID != rhs.mNamespaceID));
+  }
 
-    int32_t mNamespaceID;
-    RefPtr<nsAtom> mLocalName;
+  int32_t mNamespaceID;
+  RefPtr<nsAtom> mLocalName;
 };
 
 #endif

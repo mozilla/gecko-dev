@@ -14,52 +14,58 @@ namespace dom {
 
 class StorageEvent;
 
-class StorageNotificationObserver
-{
-public:
+/**
+ * Enables the StorageNotifierService to check whether an observer is interested
+ * in receiving events for the given principal before calling the method, an
+ * optimization refactoring.
+ *
+ * Expected to only be implemented by nsGlobalWindowObserver or its succesor.
+ */
+class StorageNotificationObserver {
+ public:
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
-  virtual void
-  ObserveStorageNotification(StorageEvent* aEvent,
-                             const char16_t* aStorageType,
-                             bool aPrivateBrowsing) = 0;
+  virtual void ObserveStorageNotification(StorageEvent* aEvent,
+                                          const char16_t* aStorageType,
+                                          bool aPrivateBrowsing) = 0;
 
-  virtual bool
-  IsPrivateBrowsing() const = 0;
+  virtual bool IsPrivateBrowsing() const = 0;
 
-  virtual nsIPrincipal*
-  GetPrincipal() const = 0;
+  virtual nsIPrincipal* GetPrincipal() const = 0;
 
-  virtual nsIEventTarget*
-  GetEventTarget() const = 0;
+  virtual nsIEventTarget* GetEventTarget() const = 0;
 };
 
-class StorageNotifierService final
-{
-public:
+/**
+ * A specialized version of the observer service that uses the custom
+ * StorageNotificationObserver so that principal checks can happen in this class
+ * rather than in the nsIObserver::observe method where they used to happen.
+ *
+ * The only expected consumers are nsGlobalWindowInner instances via their
+ * nsGlobalWindowObserver helper that avoids being able to use the window as an
+ * nsIObserver.
+ */
+class StorageNotifierService final {
+ public:
   NS_INLINE_DECL_REFCOUNTING(StorageNotifierService)
 
-  static StorageNotifierService*
-  GetOrCreate();
+  static StorageNotifierService* GetOrCreate();
 
-  static void
-  Broadcast(StorageEvent* aEvent, const char16_t* aStorageType,
-            bool aPrivateBrowsing, bool aImmediateDispatch);
+  static void Broadcast(StorageEvent* aEvent, const char16_t* aStorageType,
+                        bool aPrivateBrowsing, bool aImmediateDispatch);
 
-  void
-  Register(StorageNotificationObserver* aObserver);
+  void Register(StorageNotificationObserver* aObserver);
 
-  void
-  Unregister(StorageNotificationObserver* aObserver);
+  void Unregister(StorageNotificationObserver* aObserver);
 
-private:
+ private:
   StorageNotifierService();
   ~StorageNotifierService();
 
   nsTObserverArray<RefPtr<StorageNotificationObserver>> mObservers;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_StorageNotifierService_h
+#endif  // mozilla_dom_StorageNotifierService_h

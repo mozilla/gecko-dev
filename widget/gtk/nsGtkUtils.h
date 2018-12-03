@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,13 +12,12 @@
 
 // Some gobject functions expect functions for gpointer arguments.
 // gpointer is void* but C++ doesn't like casting functions to void*.
-template<class T> static inline gpointer
-FuncToGpointer(T aFunction)
-{
-    return reinterpret_cast<gpointer>
-        (reinterpret_cast<uintptr_t>
-         // This cast just provides a warning if T is not a function.
-         (reinterpret_cast<void (*)()>(aFunction)));
+template <class T>
+static inline gpointer FuncToGpointer(T aFunction) {
+  return reinterpret_cast<gpointer>(
+      reinterpret_cast<uintptr_t>
+      // This cast just provides a warning if T is not a function.
+      (reinterpret_cast<void (*)()>(aFunction)));
 }
 
-#endif // nsGtkUtils_h__
+#endif  // nsGtkUtils_h__

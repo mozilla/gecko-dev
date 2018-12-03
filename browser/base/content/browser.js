@@ -3,15 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* eslint-env mozilla/browser-window */
-/* globals StatusPanel */
-
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 ChromeUtils.import("resource://gre/modules/NotificationDB.jsm");
-
-const {WebExtensionPolicy} = Cu.getGlobalForObject(Services);
 
 // lazy module getters
 
@@ -57,7 +52,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Sanitizer: "resource:///modules/Sanitizer.jsm",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
-  SchedulePressure: "resource:///modules/SchedulePressure.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
   SimpleServiceDiscovery: "resource://gre/modules/SimpleServiceDiscovery.jsm",
   SiteDataManager: "resource:///modules/SiteDataManager.jsm",
@@ -164,7 +158,7 @@ if (AppConstants.MOZ_CRASHREPORTER) {
 }
 
 XPCOMUtils.defineLazyGetter(this, "RTL_UI", () => {
-  return document.documentElement.matches(":-moz-locale-dir(rtl)");
+  return Services.locale.isAppLocaleRTL;
 });
 
 XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
@@ -377,20 +371,6 @@ async function gLazyFindCommand(cmd, ...args) {
     fb[cmd].apply(fb, args);
   }
 }
-
-Object.defineProperty(this, "AddonManager", {
-  configurable: true,
-  enumerable: true,
-  get() {
-    let tmp = {};
-    ChromeUtils.import("resource://gre/modules/AddonManager.jsm", tmp);
-    return this.AddonManager = tmp.AddonManager;
-  },
-  set(val) {
-    delete this.AddonManager;
-    return this.AddonManager = val;
-  },
-});
 
 
 var gInitialPages = [
@@ -1690,7 +1670,7 @@ var gBrowserInit = {
       }
     });
     // Delay removing the attribute using requestAnimationFrame to avoid
-    // invalidating styles multiple times in a row if _uriToLoadPromise
+    // invalidating styles multiple times in a row if uriToLoadPromise
     // resolves before first paint.
     if (shouldRemoveFocusedAttribute) {
       window.requestAnimationFrame(() => {
@@ -1869,9 +1849,9 @@ var gBrowserInit = {
 
   // Returns the URI(s) to load at startup if it is immediately known, or a
   // promise resolving to the URI to load.
-  get _uriToLoadPromise() {
-    delete this._uriToLoadPromise;
-    return this._uriToLoadPromise = function() {
+  get uriToLoadPromise() {
+    delete this.uriToLoadPromise;
+    return this.uriToLoadPromise = function() {
       // window.arguments[0]: URI to load (string), or an nsIArray of
       //                      nsISupportsStrings to load, or a xul:tab of
       //                      a tabbrowser, which will be replaced by this
@@ -1903,13 +1883,14 @@ var gBrowserInit = {
   },
 
   // Calls the given callback with the URI to load at startup.
-  // Synchronously if possible, or after _uriToLoadPromise resolves otherwise.
+  // Synchronously if possible, or after uriToLoadPromise resolves otherwise.
   _callWithURIToLoad(callback) {
-    let uriToLoad = this._uriToLoadPromise;
-    if (!uriToLoad || !uriToLoad.then)
-      callback(uriToLoad);
-    else
+    let uriToLoad = this.uriToLoadPromise;
+    if (uriToLoad && uriToLoad.then) {
       uriToLoad.then(callback);
+    } else {
+      callback(uriToLoad);
+    }
   },
 
   onUnload() {

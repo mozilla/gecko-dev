@@ -8,6 +8,20 @@
 #include "GLTypes.h"
 #include "GLConsts.h"
 
+namespace mozilla {
+namespace gl {
+class GLContext;
+bool CheckContextLost(const GLContext* gl);
+}  // namespace gl
+}  // namespace mozilla
+
+#define MOZ_GL_ASSERT(glContext, expr) \
+  MOZ_ASSERT((expr) || mozilla::gl::CheckContextLost(glContext))
+
+// -
+
+// clang-format off
+
 // TODO: use official constant names instead of followed ones.
 
 // IMG_texture_compression_pvrtc
@@ -80,5 +94,7 @@
 #define LOCAL_GL_CONTEXT_CORE_PROFILE_BIT_ARB           0x00000001
 #define LOCAL_GL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB  0x00000002
 #define LOCAL_GL_CONTEXT_ROBUST_ACCESS_BIT_ARB          0x00000004
+
+// clang-format on
 
 #endif

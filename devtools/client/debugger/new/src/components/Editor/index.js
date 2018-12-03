@@ -9,6 +9,8 @@ import React, { PureComponent } from "react";
 import ReactDOM from "react-dom";
 import { connect } from "react-redux";
 import classnames from "classnames";
+import { debounce } from "lodash";
+
 import { isLoaded } from "../../utils/source";
 import { isFirefox } from "devtools-environment";
 import { features } from "../../utils/prefs";
@@ -18,8 +20,6 @@ import {
   getActiveSearch,
   getSelectedLocation,
   getSelectedSource,
-  getHitCountForSource,
-  getCoverageEnabled,
   getConditionalPanelLine,
   getSymbols
 } from "../../selectors";
@@ -32,8 +32,7 @@ import SearchBar from "./SearchBar";
 import HighlightLines from "./HighlightLines";
 import Preview from "./Preview";
 import Breakpoints from "./Breakpoints";
-import HitMarker from "./HitMarker";
-import CallSites from "./CallSites";
+import ColumnBreakpoints from "./ColumnBreakpoints";
 import DebugLine from "./DebugLine";
 import HighlightLine from "./HighlightLine";
 import EmptyLines from "./EmptyLines";
@@ -68,7 +67,7 @@ import "./Highlight.css";
 
 import type SourceEditor from "../../utils/editor/source-editor";
 import type { SymbolDeclarations } from "../../workers/parser";
-import type { Location, Source } from "../../types";
+import type { SourceLocation, Source } from "../../types";
 
 const cssVars = {
   searchbarHeight: "var(--editor-searchbar-height)",
@@ -76,11 +75,9 @@ const cssVars = {
 };
 
 export type Props = {
-  hitCount: Object,
-  selectedLocation: ?Location,
+  selectedLocation: ?SourceLocation,
   selectedSource: ?Source,
   searchOn: boolean,
-  coverageOn: boolean,
   horizontal: boolean,
   startPanelSize: number,
   endPanelSize: number,
@@ -96,7 +93,8 @@ export type Props = {
   toggleBreakpointsAtLine: (?number) => void,
   addOrToggleDisabledBreakpoint: (?number) => void,
   jumpToMappedLocation: any => void,
-  traverseResults: (boolean, Object) => void
+  traverseResults: (boolean, Object) => void,
+  updateViewport: void => void
 };
 
 type State = {
@@ -162,6 +160,7 @@ class Editor extends PureComponent<Props, State> {
     codeMirrorWrapper.addEventListener("keydown", e => this.onKeyDown(e));
     codeMirrorWrapper.addEventListener("click", e => this.onClick(e));
     codeMirrorWrapper.addEventListener("mouseover", onMouseOver(codeMirror));
+    codeMirror.on("scroll", this.onEditorScroll);
 
     const toggleFoldMarkerVisibility = e => {
       if (node instanceof HTMLElement) {
@@ -281,6 +280,8 @@ class Editor extends PureComponent<Props, State> {
     const line = this.getCurrentLine();
     this.toggleConditionalPanel(line);
   };
+
+  onEditorScroll = debounce(this.props.updateViewport, 200);
 
   onKeyDown(e: KeyboardEvent) {
     const { codeMirror } = this.state.editor;
@@ -533,29 +534,6 @@ class Editor extends PureComponent<Props, State> {
     };
   }
 
-  renderHitCounts() {
-    const { hitCount, selectedSource } = this.props;
-
-    if (
-      !selectedSource ||
-      !isLoaded(selectedSource) ||
-      !hitCount ||
-      !this.state.editor
-    ) {
-      return;
-    }
-
-    return hitCount
-      .filter(marker => marker.get("count") > 0)
-      .map(marker => (
-        <HitMarker
-          key={marker.get("line")}
-          hitData={marker.toJS()}
-          editor={this.state.editor.codeMirror}
-        />
-      ));
-  }
-
   renderItems() {
     const { horizontal, selectedSource } = this.props;
     const { editor } = this.state;
@@ -571,13 +549,14 @@ class Editor extends PureComponent<Props, State> {
         <EmptyLines editor={editor} />
         <Breakpoints editor={editor} />
         <Preview editor={editor} editorRef={this.$editorWrapper} />;
-        <Footer horizontal={horizontal} />
+        <Footer editor={editor} horizontal={horizontal} />
         <HighlightLines editor={editor} />
         <EditorMenu editor={editor} />
         <GutterMenu editor={editor} />
         <ConditionalPanel editor={editor} />
-        {features.columnBreakpoints ? <CallSites editor={editor} /> : null}
-        {this.renderHitCounts()}
+        {features.columnBreakpoints ? (
+          <ColumnBreakpoints editor={editor} />
+        ) : null}
       </div>
     );
   }
@@ -593,13 +572,9 @@ class Editor extends PureComponent<Props, State> {
   }
 
   render() {
-    const { coverageOn } = this.props;
-
     return (
       <div
-        className={classnames("editor-wrapper", {
-          "coverage-on": coverageOn
-        })}
+        className={classnames("editor-wrapper")}
         ref={c => (this.$editorWrapper = c)}
       >
         <div
@@ -619,14 +594,11 @@ Editor.contextTypes = {
 
 const mapStateToProps = state => {
   const selectedSource = getSelectedSource(state);
-  const sourceId = selectedSource ? selectedSource.id : "";
 
   return {
     selectedLocation: getSelectedLocation(state),
     selectedSource,
     searchOn: getActiveSearch(state) === "file",
-    hitCount: getHitCountForSource(state, sourceId),
-    coverageOn: getCoverageEnabled(state),
     conditionalPanelLine: getConditionalPanelLine(state),
     symbols: getSymbols(state, selectedSource)
   };
@@ -643,6 +615,7 @@ export default connect(
     toggleBreakpointsAtLine: actions.toggleBreakpointsAtLine,
     addOrToggleDisabledBreakpoint: actions.addOrToggleDisabledBreakpoint,
     jumpToMappedLocation: actions.jumpToMappedLocation,
-    traverseResults: actions.traverseResults
+    traverseResults: actions.traverseResults,
+    updateViewport: actions.updateViewport
   }
 )(Editor);

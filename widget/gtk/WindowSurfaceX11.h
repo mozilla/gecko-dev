@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,12 +18,13 @@ namespace mozilla {
 namespace widget {
 
 class WindowSurfaceX11 : public WindowSurface {
-public:
+ public:
   WindowSurfaceX11(Display* aDisplay, Window aWindow, Visual* aVisual,
                    unsigned int aDepth);
 
-protected:
-  static gfx::SurfaceFormat GetVisualFormat(const Visual* aVisual, unsigned int aDepth);
+ protected:
+  static gfx::SurfaceFormat GetVisualFormat(const Visual* aVisual,
+                                            unsigned int aDepth);
 
   Display* const mDisplay;
   const Window mWindow;
@@ -35,5 +36,5 @@ protected:
 }  // namespace widget
 }  // namespace mozilla
 
-#endif // MOZ_X11
-#endif // _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_X11_H
+#endif  // MOZ_X11
+#endif  // _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_X11_H

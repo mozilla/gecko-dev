@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,31 +21,31 @@ namespace ubi {
 // An EdgeRange concrete class that simply holds a vector of Edges,
 // populated by the addTracerEdges method.
 class SimpleEdgeRange : public EdgeRange {
-    EdgeVector edges;
-    size_t i;
+  EdgeVector edges;
+  size_t i;
 
-  protected:
-    void settle() {
-        front_ = i < edges.length() ? &edges[i] : nullptr;
-    }
+ protected:
+  void settle() { front_ = i < edges.length() ? &edges[i] : nullptr; }
 
-  public:
-    explicit SimpleEdgeRange() : edges(), i(0) { }
+ public:
+  explicit SimpleEdgeRange() : edges(), i(0) {}
 
-    bool addTracerEdges(JSRuntime* rt, void* thing, JS::TraceKind kind, bool wantNames);
+  bool addTracerEdges(JSRuntime* rt, void* thing, JS::TraceKind kind,
+                      bool wantNames);
 
-    bool addEdge(Edge edge) {
-        if(!edges.append(std::move(edge)))
-            return false;
-        settle();
-        return true;
-    }
+  bool addEdge(Edge edge) {
+    if (!edges.append(std::move(edge))) return false;
+    settle();
+    return true;
+  }
 
-    void popFront() override { i++; settle(); }
+  void popFront() override {
+    i++;
+    settle();
+  }
 };
 
-} // namespace JS
-} // namespace ubi
+}  // namespace ubi
+}  // namespace JS
 
-
-#endif // js_UbiNodeUtils_h
+#endif  // js_UbiNodeUtils_h

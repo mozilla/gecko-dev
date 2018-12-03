@@ -1,9 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 
 /*
 
@@ -31,58 +30,46 @@ using dom::XULDocument;
 
 //------------------------------------------------------------------------
 
-nsICollation *nsXULContentUtils::gCollation;
+nsICollation* nsXULContentUtils::gCollation;
 
 //------------------------------------------------------------------------
 // Constructors n' stuff
 //
 
-nsresult
-nsXULContentUtils::Finish()
-{
-    NS_IF_RELEASE(gCollation);
+nsresult nsXULContentUtils::Finish() {
+  NS_IF_RELEASE(gCollation);
 
-    return NS_OK;
+  return NS_OK;
 }
 
-nsICollation*
-nsXULContentUtils::GetCollation()
-{
-    if (!gCollation) {
-        nsCOMPtr<nsICollationFactory> colFactory =
-            do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
-        if (colFactory) {
-            DebugOnly<nsresult> rv = colFactory->CreateCollation(&gCollation);
-            NS_ASSERTION(NS_SUCCEEDED(rv),
-                         "couldn't create collation instance");
-        } else
-            NS_ERROR("couldn't create instance of collation factory");
-    }
+nsICollation* nsXULContentUtils::GetCollation() {
+  if (!gCollation) {
+    nsCOMPtr<nsICollationFactory> colFactory =
+        do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
+    if (colFactory) {
+      DebugOnly<nsresult> rv = colFactory->CreateCollation(&gCollation);
+      NS_ASSERTION(NS_SUCCEEDED(rv), "couldn't create collation instance");
+    } else
+      NS_ERROR("couldn't create instance of collation factory");
+  }
 
-    return gCollation;
+  return gCollation;
 }
-
 
 //------------------------------------------------------------------------
 //
 
-nsresult
-nsXULContentUtils::FindChildByTag(nsIContent* aElement,
-                                  int32_t aNameSpaceID,
-                                  nsAtom* aTag,
-                                  Element** aResult)
-{
-    for (nsIContent* child = aElement->GetFirstChild();
-         child;
-         child = child->GetNextSibling()) {
-
-        if (child->IsElement() &&
-            child->NodeInfo()->Equals(aTag, aNameSpaceID)) {
-            NS_ADDREF(*aResult = child->AsElement());
-            return NS_OK;
-        }
+nsresult nsXULContentUtils::FindChildByTag(nsIContent* aElement,
+                                           int32_t aNameSpaceID, nsAtom* aTag,
+                                           Element** aResult) {
+  for (nsIContent* child = aElement->GetFirstChild(); child;
+       child = child->GetNextSibling()) {
+    if (child->IsElement() && child->NodeInfo()->Equals(aTag, aNameSpaceID)) {
+      NS_ADDREF(*aResult = child->AsElement());
+      return NS_OK;
     }
+  }
 
-    *aResult = nullptr;
-    return NS_RDF_NO_VALUE; // not found
+  *aResult = nullptr;
+  return NS_RDF_NO_VALUE;  // not found
 }

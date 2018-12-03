@@ -7,18 +7,19 @@
 #ifndef mozilla_layers_KeyboardScrollAction_h
 #define mozilla_layers_KeyboardScrollAction_h
 
-#include "mozilla/DefineEnum.h" // for MOZ_DEFINE_ENUM
-#include "nsIScrollableFrame.h" // for nsIScrollableFrame::ScrollUnit
+#include "mozilla/DefineEnum.h"  // for MOZ_DEFINE_ENUM
+#include "nsIScrollableFrame.h"  // for nsIScrollableFrame::ScrollUnit
 
 namespace mozilla {
 namespace layers {
 
 /**
- * This class represents a scrolling action to be performed on a scrollable layer.
+ * This class represents a scrolling action to be performed on a scrollable
+ * layer.
  */
-struct KeyboardScrollAction final
-{
-public:
+struct KeyboardScrollAction final {
+ public:
+  // clang-format off
   MOZ_DEFINE_ENUM_WITH_BASE_AT_CLASS_SCOPE(
     KeyboardScrollActionType, uint8_t, (
       eScrollCharacter,
@@ -26,9 +27,10 @@ public:
       eScrollPage,
       eScrollComplete
   ));
+  // clang-format on
 
-  static nsIScrollableFrame::ScrollUnit
-  GetScrollUnit(KeyboardScrollActionType aDeltaType);
+  static nsIScrollableFrame::ScrollUnit GetScrollUnit(
+      KeyboardScrollActionType aDeltaType);
 
   KeyboardScrollAction();
   KeyboardScrollAction(KeyboardScrollActionType aType, bool aForward);
@@ -39,7 +41,7 @@ public:
   bool mForward;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_KeyboardScrollAction_h
+#endif  // mozilla_layers_KeyboardScrollAction_h

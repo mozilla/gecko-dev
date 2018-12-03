@@ -20,11 +20,8 @@ android-api-16/debug:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -75,9 +72,6 @@ android-api-16-ccov/debug:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
             - name: public/android/maven
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
@@ -138,11 +132,8 @@ android-x86/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -193,9 +184,6 @@ android-x86-fuzzing/debug:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
             - name: public/android/maven
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
@@ -250,11 +238,8 @@ android-x86-nightly/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -308,11 +293,8 @@ android-api-16/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -364,11 +346,8 @@ android-api-16-without-google-play-services/opt:
             PERFHERDER_EXTRA_OPTIONS: android-api-16-without-google-play-services
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -423,11 +402,8 @@ android-api-16-nightly/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -481,11 +457,8 @@ android-aarch64/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -520,6 +493,60 @@ android-aarch64/opt:
         - linux64-sccache
         - linux64-node
 
+android-aarch64/debug:
+    description: "Android 5.0 AArch64 Debug"
+    index:
+        product: mobile
+        job-name: android-aarch64-debug
+    attributes:
+        enable-full-crashsymbols: true
+    treeherder:
+        platform: android-5-0-aarch64/debug
+        symbol: B
+    worker-type: aws-provisioner-v1/gecko-{level}-b-android
+    worker:
+        docker-image: {in-tree: android-build}
+        max-run-time: 7200
+        env:
+            GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
+            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
+        artifacts:
+            - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
+              type: directory
+            - name: public/build/target.maven.zip
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/target.maven.zip
+              type: file
+            - name: public/build/geckoview-androidTest.apk
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/outputs/apk/androidTest/withGeckoBinaries/debug/geckoview-withGeckoBinaries-debug-androidTest.apk
+              type: file
+            - name: public/build/geckoview_example.apk
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview_example/outputs/apk/withGeckoBinaries/debug/geckoview_example-withGeckoBinaries-debug.apk
+              type: file
+            - name: public/build
+              path: /builds/worker/artifacts/
+              type: directory
+    run:
+        using: mozharness
+        actions: [get-secrets, build, multi-l10n]
+        config:
+            - builds/releng_base_android_64_builds.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        custom-build-variant-cfg: aarch64-debug
+        tooltool-downloads: internal
+    toolchains:
+        - android-gradle-dependencies
+        - android-ndk-linux
+        - android-sdk-linux
+        - linux64-clang
+        - linux64-rust-android
+        - linux64-rust-size
+        - linux64-cbindgen
+        - linux64-sccache
+        - linux64-node
+
 android-aarch64-nightly/opt:
     description: "Android 5.0 AArch64 Nightly"
     attributes:
@@ -542,11 +569,8 @@ android-aarch64-nightly/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -600,11 +624,8 @@ android-x86_64/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -661,11 +682,8 @@ android-x86_64-nightly/opt:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
         artifacts:
-            - name: public/android/R
-              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
-              type: directory
-              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
             - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
               type: directory
             - name: public/build/target.maven.zip
@@ -699,4 +717,58 @@ android-x86_64-nightly/opt:
         - linux64-rust-size
         - linux64-sccache
         - linux64-cbindgen
+        - linux64-node
+
+android-x86_64/debug:
+    description: "Android 5.0 x86-64 Debug"
+    index:
+        product: mobile
+        job-name: android-x86_64-debug
+    attributes:
+        enable-full-crashsymbols: true
+    treeherder:
+        platform: android-5-0-x86_64/debug
+        symbol: B
+    worker-type: aws-provisioner-v1/gecko-{level}-b-android
+    worker:
+        docker-image: {in-tree: android-build}
+        max-run-time: 7200
+        env:
+            GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
+            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+        artifacts:
+            - name: public/android/maven
+              # TODO Bug 1433198. Remove the following entry once target.maven.zip is uploaded to a maven repository
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/maven/
+              type: directory
+            - name: public/build/target.maven.zip
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/target.maven.zip
+              type: file
+            - name: public/build/geckoview-androidTest.apk
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview/outputs/apk/androidTest/withGeckoBinaries/debug/geckoview-withGeckoBinaries-debug-androidTest.apk
+              type: file
+            - name: public/build/geckoview_example.apk
+              path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/geckoview_example/outputs/apk/withGeckoBinaries/debug/geckoview_example-withGeckoBinaries-debug.apk
+              type: file
+            - name: public/build
+              path: /builds/worker/artifacts/
+              type: directory
+    run:
+        using: mozharness
+        actions: [get-secrets, build, multi-l10n]
+        config:
+            - builds/releng_base_android_64_builds.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        custom-build-variant-cfg: x86_64-debug
+        tooltool-downloads: internal
+    toolchains:
+        - android-gradle-dependencies
+        - android-ndk-linux
+        - android-sdk-linux
+        - linux64-clang
+        - linux64-rust-android
+        - linux64-rust-size
+        - linux64-cbindgen
+        - linux64-sccache
         - linux64-node

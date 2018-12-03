@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,42 +20,41 @@ struct IDirect3DSurface9;
 class gfxContext;
 
 class gfxWindowsSurface : public gfxASurface {
-public:
-    enum {
-        FLAG_IS_TRANSPARENT = (1 << 2)
-    };
+ public:
+  enum { FLAG_IS_TRANSPARENT = (1 << 2) };
 
-    explicit gfxWindowsSurface(HDC dc, uint32_t flags = 0);
+  explicit gfxWindowsSurface(HDC dc, uint32_t flags = 0);
 
-    // Create from a shared d3d9surface
-    explicit gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags = 0);
+  // Create from a shared d3d9surface
+  explicit gfxWindowsSurface(IDirect3DSurface9* surface, uint32_t flags = 0);
 
-    // Create a DIB surface
-    explicit gfxWindowsSurface(const mozilla::gfx::IntSize& size,
-                               gfxImageFormat imageFormat = mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32);
+  // Create a DIB surface
+  explicit gfxWindowsSurface(const mozilla::gfx::IntSize& size,
+                             gfxImageFormat imageFormat =
+                                 mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32);
 
-    explicit gfxWindowsSurface(cairo_surface_t *csurf);
+  explicit gfxWindowsSurface(cairo_surface_t* csurf);
 
-    virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const mozilla::gfx::IntSize& aSize);
+  virtual already_AddRefed<gfxASurface> CreateSimilarSurface(
+      gfxContentType aType, const mozilla::gfx::IntSize& aSize);
 
-    void InitWithDC(uint32_t flags);
+  void InitWithDC(uint32_t flags);
 
-    virtual ~gfxWindowsSurface();
+  virtual ~gfxWindowsSurface();
 
-    HDC GetDC();
+  HDC GetDC();
 
-    already_AddRefed<gfxImageSurface> GetAsImageSurface();
+  already_AddRefed<gfxImageSurface> GetAsImageSurface();
 
-    const mozilla::gfx::IntSize GetSize() const;
+  const mozilla::gfx::IntSize GetSize() const;
 
-private:
-    void MakeInvalid(mozilla::gfx::IntSize& size);
+ private:
+  void MakeInvalid(mozilla::gfx::IntSize& size);
 
-    bool mOwnsDC;
+  bool mOwnsDC;
 
-    HDC mDC;
-    HWND mWnd;
+  HDC mDC;
+  HWND mWnd;
 };
 
 #endif /* GFX_WINDOWSSURFACE_H */

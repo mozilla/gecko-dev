@@ -18,11 +18,11 @@ namespace mozilla {
 // ---------------------------------------------------------------------------
 // WorkletLoadInfo
 
-WorkletLoadInfo::WorkletLoadInfo(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal)
-  : mInnerWindowID(aWindow->WindowID())
-  , mOriginAttributes(BasePrincipal::Cast(aPrincipal)->OriginAttributesRef())
-  , mPrincipal(aPrincipal)
-{
+WorkletLoadInfo::WorkletLoadInfo(nsPIDOMWindowInner* aWindow,
+                                 nsIPrincipal* aPrincipal)
+    : mInnerWindowID(aWindow->WindowID()),
+      mOriginAttributes(BasePrincipal::Cast(aPrincipal)->OriginAttributesRef()),
+      mPrincipal(aPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
   nsPIDOMWindowOuter* outerWindow = aWindow->GetOuterWindow();
   if (outerWindow) {
@@ -32,33 +32,26 @@ WorkletLoadInfo::WorkletLoadInfo(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPri
   }
 }
 
-WorkletLoadInfo::~WorkletLoadInfo()
-{
+WorkletLoadInfo::~WorkletLoadInfo() {
   MOZ_ASSERT(!mPrincipal || NS_IsMainThread());
 }
 
 // ---------------------------------------------------------------------------
 // WorkletImpl
 
-WorkletImpl::WorkletImpl(nsPIDOMWindowInner* aWindow,
-                         nsIPrincipal* aPrincipal)
-  : mWorkletLoadInfo(aWindow, aPrincipal)
-{
-}
+WorkletImpl::WorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal)
+    : mWorkletLoadInfo(aWindow, aPrincipal), mTerminated(false) {}
 
 WorkletImpl::~WorkletImpl() = default;
 
-JSObject*
-WorkletImpl::WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
-                         JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* WorkletImpl::WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
+                                   JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
   return dom::Worklet_Binding::Wrap(aCx, aWorklet, aGivenProto);
 }
 
-already_AddRefed<dom::WorkletGlobalScope>
-WorkletImpl::CreateGlobalScope(JSContext* aCx)
-{
+already_AddRefed<dom::WorkletGlobalScope> WorkletImpl::CreateGlobalScope(
+    JSContext* aCx) {
   dom::WorkletThread::AssertIsOnWorkletThread();
 
   RefPtr<dom::WorkletGlobalScope> scope = ConstructGlobalScope();
@@ -78,38 +71,35 @@ WorkletImpl::CreateGlobalScope(JSContext* aCx)
   return scope.forget();
 }
 
-dom::WorkletThread*
-WorkletImpl::GetOrCreateThread()
-{
+void WorkletImpl::NotifyWorkletFinished() {
   MOZ_ASSERT(NS_IsMainThread());
+
+  mTerminated = true;
+  if (mWorkletThread) {
+    mWorkletThread->Terminate();
+    mWorkletThread = nullptr;
+  }
+  mWorkletLoadInfo.mPrincipal = nullptr;
+}
+
+nsresult WorkletImpl::SendControlMessage(
+    already_AddRefed<nsIRunnable> aRunnable) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // TODO: bug 1492011 re ConsoleWorkletRunnable.
+  if (mTerminated) {
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
 
   if (!mWorkletThread) {
     // Thread creation. FIXME: this will change.
     mWorkletThread = dom::WorkletThread::Create();
+    if (!mWorkletThread) {
+      return NS_ERROR_UNEXPECTED;
+    }
   }
 
-  return mWorkletThread;
-}
-
-void
-WorkletImpl::TerminateThread()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!mWorkletThread) {
-    return;
-  }
-
-  mWorkletThread->Terminate();
-  mWorkletThread = nullptr;
-  mWorkletLoadInfo.mPrincipal = nullptr;
-}
-
-nsresult
-WorkletImpl::DispatchRunnable(already_AddRefed<nsIRunnable> aRunnable)
-{
-  // TODO: bug 1492011 re ConsoleWorkletRunnable.
-  MOZ_ASSERT(mWorkletThread);
   return mWorkletThread->DispatchRunnable(std::move(aRunnable));
 }
 
-} // namespace mozilla
+}  // namespace mozilla

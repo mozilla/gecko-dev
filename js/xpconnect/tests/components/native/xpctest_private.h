@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,66 +28,65 @@ class xpcTestObjectReadOnly final : public nsIXPCTestObjectReadOnly {
   xpcTestObjectReadOnly();
 
  private:
-    ~xpcTestObjectReadOnly() {}
+  ~xpcTestObjectReadOnly() {}
 
-    bool    boolProperty;
-    int16_t shortProperty;
-    int32_t longProperty;
-    float   floatProperty;
-    char    charProperty;
-    PRTime  timeProperty;
+  bool boolProperty;
+  int16_t shortProperty;
+  int32_t longProperty;
+  float floatProperty;
+  char charProperty;
+  PRTime timeProperty;
 };
 
 class xpcTestObjectReadWrite final : public nsIXPCTestObjectReadWrite {
-  public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTOBJECTREADWRITE
 
   xpcTestObjectReadWrite();
 
  private:
-     ~xpcTestObjectReadWrite();
+  ~xpcTestObjectReadWrite();
 
-     bool boolProperty;
-     int16_t shortProperty;
-     int32_t longProperty;
-     float floatProperty;
-     char charProperty;
-     char* stringProperty;
-     PRTime timeProperty;
+  bool boolProperty;
+  int16_t shortProperty;
+  int32_t longProperty;
+  float floatProperty;
+  char charProperty;
+  char* stringProperty;
+  PRTime timeProperty;
 };
 
-class nsXPCTestParams final : public nsIXPCTestParams
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIXPCTESTPARAMS
+class nsXPCTestParams final : public nsIXPCTestParams {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIXPCTESTPARAMS
 
-    nsXPCTestParams();
+  nsXPCTestParams();
 
-private:
-    ~nsXPCTestParams();
+ private:
+  ~nsXPCTestParams();
 };
 
-class nsXPCTestReturnCodeParent final : public nsIXPCTestReturnCodeParent
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIXPCTESTRETURNCODEPARENT
+class nsXPCTestReturnCodeParent final : public nsIXPCTestReturnCodeParent {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIXPCTESTRETURNCODEPARENT
 
-    nsXPCTestReturnCodeParent();
+  nsXPCTestReturnCodeParent();
 
-private:
-    ~nsXPCTestReturnCodeParent();
+ private:
+  ~nsXPCTestReturnCodeParent();
 };
 
 class xpcTestCEnums final : public nsIXPCTestCEnums {
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTCENUMS
 
   xpcTestCEnums();
-private:
+
+ private:
   ~xpcTestCEnums() = default;
 };
 #endif /* xpctest_private_h___ */

@@ -4,7 +4,6 @@
 
 "use strict";
 
-/* eslint-env mozilla/browser-window */
 /* globals XULCommandEvent */
 
 // This is loaded into chrome windows with the subscript loader. Wrap in
@@ -461,6 +460,11 @@ class MozSearchbar extends MozXULElement {
 
       // Ignore clicks on the search go button.
       if (event.originalTarget.classList.contains("search-go-button")) {
+        return;
+      }
+
+      // Ignore clicks on menu items in the input's context menu.
+      if (event.originalTarget.localName == "menuitem") {
         return;
       }
 

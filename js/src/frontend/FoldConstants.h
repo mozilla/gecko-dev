@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +13,8 @@ namespace js {
 namespace frontend {
 
 class FullParseHandler;
-template <class ParseHandler> class PerHandlerParser;
+template <class ParseHandler>
+class PerHandlerParser;
 
 // Perform constant folding on the given AST. For example, the program
 // `print(2 + 2)` would become `print(4)`.
@@ -30,14 +31,13 @@ template <class ParseHandler> class PerHandlerParser;
 //    if (!FoldConstants(cx, &pn, parser)) {
 //        return false;
 //    }
-extern MOZ_MUST_USE bool
-FoldConstants(JSContext* cx, ParseNode** pnp, PerHandlerParser<FullParseHandler>* parser);
+extern MOZ_MUST_USE bool FoldConstants(
+    JSContext* cx, ParseNode** pnp, PerHandlerParser<FullParseHandler>* parser);
 
-inline MOZ_MUST_USE bool
-FoldConstants(JSContext* cx, typename SyntaxParseHandler::Node* pnp,
-              PerHandlerParser<SyntaxParseHandler>* parser)
-{
-    return true;
+inline MOZ_MUST_USE bool FoldConstants(
+    JSContext* cx, typename SyntaxParseHandler::Node* pnp,
+    PerHandlerParser<SyntaxParseHandler>* parser) {
+  return true;
 }
 
 } /* namespace frontend */

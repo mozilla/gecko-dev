@@ -132,12 +132,12 @@
                 <hbox class="custom-option">
                   <checkbox id="contentBlockingTrackingProtectionCheckbox"
                             class="content-blocking-checkbox" flex="1"
-                            data-l10n-id="content-blocking-tracking-protection-trackers-label"
+                            data-l10n-id="content-blocking-trackers-label"
                             aria-describedby="contentBlockingCustomDesc"/>
                   <vbox>
                     <menulist id="trackingProtectionMenu">
                       <menupopup>
-                        <menuitem data-l10n-id="content-blocking-tracking-protection-option-private" value="private"/>
+                        <menuitem data-l10n-id="content-blocking-option-private" value="private"/>
                         <menuitem data-l10n-id="content-blocking-tracking-protection-option-all-windows" value="always"/>
                       </menupopup>
                     </menulist>
@@ -163,10 +163,10 @@
                                 onsyncfrompreference="return gPrivacyPane.readBlockCookiesFrom();"
                                 onsynctopreference="return gPrivacyPane.writeBlockCookiesFrom();">
                         <menupopup>
-                          <menuitem data-l10n-id="sitedata-block-trackers-option" value="trackers"/>
-                          <menuitem data-l10n-id="sitedata-block-unvisited-option" value="unvisited"/>
-                          <menuitem data-l10n-id="sitedata-block-all-third-party-option" value="all-third-parties"/>
-                          <menuitem data-l10n-id="sitedata-block-all-option" value="always"/>
+                          <menuitem data-l10n-id="sitedata-option-block-trackers" value="trackers"/>
+                          <menuitem data-l10n-id="sitedata-option-block-unvisited" value="unvisited"/>
+                          <menuitem data-l10n-id="sitedata-option-block-all-third-party" value="all-third-parties"/>
+                          <menuitem data-l10n-id="sitedata-option-block-all" value="always"/>
                         </menupopup>
                       </menulist>
                     </hbox>
@@ -699,6 +699,15 @@
                  class="learnMore text-link"
                  data-l10n-id="collection-studies-link"/>
         </hbox>
+
+        <hbox align="center">
+          <checkbox id="addonRecommendationEnabled"
+                    class="tail-with-learn-more"
+                    data-l10n-id="addon-recommendations"/>
+          <label id="addonRecommendationLearnMore"
+                 class="learnMore text-link"
+                 data-l10n-id="addon-recommendations-link"/>
+        </hbox>
       </vbox>
     </description>
 #ifndef MOZ_TELEMETRY_REPORTING
@@ -792,19 +801,21 @@
                 class="accessory-button"
                 data-l10n-id="certs-view"
                 preference="security.disable_button.openCertManager"
-                searchkeywords="&certmgr.tab.mine;
-                                &certmgr.tab.others2;
-                                &certmgr.tab.websites3;
-                                &certmgr.tab.ca;
-                                &certmgr.mine2;
-                                &certmgr.others2;
-                                &certmgr.websites3;
-                                &certmgr.cas2;
-                                &certmgr.certname;
-                                &certmgr.tokenname;
-                                &certmgr.view2.label;
-                                &certmgr.export.label;
-                                &certmgr.delete2.label;"/>
+                search-l10n-ids="
+                  certmgr-tab-mine.label,
+                  certmgr-tab-people.label,
+                  certmgr-tab-servers.label,
+                  certmgr-tab-ca.label,
+                  certmgr-mine,
+                  certmgr-people,
+                  certmgr-servers,
+                  certmgr-ca,
+                  certmgr-cert-name.label,
+                  certmgr-token-name.label,
+                  certmgr-view.label,
+                  certmgr-export.label,
+                  certmgr-delete.label
+                "/>
       </hbox>
       <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
       <hbox pack="end">

@@ -36,6 +36,11 @@ const CSS_TYPE_TRUE_SHORTHAND = 1;
 // the current spec or earlier versions of the spec.
 const CSS_TYPE_SHORTHAND_AND_LONGHAND = 2;
 
+// Legacy shorthand properties, that behave mostly like an alias
+// (CSS_TYPE_SHORTHAND_AND_LONGHAND) but not quite because their syntax may not
+// match, plus they shouldn't serialize in cssText.
+const CSS_TYPE_LEGACY_SHORTHAND = 3;
+
 // Each property has the following fields:
 //   domProp: The name of the relevant member of nsIDOM[NS]CSS2Properties
 //   inherited: Whether the property is inherited by default (stated as
@@ -238,12 +243,6 @@ var validGradientAndElementValues = [
   "radial-gradient(at left calc(100px + -25%), red, blue)",
   "radial-gradient(at calc(100px + -25px) top, red, blue)",
   "radial-gradient(at left calc(100px + -25px), red, blue)",
-
-  "-webkit-linear-gradient(top, red, blue)",
-  "-moz-linear-gradient(top, red, blue)",
-  "-moz-linear-gradient(center 0%, red, blue)",
-  "-moz-linear-gradient(50% top, red, blue)",
-  "-moz-linear-gradient(50% 0%, red, blue)",
 ];
 var invalidGradientAndElementValues = [
   "-moz-element(#a:1)",
@@ -647,6 +646,7 @@ if (IsCSSPropertyPrefEnabled("layout.css.prefixes.webkit")) {
     "-webkit-radial-gradient(contain ellipse, red, blue)",
 
     // Initial side/corner/point (valid only for -moz/-webkit prefixed):
+    "-webkit-linear-gradient(top, red, blue)",
     "-webkit-linear-gradient(left, red, blue)",
     "-webkit-linear-gradient(bottom, red, blue)",
     "-webkit-linear-gradient(right top, red, blue)",
@@ -849,6 +849,11 @@ if (IsCSSPropertyPrefEnabled("layout.css.prefixes.gradients")) {
     "-moz-linear-gradient(red -99px, yellow, green, blue 120%)",
     "-moz-linear-gradient(#ffff00, #ef3, rgba(10, 20, 30, 0.4))",
     "-moz-linear-gradient(rgba(10, 20, 30, 0.4), #ffff00, #ef3)",
+
+    "-moz-linear-gradient(top, red, blue)",
+    "-moz-linear-gradient(center 0%, red, blue)",
+    "-moz-linear-gradient(50% top, red, blue)",
+    "-moz-linear-gradient(50% 0%, red, blue)",
 
     "-moz-linear-gradient(to top, red, blue)",
     "-moz-linear-gradient(to bottom, red, blue)",
@@ -4299,26 +4304,59 @@ var gCSSProperties = {
   "page-break-after": {
     domProp: "pageBreakAfter",
     inherited: false,
-    type: CSS_TYPE_LONGHAND,
+    type: CSS_TYPE_LEGACY_SHORTHAND,
+    alias_for: "break-after",
+    subproperties: [ "break-after" ],
     initial_values: [ "auto" ],
     other_values: [ "always", "avoid", "left", "right" ],
-    invalid_values: []
+    legacy_mapping: {
+      always: "page",
+    },
+    invalid_values: [ "page", "column" ]
   },
   "page-break-before": {
     domProp: "pageBreakBefore",
     inherited: false,
-    type: CSS_TYPE_LONGHAND,
+    type: CSS_TYPE_LEGACY_SHORTHAND,
+    alias_for: "break-before",
+    subproperties: [ "break-before" ],
     initial_values: [ "auto" ],
     other_values: [ "always", "avoid", "left", "right" ],
-    invalid_values: []
+    legacy_mapping: {
+      always: "page",
+    },
+    invalid_values: [ "page", "column" ]
   },
-  "page-break-inside": {
-    domProp: "pageBreakInside",
+  "break-after": {
+    domProp: "breakAfter",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: [ "auto" ],
+    other_values: [ "always", "page", "avoid", "left", "right" ],
+    invalid_values: [ ]
+  },
+  "break-before": {
+    domProp: "breakBefore",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: [ "auto" ],
+    other_values: [ "always", "page", "avoid", "left", "right" ],
+    invalid_values: [ ]
+  },
+  "break-inside": {
+    domProp: "breakInside",
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: [ "auto" ],
     other_values: [ "avoid" ],
-    invalid_values: [ "left", "right" ]
+    invalid_values: [ "left", "right", "always" ]
+  },
+  "page-break-inside": {
+    domProp: "pageBreakInside",
+    inherited: false,
+    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    alias_for: "break-inside",
+    subproperties: [ "break-inside" ],
   },
   "paint-order": {
     domProp: "paintOrder",

@@ -1,4 +1,4 @@
-/* vim:set ts=4 sw=4 et cindent: */
+/* vim:set ts=4 sw=2 et cindent: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,23 +16,21 @@
  * apply to this class
  */
 
-class nsAuthSASL final : public nsIAuthModule
-{
-public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIAUTHMODULE
+class nsAuthSASL final : public nsIAuthModule {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIAUTHMODULE
 
-    nsAuthSASL();
+  nsAuthSASL();
 
-private:
-    ~nsAuthSASL() { Reset(); }
+ private:
+  ~nsAuthSASL() { Reset(); }
 
-    void Reset();
+  void Reset();
 
-    nsCOMPtr<nsIAuthModule> mInnerModule;
-    nsString       mUsername;
-    bool           mSASLReady;
+  nsCOMPtr<nsIAuthModule> mInnerModule;
+  nsString mUsername;
+  bool mSASLReady;
 };
 
 #endif /* nsAuthSASL_h__ */
-

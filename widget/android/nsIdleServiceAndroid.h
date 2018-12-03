@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,27 +10,25 @@
 
 #include "nsIdleService.h"
 
-class nsIdleServiceAndroid : public nsIdleService
-{
-public:
-    NS_INLINE_DECL_REFCOUNTING_INHERITED(nsIdleServiceAndroid, nsIdleService)
+class nsIdleServiceAndroid : public nsIdleService {
+ public:
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(nsIdleServiceAndroid, nsIdleService)
 
-    bool PollIdleTime(uint32_t* aIdleTime) override;
+  bool PollIdleTime(uint32_t* aIdleTime) override;
 
-    static already_AddRefed<nsIdleServiceAndroid> GetInstance() 
-    {
-        RefPtr<nsIdleService> idleService = nsIdleService::GetInstance();
-        if (!idleService) {
-            idleService = new nsIdleServiceAndroid();
-        }
-        
-        return idleService.forget().downcast<nsIdleServiceAndroid>();
+  static already_AddRefed<nsIdleServiceAndroid> GetInstance() {
+    RefPtr<nsIdleService> idleService = nsIdleService::GetInstance();
+    if (!idleService) {
+      idleService = new nsIdleServiceAndroid();
     }
 
-protected:
-    nsIdleServiceAndroid() { }
-    virtual ~nsIdleServiceAndroid() { }
-    bool UsePollMode() override;
+    return idleService.forget().downcast<nsIdleServiceAndroid>();
+  }
+
+ protected:
+  nsIdleServiceAndroid() {}
+  virtual ~nsIdleServiceAndroid() {}
+  bool UsePollMode() override;
 };
 
-#endif // nsIdleServiceAndroid_h__
+#endif  // nsIdleServiceAndroid_h__

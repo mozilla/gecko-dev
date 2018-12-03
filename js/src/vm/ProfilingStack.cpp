@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,35 +14,33 @@
 
 using namespace js;
 
-ProfilingStack::~ProfilingStack()
-{
-    // The label macros keep a reference to the ProfilingStack to avoid a TLS
-    // access. If these are somehow not all cleared we will get a
-    // use-after-free so better to crash now.
-    MOZ_RELEASE_ASSERT(stackPointer == 0);
+ProfilingStack::~ProfilingStack() {
+  // The label macros keep a reference to the ProfilingStack to avoid a TLS
+  // access. If these are somehow not all cleared we will get a
+  // use-after-free so better to crash now.
+  MOZ_RELEASE_ASSERT(stackPointer == 0);
 
-    delete[] frames;
+  delete[] frames;
 }
 
-void
-ProfilingStack::ensureCapacitySlow()
-{
-    MOZ_ASSERT(stackPointer >= capacity);
-    const uint32_t kInitialCapacity = 128;
+void ProfilingStack::ensureCapacitySlow() {
+  MOZ_ASSERT(stackPointer >= capacity);
+  const uint32_t kInitialCapacity = 128;
 
-    uint32_t sp = stackPointer;
-    auto newCapacity = std::max(sp + 1,  capacity ? capacity * 2 : kInitialCapacity);
+  uint32_t sp = stackPointer;
+  auto newCapacity =
+      std::max(sp + 1, capacity ? capacity * 2 : kInitialCapacity);
 
-    auto* newFrames = new js::ProfilingStackFrame[newCapacity];
+  auto* newFrames = new js::ProfilingStackFrame[newCapacity];
 
-    // It's important that `frames` / `capacity` / `stackPointer` remain consistent here at
-    // all times.
-    for (auto i : mozilla::IntegerRange(capacity)) {
-        newFrames[i] = frames[i];
-    }
+  // It's important that `frames` / `capacity` / `stackPointer` remain
+  // consistent here at all times.
+  for (auto i : mozilla::IntegerRange(capacity)) {
+    newFrames[i] = frames[i];
+  }
 
-    js::ProfilingStackFrame* oldFrames = frames;
-    frames = newFrames;
-    capacity = newCapacity;
-    delete[] oldFrames;
+  js::ProfilingStackFrame* oldFrames = frames;
+  frames = newFrames;
+  capacity = newCapacity;
+  delete[] oldFrames;
 }

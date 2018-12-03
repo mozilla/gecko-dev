@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,24 +16,23 @@
 namespace mozilla {
 
 class WebBrowserPersistSerializeChild final
-    : public PWebBrowserPersistSerializeChild
-    , public nsIWebBrowserPersistWriteCompletion
-    , public nsIWebBrowserPersistURIMap
-    , public nsIOutputStream
-{
-public:
-    explicit WebBrowserPersistSerializeChild(const WebBrowserPersistURIMap& aMap);
+    : public PWebBrowserPersistSerializeChild,
+      public nsIWebBrowserPersistWriteCompletion,
+      public nsIWebBrowserPersistURIMap,
+      public nsIOutputStream {
+ public:
+  explicit WebBrowserPersistSerializeChild(const WebBrowserPersistURIMap& aMap);
 
-    NS_DECL_NSIWEBBROWSERPERSISTWRITECOMPLETION
-    NS_DECL_NSIWEBBROWSERPERSISTURIMAP
-    NS_DECL_NSIOUTPUTSTREAM
-    NS_DECL_ISUPPORTS
-private:
-    WebBrowserPersistURIMap mMap;
+  NS_DECL_NSIWEBBROWSERPERSISTWRITECOMPLETION
+  NS_DECL_NSIWEBBROWSERPERSISTURIMAP
+  NS_DECL_NSIOUTPUTSTREAM
+  NS_DECL_ISUPPORTS
+ private:
+  WebBrowserPersistURIMap mMap;
 
-    virtual ~WebBrowserPersistSerializeChild();
+  virtual ~WebBrowserPersistSerializeChild();
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WebBrowserPersistSerializeChild_h__
+#endif  // WebBrowserPersistSerializeChild_h__

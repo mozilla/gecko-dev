@@ -52,8 +52,11 @@ class ShowTaskGraphSubCommand(SubCommand):
             CommandArgument('--tasks-regex', '--tasks', default=None,
                             help="only return tasks with labels matching this regular "
                             "expression."),
+            CommandArgument('--target-kind', default=None,
+                            help="only return tasks that are of the given kind, "
+                                 "or their dependencies."),
             CommandArgument('-F', '--fast', dest='fast', default=False, action='store_true',
-                            help="enable fast task generation for local debugging.")
+                            help="enable fast task generation for local debugging."),
 
         ]
         for arg in args:
@@ -331,7 +334,6 @@ class MachCommands(MachCommandBase):
 
     def show_taskgraph(self, graph_attr, options):
         import taskgraph.parameters
-        import taskgraph.target_tasks
         import taskgraph.generator
         import taskgraph
         if options['fast']:
@@ -344,7 +346,9 @@ class MachCommands(MachCommandBase):
 
             tgg = taskgraph.generator.TaskGraphGenerator(
                 root_dir=options.get('root'),
-                parameters=parameters)
+                parameters=parameters,
+                target_kind=options.get('target_kind'),
+            )
 
             tg = getattr(tgg, graph_attr)
 
@@ -390,7 +394,6 @@ class MachCommands(MachCommandBase):
 
     def show_actions(self, options):
         import taskgraph.parameters
-        import taskgraph.target_tasks
         import taskgraph.generator
         import taskgraph
         import taskgraph.actions
@@ -421,17 +424,18 @@ class TaskClusterImagesProvider(MachCommandBase):
             self.virtualenv_manager.install_pip_package('zstandard==0.9.0')
 
     @Command('taskcluster-load-image', category="ci",
-             description="Load a pre-built Docker image")
+             description="Load a pre-built Docker image. Note that you need to "
+                         "have docker installed and running for this to work.")
     @CommandArgument('--task-id',
-                     help="Load the image at public/image.tar.zst in this task,"
+                     help="Load the image at public/image.tar.zst in this task, "
                           "rather than searching the index")
     @CommandArgument('-t', '--tag',
                      help="tag that the image should be loaded as. If not "
                           "image will be loaded with tag from the tarball",
                      metavar="name:tag")
     @CommandArgument('image_name', nargs='?',
-                     help="Load the image of this name based on the current"
-                          "contents of the tree (as built for mozilla-central"
+                     help="Load the image of this name based on the current "
+                          "contents of the tree (as built for mozilla-central "
                           "or mozilla-inbound)")
     def load_image(self, image_name, task_id, tag):
         self._ensure_zstd()

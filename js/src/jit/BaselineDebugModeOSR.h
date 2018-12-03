@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,116 +22,63 @@ namespace jit {
 // Baseline->Ion OSR, which is used to jump into compiled loops.
 
 //
-// A volatile location due to recompilation of an on-stack baseline script
-// (e.g., for debug mode toggling).
-//
-// It is usually used in fallback stubs which may trigger on-stack
-// recompilation by calling out into the VM. Example use:
-//
-//     DebugModeOSRVolatileStub<FallbackStubT*> stub(frame, stub_)
-//
-//     // Call out to the VM
-//     // Other effectful operations like TypeScript::Monitor
-//
-//     if (stub.invalid()) {
-//         return true;
-//     }
-//
-//     // First use of stub after VM call.
-//
-template <typename T>
-class DebugModeOSRVolatileStub
-{
-    T stub_;
-    BaselineFrame* frame_;
-    uint32_t pcOffset_;
-
-  public:
-    DebugModeOSRVolatileStub(BaselineFrame* frame, ICFallbackStub* stub)
-      : stub_(static_cast<T>(stub)),
-        frame_(frame),
-        pcOffset_(stub->icEntry()->pcOffset())
-    { }
-
-    bool invalid() const {
-        MOZ_ASSERT(!frame_->isHandlingException());
-        ICEntry& entry = frame_->script()->baselineScript()->icEntryFromPCOffset(pcOffset_);
-        return stub_ != entry.fallbackStub();
-    }
-
-    operator const T&() const { MOZ_ASSERT(!invalid()); return stub_; }
-    T operator->() const { MOZ_ASSERT(!invalid()); return stub_; }
-    T* address() { MOZ_ASSERT(!invalid()); return &stub_; }
-    const T* address() const { MOZ_ASSERT(!invalid()); return &stub_; }
-    T& get() { MOZ_ASSERT(!invalid()); return stub_; }
-    const T& get() const { MOZ_ASSERT(!invalid()); return stub_; }
-
-    bool operator!=(const T& other) const { MOZ_ASSERT(!invalid()); return stub_ != other; }
-    bool operator==(const T& other) const { MOZ_ASSERT(!invalid()); return stub_ == other; }
-};
-
-//
 // A frame iterator that updates internal JSJitFrameIter in case of
 // recompilation of an on-stack baseline script.
 //
 
-class DebugModeOSRVolatileJitFrameIter : public JitFrameIter
-{
-    DebugModeOSRVolatileJitFrameIter** stack;
-    DebugModeOSRVolatileJitFrameIter* prev;
+class DebugModeOSRVolatileJitFrameIter : public JitFrameIter {
+  DebugModeOSRVolatileJitFrameIter** stack;
+  DebugModeOSRVolatileJitFrameIter* prev;
 
-  public:
-    explicit DebugModeOSRVolatileJitFrameIter(JSContext* cx)
-      : JitFrameIter(cx->activation()->asJit(), /* mustUnwindActivation */ true)
-    {
-        stack = &cx->liveVolatileJitFrameIter_.ref();
-        prev = *stack;
-        *stack = this;
-    }
+ public:
+  explicit DebugModeOSRVolatileJitFrameIter(JSContext* cx)
+      : JitFrameIter(cx->activation()->asJit(),
+                     /* mustUnwindActivation */ true) {
+    stack = &cx->liveVolatileJitFrameIter_.ref();
+    prev = *stack;
+    *stack = this;
+  }
 
-    ~DebugModeOSRVolatileJitFrameIter() {
-        MOZ_ASSERT(*stack == this);
-        *stack = prev;
-    }
+  ~DebugModeOSRVolatileJitFrameIter() {
+    MOZ_ASSERT(*stack == this);
+    *stack = prev;
+  }
 
-    static void forwardLiveIterators(JSContext* cx,
-                                     uint8_t* oldAddr, uint8_t* newAddr);
+  static void forwardLiveIterators(JSContext* cx, uint8_t* oldAddr,
+                                   uint8_t* newAddr);
 };
 
 //
 // Auxiliary info to help the DebugModeOSRHandler fix up state.
 //
-struct BaselineDebugModeOSRInfo
-{
-    uint8_t* resumeAddr;
-    jsbytecode* pc;
-    PCMappingSlotInfo slotInfo;
-    RetAddrEntry::Kind frameKind;
+struct BaselineDebugModeOSRInfo {
+  uint8_t* resumeAddr;
+  jsbytecode* pc;
+  PCMappingSlotInfo slotInfo;
+  RetAddrEntry::Kind frameKind;
 
-    // Filled in by SyncBaselineDebugModeOSRInfo.
-    uintptr_t stackAdjust;
-    Value valueR0;
-    Value valueR1;
+  // Filled in by SyncBaselineDebugModeOSRInfo.
+  uintptr_t stackAdjust;
+  Value valueR0;
+  Value valueR1;
 
-    BaselineDebugModeOSRInfo(jsbytecode* pc, RetAddrEntry::Kind kind)
+  BaselineDebugModeOSRInfo(jsbytecode* pc, RetAddrEntry::Kind kind)
       : resumeAddr(nullptr),
         pc(pc),
         slotInfo(0),
         frameKind(kind),
         stackAdjust(0),
         valueR0(UndefinedValue()),
-        valueR1(UndefinedValue())
-    { }
+        valueR1(UndefinedValue()) {}
 
-    void popValueInto(PCMappingSlotInfo::SlotLocation loc, Value* vp);
+  void popValueInto(PCMappingSlotInfo::SlotLocation loc, Value* vp);
 };
 
-MOZ_MUST_USE bool
-RecompileOnStackBaselineScriptsForDebugMode(JSContext* cx,
-                                            const Debugger::ExecutionObservableSet& obs,
-                                            Debugger::IsObserving observing);
+MOZ_MUST_USE bool RecompileOnStackBaselineScriptsForDebugMode(
+    JSContext* cx, const Debugger::ExecutionObservableSet& obs,
+    Debugger::IsObserving observing);
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
-#endif // jit_BaselineDebugModeOSR_h
+#endif  // jit_BaselineDebugModeOSR_h

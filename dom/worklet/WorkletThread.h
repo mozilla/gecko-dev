@@ -11,7 +11,6 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/TimeStamp.h"
 #include "nsThread.h"
 
 class nsIRunnable;
@@ -19,50 +18,29 @@ class nsIRunnable;
 namespace mozilla {
 namespace dom {
 
-class WorkletThread final : public nsThread, public nsIObserver
-{
-public:
+class WorkletThread final : public nsThread, public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIOBSERVER
 
   static already_AddRefed<WorkletThread> Create();
 
-  static WorkletThread*
-  Get();
+  static bool IsOnWorkletThread();
 
-  static bool
-  IsOnWorkletThread();
+  static void AssertIsOnWorkletThread();
 
-  static void
-  AssertIsOnWorkletThread();
+  nsresult DispatchRunnable(already_AddRefed<nsIRunnable> aRunnable);
 
-  JSContext*
-  GetJSContext() const;
+  void Terminate();
 
-  nsresult
-  DispatchRunnable(already_AddRefed<nsIRunnable> aRunnable);
-
-  void
-  Terminate();
-
-  DOMHighResTimeStamp
-  TimeStampToDOMHighRes(const TimeStamp& aTimeStamp) const
-  {
-    MOZ_ASSERT(!aTimeStamp.IsNull());
-    TimeDuration duration = aTimeStamp - mCreationTimeStamp;
-    return duration.ToMilliseconds();
-  }
-
-private:
+ private:
   WorkletThread();
   ~WorkletThread();
 
-  void
-  RunEventLoop(JSRuntime* aParentRuntime);
+  void RunEventLoop(JSRuntime* aParentRuntime);
   class PrimaryRunnable;
 
-  void
-  TerminateInternal();
+  void TerminateInternal();
   class TerminateRunnable;
 
   // This should only be called by consumers that have an
@@ -76,16 +54,12 @@ private:
   NS_IMETHOD
   DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t) override;
 
-  TimeStamp mCreationTimeStamp;
+  bool mExitLoop;  // worklet execution thread
 
-  // Touched only on the worklet thread. This is a raw pointer because it's set
-  // and nullified by RunEventLoop().
-  JSContext* mJSContext;
-
-  bool mIsTerminating; // main thread
+  bool mIsTerminating;  // main thread
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_worklet_WorkletThread_h
+#endif  // mozilla_dom_worklet_WorkletThread_h

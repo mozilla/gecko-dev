@@ -1,4 +1,4 @@
-/* vim:set ts=4 sw=4 et cindent: */
+/* vim:set ts=4 sw=2 et cindent: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,36 +26,35 @@
 // avoided when authenticating over the internet since it may use a lower-grade
 // version of password hashing depending on the version of Windows being used.
 
-class nsAuthSSPI final : public nsIAuthModule
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIAUTHMODULE
+class nsAuthSSPI final : public nsIAuthModule {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIAUTHMODULE
 
-    explicit nsAuthSSPI(pType package = PACKAGE_TYPE_NEGOTIATE);
+  explicit nsAuthSSPI(pType package = PACKAGE_TYPE_NEGOTIATE);
 
-private:
-    ~nsAuthSSPI();
+ private:
+  ~nsAuthSSPI();
 
-    void Reset();
+  void Reset();
 
-    typedef ::TimeStamp MS_TimeStamp;
+  typedef ::TimeStamp MS_TimeStamp;
 
-private:
-    nsresult MakeSN(const char *principal, nsCString &result);
+ private:
+  nsresult MakeSN(const char *principal, nsCString &result);
 
-    CredHandle   mCred;
-    CtxtHandle   mCtxt;
-    nsCString    mServiceName;
-    uint32_t     mServiceFlags;
-    uint32_t     mMaxTokenLen;
-    pType        mPackage;
-    nsString     mDomain;
-    nsString     mUsername;
-    nsString     mPassword;
-    bool         mIsFirst;
-    void*        mCertDERData;
-    uint32_t     mCertDERLength;
+  CredHandle mCred;
+  CtxtHandle mCtxt;
+  nsCString mServiceName;
+  uint32_t mServiceFlags;
+  uint32_t mMaxTokenLen;
+  pType mPackage;
+  nsString mDomain;
+  nsString mUsername;
+  nsString mPassword;
+  bool mIsFirst;
+  void *mCertDERData;
+  uint32_t mCertDERLength;
 };
 
 #endif /* nsAuthSSPI_h__ */

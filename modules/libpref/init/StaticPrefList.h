@@ -179,6 +179,14 @@ VARCACHE_PREF(
 )
 #undef PREF_VALUE
 
+// Whehter Mozilla specific "text" event should be dispatched only in the
+// system group or not in content.
+VARCACHE_PREF(
+  "dom.compositionevent.text.dispatch_only_system_group_in_content",
+   dom_compositionevent_text_dispatch_only_system_group_in_content,
+   bool, true
+)
+
 // How long a content process can take before closing its IPC channel
 // after shutdown is initiated.  If the process exceeds the timeout,
 // we fear the worst and kill it.
@@ -197,17 +205,11 @@ VARCACHE_PREF(
 
 // If this is true, "keypress" event's keyCode value and charCode value always
 // become same if the event is not created/initialized by JS.
-#ifdef NIGHTLY_BUILD
-# define PREF_VALUE  true
-#else
-# define PREF_VALUE  false
-#endif
 VARCACHE_PREF(
   "dom.keyboardevent.keypress.set_keycode_and_charcode_to_same_value",
    dom_keyboardevent_keypress_set_keycode_and_charcode_to_same_value,
-  bool, PREF_VALUE
+  bool, true
 )
-#undef PREF_VALUE
 
 // NOTE: This preference is used in unit tests. If it is removed or its default
 // value changes, please update test_sharedMap_var_caches.js accordingly.
@@ -452,6 +454,20 @@ VARCACHE_PREF(
   bool, true
 )
 
+// For area and anchor elements with target=_blank and no rel set to
+// opener/noopener, this pref sets noopener by default.
+#ifdef EARLY_BETA_OR_EARLIER
+#define PREF_VALUE true
+#else
+#define PREF_VALUE false
+#endif
+VARCACHE_PREF(
+  "dom.targetBlankNoOpener.enabled",
+   dom_targetBlankNoOpener_enabled,
+  bool, PREF_VALUE
+)
+#undef PREF_VALUE
+
 //---------------------------------------------------------------------------
 // Clear-Site-Data prefs
 //---------------------------------------------------------------------------
@@ -493,6 +509,18 @@ VARCACHE_PREF(
    gfx_font_ahem_antialias_none,
   RelaxedAtomicBool, false
 )
+
+#ifdef RELEASE_OR_BETA
+# define PREF_VALUE false
+#else
+# define PREF_VALUE true
+#endif
+VARCACHE_PREF(
+  "gfx.omta.background-color",
+   gfx_omta_background_color,
+  bool, PREF_VALUE
+)
+#undef PREF_VALUE
 
 //---------------------------------------------------------------------------
 // HTML5 parser prefs
@@ -680,12 +708,18 @@ VARCACHE_PREF(
   bool, true
 )
 
-// Is -moz-prefixed gradient functions enabled?
+// Are -moz-prefixed gradient functions enabled?
+#ifdef EARLY_BETA_OR_EARLIER
+# define PREF_VALUE false
+#else
+# define PREF_VALUE true
+#endif
 VARCACHE_PREF(
   "layout.css.prefixes.gradients",
    layout_css_prefixes_gradients,
-  bool, true
+  bool, PREF_VALUE
 )
+#undef PREF_VALUE
 
 // Whether the offset-* logical property aliases are enabled.
 VARCACHE_PREF(
@@ -1389,6 +1423,11 @@ VARCACHE_PREF(
    MediaAv1Enabled,
   RelaxedAtomicBool, false
 )
+VARCACHE_PREF(
+  "media.av1.use-dav1d",
+   MediaAv1UseDav1d,
+  RelaxedAtomicBool, false
+)
 
 VARCACHE_PREF(
   "media.flac.enabled",
@@ -1703,13 +1742,6 @@ VARCACHE_PREF(
   uint32_t, 32
 )
 
-// Whether FastBlock has been enabled.
-VARCACHE_PREF(
-  "browser.fastblock.enabled",
-  browser_fastblock_enabled,
-  bool, false
-)
-
 // Anti-tracking permission expiration
 VARCACHE_PREF(
   "privacy.restrict3rdpartystorage.expiration",
@@ -1875,6 +1907,40 @@ VARCACHE_PREF(
   RelaxedAtomicBool, PREF_VALUE
 )
 #undef PREF_VALUE
+
+VARCACHE_PREF(
+  "dom.reporting.header.enabled",
+   dom_reporting_header_enabled,
+  RelaxedAtomicBool, false
+)
+
+// In seconds. The timeout to remove not-active report-to endpoints.
+VARCACHE_PREF(
+  "dom.reporting.cleanup.timeout",
+   dom_reporting_cleanup_timeout,
+  uint32_t, 3600
+)
+
+// Any X seconds the reports are dispatched to endpoints.
+VARCACHE_PREF(
+  "dom.reporting.delivering.timeout",
+   dom_reporting_delivering_timeout,
+  uint32_t, 5
+)
+
+// How many times the delivering of a report should be tried.
+VARCACHE_PREF(
+  "dom.reporting.delivering.maxFailures",
+   dom_reporting_delivering_maxFailures,
+  uint32_t, 3
+)
+
+// How many reports should be stored in the report queue before being delivered.
+VARCACHE_PREF(
+  "dom.reporting.delivering.maxReports",
+   dom_reporting_delivering_maxReports,
+  uint32_t, 100
+)
 
 //---------------------------------------------------------------------------
 // End of prefs

@@ -49,9 +49,18 @@ function getCM() {
 }
 
 function _formatPausePoints(dbg: Object, url: string) {
-  const source = dbg.helpers.findSource(url);
-  const pausePoints = dbg.selectors.getPausePoints(source);
+  const source =
+    dbg.helpers.findSource(url) || dbg.selectors.getSelectedSource();
+  const pausePoints = dbg.selectors.getPausePoints(source.id);
   console.log(formatPausePoints(source.text, pausePoints));
+}
+
+function _formatColumnBreapoints(dbg: Object) {
+  console.log(
+    dbg.selectors.formatColumnBreakpoints(
+      dbg.selectors.visibleColumnBreakpoints()
+    )
+  );
 }
 
 export function setupHelper(obj: Object) {
@@ -72,7 +81,8 @@ export function setupHelper(obj: Object) {
       sendPacket: (packet, cbk) => sendPacket(dbg, packet, cbk)
     },
     formatters: {
-      pausePoints: url => _formatPausePoints(dbg, url)
+      pausePoints: url => _formatPausePoints(dbg, url),
+      visibleColumnBreakpoints: () => _formatColumnBreapoints(dbg)
     },
     _telemetry: {
       events: {}

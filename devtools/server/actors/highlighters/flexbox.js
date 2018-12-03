@@ -678,47 +678,97 @@ class FlexboxHighlighter extends AutoRefreshHighlighter {
       return;
     }
 
-    const lineWidth = getDisplayPixelRatio(this.win);
     const containerQuad = getUntransformedQuad(this.currentNode, "content");
     const containerBounds = containerQuad.getBounds();
+    const { width: containerWidth, height: containerHeight } = containerBounds;
 
-    // Draw a justify content pattern over the whole flex container content area.
-    this.drawJustifyContent(0, 0, containerBounds.width, containerBounds.height);
+    const offset = (getDisplayPixelRatio(this.win) / 2) % 1;
+    const zoom = getCurrentZoom(this.win);
+    const canvasX = Math.round(this._canvasPosition.x * this.win.devicePixelRatio * zoom);
+    const canvasY = Math.round(this._canvasPosition.y * this.win.devicePixelRatio * zoom);
+
+    this.ctx.save();
+    this.ctx.translate(offset - canvasX, offset - canvasY);
 
     for (const flexLine of this.flexData.lines) {
       const { crossStart, crossSize } = flexLine;
+      let mainStart = 0;
+
+      // In these two situations mainStart goes from right to left so set it's
+      // value as appropriate.
+      if (this.axes === "horizontal-lr vertical-bt" ||
+          this.axes === "horizontal-rl vertical-tb") {
+        mainStart = containerWidth;
+      }
 
       for (const flexItem of flexLine.items) {
         const { left, top, right, bottom } = flexItem.rect;
 
-        // Clear a rectangular are covering the alignment container.
         switch (this.axes) {
           case "horizontal-lr vertical-tb":
+          case "horizontal-rl vertical-bt":
+            this.drawJustifyContent(mainStart, crossStart, left, crossStart + crossSize);
+            mainStart = right;
+            break;
           case "horizontal-lr vertical-bt":
           case "horizontal-rl vertical-tb":
-          case "horizontal-rl vertical-bt":
-            clearRect(this.ctx, left, crossStart + lineWidth, right,
-              crossStart + crossSize - lineWidth, this.currentMatrix);
+            this.drawJustifyContent(right, crossStart, mainStart, crossStart + crossSize);
+            mainStart = left;
             break;
           case "vertical-tb horizontal-lr":
           case "vertical-bt horizontal-rl":
-            clearRect(this.ctx,
-              crossStart + lineWidth * 2, top,
-              crossStart + crossSize - lineWidth, bottom, this.currentMatrix);
+            this.drawJustifyContent(crossStart, mainStart, crossStart + crossSize, top);
+            mainStart = bottom;
             break;
           case "vertical-bt horizontal-lr":
           case "vertical-tb horizontal-rl":
-            clearRect(this.ctx,
-              containerBounds.width - crossStart - crossSize + lineWidth * 2, top,
-              containerBounds.width - crossStart - lineWidth, bottom,
-              this.currentMatrix);
+            this.drawJustifyContent(containerWidth - crossStart - crossSize, mainStart,
+              containerWidth - crossStart, top);
+            mainStart = bottom;
             break;
         }
       }
+
+      // Draw the last justify-content area after the last flex item.
+      switch (this.axes) {
+        case "horizontal-lr vertical-tb":
+        case "horizontal-rl vertical-bt":
+          this.drawJustifyContent(mainStart, crossStart, containerWidth,
+            crossStart + crossSize);
+          break;
+        case "horizontal-lr vertical-bt":
+        case "horizontal-rl vertical-tb":
+          this.drawJustifyContent(0, crossStart, mainStart, crossStart + crossSize);
+          break;
+        case "vertical-tb horizontal-lr":
+        case "vertical-bt horizontal-rl":
+          this.drawJustifyContent(crossStart, mainStart, crossStart + crossSize,
+            containerHeight);
+          break;
+        case "vertical-bt horizontal-lr":
+        case "vertical-tb horizontal-rl":
+          this.drawJustifyContent(containerWidth - crossStart - crossSize, mainStart,
+            containerWidth - crossStart, containerHeight);
+          break;
+      }
     }
+
+    this.ctx.restore();
   }
 
   _update() {
+    // If this.currentNode is not a flex container we have nothing to highlight.
+    // We can't simply use getAsFlexContainer() here because this fails for
+    // text fields. This will be removed by https://bugzil.la/1509460.
+    if (!this.computedStyle) {
+      this.computedStyle = getComputedStyle(this.currentNode);
+    }
+
+    if (this.computedStyle.display !== "flex" &&
+        this.computedStyle.display !== "inline-flex") {
+      return false;
+    }
+
     setIgnoreLayoutChanges(true);
 
     const root = this.getElement("root");

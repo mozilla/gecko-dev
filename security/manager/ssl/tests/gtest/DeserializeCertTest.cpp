@@ -28,13 +28,12 @@
 //
 // We would like to move away from this binary compatibility requirement
 // in service workers.  See bug 1248628.
-void
-deserializeAndVerify(const nsCString &serializedSecInfo,
-                     bool hasFailedCertChain,
-                     size_t failedCertChainLength = 0)
-{
+void deserializeAndVerify(const nsCString &serializedSecInfo,
+                          bool hasFailedCertChain,
+                          size_t failedCertChainLength = 0) {
   nsCOMPtr<nsISupports> secInfo;
-  nsresult rv = NS_DeserializeObject(serializedSecInfo, getter_AddRefs(secInfo));
+  nsresult rv =
+      NS_DeserializeObject(serializedSecInfo, getter_AddRefs(secInfo));
   ASSERT_EQ(NS_OK, rv);
   ASSERT_TRUE(secInfo);
 
@@ -49,7 +48,7 @@ deserializeAndVerify(const nsCString &serializedSecInfo,
   nsCOMPtr<nsIX509CertList> failedChain;
   rv = securityInfo->GetFailedCertChain(getter_AddRefs(failedChain));
   ASSERT_EQ(NS_OK, rv);
- 
+
   if (hasFailedCertChain) {
     ASSERT_TRUE(failedChain);
     nsCOMPtr<nsISimpleEnumerator> enumerator;
@@ -75,8 +74,8 @@ deserializeAndVerify(const nsCString &serializedSecInfo,
   }
 }
 
-TEST(psm_DeserializeCert, gecko33)
-{
+TEST(psm_DeserializeCert, gecko33) {
+  // clang-format off
   // Gecko 33+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
   //  - nsISSLStatus fa9ba95b-ca3b-498a-b889-7c79cf28fee8
@@ -104,12 +103,13 @@ TEST(psm_DeserializeCert, gecko33)
   "2cqB1GG4esFOalvI52dzn+J4fTIYZvNF+AtGyHSLm2XRXYZCw455laUKf6Sk9RDShDgUvzhOKL4GXfTwKXv12MyMknJybH8UCpjC"
   "HZmFBVHMcUN/87HsQo20PdOekeEvkjrrMIxW+gxw22Yb67yF/qKgwrWr+43bLN709iyw+LWiU7sQcHL2xk9SYiWQDj2tYz2soObV"
   "QYTJm0VUZMEVFhtALq46cx92Zu4vFwC8AAwAAAAABAQAA");
+  // clang-format on
 
   deserializeAndVerify(base64Serialization, false);
 }
 
-TEST(psm_DeserializeCert, gecko46)
-{
+TEST(psm_DeserializeCert, gecko46) {
+  // clang-format off
   // Gecko 46+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
   //  - nsISSLStatus fa9ba95b-ca3b-498a-b889-7c79cf28fee8
@@ -137,12 +137,13 @@ TEST(psm_DeserializeCert, gecko46)
   "Bx3VmDRynTe4CqhsAwOoO1ERmCAmsAJBwY/rNr4mK22p8erBrqMW0nYXYU5NFynI+pNTjojhKD4II8PNV8G2yMWwYOb/u4+WPzUA"
   "HC9DpZdrWTEH/W69Cr/KxRqGsWPwpgMv2Wqav8jaT35JxqTXjOlhQqzo6fNn3eYOeCf4PkCxZKwckWjy10qDaRbjhwAMHAGj2TPr"
   "idlvOj/7QyyX5m8up/1US8z1fRW4yoCSOt6V2bwuH6cAvAAMAAAAAAQEAAA==");
+  // clang-format on
 
   deserializeAndVerify(base64Serialization, false);
 }
 
-TEST(psm_DeserializeCert, preSSLStatusConsolidation)
-{
+TEST(psm_DeserializeCert, preSSLStatusConsolidation) {
+  // clang-format off
   // Generated using serialized output of test "good.include-subdomains.pinning.example.com"
   // in security/manager/ssl/tests/unit/test_cert_chains.js
   nsCString base64Serialization(
@@ -184,12 +185,13 @@ TEST(psm_DeserializeCert, preSSLStatusConsolidation)
   "9cZFVtzRWYEYkIlicAyTiPw34bXzxU1cK6sCSmBR+UTXbRPGb4OOy3MRaoF1m3jxwnPkQwxezDiqJTydCbYcBu0sKwURAZOd5QK9"
   "22MsOsnrLjNlpRDmuH0VFhb5uN2I5mM3NvMnP2Or19O1Bk//iGD6AyJfiZFcii+FsDrJhbzw6lakEV7O/EnD0kk2l7I0VMtg1xZB"
   "bEw7P6+V9zz5cAzaaq7EB0mCE+jJckSzSETBN+7lyVD8gwmHYxxZfPnUM/yvPbMU9L3xWD/z6HHwO6r+9m7BT+2pHjBCAAA=");
+  // clang-format on
 
   deserializeAndVerify(base64Serialization, false);
 }
 
-TEST(psm_DeserializeCert, preSSLStatusConsolidationFailedCertChain)
-{
+TEST(psm_DeserializeCert, preSSLStatusConsolidationFailedCertChain) {
+  // clang-format off
   // Generated using serialized output of test "expired.example.com"
   // in security/manager/ssl/tests/unit/test_cert_chains.js
   nsCString base64Serialization(
@@ -250,7 +252,7 @@ TEST(psm_DeserializeCert, preSSLStatusConsolidationFailedCertChain)
   "4bXzxU1cK6sCSmBR+UTXbRPGb4OOy3MRaoF1m3jxwnPkQwxezDiqJTydCbYcBu0sKwURAZOd5QK922MsOsnrLjNlpRDmuH0VFhb5"
   "uN2I5mM3NvMnP2Or19O1Bk//iGD6AyJfiZFcii+FsDrJhbzw6lakEV7O/EnD0kk2l7I0VMtg1xZBbEw7P6+V9zz5cAzaaq7EB0mC"
   "E+jJckSzSETBN+7lyVD8gwmHYxxZfPnUM/yvPbMU9L3xWD/z6HHwO6r+9m7BT+2pHjBC");
+  // clang-format on
 
   deserializeAndVerify(base64Serialization, true, 2);
 }
-

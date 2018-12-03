@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,44 +13,42 @@
 struct txStylesheetAttr;
 class txStylesheetCompilerState;
 
-typedef nsresult (*HandleStartFn) (int32_t aNamespaceID,
-                                   nsAtom* aLocalName,
-                                   nsAtom* aPrefix,
-                                   txStylesheetAttr* aAttributes,
-                                   int32_t aAttrCount,
-                                   txStylesheetCompilerState& aState);
-typedef nsresult (*HandleEndFn)   (txStylesheetCompilerState& aState);
-typedef nsresult (*HandleTextFn)  (const nsAString& aStr,
-                                   txStylesheetCompilerState& aState);
+typedef nsresult (*HandleStartFn)(int32_t aNamespaceID, nsAtom* aLocalName,
+                                  nsAtom* aPrefix,
+                                  txStylesheetAttr* aAttributes,
+                                  int32_t aAttrCount,
+                                  txStylesheetCompilerState& aState);
+typedef nsresult (*HandleEndFn)(txStylesheetCompilerState& aState);
+typedef nsresult (*HandleTextFn)(const nsAString& aStr,
+                                 txStylesheetCompilerState& aState);
 
 struct txElementHandler {
-    int32_t mNamespaceID;
-    const char* mLocalName;
-    HandleStartFn mStartFunction;
-    HandleEndFn mEndFunction;
+  int32_t mNamespaceID;
+  const char* mLocalName;
+  HandleStartFn mStartFunction;
+  HandleEndFn mEndFunction;
 };
 
-class txHandlerTable
-{
-public:
-    txHandlerTable(const HandleTextFn aTextHandler,
-                   const txElementHandler* aLREHandler,
-                   const txElementHandler* aOtherHandler);
-    nsresult init(const txElementHandler* aHandlers, uint32_t aCount);
-    const txElementHandler* find(int32_t aNamespaceID, nsAtom* aLocalName);
+class txHandlerTable {
+ public:
+  txHandlerTable(const HandleTextFn aTextHandler,
+                 const txElementHandler* aLREHandler,
+                 const txElementHandler* aOtherHandler);
+  nsresult init(const txElementHandler* aHandlers, uint32_t aCount);
+  const txElementHandler* find(int32_t aNamespaceID, nsAtom* aLocalName);
 
-    const HandleTextFn mTextHandler;
-    const txElementHandler* const mLREHandler;
+  const HandleTextFn mTextHandler;
+  const txElementHandler* const mLREHandler;
 
-    static bool init();
-    static void shutdown();
+  static bool init();
+  static void shutdown();
 
-private:
-    const txElementHandler* const mOtherHandler;
-    txExpandedNameMap<const txElementHandler> mHandlers;
+ private:
+  const txElementHandler* const mOtherHandler;
+  txExpandedNameMap<const txElementHandler> mHandlers;
 };
 
 extern txHandlerTable* gTxRootHandler;
 extern txHandlerTable* gTxEmbedHandler;
 
-#endif //TRANSFRMX_TXSTYLESHEETCOMPILEHANDLERS_H
+#endif  // TRANSFRMX_TXSTYLESHEETCOMPILEHANDLERS_H

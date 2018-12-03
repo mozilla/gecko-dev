@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,34 +16,30 @@
 namespace mozilla {
 
 class WebBrowserPersistSerializeParent
-    : public PWebBrowserPersistSerializeParent
-{
-public:
-    WebBrowserPersistSerializeParent(
-        nsIWebBrowserPersistDocument* aDocument,
-        nsIOutputStream* aStream,
-        nsIWebBrowserPersistWriteCompletion* aFinish);
-    virtual ~WebBrowserPersistSerializeParent();
+    : public PWebBrowserPersistSerializeParent {
+ public:
+  WebBrowserPersistSerializeParent(
+      nsIWebBrowserPersistDocument* aDocument, nsIOutputStream* aStream,
+      nsIWebBrowserPersistWriteCompletion* aFinish);
+  virtual ~WebBrowserPersistSerializeParent();
 
-    virtual mozilla::ipc::IPCResult
-    RecvWriteData(nsTArray<uint8_t>&& aData) override;
+  virtual mozilla::ipc::IPCResult RecvWriteData(
+      nsTArray<uint8_t>&& aData) override;
 
-    virtual mozilla::ipc::IPCResult
-    Recv__delete__(const nsCString& aContentType,
-                   const nsresult& aStatus) override;
+  virtual mozilla::ipc::IPCResult Recv__delete__(
+      const nsCString& aContentType, const nsresult& aStatus) override;
 
-    virtual void
-    ActorDestroy(ActorDestroyReason aWhy) override;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
-private:
-    // See also ...ReadParent::mDocument for the other reason this
-    // strong reference needs to be here.
-    nsCOMPtr<nsIWebBrowserPersistDocument> mDocument;
-    nsCOMPtr<nsIOutputStream> mStream;
-    nsCOMPtr<nsIWebBrowserPersistWriteCompletion> mFinish;
-    nsresult mOutputError;
+ private:
+  // See also ...ReadParent::mDocument for the other reason this
+  // strong reference needs to be here.
+  nsCOMPtr<nsIWebBrowserPersistDocument> mDocument;
+  nsCOMPtr<nsIOutputStream> mStream;
+  nsCOMPtr<nsIWebBrowserPersistWriteCompletion> mFinish;
+  nsresult mOutputError;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WebBrowserPersistSerializeParent_h__
+#endif  // WebBrowserPersistSerializeParent_h__

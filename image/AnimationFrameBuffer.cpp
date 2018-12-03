@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AnimationFrameBuffer.h"
-#include "mozilla/Move.h"             // for Move
+#include "mozilla/Move.h"  // for Move
 
 namespace mozilla {
 namespace image {
@@ -12,9 +12,7 @@ namespace image {
 AnimationFrameRetainedBuffer::AnimationFrameRetainedBuffer(size_t aThreshold,
                                                            size_t aBatch,
                                                            size_t aStartFrame)
-  : AnimationFrameBuffer(aBatch, aStartFrame)
-  , mThreshold(aThreshold)
-{
+    : AnimationFrameBuffer(aBatch, aStartFrame), mThreshold(aThreshold) {
   // To simplify the code, we have the assumption that the threshold for
   // entering discard-after-display mode is at least twice the batch size (since
   // that is the most frames-pending-decode we will request) + 1 for the current
@@ -32,9 +30,7 @@ AnimationFrameRetainedBuffer::AnimationFrameRetainedBuffer(size_t aThreshold,
   mPending = mBatch * 2;
 }
 
-bool
-AnimationFrameRetainedBuffer::InsertInternal(RefPtr<imgFrame>&& aFrame)
-{
+bool AnimationFrameRetainedBuffer::InsertInternal(RefPtr<imgFrame>&& aFrame) {
   // We should only insert new frames if we actually asked for them.
   MOZ_ASSERT(!mSizeKnown);
   MOZ_ASSERT(mFrames.Length() < mThreshold);
@@ -44,9 +40,7 @@ AnimationFrameRetainedBuffer::InsertInternal(RefPtr<imgFrame>&& aFrame)
   return mSize < mThreshold;
 }
 
-bool
-AnimationFrameRetainedBuffer::ResetInternal()
-{
+bool AnimationFrameRetainedBuffer::ResetInternal() {
   // If we haven't crossed the threshold, then we know by definition we have
   // not discarded any frames. If we previously requested more frames, but
   // it would have been more than we would have buffered otherwise, we can
@@ -61,9 +55,8 @@ AnimationFrameRetainedBuffer::ResetInternal()
   return false;
 }
 
-bool
-AnimationFrameRetainedBuffer::MarkComplete(const gfx::IntRect& aFirstFrameRefreshArea)
-{
+bool AnimationFrameRetainedBuffer::MarkComplete(
+    const gfx::IntRect& aFirstFrameRefreshArea) {
   MOZ_ASSERT(!mSizeKnown);
   mSizeKnown = true;
   mPending = 0;
@@ -71,9 +64,7 @@ AnimationFrameRetainedBuffer::MarkComplete(const gfx::IntRect& aFirstFrameRefres
   return false;
 }
 
-void
-AnimationFrameRetainedBuffer::AdvanceInternal()
-{
+void AnimationFrameRetainedBuffer::AdvanceInternal() {
   // We should not have advanced if we never inserted.
   MOZ_ASSERT(!mFrames.IsEmpty());
   // We only want to change the current frame index if we have advanced. This
@@ -100,9 +91,7 @@ AnimationFrameRetainedBuffer::AdvanceInternal()
   }
 }
 
-imgFrame*
-AnimationFrameRetainedBuffer::Get(size_t aFrame, bool aForDisplay)
-{
+imgFrame* AnimationFrameRetainedBuffer::Get(size_t aFrame, bool aForDisplay) {
   // We should not have asked for a frame if we never inserted.
   if (mFrames.IsEmpty()) {
     MOZ_ASSERT_UNREACHABLE("Calling Get() when we have no frames");
@@ -126,39 +115,32 @@ AnimationFrameRetainedBuffer::Get(size_t aFrame, bool aForDisplay)
   return mFrames[aFrame].get();
 }
 
-bool
-AnimationFrameRetainedBuffer::IsFirstFrameFinished() const
-{
+bool AnimationFrameRetainedBuffer::IsFirstFrameFinished() const {
   return !mFrames.IsEmpty() && mFrames[0]->IsFinished();
 }
 
-bool
-AnimationFrameRetainedBuffer::IsLastInsertedFrame(imgFrame* aFrame) const
-{
+bool AnimationFrameRetainedBuffer::IsLastInsertedFrame(imgFrame* aFrame) const {
   return !mFrames.IsEmpty() && mFrames.LastElement().get() == aFrame;
 }
 
-void
-AnimationFrameRetainedBuffer::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                                     const AddSizeOfCb& aCallback)
-{
+void AnimationFrameRetainedBuffer::AddSizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf, const AddSizeOfCb& aCallback) {
   size_t i = 0;
   for (const RefPtr<imgFrame>& frame : mFrames) {
     ++i;
     frame->AddSizeOfExcludingThis(aMallocSizeOf,
-      [&](AddSizeOfCbData& aMetadata) {
-        aMetadata.index = i;
-        aCallback(aMetadata);
-      }
-    );
+                                  [&](AddSizeOfCbData& aMetadata) {
+                                    aMetadata.index = i;
+                                    aCallback(aMetadata);
+                                  });
   }
 }
 
-AnimationFrameDiscardingQueue::AnimationFrameDiscardingQueue(AnimationFrameRetainedBuffer&& aQueue)
-  : AnimationFrameBuffer(aQueue)
-  , mInsertIndex(aQueue.mFrames.Length())
-  , mFirstFrame(std::move(aQueue.mFrames[0]))
-{
+AnimationFrameDiscardingQueue::AnimationFrameDiscardingQueue(
+    AnimationFrameRetainedBuffer&& aQueue)
+    : AnimationFrameBuffer(aQueue),
+      mInsertIndex(aQueue.mFrames.Length()),
+      mFirstFrame(std::move(aQueue.mFrames[0])) {
   MOZ_ASSERT(!mSizeKnown);
   MOZ_ASSERT(!mRedecodeError);
   MOZ_ASSERT(mInsertIndex > 0);
@@ -171,9 +153,7 @@ AnimationFrameDiscardingQueue::AnimationFrameDiscardingQueue(AnimationFrameRetai
   }
 }
 
-bool
-AnimationFrameDiscardingQueue::InsertInternal(RefPtr<imgFrame>&& aFrame)
-{
+bool AnimationFrameDiscardingQueue::InsertInternal(RefPtr<imgFrame>&& aFrame) {
   // Even though we don't use redecoded first frames for display purposes, we
   // will still use them for recycling, so we still need to insert it.
   mDisplay.push_back(std::move(aFrame));
@@ -182,9 +162,7 @@ AnimationFrameDiscardingQueue::InsertInternal(RefPtr<imgFrame>&& aFrame)
   return true;
 }
 
-bool
-AnimationFrameDiscardingQueue::ResetInternal()
-{
+bool AnimationFrameDiscardingQueue::ResetInternal() {
   mDisplay.clear();
   mInsertIndex = 0;
 
@@ -193,9 +171,8 @@ AnimationFrameDiscardingQueue::ResetInternal()
   return restartDecoder;
 }
 
-bool
-AnimationFrameDiscardingQueue::MarkComplete(const gfx::IntRect& aFirstFrameRefreshArea)
-{
+bool AnimationFrameDiscardingQueue::MarkComplete(
+    const gfx::IntRect& aFirstFrameRefreshArea) {
   if (NS_WARN_IF(mInsertIndex != mSize)) {
     MOZ_ASSERT(mSizeKnown);
     mRedecodeError = true;
@@ -213,9 +190,7 @@ AnimationFrameDiscardingQueue::MarkComplete(const gfx::IntRect& aFirstFrameRefre
   return mPending > 0;
 }
 
-void
-AnimationFrameDiscardingQueue::AdvanceInternal()
-{
+void AnimationFrameDiscardingQueue::AdvanceInternal() {
   // We only want to change the current frame index if we have advanced. This
   // means either a higher frame index, or going back to the beginning.
   // We should never have advanced beyond the frame buffer.
@@ -236,9 +211,7 @@ AnimationFrameDiscardingQueue::AdvanceInternal()
   }
 }
 
-imgFrame*
-AnimationFrameDiscardingQueue::Get(size_t aFrame, bool aForDisplay)
-{
+imgFrame* AnimationFrameDiscardingQueue::Get(size_t aFrame, bool aForDisplay) {
   // The first frame is stored separately. If we only need the frame for
   // display purposes, we can return it right away. If we need it for advancing
   // the animation, we want to verify the recreated first frame is available
@@ -275,30 +248,24 @@ AnimationFrameDiscardingQueue::Get(size_t aFrame, bool aForDisplay)
   return mDisplay[offset].get();
 }
 
-bool
-AnimationFrameDiscardingQueue::IsFirstFrameFinished() const
-{
+bool AnimationFrameDiscardingQueue::IsFirstFrameFinished() const {
   MOZ_ASSERT(mFirstFrame);
   MOZ_ASSERT(mFirstFrame->IsFinished());
   return true;
 }
 
-bool
-AnimationFrameDiscardingQueue::IsLastInsertedFrame(imgFrame* aFrame) const
-{
+bool AnimationFrameDiscardingQueue::IsLastInsertedFrame(
+    imgFrame* aFrame) const {
   return !mDisplay.empty() && mDisplay.back().get() == aFrame;
 }
 
-void
-AnimationFrameDiscardingQueue::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                                      const AddSizeOfCb& aCallback)
-{
+void AnimationFrameDiscardingQueue::AddSizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf, const AddSizeOfCb& aCallback) {
   mFirstFrame->AddSizeOfExcludingThis(aMallocSizeOf,
-    [&](AddSizeOfCbData& aMetadata) {
-      aMetadata.index = 1;
-      aCallback(aMetadata);
-    }
-  );
+                                      [&](AddSizeOfCbData& aMetadata) {
+                                        aMetadata.index = 1;
+                                        aCallback(aMetadata);
+                                      });
 
   size_t i = mGetIndex;
   for (const RefPtr<imgFrame>& frame : mDisplay) {
@@ -314,45 +281,40 @@ AnimationFrameDiscardingQueue::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf
     }
 
     frame->AddSizeOfExcludingThis(aMallocSizeOf,
-      [&](AddSizeOfCbData& aMetadata) {
-        aMetadata.index = i;
-        aCallback(aMetadata);
-      }
-    );
+                                  [&](AddSizeOfCbData& aMetadata) {
+                                    aMetadata.index = i;
+                                    aCallback(aMetadata);
+                                  });
   }
 }
 
-AnimationFrameRecyclingQueue::AnimationFrameRecyclingQueue(AnimationFrameRetainedBuffer&& aQueue)
-  : AnimationFrameDiscardingQueue(std::move(aQueue))
-{
+AnimationFrameRecyclingQueue::AnimationFrameRecyclingQueue(
+    AnimationFrameRetainedBuffer&& aQueue)
+    : AnimationFrameDiscardingQueue(std::move(aQueue)),
+      mForceUseFirstFrameRefreshArea(false) {
   // In an ideal world, we would always save the already displayed frames for
   // recycling but none of the frames were marked as recyclable. We will incur
   // the extra allocation cost for a few more frames.
   mRecycling = true;
 }
 
-void
-AnimationFrameRecyclingQueue::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                                     const AddSizeOfCb& aCallback)
-{
+void AnimationFrameRecyclingQueue::AddSizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf, const AddSizeOfCb& aCallback) {
   AnimationFrameDiscardingQueue::AddSizeOfExcludingThis(aMallocSizeOf,
                                                         aCallback);
 
   for (const RecycleEntry& entry : mRecycle) {
     if (entry.mFrame) {
-      entry.mFrame->AddSizeOfExcludingThis(aMallocSizeOf,
-        [&](AddSizeOfCbData& aMetadata) {
-          aMetadata.index = 0; // Frame is not applicable
-          aCallback(aMetadata);
-        }
-      );
+      entry.mFrame->AddSizeOfExcludingThis(
+          aMallocSizeOf, [&](AddSizeOfCbData& aMetadata) {
+            aMetadata.index = 0;  // Frame is not applicable
+            aCallback(aMetadata);
+          });
     }
   }
 }
 
-void
-AnimationFrameRecyclingQueue::AdvanceInternal()
-{
+void AnimationFrameRecyclingQueue::AdvanceInternal() {
   // We only want to change the current frame index if we have advanced. This
   // means either a higher frame index, or going back to the beginning.
   // We should never have advanced beyond the frame buffer.
@@ -361,31 +323,20 @@ AnimationFrameRecyclingQueue::AdvanceInternal()
   MOZ_ASSERT(!mDisplay.empty());
   MOZ_ASSERT(mDisplay.front());
 
+  // We have advanced past the first frame. That means the next frame we are
+  // putting in the queue to recycling is the first frame in the animation,
+  // and we no longer need to worry about having looped around.
+  if (mGetIndex == 1) {
+    mForceUseFirstFrameRefreshArea = false;
+  }
+
   RefPtr<imgFrame>& front = mDisplay.front();
-
-  // The first frame should always have a dirty rect that matches the frame
-  // rect. As such, we should use mFirstFrameRefreshArea instead for recycle
-  // rect calculations.
-  MOZ_ASSERT_IF(mGetIndex == 1,
-                front->GetRect().IsEqualEdges(front->GetDirtyRect()));
-
-  RecycleEntry newEntry(mGetIndex == 1 ? mFirstFrameRefreshArea
-                                       : front->GetDirtyRect());
+  RecycleEntry newEntry(mForceUseFirstFrameRefreshArea ? mFirstFrameRefreshArea
+                                                       : front->GetDirtyRect());
 
   // If we are allowed to recycle the frame, then we should save it before the
   // base class's AdvanceInternal discards it.
   if (front->ShouldRecycle()) {
-    // Calculate the recycle rect for the recycled frame. This is the cumulative
-    // dirty rect of all of the frames ahead of us to be displayed, and to be
-    // used for recycling. Or in other words, the dirty rect between the
-    // recycled frame and the decoded frame which reuses the buffer.
-    for (const RefPtr<imgFrame>& frame : mDisplay) {
-      newEntry.mRecycleRect = newEntry.mRecycleRect.Union(frame->GetDirtyRect());
-    }
-    for (const RecycleEntry& entry : mRecycle) {
-      newEntry.mRecycleRect = newEntry.mRecycleRect.Union(entry.mDirtyRect);
-    }
-
     newEntry.mFrame = std::move(front);
   }
 
@@ -418,45 +369,83 @@ AnimationFrameRecyclingQueue::AdvanceInternal()
   }
 }
 
-bool
-AnimationFrameRecyclingQueue::ResetInternal()
-{
+bool AnimationFrameRecyclingQueue::ResetInternal() {
   mRecycle.clear();
   return AnimationFrameDiscardingQueue::ResetInternal();
 }
 
-RawAccessFrameRef
-AnimationFrameRecyclingQueue::RecycleFrame(gfx::IntRect& aRecycleRect)
-{
+RawAccessFrameRef AnimationFrameRecyclingQueue::RecycleFrame(
+    gfx::IntRect& aRecycleRect) {
+  if (mInsertIndex == 0) {
+    // If we are recreating the first frame, then we actually have already
+    // precomputed aggregate of the dirty rects as the first frame refresh
+    // area. We know that all of the frames still in the recycling queue
+    // need to take into account the same dirty rect because they are also
+    // frames which cross the boundary.
+    MOZ_ASSERT(mSizeKnown);
+    MOZ_ASSERT(!mFirstFrameRefreshArea.IsEmpty());
+    for (RecycleEntry& entry : mRecycle) {
+      MOZ_ASSERT(mFirstFrameRefreshArea.Contains(entry.mDirtyRect));
+      entry.mDirtyRect = mFirstFrameRefreshArea;
+    }
+    // Until we advance to the first frame again, any subsequent recycled
+    // frames should also use the first frame refresh area.
+    mForceUseFirstFrameRefreshArea = true;
+  }
+
   if (mRecycle.empty()) {
     return RawAccessFrameRef();
   }
 
-  RawAccessFrameRef frame;
+  RawAccessFrameRef recycledFrame;
   if (mRecycle.front().mFrame) {
-    frame = mRecycle.front().mFrame->RawAccessRef();
-    if (frame) {
-      aRecycleRect = mRecycle.front().mRecycleRect;
+    recycledFrame = mRecycle.front().mFrame->RawAccessRef();
+    MOZ_ASSERT(recycledFrame);
+    mRecycle.pop_front();
+
+    if (mForceUseFirstFrameRefreshArea) {
+      // We are still crossing the loop boundary and cannot rely upon the dirty
+      // rects of entries in mDisplay to be representative. E.g. The first frame
+      // is probably has a full frame dirty rect.
+      aRecycleRect = mFirstFrameRefreshArea;
+    } else {
+      // Calculate the recycle rect for the recycled frame. This is the
+      // cumulative dirty rect of all of the frames ahead of us to be displayed,
+      // and to be used for recycling. Or in other words, the dirty rect between
+      // the recycled frame and the decoded frame which reuses the buffer.
+      //
+      // We know at this point that mRecycle contains either frames from the end
+      // of the animation with the first frame refresh area as the dirty rect
+      // (plus the first frame likewise) and frames with their actual dirty rect
+      // from the start. mDisplay should also only contain frames from the start
+      // of the animation onwards.
+      aRecycleRect.SetRect(0, 0, 0, 0);
+      for (const RefPtr<imgFrame>& frame : mDisplay) {
+        aRecycleRect = aRecycleRect.Union(frame->GetDirtyRect());
+      }
+      for (const RecycleEntry& entry : mRecycle) {
+        aRecycleRect = aRecycleRect.Union(entry.mDirtyRect);
+      }
     }
+  } else {
+    mRecycle.pop_front();
   }
 
-  mRecycle.pop_front();
-  return frame;
+  return recycledFrame;
 }
 
-bool
-AnimationFrameRecyclingQueue::MarkComplete(const gfx::IntRect& aFirstFrameRefreshArea)
-{
+bool AnimationFrameRecyclingQueue::MarkComplete(
+    const gfx::IntRect& aFirstFrameRefreshArea) {
   bool continueDecoding =
-    AnimationFrameDiscardingQueue::MarkComplete(aFirstFrameRefreshArea);
+      AnimationFrameDiscardingQueue::MarkComplete(aFirstFrameRefreshArea);
 
-  MOZ_ASSERT_IF(!mRedecodeError,
-                mFirstFrameRefreshArea.IsEmpty() ||
-                mFirstFrameRefreshArea.IsEqualEdges(aFirstFrameRefreshArea));
+  MOZ_ASSERT_IF(!mRedecodeError, mFirstFrameRefreshArea.IsEmpty() ||
+                                     mFirstFrameRefreshArea.IsEqualEdges(
+                                         aFirstFrameRefreshArea));
 
   mFirstFrameRefreshArea = aFirstFrameRefreshArea;
   return continueDecoding;
 }
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla

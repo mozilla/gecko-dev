@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim:expandtab:shiftwidth=4:tabstop=4:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,20 +15,17 @@ nsGTKToolkit* nsGTKToolkit::gToolkit = nullptr;
 // constructor
 //
 //-------------------------------------------------------------------------
-nsGTKToolkit::nsGTKToolkit()
-  : mFocusTimestamp(0)
-{
-}
+nsGTKToolkit::nsGTKToolkit() : mFocusTimestamp(0) {}
 
 //-------------------------------------------------------------------------------
-// Return the toolkit. If a toolkit does not yet exist, then one will be created.
+// Return the toolkit. If a toolkit does not yet exist, then one will be
+// created.
 //-------------------------------------------------------------------------------
 // static
-nsGTKToolkit* nsGTKToolkit::GetToolkit()
-{
-    if (!gToolkit) {
-        gToolkit = new nsGTKToolkit();
-    }
+nsGTKToolkit* nsGTKToolkit::GetToolkit() {
+  if (!gToolkit) {
+    gToolkit = new nsGTKToolkit();
+  }
 
-    return gToolkit;
+  return gToolkit;
 }

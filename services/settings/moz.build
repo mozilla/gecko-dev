@@ -16,8 +16,10 @@ EXTRA_COMPONENTS += [
 
 EXTRA_JS_MODULES['services-settings'] += [
     'remote-settings.js',
+    'RemoteSettingsClient.jsm',
     'RemoteSettingsWorker.js',
     'RemoteSettingsWorker.jsm',
+    'Utils.jsm',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']

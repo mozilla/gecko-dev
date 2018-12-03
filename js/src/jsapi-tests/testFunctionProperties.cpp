@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,20 +7,19 @@
 
 #include "jsapi-tests/tests.h"
 
-BEGIN_TEST(testFunctionProperties)
-{
-    JS::RootedValue x(cx);
-    EVAL("(function f() {})", &x);
+BEGIN_TEST(testFunctionProperties) {
+  JS::RootedValue x(cx);
+  EVAL("(function f() {})", &x);
 
-    JS::RootedObject obj(cx, x.toObjectOrNull());
+  JS::RootedObject obj(cx, x.toObjectOrNull());
 
-    JS::RootedValue y(cx);
-    CHECK(JS_GetProperty(cx, obj, "arguments", &y));
-    CHECK(y.isNull());
+  JS::RootedValue y(cx);
+  CHECK(JS_GetProperty(cx, obj, "arguments", &y));
+  CHECK(y.isNull());
 
-    CHECK(JS_GetProperty(cx, obj, "caller", &y));
-    CHECK(y.isNull());
+  CHECK(JS_GetProperty(cx, obj, "caller", &y));
+  CHECK(y.isNull());
 
-    return true;
+  return true;
 }
 END_TEST(testFunctionProperties)

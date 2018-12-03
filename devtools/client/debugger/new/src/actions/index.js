@@ -6,13 +6,11 @@
 
 import * as breakpoints from "./breakpoints";
 import * as expressions from "./expressions";
-import * as eventListeners from "./event-listeners";
 import * as pause from "./pause";
 import * as navigation from "./navigation";
 import * as ui from "./ui";
 import * as fileSearch from "./file-search";
 import * as ast from "./ast";
-import * as coverage from "./coverage";
 import * as projectTextSearch from "./project-text-search";
 import * as quickOpen from "./quick-open";
 import * as sourceTree from "./source-tree";
@@ -26,14 +24,12 @@ export default {
   ...navigation,
   ...breakpoints,
   ...expressions,
-  ...eventListeners,
   ...sources,
   ...tabs,
   ...pause,
   ...ui,
   ...fileSearch,
   ...ast,
-  ...coverage,
   ...projectTextSearch,
   ...quickOpen,
   ...sourceTree,

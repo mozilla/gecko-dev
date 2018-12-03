@@ -277,6 +277,22 @@ button.jump-definition {
 }
 
 /******************************************************************************/
+/* Invoke getter button */
+
+button.invoke-getter {
+  mask: url("resource://devtools/client/shared/components/reps/images/input.svg") no-repeat;
+  display: inline-block;
+  background-color: var(--comment-node-color);
+  height: 10px;
+  vertical-align: middle;
+  border:none;
+}
+
+.invoke-getter:hover {
+  background-color: var(--theme-highlight-blue);
+}
+
+/******************************************************************************/
 /* "more…" ellipsis */
 .more-ellipsis {
   color: var(--comment-node-color);
@@ -337,24 +353,29 @@ button.jump-definition {
   cursor: default;
 }
 
-.tree-node img.arrow {
-  mask: url("resource://devtools/client/debugger/new/images/arrow.svg") no-repeat;
-  mask-size: 100%;
+.tree-node button.arrow {
+  background:url("resource://devtools/client/debugger/new/images/arrow.svg") no-repeat;
+  background-size:contain;
+  background-position:center center;
   width: 9px;
   height: 9px;
+  border:0;
+  padding:0;
   margin-inline-start: 1px;
   margin-inline-end: 4px;
-  background-color: var(--theme-splitter-color, #9B9B9B);
   transform: rotate(-90deg);
+  transform-origin: center center;
   transition: transform 0.125s ease;
   align-self: center;
+  -moz-context-properties: fill;
+  fill: var(--theme-splitter-color, #9B9B9B);
 }
 
-html[dir="rtl"] .tree-node img.arrow {
+html[dir="rtl"] .tree-node button.arrow {
   transform: rotate(90deg);
 }
 
-.tree-node img.arrow.expanded.expanded {
+.tree-node button.arrow.expanded.expanded {
   transform: rotate(0deg);
  }
 
@@ -363,8 +384,8 @@ html[dir="rtl"] .tree-node img.arrow {
   background-color: var(--theme-selection-background, #0a84ff);
 }
 
-.tree-node.focused img.arrow {
-  background-color: currentColor;
+.tree-node.focused button.arrow {
+  fill: currentColor;
 }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -404,7 +425,7 @@ html[dir="rtl"] .tree-node img.arrow {
   color: var(--theme-comment);
 }
 
-.object-inspector .tree-node img.arrow {
+.object-inspector .tree-node .arrow {
   display: inline-block;
   vertical-align: middle;
 }
@@ -415,7 +436,8 @@ html[dir="rtl"] .tree-node img.arrow {
 }
 
 .tree-node.focused button.jump-definition,
-.tree-node.focused button.open-inspector {
+.tree-node.focused button.open-inspector,
+.tree-node.focused button.invoke-getter {
   background-color: currentColor;
 }
 .A11y-mouse :focus {
@@ -2286,22 +2308,13 @@ menuseparator {
   background: var(--theme-body-color);
 }
 
-.source-footer .commands .coverage {
-  color: var(--theme-body-color);
-}
-
-.coverage-on .source-footer .commands .coverage {
-  color: var(--theme-highlight-blue);
-  border: 1px solid var(--theme-body-color-inactive);
-  border-radius: 2px;
-}
-
 .source-footer > .commands > .blackboxed > img.blackBox {
   background: var(--theme-highlight-blue);
 }
 
 .source-footer .blackbox-summary,
-.source-footer .mapped-source {
+.source-footer .mapped-source,
+.source-footer .cursor-position {
   color: var(--theme-body-color);
   padding-left: 2.5px;
 }
@@ -2310,6 +2323,10 @@ menuseparator {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.source-footer .cursor-position {
+  padding: 5px;
 }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2674,54 +2691,37 @@ menuseparator {
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 .call-site {
-  position: relative;
-  border-bottom: 2px solid lightgrey;
+  display: inline;
+}
+
+.call-site svg {
+  display: inline;
   cursor: pointer;
-}
-
-.call-site::before {
-  content: "";
-  mask: url("resource://devtools/client/debugger/new/images/column-marker.svg") no-repeat 100% 100%;
-  mask-size: contain;
-  display: inline-block;
-  background-color: var(--blue-55);
-  opacity: 0.5;
-  width: 9px;
   height: 12px;
-}
-
-.call-site-bp {
-  position: relative;
-  border-bottom: 2px solid #aed3ef;
-  cursor: pointer;
-}
-
-.call-site-bp::before {
-  content: "";
-  mask: url("resource://devtools/client/debugger/new/images/column-marker.svg") no-repeat 100% 100%;
-  mask-size: contain;
-  display: inline-block;
-  background-color: var(--blue-55);
   width: 9px;
-  height: 12px;
+  vertical-align: top;
 }
 
-.theme-dark .call-site {
-  border-bottom: none;
+.call-site.active svg {
+  fill: var(--blue-50);
+  stroke: var(--blue-60);
 }
 
-.theme-dark .call-site-bp {
-  border-bottom: none;
+.call-site.disabled svg {
+  fill: var(--blue-50);
+  stroke: var(--blue-40);
+  fill-opacity: 0.5;
 }
 
-.theme-dark .call-site::before {
-  background-color: var(--blue-60);
-  opacity: 1;
+.theme-dark .call-site.active svg {
+  fill: var(--blue-55);
+  stroke: var(--blue-40);
 }
 
-.theme-dark .call-site-bp::before {
-  background-color: var(--blue-50);
-  opacity: 0.5;
+.theme-dark .call-site.disabled svg {
+  fill: var(--blue-50);
+  stroke: var(--blue-60);
+  fill-opacity: 0.5;
 }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2815,10 +2815,18 @@ html[dir="rtl"] .editor-mount {
 
 .theme-light {
   --gutter-hover-background-color: #dde1e4;
+  --breakpoint-fill: var(--blue-50);
+  --breakpoint-stroke: var(--blue-60);
+  --breakpoint-fill-disabled: var(--blue-50);
+  --breakpoint-stroke-disabled: var(--blue-40);
 }
 
 .theme-dark {
   --gutter-hover-background-color: #414141;
+  --breakpoint-fill: var(--blue-55);
+  --breakpoint-stroke: var(--blue-40);
+  --breakpoint-fill-disabled: var(--blue-50);
+  --breakpoint-stroke-disabled: var(--blue-60);
 }
 
 :not(.empty-line):not(.new-breakpoint)
@@ -2872,13 +2880,9 @@ html[dir="rtl"] .editor-mount {
   background: var(--theme-selection-background-hover);
 }
 
-.coverage-on .CodeMirror-code :not(.hit-marker) .CodeMirror-line,
-.coverage-on .CodeMirror-code :not(.hit-marker) .CodeMirror-gutter-wrapper {
-  opacity: 0.5;
-}
-
 .editor.new-breakpoint svg {
-  fill: var(--theme-selection-background);
+  fill: var(--breakpoint-fill);
+  stroke: var(--breakpoint-stroke);
   width: 60px;
   height: 14px;
   position: absolute;
@@ -2905,12 +2909,15 @@ html[dir="rtl"] .editor-mount {
   right: -16px;
 }
 
-.new-breakpoint.has-condition svg {
+.new-breakpoint.has-condition .CodeMirror-gutter-wrapper svg {
   fill: var(--theme-graphs-yellow);
+  stroke: var(--theme-graphs-orange);
 }
 
 .editor.new-breakpoint.breakpoint-disabled svg {
-  opacity: 0.3;
+  fill: var(--breakpoint-fill-disabled);
+  stroke: var(--breakpoint-stroke-disabled);
+  fill-opacity: 0.5;
 }
 
 .editor.column-breakpoint svg {
@@ -2965,7 +2972,8 @@ html[dir="rtl"] .editor-mount {
   color: var(--theme-comment);
 }
 
-.debug-expression {
+.debug-expression,
+.new-debug-line .call-site {
   background-color: var(--debug-expression-background);
 }
 
@@ -3627,57 +3635,8 @@ html[dir="rtl"] .breakpoints-list .breakpoint .breakpoint-line {
   margin-inline-start: 4px;
 }
 
-:root.theme-dark .annotation-logo svg path {
+:root.theme-dark .annotation-logo:not(.angular) svg path {
   fill: var(--theme-highlight-blue);
-}
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
-
-.event-listeners {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.event-listeners .listener {
-  padding: 7px 10px 7px 21px;
-  clear: both;
-  overflow: hidden;
-}
-
-.event-listeners .listener * {
-  -moz-user-select: none;
-  user-select: none;
-}
-
-.event-listeners .listener:nth-of-type(2n) {
-  background-color: var(--theme-tab-toolbar-background);
-}
-
-.event-listeners .listener .type {
-  color: var(--theme-highlight-bluegrey);
-  padding-right: 5px;
-}
-
-.event-listeners .listener .selector {
-  color: var(--theme-content-color2);
-}
-
-.event-listeners .listener-checkbox {
-  margin-left: 0;
-}
-
-.event-listeners .listener .close-btn {
-  float: right;
-}
-
-.event-listeners .listener .close {
-  display: none;
-}
-
-.event-listeners .listener:hover .close {
-  display: block;
 }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

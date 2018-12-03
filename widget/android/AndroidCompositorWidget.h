@@ -1,4 +1,4 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+/* -*- Mode: c++; c-basic-offset: 2; tab-width: 20; indent-tabs-mode: nil; -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,22 +20,21 @@ namespace widget {
  * AndroidCompositorWidget will be made to inherit from CompositorWidget
  * instead.
  */
-class AndroidCompositorWidget final : public InProcessCompositorWidget
-{
-public:
-    using InProcessCompositorWidget::InProcessCompositorWidget;
+class AndroidCompositorWidget final : public InProcessCompositorWidget {
+ public:
+  using InProcessCompositorWidget::InProcessCompositorWidget;
 
-    AndroidCompositorWidget* AsAndroid() override { return this; }
+  AndroidCompositorWidget* AsAndroid() override { return this; }
 
-    EGLNativeWindowType GetEGLNativeWindow();
+  EGLNativeWindowType GetEGLNativeWindow();
 
-    EGLSurface GetPresentationEGLSurface();
-    void SetPresentationEGLSurface(EGLSurface aVal);
+  EGLSurface GetPresentationEGLSurface();
+  void SetPresentationEGLSurface(EGLSurface aVal);
 
-    ANativeWindow* GetPresentationANativeWindow();
+  ANativeWindow* GetPresentationANativeWindow();
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // mozilla_widget_AndroidCompositorWidget_h
+#endif  // mozilla_widget_AndroidCompositorWidget_h
