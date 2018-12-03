@@ -38,11 +38,14 @@ info_file_platform_map = {
     "win64": "win64",
 }
 
+
 def ftp2updatePlatforms(platform):
     return update_platform_map.get(platform, platform)
 
+
 def ftp2shippedLocales(platform):
     return sl_platform_map.get(platform, platform)
+
 
 def shippedLocales2ftp(platform):
     matches = []
@@ -52,6 +55,7 @@ def shippedLocales2ftp(platform):
         return matches
     except IndexError:
         return [platform]
+
 
 def ftp2infoFile(platform):
     return info_file_platform_map.get(platform, platform)
