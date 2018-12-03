@@ -99,6 +99,10 @@
   skin/classic/browser/panel-icon-magnifier.svg                (../shared/panel-icon-magnifier.svg)
 #endif
   skin/classic/browser/panel-icon-retry.svg                    (../shared/panel-icon-retry.svg)
+  skin/classic/browser/policies/policies-active.svg               (../shared/icons/policies-active.svg)
+  skin/classic/browser/policies/policies-documentation.svg        (../shared/icons/policies-documentation.svg)
+  skin/classic/browser/policies/policies-error.svg                (../shared/icons/policies-error.svg)
+  skin/classic/browser/policies/policies-status.svg        (../shared/icons/policies-status.svg)
   skin/classic/browser/preferences/in-content/critters-postcard.jpg       (../shared/incontentprefs/critters-postcard.jpg)
   skin/classic/browser/preferences/in-content/face-sad.svg     (../shared/incontentprefs/face-sad.svg)
   skin/classic/browser/preferences/in-content/face-smile.svg   (../shared/incontentprefs/face-smile.svg)
