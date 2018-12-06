@@ -1,0 +1,12 @@
+https://bugzilla.mozilla.org/show_bug.cgi?id=1509634
+
+### Diagnosis
+This bug is an improvement to replace a toolbar element image from a .png file to a .svg.
+
+Firefox has an ongoing initiative to replace all .pngs that are icons or shapes to .svgs. They are doing this because .svg files are more suitable for icons because they are scalable to any size without loss in quality. 
+
+### Solution
+To solve this specific issue I will remove the .png file and point the CSS referencing the file to the .svg, which is already located in their directory.
+
+### Test
+To test I just verified that the automated tests still function and the icon is still there. Since both the .png and .svg are the same shape there wasn't an issue or any recognizable difference.
