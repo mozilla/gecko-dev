@@ -17,8 +17,8 @@ gcc_target=$1
 gcc_ext=xz
 binutils_version=2.27
 binutils_ext=bz2
-mingw_version=bcf1f29d6dc80b6025b416bef104d2314fa9be57
 binutils_configure_flags="--target=$gcc_target"
+mingw_version=70860d945e6be713af352ee62820bccb653589c2
 
 pushd $root_dir/gcc-$gcc_version
 ln -sf ../gmp-5.1.3 gmp
