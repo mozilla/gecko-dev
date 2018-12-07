@@ -67,27 +67,27 @@ build_gcc() {
 build_gcc_and_mingw() {
   mkdir gcc-objdir
   pushd gcc-objdir
-  ../gcc-$gcc_version/configure --prefix=$install_dir --target=i686-w64-mingw32 --with-gnu-ld --with-gnu-as --disable-multilib --enable-threads=posix
+  ../gcc-$gcc_version/configure --prefix=$install_dir --target=$gcc_target --with-gnu-ld --with-gnu-as --disable-multilib --enable-threads=posix
   make $make_flags all-gcc
   make $make_flags install-gcc
   popd
 
   mkdir mingw-w64-headers32
   pushd mingw-w64-headers32
-  ../mingw-w64/mingw-w64-headers/configure --host=i686-w64-mingw32 --prefix=$install_dir/i686-w64-mingw32/ --enable-sdk=all --enable-secure-api --enable-idl
+  ../mingw-w64/mingw-w64-headers/configure --host=$gcc_target --prefix=$install_dir/$gcc_target/ --enable-sdk=all --enable-secure-api --enable-idl
   make $make_flags install
   popd
 
   mkdir mingw-w64-crt32
   pushd mingw-w64-crt32
-  ../mingw-w64/mingw-w64-crt/configure --host=i686-w64-mingw32 --prefix=$install_dir/i686-w64-mingw32/
+  ../mingw-w64/mingw-w64-crt/configure --host=$gcc_target --prefix=$install_dir/$gcc_target/
   make
   make install
   popd
 
   mkdir mingw-w64-pthread
   pushd mingw-w64-pthread
-  ../mingw-w64/mingw-w64-libraries/winpthreads/configure --host=i686-w64-mingw32 --prefix=$install_dir/i686-w64-mingw32/
+  ../mingw-w64/mingw-w64-libraries/winpthreads/configure --host=$gcc_target --prefix=$install_dir/$gcc_target/
   make
   make install
   popd
@@ -99,7 +99,7 @@ build_gcc_and_mingw() {
 
   mkdir widl32
   pushd widl32
-  ../mingw-w64/mingw-w64-tools/widl/configure --prefix=$install_dir --target=i686-w64-mingw32
+  ../mingw-w64/mingw-w64-tools/widl/configure --prefix=$install_dir --target=$gcc_target
   make
   make install
   popd

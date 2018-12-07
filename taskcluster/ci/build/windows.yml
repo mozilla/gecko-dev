@@ -693,7 +693,7 @@ win32-mingw32/opt:
         - linux64-upx
         - linux64-wine
         - linux64-sccache
-        - linux64-mingw32-gcc
+        - linux64-mingw32-gcc-x86
         - linux64-mingw32-nsis
         - linux64-mingw32-fxc2
 
@@ -726,6 +726,6 @@ win32-mingw32/debug:
         - linux64-upx
         - linux64-wine
         - linux64-sccache
-        - linux64-mingw32-gcc
+        - linux64-mingw32-gcc-x86
         - linux64-mingw32-nsis
         - linux64-mingw32-fxc2

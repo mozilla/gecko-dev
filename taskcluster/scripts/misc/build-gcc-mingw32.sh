@@ -13,11 +13,12 @@ data_dir=$HOME_DIR/src/build/unix/build-gcc
 . $data_dir/build-gcc.sh
 
 gcc_version=6.4.0
+gcc_target=$1
 gcc_ext=xz
 binutils_version=2.27
 binutils_ext=bz2
-binutils_configure_flags="--target=i686-w64-mingw32"
 mingw_version=bcf1f29d6dc80b6025b416bef104d2314fa9be57
+binutils_configure_flags="--target=$gcc_target"
 
 pushd $root_dir/gcc-$gcc_version
 ln -sf ../gmp-5.1.3 gmp
