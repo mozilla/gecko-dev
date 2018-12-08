@@ -57,6 +57,7 @@ prepare() {
   git clone -n git://git.code.sf.net/p/mingw-w64/mingw-w64
   pushd mingw-w64
   git checkout $mingw_version
+  patch -p1 < $HOME_DIR/src/build/build-clang/math.patch
   popd
 
   git clone https://github.com/llvm-mirror/libunwind.git
