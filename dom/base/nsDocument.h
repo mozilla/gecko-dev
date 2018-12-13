@@ -652,7 +652,7 @@ public:
   // If HasAnimationController is true, this is guaranteed to return non-null.
   nsSMILAnimationController* GetAnimationController() override;
 
-  virtual mozilla::PendingAnimationTracker*
+  mozilla::PendingAnimationTracker*
   GetPendingAnimationTracker() final
   {
     return mPendingAnimationTracker;
